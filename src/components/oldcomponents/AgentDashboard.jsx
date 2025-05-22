@@ -113,7 +113,7 @@ const AgentDashboard = () => {
     const fetchData = async () => {
       try {
         const tokenData = JSON.parse(localStorage.getItem('token'));
-        const response = await fetch(`${window.location.origin}/agentDashboardData`, {
+        const response = await fetch(`https://esamwad.iotcom.io/agentDashboardData`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

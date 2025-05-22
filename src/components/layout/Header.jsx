@@ -1,21 +1,14 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
-import {
-  Menu,
-  X,
-  LogOut,
-  ChevronDown,
-  User,
-  Settings,
-  LayoutDashboard,
-  PhoneCall,
-} from 'lucide-react';
+import { useState, useEffect, useContext } from 'react';
+import { Menu, X, LogOut, ChevronDown, User, Settings, LayoutDashboard, PhoneCall } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
 import Cookies from 'js-cookie';
 import ThemeToggle from './ThemeToggle';
+import BreakDropdown from '../BreakDropdown';
+import HistoryContext from '@/context/HistoryContext';
 
 export default function Header() {
   const pathname = usePathname();
@@ -23,6 +16,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState(null);
+  const { setDropCalls, selectedStatus } = useContext(HistoryContext);
 
   const navLinks = [
     {
@@ -83,21 +77,24 @@ export default function Header() {
                 </Link>
               );
             })}
+            <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
           </nav>
 
           <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
 
           <div className="relative">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={toggleUserMenu} 
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleUserMenu}
               className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-white/50 dark:hover:bg-slate-800/40"
             >
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                 <User className="w-4 h-4" />
               </div>
-              <span className="hidden sm:inline font-medium">{userRole === 'super_admin' ? 'Super Admin' : 'Admin'}</span>
+              <span className="hidden sm:inline font-medium">
+                {userRole === 'super_admin' ? 'Super Admin' : 'Admin'}
+              </span>
               <ChevronDown className={cn('w-4 h-4 transition-transform duration-200', userMenuOpen && 'rotate-180')} />
             </Button>
 
@@ -137,8 +134,8 @@ export default function Header() {
 
         <div className="flex md:hidden items-center gap-3">
           <ThemeToggle />
-          <button 
-            onClick={toggleMobileMenu} 
+          <button
+            onClick={toggleMobileMenu}
             className="p-2 rounded-full hover:bg-white/50 dark:hover:bg-slate-800/40 transition-colors"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -157,8 +154,8 @@ export default function Header() {
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
                   'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
-                  isActive 
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white' 
+                  isActive
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'
                     : 'hover:bg-white/50 dark:hover:bg-slate-800/40'
                 )}
               >

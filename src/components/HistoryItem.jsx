@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { BsTelephoneInboundFill, BsTelephoneMinusFill, BsTelephoneOutboundFill, BsTrash } from 'react-icons/bs';
+import { PhoneIncoming, PhoneOutgoing, PhoneMissed, Trash2 } from 'lucide-react';
 import HistoryContext from '../context/HistoryContext';
 import { useContext } from 'react';
 
@@ -13,14 +13,9 @@ const HistoryItem = ({ date, phone, status, type, start, end, index, handleCall,
     setHistory((prev) => prev.filter((item, idx) => prev.length - 1 - index !== idx));
   };
 
-  // function call(phone) {
-  //   setPhoneNumber(phone);
-  //   handleCall();
-  // }
-
   return (
     <div className="bg-white p-2 flex items-baseline border-b justify-between">
-      <div >
+      <div>
         <div className="gap-x-4 flex mb-2">
           <span className="text-sm text-gray-600">{format(new Date(date), 'MM/dd/yyyy')}</span>
           <span className="text-sm text-gray-600">{format(new Date(date), 'hh:mm bbbb')}</span>
@@ -40,18 +35,18 @@ const HistoryItem = ({ date, phone, status, type, start, end, index, handleCall,
           </p>
           <p className="text-blue">
             {type === 'outgoing' ? (
-              <BsTelephoneOutboundFill />
+              <PhoneOutgoing className="w-5 h-5" />
             ) : type === 'incoming' ? (
-              <BsTelephoneInboundFill />
+              <PhoneIncoming className="w-5 h-5" />
             ) : (
-              <BsTelephoneMinusFill className="text-red-600" />
+              <PhoneMissed className="w-5 h-5 text-red-600" />
             )}
           </p>
         </div>
       </div>
 
       <div className="hover:text-red-800 cursor-pointer text-red-600" onClick={handleDelete}>
-        <BsTrash />
+        <Trash2 className="w-5 h-5" />
       </div>
     </div>
   );

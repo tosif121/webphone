@@ -1,8 +1,7 @@
 import HistoryContext from '../context/HistoryContext';
 import { useContext } from 'react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 import HistoryItem from './HistoryItem';
-import { IoMdArrowBack } from 'react-icons/io';
-import { BsTrash } from 'react-icons/bs';
 
 const HistoryScreen = ({ setSeeLogs, setPhoneNumber, handleCall }) => {
   const { history, setHistory } = useContext(HistoryContext);
@@ -17,7 +16,7 @@ const HistoryScreen = ({ setSeeLogs, setPhoneNumber, handleCall }) => {
               setSeeLogs(false);
             }}
           >
-            <IoMdArrowBack className="text-xl" />
+            <ArrowLeft className="w-5 h-5" />
           </div>
           <h3 className="text-xl font-bold text-primary">Call logs</h3>
 
@@ -27,7 +26,7 @@ const HistoryScreen = ({ setSeeLogs, setPhoneNumber, handleCall }) => {
               setHistory([]);
             }}
           >
-            <BsTrash className="text-xl" />
+            <Trash2 className="w-5 h-5" />
           </div>
         </div>
         <div className="overflow-x-auto lg:max-h-[60vh]">
@@ -46,6 +45,8 @@ const HistoryScreen = ({ setSeeLogs, setPhoneNumber, handleCall }) => {
                   status={item.status}
                   index={index}
                   type={item.type}
+                  handleCall={handleCall}
+                  setPhoneNumber={setPhoneNumber}
                 />
               ))
           )}

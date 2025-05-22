@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import axios from 'axios';
-import HistoryContext from '../context/HistoryContext';
-import { BsClock } from 'react-icons/bs';
 import toast from 'react-hot-toast';
+import HistoryContext from '@/context/HistoryContext';
+import { Clock } from 'lucide-react';
 
 const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
   const { username, selectedBreak, setSelectedBreak } = useContext(HistoryContext);
@@ -53,7 +53,7 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
 
   const removeBreak = async () => {
     try {
-      const response = await axios.post(`${window.location.origin}/user/removebreakuser:${username}`);
+      const response = await axios.post(`https://esamwad.iotcom.io/user/removebreakuser:${username}`);
       if (response.status === 200) {
         setSelectedBreak('Break');
         setIsOpen(false);
@@ -77,7 +77,7 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
         };
 
         const dispositionResponse = await axios.post(
-          `${window.location.origin}/user/disposition${username}`,
+          `https://esamwad.iotcom.io/user/disposition${username}`,
           dispositionData,
           {
             headers: {
@@ -91,7 +91,7 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
         }
       }
 
-      const response = await axios.post(`${window.location.origin}/user/breakuser:${username}`, {
+      const response = await axios.post(`https://esamwad.iotcom.io/user/breakuser:${username}`, {
         breakType,
       });
 
@@ -133,7 +133,7 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
         <span>{selectedBreak === 'Break' ? 'Break' : `${selectedBreak.replace('Break', '')} Break`}</span>
         {selectedBreak !== 'Break' && (
           <div className="flex items-center space-x-1">
-            <BsClock className="w-4 h-4" />
+            <Clock className="w-4 h-4" />
             <span>{formatTime(timer)}</span>
           </div>
         )}

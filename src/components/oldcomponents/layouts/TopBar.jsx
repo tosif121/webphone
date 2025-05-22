@@ -11,7 +11,7 @@ import {
   FaChevronDown,
   FaTachometerAlt,
 } from 'react-icons/fa';
-import BreakDropdown from '../BreakDropdown';
+import BreakDropdown from '../../BreakDropdown';
 import HistoryContext from '../../context/HistoryContext';
 import { RiMoonLine, RiSunLine } from 'react-icons/ri';
 
@@ -63,7 +63,7 @@ const TopBar = () => {
   return (
     <header className="bg-white h-16 flex items-center p-4 justify-between dark:bg-[#1a1a1a] border-b dark:border-[#333] border-[#ddd] sticky top-0 z-50">
       <Link to="/webphone/dashboard">
-        <img src={`${window.location.origin}/webphone/images/logo.png`} alt="Logo" width={48} height={48} />
+        <img src={`https://esamwad.iotcom.io/webphone/images/logo.png`} alt="Logo" width={48} height={48} />
       </Link>
 
       <div className="flex items-center gap-x-3 flex-wrap md:flex-nowrap">

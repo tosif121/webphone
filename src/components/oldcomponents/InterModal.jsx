@@ -1,5 +1,5 @@
+import { Phone } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { FiPhone } from 'react-icons/fi';
 
 const InterModal = ({
   adminUserData,
@@ -55,7 +55,7 @@ const InterModal = ({
                 onClick={() => handleUserCall(item.user)}
                 className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2 transition-colors duration-200"
               >
-                <FiPhone className="h-5 w-5" />
+                <Phone className="h-5 w-5" />
               </button>
             </div>
           ))}

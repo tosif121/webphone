@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useRouter } from 'next/router';
 import Cookies from 'js-cookie';
-import { Eye, EyeOff, LogIn, AlertTriangle, User, Lock, PhoneCall } from 'lucide-react';
+import { Eye, EyeOff, LogIn, AlertTriangle, User, Lock, PhoneCall, Loader2 } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,16 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
 import { authService } from '@/utils/services';
-import { Progress } from './ui/progress';
+import { Progress } from '@/components/ui/progress';
+import HistoryContext from '@/context/HistoryContext';
 
 export default function Login() {
   const router = useRouter();
 
-  // Form state
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-  });
+  // Use HistoryContext
+  const { username, setUsername, password, setPassword } = useContext(HistoryContext);
 
   // UI state
   const [validationErrors, setValidationErrors] = useState({});
@@ -29,20 +27,21 @@ export default function Login() {
   const [timer, setTimer] = useState(0);
 
   // Handle input changes
-  const handleInputChange = (e) => {
-    const { id, value } = e.target;
-    setFormData({
-      ...formData,
-      [id]: value.replace(/\s+/g, ''),
-    });
+  const handleUsernameChange = (e) => {
+    console.log(username, password);
+    setUsername(e.target.value.replace(/\s+/g, ''));
+  };
+
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value.replace(/\s+/g, ''));
   };
 
   // Validate form
   const validateForm = () => {
     const errors = {};
-    if (!formData.username) errors.username = 'Please enter username';
-    if (!formData.password) errors.password = 'Please enter password';
-    else if (formData.password.length < 6) errors.password = 'Password length should be at least 6 characters';
+    if (!username) errors.username = 'Please enter username';
+    if (!password) errors.password = 'Please enter password';
+    else if (password.length < 6) errors.password = 'Password length should be at least 6 characters';
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -121,9 +120,9 @@ export default function Login() {
 
     try {
       // Call auth service
-      const response = await authService.login(formData.username, {
-        username: formData.username,
-        password: formData.password,
+      const response = await authService.login(username, {
+        username: username,
+        password: password,
       });
 
       if (response.message === 'wrong login info') {
@@ -165,7 +164,7 @@ export default function Login() {
 
       // Success login
       toast.success('Login successfully');
-      router.push('/dashboard');
+      router.push('/');
     } catch (error) {
       console.error('Login error:', error);
       toast.error(error.message || 'An error occurred. Please try again.');
@@ -221,8 +220,8 @@ export default function Login() {
                     id="username"
                     placeholder="Enter your username"
                     className="h-14 pl-12 pr-4 bg-gray-50/50 dark:bg-slate-800/50 rounded-xl border-gray-200 dark:border-slate-700 focus:border-blue-500 ring-blue-500/30 focus:ring-4 transition-all"
-                    value={formData.username.replace(/\s+/g, '')}
-                    onChange={handleInputChange}
+                    value={username}
+                    onChange={handleUsernameChange}
                     disabled={isLoading}
                   />
                 </div>
@@ -247,8 +246,8 @@ export default function Login() {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
                     className="h-14 pl-12 pr-12 bg-gray-50/50 dark:bg-slate-800/50 rounded-xl border-gray-200 dark:border-slate-700 focus:border-blue-500 ring-blue-500/30 focus:ring-4 transition-all"
-                    value={formData.password.replace(/\s+/g, '')}
-                    onChange={handleInputChange}
+                    value={password}
+                    onChange={handlePasswordChange}
                     disabled={isLoading}
                   />
                   <Button
@@ -276,8 +275,13 @@ export default function Login() {
                 className="w-full h-14 text-base font-medium dark:text-white mt-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40"
                 disabled={isLoading}
               >
-                Login
-                <LogIn className="ml-2 h-5 w-5" />
+                {isLoading ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <>
+                    Login <LogIn className="ml-2" />
+                  </>
+                )}
               </Button>
             </form>
           </CardContent>

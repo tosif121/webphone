@@ -1,6 +1,6 @@
 import React from 'react';
-import { InputField } from './table/InputField';
-import maskPhoneNumber from '../hooks/maskPhoneNumber';
+import { Input } from './ui/input';
+import maskPhoneNumber from '@/utils/maskPhoneNumber';
 
 const UserCall = ({ formData, setFormData, userCallOpen }) => {
   const handleChange = (e) => {
@@ -15,21 +15,21 @@ const UserCall = ({ formData, setFormData, userCallOpen }) => {
     <div
       className={`${
         (!userCallOpen &&
-          'max-w-lg p-3 bg-white dark:bg-[#3333] rounded-lg shadow-[0px_0px_7px_0px_rgba(0,0,0,0.1)] dark:bg-[#333]') ||
+          'max-w-lg p-3 bg-white rounded-lg shadow-[0px_0px_7px_0px_rgba(0,0,0,0.1)] dark:bg-[#333]') ||
         'p-3'
       }`}
     >
       <form>
         <div className="grid grid-cols-2 gap-2 md:gap-4">
-          <InputField
+          <Input
             label="First Name"
             type="text"
             name="firstName"
             value={formData.firstName}
             onChange={handleChange}
           />
-          <InputField label="Last Name" type="text" name="lastName" value={formData.lastName} onChange={handleChange} />
-          <InputField
+          <Input label="Last Name" type="text" name="lastName" value={formData.lastName} onChange={handleChange} />
+          <Input
             label="Mobile Number"
             type="text"
             name="number"
@@ -37,7 +37,7 @@ const UserCall = ({ formData, setFormData, userCallOpen }) => {
             onChange={handleChange}
             placeholder="Enter Primary Number"
           />
-          <InputField
+          <Input
             label="Alternate Number"
             type="text"
             name="alternateNumber"
@@ -45,7 +45,7 @@ const UserCall = ({ formData, setFormData, userCallOpen }) => {
             onChange={handleChange}
             placeholder="Enter Alternate Number"
           />
-          <InputField
+          <Input
             label="Address"
             type="text"
             name="address"
@@ -53,7 +53,7 @@ const UserCall = ({ formData, setFormData, userCallOpen }) => {
             onChange={handleChange}
             placeholder="Enter Address Line 1"
           />
-          <InputField
+          <Input
             label="State"
             type="text"
             name="state"
@@ -61,7 +61,7 @@ const UserCall = ({ formData, setFormData, userCallOpen }) => {
             onChange={handleChange}
             placeholder="Enter State"
           />
-          <InputField
+          <Input
             label="District"
             type="text"
             name="district"
@@ -69,7 +69,7 @@ const UserCall = ({ formData, setFormData, userCallOpen }) => {
             onChange={handleChange}
             placeholder="Enter District"
           />
-          <InputField
+          <Input
             label="City"
             type="text"
             name="city"
@@ -77,7 +77,7 @@ const UserCall = ({ formData, setFormData, userCallOpen }) => {
             onChange={handleChange}
             placeholder="Enter City"
           />
-          <InputField
+          <Input
             label="Postal Code"
             type="text"
             name="postalCode"
@@ -85,7 +85,7 @@ const UserCall = ({ formData, setFormData, userCallOpen }) => {
             onChange={handleChange}
             placeholder="Enter Postal Code"
           />
-          <InputField
+          <Input
             label="Email"
             type="email"
             name="email"

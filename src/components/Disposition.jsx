@@ -1,9 +1,8 @@
 import React, { useState, useCallback, useContext, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import HistoryContext from '../context/HistoryContext';
 import axios from 'axios';
-import Modal from './table/Modal';
 import UserCall from './UserCall';
+import HistoryContext from '@/context/HistoryContext';
 import BreakDropdown from './BreakDropdown';
 
 const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData, formData }) => {
@@ -46,7 +45,7 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
       };
 
       const dispositionResponse = await axios.post(
-        `${window.location.origin}/user/disposition${username}`,
+        `https://esamwad.iotcom.io/user/disposition${username}`,
         dispositionData,
         {
           headers: {
@@ -98,7 +97,7 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
               Disposition: "Auto Disposed", //
             };
             const dispositionResponse = await axios.post(
-              `${window.location.origin}/user/disposition${username}`,
+              `https://esamwad.iotcom.io/user/disposition${username}`,
               dispositionData,
               {
                 headers: {

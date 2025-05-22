@@ -1,8 +1,8 @@
 import React, { useCallback, useMemo } from 'react';
-import { FiPhone } from 'react-icons/fi';
+import { Phone } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import maskPhoneNumber from '../hooks/maskPhoneNumber';
+import maskPhoneNumber from '@/utils/maskPhoneNumber';
 
 const DropCallsModal = ({ usermissedCalls, setDropCalls, username }) => {
   const tokenData = localStorage.getItem('token');
@@ -43,7 +43,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username }) => {
     async (caller) => {
       try {
         const sanitizedCaller = removeCountryCode(caller);
-        const response = await axios.post(`${window.location.origin}/dialmissedcall`, {
+        const response = await axios.post(`https://esamwad.iotcom.io/dialmissedcall`, {
           caller: username,
           receiver: sanitizedCaller,
         });
@@ -87,7 +87,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username }) => {
             className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2 transition-colors duration-200"
             aria-label={`Call ${caller}`}
           >
-            <FiPhone className="w-5 h-5" />
+            <Phone className="w-5 h-5" />
           </button>
         </div>
       ))}

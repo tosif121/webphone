@@ -1,16 +1,15 @@
-import { BsPersonFill, BsMicMute, BsPause, BsPersonPlus } from 'react-icons/bs';
-import { IoIosKeypad } from 'react-icons/io';
-import { IoCloseCircleOutline, IoCloseCircle } from 'react-icons/io5';
-import { ImPhoneHangUp } from 'react-icons/im';
-import { FaStopCircle } from 'react-icons/fa';
+import { User, MicOff, Pause, UserPlus } from 'lucide-react';
+import { XCircle } from 'lucide-react';
+import { PhoneOff } from 'lucide-react';
+import { Square } from 'lucide-react';
 import { useContext, useEffect, useState } from 'react';
 import KeyPad from './KeyPad';
-import { MdCallMerge } from 'react-icons/md';
-import { FcCallTransfer } from 'react-icons/fc';
+import { Merge } from 'lucide-react';
+import { PhoneForwarded } from 'lucide-react';
 import toast from 'react-hot-toast';
-import HistoryContext from '../context/HistoryContext';
 import axios from 'axios';
-import maskPhoneNumber from '../hooks/maskPhoneNumber';
+import HistoryContext from '@/context/HistoryContext';
+import maskPhoneNumber from '@/utils/maskPhoneNumber';
 
 const CallScreen = ({
   conferenceNumber,
@@ -45,7 +44,7 @@ const CallScreen = ({
 
   const handleTransfer = async () => {
     try {
-      const response = await axios.post(`${window.location.origin}/reqTransfer/${username}`, {});
+      const response = await axios.post(`https://esamwad.iotcom.io/reqTransfer/${username}`, {});
       toast.success('Request successful!');
     } catch (error) {
       console.error('Error:', error);
@@ -70,7 +69,7 @@ const CallScreen = ({
       <div className="flex flex-col items-center w-full max-w-72 p-6 bg-white dark:bg-[#3333] rounded-lg shadow-[0px_0px_7px_0px_rgba(0,0,0,0.1)]">
         <div className={`flex flex-col items-center ${showKeyPad ? '' : 'mb-24'}`}>
           <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center mb-4">
-            <BsPersonFill className="text-white text-2xl" />
+            <User className="text-white text-2xl" />
           </div>
           <marquee className="text-2xl font-bold text-primary mb-2">
             {(() => {
@@ -105,7 +104,7 @@ const CallScreen = ({
                   className={`p-4 rounded-full ${isHeld ? 'bg-primary text-white' : 'text-gray-600 dark:text-white'}`}
                   title="Hold"
                 >
-                  <BsPause className="text-3xl" />
+                  <Pause className="text-3xl" />
                 </button>
                 <button
                   disabled={!isMerged}
@@ -113,7 +112,7 @@ const CallScreen = ({
                   className={`p-4 rounded-full dark:text-white ${isMerged ? 'opacity-100' : 'opacity-45'}`}
                   title="Call Transfer"
                 >
-                  <FcCallTransfer className="text-3xl" />
+                  <PhoneForwarded className="text-3xl" />
                 </button>
 
                 <button
@@ -121,7 +120,7 @@ const CallScreen = ({
                   onClick={() => setShowKeyPad(true)}
                   title="Keypad"
                 >
-                  <IoIosKeypad className="text-3xl" />
+                  <Keypad className="text-3xl" />
                 </button>
               </div>
               <div className="flex justify-around items-center">
@@ -132,7 +131,7 @@ const CallScreen = ({
                     onClick={handleMerge}
                     title="Merge"
                   >
-                    <MdCallMerge className="text-3xl" />
+                    <Merge className="text-3xl" />
                   </button>
                 )) || (
                   <button
@@ -141,7 +140,7 @@ const CallScreen = ({
                     onClick={() => setCallConference(true)}
                     title="Call Conference"
                   >
-                    <BsPersonPlus className="text-3xl" />
+                    <UserPlus className="text-3xl" />
                   </button>
                 )}
 
@@ -154,14 +153,14 @@ const CallScreen = ({
                     }`}
                     title="Recording"
                   >
-                    <FaStopCircle className="text-3xl text-green-500" />
+                    <Square className="text-3xl text-green-500" />
                   </button>
                 ) : (
                   <button
                     onClick={stopRecording}
                     className="flex items-center space-x-2 px-4 py-2 text-gray-600 dark:text-white rounded-lg transition-opacity focus:outline-none"
                   >
-                    <FaStopCircle className="text-3xl text-red-500" />
+                    <Square className="text-3xl text-red-500" />
                     <span className="ml-2 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
                   </button>
                 )}
@@ -173,7 +172,7 @@ const CallScreen = ({
                   }}
                   title="Mute"
                 >
-                  <BsMicMute className="text-3xl" />
+                  <MicOff className="text-3xl" />
                 </button>
               </div>
             </div>
@@ -190,7 +189,7 @@ const CallScreen = ({
                   setShowKeyPad(false);
                 }}
               >
-                {isHovered ? <IoCloseCircle className="text-3xl" /> : <IoCloseCircleOutline className="text-3xl" />}
+                <XCircle className={`text-3xl ${isHovered ? 'fill-current' : ''}`} />
               </div>
             </div>
           )}
@@ -203,7 +202,7 @@ const CallScreen = ({
             stopRecording();
           }}
         >
-          <ImPhoneHangUp size={20} />
+          <PhoneOff size={20} />
         </button>
 
         <div className="mt-5">

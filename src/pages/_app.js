@@ -1,4 +1,5 @@
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { HistoryProvider } from '@/context/HistoryContext';
 import '@/styles/globals.css';
 import dynamic from 'next/dynamic';
 import { Jost } from 'next/font/google';
@@ -20,14 +21,16 @@ export default function App({ Component, pageProps }) {
   return (
     <main className={`${jostSans.className} scroll-smooth font-[family-name:var(--font-jost-sans)]`}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <Toaster position="top-right" reverseOrder={false} />
-        {isPublicPage ? (
-          <Component {...pageProps} />
-        ) : (
-          <Layout>
+        <HistoryProvider>
+          <Toaster position="top-right" reverseOrder={false} />
+          {isPublicPage ? (
             <Component {...pageProps} />
-          </Layout>
-        )}{' '}
+          ) : (
+            <Layout>
+              <Component {...pageProps} />
+            </Layout>
+          )}
+        </HistoryProvider>
       </ThemeProvider>
     </main>
   );
