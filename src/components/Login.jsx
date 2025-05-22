@@ -1,7 +1,20 @@
 import React, { useState, useContext } from 'react';
 import { useRouter } from 'next/router';
 import Cookies from 'js-cookie';
-import { Eye, EyeOff, LogIn, AlertTriangle, User, Lock, PhoneCall, Loader2 } from 'lucide-react';
+import {
+  Eye,
+  EyeOff,
+  LogIn,
+  AlertTriangle,
+  User,
+  Lock,
+  PhoneCall,
+  Loader2,
+  Clock,
+  AlertCircle,
+  Crown,
+  Calendar,
+} from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -25,6 +38,11 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [loaderMessage, setLoaderMessage] = useState('');
   const [timer, setTimer] = useState(0);
+  const [subscriptionDialog, setSubscriptionDialog] = useState({
+    isOpen: false,
+    daysExpired: 0,
+    type: 'expired', // 'expired' | 'expiring'
+  });
 
   // Handle input changes
   const handleUsernameChange = (e) => {
@@ -67,33 +85,34 @@ export default function Login() {
     }
   };
 
+  // Get subscription delay info
+  const getSubscriptionDelayInfo = (daysExpired) => {
+    const configs = {
+      1: { time: 10000, message: 'Your subscription expired yesterday', color: 'amber', severity: 'medium' },
+      2: { time: 15000, message: 'Your subscription expired 2 days ago', color: 'orange', severity: 'high' },
+      3: { time: 20000, message: 'Your subscription expired 3 days ago', color: 'red', severity: 'high' },
+      4: { time: 30000, message: 'Your subscription expired 4 days ago', color: 'red', severity: 'critical' },
+      5: { time: 60000, message: 'Your subscription expired 5 days ago', color: 'red', severity: 'critical' },
+    };
+
+    const day = Math.ceil(daysExpired);
+    return configs[day] || configs[5];
+  };
+
   // Handle subscription verification delay
   const handleSubscriptionDelay = async (daysExpired) => {
-    let message = 'Verifying subscription status...';
-    let waitTime = 5000; // Default 5 seconds
+    const config = getSubscriptionDelayInfo(daysExpired);
 
-    if (daysExpired <= 1) {
-      message = 'Your subscription expired yesterday.';
-      waitTime = 10000;
-    } else if (daysExpired <= 2) {
-      message = 'Your subscription expired 2 days ago.';
-      waitTime = 15000;
-    } else if (daysExpired <= 3) {
-      message = 'Your subscription expired 3 days ago.';
-      waitTime = 20000;
-    } else if (daysExpired <= 4) {
-      message = 'Your subscription expired 4 days ago.';
-      waitTime = 30000;
-    } else if (daysExpired <= 5) {
-      message = 'Your subscription expired more than 4 days ago.';
-      waitTime = 60000;
-    }
-
-    setLoaderMessage(message);
+    setLoaderMessage(config.message);
     setIsLoading(true);
+    setSubscriptionDialog({
+      isOpen: true,
+      daysExpired: Math.ceil(daysExpired),
+      type: 'expired',
+    });
 
     // Start countdown timer
-    const totalSeconds = waitTime / 1000;
+    const totalSeconds = config.time / 1000;
     setTimer(totalSeconds);
 
     for (let i = totalSeconds; i > 0; i--) {
@@ -102,9 +121,16 @@ export default function Login() {
     }
 
     setIsLoading(false);
+    setSubscriptionDialog((prev) => ({ ...prev, isOpen: false }));
 
-    // Return appropriate toast message
-    return `Subscription expired ${daysExpired <= 1 ? 'yesterday' : daysExpired + ' days ago'}...`;
+    return config.message;
+  };
+
+  // Format time display
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
   };
 
   // Handle login submission
@@ -154,17 +180,28 @@ export default function Login() {
           return;
         }
 
-        // Only show subscription dialog if expired
+        // Show subscription expiry dialog and wait
         const toastMessage = await handleSubscriptionDelay(daysExpired);
         toast.error(toastMessage);
       } else if (differenceInDays < 3) {
-        // Approaching expiry
+        // Approaching expiry - show warning dialog
+        setSubscriptionDialog({
+          isOpen: true,
+          daysExpired: Math.ceil(differenceInDays),
+          type: 'expiring',
+        });
+
+        // Auto close after 3 seconds
+        setTimeout(() => {
+          setSubscriptionDialog((prev) => ({ ...prev, isOpen: false }));
+        }, 3000);
+
         toast.error('Your subscription is about to expire. Please renew soon!');
       }
 
+      router.push('/');
       // Success login
       toast.success('Login successfully');
-      router.push('/');
     } catch (error) {
       console.error('Login error:', error);
       toast.error(error.message || 'An error occurred. Please try again.');
@@ -173,18 +210,108 @@ export default function Login() {
 
   return (
     <>
-      {/* Loading Dialog - Only shown when subscription is expired */}
-      <Dialog open={isLoading} onOpenChange={setIsLoading}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{loaderMessage}</DialogTitle>
-            <DialogDescription>Please wait while we verify your account...</DialogDescription>
+      {/* Subscription Dialog - NO CLOSE BUTTON */}
+      <Dialog
+        open={subscriptionDialog.isOpen}
+        onOpenChange={() => {}} // Completely disabled - user cannot close
+        modal={true}
+      >
+        <DialogContent
+          className="sm:max-w-lg bg-white/95 [&>button]:hidden dark:bg-slate-900/95 backdrop-blur-md border border-gray-200 dark:border-slate-700 shadow-2xl z-50 [&>button]:hidden" // HIDE CLOSE BUTTON
+          onEscapeKeyDown={(e) => e.preventDefault()} // Prevent ESC key closing
+          onPointerDownOutside={(e) => e.preventDefault()} // Prevent clicking outside to close
+          onInteractOutside={(e) => e.preventDefault()} // Prevent any outside interaction
+        >
+          <DialogHeader className="text-center pb-4">
+            <div className="flex justify-center mb-6">
+              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                {subscriptionDialog.type === 'expiring' ? (
+                  <AlertTriangle className="h-10 w-10 text-white" />
+                ) : (
+                  <AlertCircle className="h-10 w-10 text-white" />
+                )}
+              </div>
+            </div>
+            <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white text-center">
+              {subscriptionDialog.type === 'expiring' ? 'Subscription Expiring Soon' : 'Subscription Expired'}
+            </DialogTitle>
+            <DialogDescription className="text-base mt-2 text-gray-600 dark:text-gray-300 text-center">
+              {subscriptionDialog.type === 'expiring'
+                ? `Your subscription expires in ${subscriptionDialog.daysExpired} day${
+                    subscriptionDialog.daysExpired !== 1 ? 's' : ''
+                  }`
+                : loaderMessage}
+            </DialogDescription>
           </DialogHeader>
-          <div className="py-6">
-            <Progress value={(timer / (timer + 1)) * 100} className="w-full h-3 rounded-full" />
-            <p className="text-center mt-4 text-sm text-gray-500">{timer} seconds remaining</p>
-          </div>
+
+          {subscriptionDialog.type === 'expired' && (
+            <div className="py-6 space-y-6">
+              {/* Progress Bar */}
+              <div className="space-y-4">
+                <Progress
+                  value={((timer || 1) / ((timer || 1) + 1)) * 100}
+                  className="w-full h-4 rounded-full bg-gray-200 dark:bg-slate-700"
+                />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                    Please wait while we verify your subscription...
+                  </span>
+                  <div className="flex items-center gap-2 bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-full">
+                    <Clock className="h-4 w-4 text-blue-600" />
+                    <span className="text-lg font-bold text-gray-900 dark:text-white">{formatTime(timer)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grace Period Info Card */}
+              <div className="bg-blue-50 dark:bg-slate-800 rounded-lg p-4 border border-blue-200 dark:border-slate-600">
+                <div className="flex items-start gap-3">
+                  <Crown className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-1">Grace Period Active</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      You can still access your account while we verify your subscription status. Please wait for the
+                      verification to complete.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {subscriptionDialog.type === 'expiring' && (
+            <div className="py-4">
+              <div className="bg-amber-50 dark:bg-slate-800 rounded-lg p-4 border border-amber-200 dark:border-slate-600">
+                <div className="flex items-start gap-3">
+                  <Calendar className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-1">Renew Your Subscription</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      Don't lose access to your account. Renew now to continue using all features without interruption.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
+
+        {/* Custom Full Screen Blocking Overlay */}
+        {subscriptionDialog.isOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/80 dark:bg-black/90 backdrop-blur-sm"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              pointerEvents: 'all', // Ensure it captures all pointer events
+            }}
+            onClick={(e) => e.preventDefault()} // Prevent any clicks
+            onContextMenu={(e) => e.preventDefault()} // Prevent right-click menu
+          />
+        )}
       </Dialog>
 
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-100 dark:from-slate-900 dark:to-blue-950 px-4">
@@ -207,7 +334,7 @@ export default function Login() {
           </CardHeader>
 
           <CardContent className="space-y-8 px-8 pb-10">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-6">
               <div className="space-y-3">
                 <Label htmlFor="username" className="text-sm font-medium pl-1">
                   Username
@@ -271,7 +398,7 @@ export default function Login() {
               </div>
 
               <Button
-                type="submit"
+                onClick={handleSubmit}
                 className="w-full h-14 text-base font-medium dark:text-white mt-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40"
                 disabled={isLoading}
               >
@@ -283,7 +410,7 @@ export default function Login() {
                   </>
                 )}
               </Button>
-            </form>
+            </div>
           </CardContent>
         </Card>
       </div>
