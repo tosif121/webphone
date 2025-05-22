@@ -133,6 +133,25 @@ export default function Login() {
     return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
   };
 
+  // Navigate to home page
+  const navigateToHome = async () => {
+    try {
+      // Use replace instead of push to avoid back button issues
+      await router.replace('/');
+      
+      // Alternative approaches if the above doesn't work:
+      // Option 1: Force a hard refresh
+      // window.location.href = '/';
+      
+      // Option 2: Use router.push with a small delay
+      // setTimeout(() => router.push('/'), 100);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Fallback to hard refresh
+      window.location.href = '/';
+    }
+  };
+
   // Handle login submission
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -144,6 +163,8 @@ export default function Login() {
     const hasMicrophone = await checkMicrophoneAccess();
     if (!hasMicrophone) return;
 
+    setIsLoading(true);
+
     try {
       // Call auth service
       const response = await authService.login(username, {
@@ -153,11 +174,13 @@ export default function Login() {
 
       if (response.message === 'wrong login info') {
         toast.error('Incorrect username or password');
+        setIsLoading(false);
         return;
       }
 
       if (response.message === 'User already login somewhere else') {
         toast.error(response.message || 'User already logged in elsewhere. Please log out from other devices.');
+        setIsLoading(false);
         return;
       }
 
@@ -168,7 +191,7 @@ export default function Login() {
       const differenceInTime = expiryDate - currentDate;
       const differenceInDays = differenceInTime / (1000 * 60 * 60 * 24);
 
-      // Set token
+      // Set token first
       Cookies.set('samwad_token', response.data.token);
 
       // Handle subscription cases
@@ -176,7 +199,7 @@ export default function Login() {
         const daysExpired = Math.abs(differenceInDays);
 
         if (daysExpired > 5) {
-          router.push('/subscription-expired');
+          await router.replace('/subscription-expired');
           return;
         }
 
@@ -199,12 +222,19 @@ export default function Login() {
         toast.error('Your subscription is about to expire. Please renew soon!');
       }
 
-      router.push('/');
-      // Success login
+      // Success login toast
       toast.success('Login successfully');
+      
+      // Small delay to ensure token is set and toast is shown
+      setTimeout(async () => {
+        setIsLoading(false);
+        await navigateToHome();
+      }, 500);
+
     } catch (error) {
       console.error('Login error:', error);
       toast.error(error.message || 'An error occurred. Please try again.');
+      setIsLoading(false);
     }
   };
 

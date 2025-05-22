@@ -1,9 +1,7 @@
-import React from 'react'
+import dynamic from 'next/dynamic';
 
-function subscription() {
-  return (
-    <div>subscription</div>
-  )
+const SubscriptionExpired = dynamic(() => import('@/components/SubscriptionExpired'));
+
+export default function SubscriptionExpiredPage() {
+  return <SubscriptionExpired />;
 }
-
-export default subscription
