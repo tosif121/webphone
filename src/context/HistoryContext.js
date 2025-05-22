@@ -18,38 +18,46 @@ const HistoryContext = createContext({
 });
 
 export const HistoryProvider = ({ children }) => {
-  // Initialize history from localStorage
   const callHistory = typeof window !== 'undefined' ? localStorage.getItem('call-history') : null;
   const initialHistory = callHistory ? JSON.parse(callHistory) : [];
-
-  // Initialize only username from localStorage (more secure)
-  const savedUsername = typeof window !== 'undefined' ? localStorage.getItem('saved-username') : '';
-
   const [history, setHistory] = useState(initialHistory);
-  const [username, setUsername] = useState(savedUsername || '');
-  const [password, setPassword] = useState('');
   const [selectedBreak, setSelectedBreak] = useState('Break');
   const [dropCalls, setDropCalls] = useState(false);
   const [info, setInfo] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
 
-  // Persist history to localStorage
+  // Save call history to localStorage whenever it changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('call-history', JSON.stringify(history));
     }
   }, [history]);
 
-  // Persist username to localStorage
+  // Load username and password from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      if (username) {
-        localStorage.setItem('saved-username', username);
-      } else {
-        localStorage.removeItem('saved-username');
-      }
+      const storedUsername = localStorage.getItem('username');
+      const storedPassword = localStorage.getItem('password');
+      if (storedUsername) setUsername(storedUsername);
+      if (storedPassword) setPassword(storedPassword);
+    }
+  }, []);
+
+  // Save username to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && username) {
+      localStorage.setItem('username', username);
     }
   }, [username]);
+
+  // Save password to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && password) {
+      localStorage.setItem('password', password);
+    }
+  }, [password]);
 
   return (
     <HistoryContext.Provider

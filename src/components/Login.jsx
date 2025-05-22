@@ -24,18 +24,17 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { toast } from 'react-hot-toast';
 import { authService } from '@/utils/services';
 import { Progress } from '@/components/ui/progress';
-import HistoryContext from '@/context/HistoryContext';
 
 export default function Login() {
   const router = useRouter();
-
-  const { username, setUsername, password, setPassword } = useContext(HistoryContext);
-
   const [validationErrors, setValidationErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loaderMessage, setLoaderMessage] = useState('');
   const [timer, setTimer] = useState(0);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
   const [subscriptionDialog, setSubscriptionDialog] = useState({
     isOpen: false,
     daysExpired: 0,
@@ -43,12 +42,15 @@ export default function Login() {
   });
 
   const handleUsernameChange = (e) => {
-    console.log(username, password);
-    setUsername(e.target.value.replace(/\s+/g, ''));
+    const value = e.target.value.replace(/\s+/g, '');
+    setUsername(value);
+    localStorage.setItem('username', value);
   };
 
   const handlePasswordChange = (e) => {
-    setPassword(e.target.value.replace(/\s+/g, ''));
+    const value = e.target.value.replace(/\s+/g, '');
+    setPassword(value);
+    localStorage.setItem('password', value);
   };
 
   const validateForm = () => {
@@ -169,6 +171,7 @@ export default function Login() {
         }
 
         Cookies.set('samwad_token', response.data.token);
+        localStorage.setItem('user_data', JSON.stringify(response.data.userData));
 
         const toastMessage = await handleSubscriptionDelay(daysExpired);
         toast.error(toastMessage);
@@ -178,6 +181,7 @@ export default function Login() {
         await router.push('/');
       } else if (differenceInDays < 3) {
         Cookies.set('samwad_token', response.data.token);
+        localStorage.setItem('user_data', JSON.stringify(response.data.userData));
 
         setSubscriptionDialog({
           isOpen: true,
@@ -196,7 +200,7 @@ export default function Login() {
         await router.push('/');
       } else {
         Cookies.set('samwad_token', response.data.token);
-
+        localStorage.setItem('user_data', JSON.stringify(response.data.userData));
         toast.success('Login successfully');
         setIsLoading(false);
         await router.push('/');
@@ -333,7 +337,7 @@ export default function Login() {
           </CardHeader>
 
           <CardContent className="space-y-8 px-8 pb-10">
-            <div className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-3">
                 <Label htmlFor="username" className="text-sm font-medium pl-1">
                   Username
@@ -397,9 +401,9 @@ export default function Login() {
               </div>
 
               <Button
-                onClick={handleSubmit}
                 className="w-full h-14 text-base font-medium dark:text-white mt-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40"
                 disabled={isLoading}
+                type="submit"
               >
                 {isLoading ? (
                   <Loader2 className="animate-spin" />
@@ -409,7 +413,7 @@ export default function Login() {
                   </>
                 )}
               </Button>
-            </div>
+            </form>
           </CardContent>
         </Card>
       </div>

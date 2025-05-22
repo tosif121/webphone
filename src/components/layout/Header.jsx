@@ -37,13 +37,13 @@ export default function Header() {
   };
 
   // Close menus when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (userMenuOpen) setUserMenuOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [userMenuOpen]);
+  // useEffect(() => {
+  //   const handleClickOutside = (event) => {
+  //     if (userMenuOpen) setUserMenuOpen(false);
+  //   };
+  //   document.addEventListener('mousedown', handleClickOutside);
+  //   return () => document.removeEventListener('mousedown', handleClickOutside);
+  // }, [userMenuOpen]);
 
   return (
     <header className="w-full backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-white/20 dark:border-slate-700/20 sticky top-0 z-40 shadow-lg shadow-blue-500/5">
@@ -77,7 +77,7 @@ export default function Header() {
                 </Link>
               );
             })}
-            <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
+            {/* <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} /> */}
           </nav>
 
           <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>

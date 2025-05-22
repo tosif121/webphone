@@ -206,7 +206,7 @@ function Dashboard() {
   return (
     <>
       {/* Notification badge for missed calls */}
-      {campaignMissedCallsLength > 0 && (
+      {/* {campaignMissedCallsLength > 0 && (
         <div className="fixed top-4 right-20 md:right-24 z-50 animate-pulse">
           <div className="relative">
             <div className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center rounded-full bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs font-bold shadow-lg shadow-red-500/30">
@@ -220,7 +220,7 @@ function Dashboard() {
             </button>
           </div>
         </div>
-      )}
+      )} */}
 
       <div className="min-h-screen w-full relative">
         {/* Modals */}

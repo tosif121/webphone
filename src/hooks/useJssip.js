@@ -4,7 +4,6 @@ import { useStopwatch } from 'react-timer-hook';
 import JsSIP from 'jssip';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { useRouter } from 'next/router';
 
 const useJssip = () => {
   const { setHistory, username, password } = useContext(HistoryContext);
@@ -40,7 +39,7 @@ const useJssip = () => {
   const { seconds, minutes, isRunning, pause, reset } = useStopwatch({
     autoStart: false,
   });
-  const navigate = useRouter();
+
   const originWithoutProtocol = 'esamwad.iotcom.io';
   // const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
 
@@ -135,7 +134,7 @@ const useJssip = () => {
 
       if (response.status === 401 || !response.data.isUserLogin) {
         localStorage.clear();
-        window.location.href = '/webphone/login';
+        window.location.href = '/login';
         toast.error('Session expired. Please log in again.');
         session.terminate();
         stopRecording();
@@ -144,12 +143,12 @@ const useJssip = () => {
       }
 
       const data = response.data;
-      const tokenData = JSON.parse(localStorage.getItem('token'));
+      const tokenData = JSON.parse(localStorage.getItem('user_data'));
 
-      if (!tokenData?.userData?.campaign) {
+      if (!tokenData?.campaign) {
         console.error('Campaign information missing in token data');
         localStorage.clear();
-        window.location.href = '/webphone/login';
+        window.location.href = '/login';
         toast.error('Invalid session. Please log in again.');
         session.terminate();
         stopRecording();
@@ -157,11 +156,11 @@ const useJssip = () => {
         return true;
       }
 
-      const campaign = tokenData.userData.campaign;
+      const campaign = tokenData.campaign;
 
       if (data.message !== 'ok connection for user') {
         localStorage.clear();
-        window.location.href = '/webphone/login';
+        window.location.href = '/login';
         session.terminate();
         stopRecording();
         toast.error('Connection lost. Please log in again.');
@@ -189,7 +188,7 @@ const useJssip = () => {
         console.error('Connection timed out');
         toast.error('Server appears to be unresponsive. Retrying...');
         // localStorage.clear();
-        window.location.href = '/webphone/login';
+        // window.location.href = '/login';
         addTimeout('timeout');
       } else if (err.message.includes('Network')) {
         console.error('Network error:', err.message);
@@ -199,7 +198,7 @@ const useJssip = () => {
         console.error('Error during connection check:', err);
         if (err.response && err.response.status === 401) {
           localStorage.clear();
-          window.location.href = '/webphone/login';
+          window.location.href = '/login';
           toast.error('Session expired. Please log in again.');
           session.terminate();
           stopRecording();
@@ -234,7 +233,7 @@ const useJssip = () => {
         },
       });
 
-      // window.location.href = '/webphone/login';
+      window.location.href = '/login';
     };
 
     window.addEventListener('offline', handleOffline);
@@ -748,9 +747,9 @@ const useJssip = () => {
           toast.error('User is not live. Please login again.');
           // setTimeout(checkUserLive, 15000);
           // localStorage.clear();
-          window.location.href = '/webphone/login';
+          // window.location.href = '/login';
           localStorage.clear();
-          window.location.href = '/webphone/login';
+          window.location.href = '/login';
           return prev;
         }
         // }
@@ -767,206 +766,205 @@ const useJssip = () => {
     };
   }, []);
 
-//   useEffect(() => {
-//     const initializeJsSIP = () => {
-//       try {
-//         var socket = new JsSIP.WebSocketInterface(`wss://${originWithoutProtocol}:8089/ws`);
+  // useEffect(() => {
+  //   const initializeJsSIP = () => {
+  //     try {
+  //       var socket = new JsSIP.WebSocketInterface(`wss://${originWithoutProtocol}:8089/ws`);
 
-//         // Add direct socket error handling
-//         socket.onclose = function (event) {
-//           if (!event.wasClean) {
-//             console.error('WebSocket connection died unexpectedly');
-//             toast.error('Connection lost');
-//             localStorage.clear();
-//             // window.location.href = '/webphone/login';
-//           }
-//         };
+  //       // Add direct socket error handling
+  //       socket.onclose = function (event) {
+  //         if (!event.wasClean) {
+  //           console.error('WebSocket connection died unexpectedly');
+  //           toast.error('Connection lost');
+  //           localStorage.clear();
+  //           window.location.href = '/login';
+  //         }
+  //       };
 
-//         socket.onerror = function (error) {
-//           console.error('WebSocket error:', error);
-//           toast.error('Connection failed');
-//           localStorage.clear();
-//           // window.location.href = '/webphone/login';
-//         };
-// console.log(username, password);
-//         var configuration = {
-//           sockets: [socket],
-//           session_timers: false,
-//           uri: `${username.replace('@', '-')}@${originWithoutProtocol}:8089`,
-//           password: password,
-//         };
+  //       socket.onerror = function (error) {
+  //         console.error('WebSocket error:', error);
+  //         toast.error('Connection failed');
+  //         localStorage.clear();
+  //         window.location.href = '/login';
+  //       };
 
-//         var ua = new JsSIP.UA(configuration);
-//         ua.start();
+  //       var configuration = {
+  //         sockets: [socket],
+  //         session_timers: false,
+  //         uri: `${username.replace('@', '-')}@${originWithoutProtocol}:8089`,
+  //         password: password,
+  //       };
 
-//         ua.on('registered', (data) => {
-//           console.log('Successfully registered:', data);
-//           checkUserReady();
-//         });
+  //       var ua = new JsSIP.UA(configuration);
+  //       ua.start();
 
-//         ua.on('newMessage', (e) => {
-//           const message = e.request.body;
-//           console.log('message event:', message);
-//           // const messageTime = parseInt(message?.split(",")[1]?.trim(), 10); // Use parseInt with base 10
-//           // console.log(`
-//           //   ${messageTime}
-//           //   ${Date.now()}
-//           //   ==============================`
-//           // );
+  //       ua.on('registered', (data) => {
+  //         console.log('Successfully registered:', data);
+  //         // checkUserReady();
+  //       });
 
-//           // // console.log('Message time:', messageTime, "current time:", Date.now());
-//           // const difference = Date.now() - messageTime;
-//           const objectToPush = {
-//             messageTime: Date.now(),
-//           };
-//           // // console.log('Difference:', difference);
+  //       ua.on('newMessage', (e) => {
+  //         const message = e.request.body;
+  //         console.log('message event:', message);
+  //         // const messageTime = parseInt(message?.split(",")[1]?.trim(), 10); // Use parseInt with base 10
+  //         // console.log(`
+  //         //   ${messageTime}
+  //         //   ${Date.now()}
+  //         //   ==============================`
+  //         // );
 
-//           setMessageDifference((prev) => {
-//             const updatedDifferences = [...prev, objectToPush]; // Add new difference
+  //         // // console.log('Message time:', messageTime, "current time:", Date.now());
+  //         // const difference = Date.now() - messageTime;
+  //         const objectToPush = {
+  //           messageTime: Date.now(),
+  //         };
+  //         // // console.log('Difference:', difference);
 
-//             if (updatedDifferences.length > 10) {
-//               updatedDifferences.shift(); // Remove the first (oldest) element
-//             }
+  //         setMessageDifference((prev) => {
+  //           const updatedDifferences = [...prev, objectToPush]; // Add new difference
 
-//             return updatedDifferences;
-//           });
-//           console.log('Message body :', message);
-//           connectioncheck();
-//         });
+  //           if (updatedDifferences.length > 10) {
+  //             updatedDifferences.shift(); // Remove the first (oldest) element
+  //           }
 
-//         ua.on('registrationFailed', (data) => {
-//           console.error('Registration failed:', data);
-//           toast.error('User Phone not exits');
-//           localStorage.clear();
-//           // window.location.href = '/webphone/login';
-//         });
+  //           return updatedDifferences;
+  //         });
+  //         console.log('Message body :', message);
+  //         // connectioncheck();
+  //       });
 
-//         ua.on('stopped', (e) => {
-//           console.error('stopped', e);
-//           // Add logout behavior for stopped event
-//           toast.error('Connection stopped');
-//           localStorage.clear();
-//           // window.location.href = '/webphone/login';
-//         });
+  //       ua.on('registrationFailed', (data) => {
+  //         console.error('Registration failed:', data);
+  //         toast.error('User Phone not exits');
+  //         localStorage.clear();
+  //         window.location.href = '/login';
+  //       });
 
-//         ua.on('disconnected', (e) => {
-//           console.error('UA disconnected', e);
-//           toast.error('Connection lost');
-//           localStorage.clear();
-//           // window.location.href = '/webphone/login';
-//         });
+  //       ua.on('stopped', (e) => {
+  //         console.error('stopped', e);
+  //         // Add logout behavior for stopped event
+  //         toast.error('Connection stopped');
+  //         localStorage.clear();
+  //         window.location.href = '/login';
+  //       });
 
-//         ua.on('newRTCSession', function (e) {
-//           console.log('Session Direction:', e.session.direction);
+  //       ua.on('disconnected', (e) => {
+  //         console.error('UA disconnected', e);
+  //         toast.error('Connection lost');
+  //         localStorage.clear();
+  //         window.location.href = '/login';
+  //       });
 
-//           if (e.session.direction === 'incoming') {
-//             handleIncomingCall(e.session, e.request);
-//           } else {
-//             setSession(e.session);
-//             e.session.connection.addEventListener('addstream', (event) => {
-//               audioRef.current.srcObject = event.stream;
-//             });
-//           }
-//         });
+  //       ua.on('newRTCSession', function (e) {
+  //         console.log('Session Direction:', e.session.direction);
 
-//         setUa(ua);
-//       } catch (error) {
-//         console.error('Error initializing JsSIP:', error);
-//         toast.error('You Are Logout');
-//         localStorage.clear();
-//         // window.location.href = '/webphone/login';
-//       }
-//     };
+  //         if (e.session.direction === 'incoming') {
+  //           handleIncomingCall(e.session, e.request);
+  //         } else {
+  //           setSession(e.session);
+  //           e.session.connection.addEventListener('addstream', (event) => {
+  //             audioRef.current.srcObject = event.stream;
+  //           });
+  //         }
+  //       });
 
-//     const handleIncomingCall = (session, request) => {
-//       const incomingNumber = request.from._uri._user;
-//       // setInNotification(incomingNumber);
-//       session.answer(options);
-//       setSession(session);
-//       setStatus('calling');
-//       reset();
-//       answercall(incomingNumber);
+  //       setUa(ua);
+  //     } catch (error) {
+  //       console.error('Error initializing JsSIP:', error);
+  //       toast.error('You Are Logout');
+  //       localStorage.clear();
+  //       window.location.href = '/login';
+  //     }
+  //   };
 
-//       session.connection.addEventListener('addstream', (event) => {
-//         audioRef.current.srcObject = event.stream;
-//       });
+  //   const handleIncomingCall = (session, request) => {
+  //     const incomingNumber = request.from._uri._user;
+  //     // setInNotification(incomingNumber);
+  //     session.answer(options);
+  //     setSession(session);
+  //     setStatus('calling');
+  //     reset();
+  //     answercall(incomingNumber);
 
-//       session.once('ended', () => {
-//         setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
-//         pause();
-//         setStatus('start');
-//         setPhoneNumber('');
-//         // setDispositionModal(true);
-//         // * this is new state added because user callended api was calling after
-//         // * dispostion done api when auto disposition is done
-//         setIsCallended(true);
-//         setConferenceNumber('');
-//       });
+  //     session.connection.addEventListener('addstream', (event) => {
+  //       audioRef.current.srcObject = event.stream;
+  //     });
 
-//       session.once('failed', () => {
-//         setHistory((prev) => [
-//           ...prev.slice(0, -1),
-//           { ...prev[prev.length - 1], end: new Date().getTime(), status: 'Fail' },
-//         ]);
-//         pause();
-//         setStatus('start');
-//         setPhoneNumber('');
-//       });
-//     };
+  //     session.once('ended', () => {
+  //       setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
+  //       pause();
+  //       setStatus('start');
+  //       setPhoneNumber('');
+  //       // setDispositionModal(true);
+  //       // * this is new state added because user callended api was calling after
+  //       // * dispostion done api when auto disposition is done
+  //       setIsCallended(true);
+  //       setConferenceNumber('');
+  //     });
 
-//     const enumerateDevices = async () => {
-//       try {
-//         await navigator.mediaDevices.getUserMedia({ audio: true });
-//         const devices = await navigator.mediaDevices.enumerateDevices();
-//         const audioDevices = devices.filter((device) => device.kind === 'audioinput');
-//         setDevices(audioDevices);
+  //     session.once('failed', () => {
+  //       setHistory((prev) => [
+  //         ...prev.slice(0, -1),
+  //         { ...prev[prev.length - 1], end: new Date().getTime(), status: 'Fail' },
+  //       ]);
+  //       pause();
+  //       setStatus('start');
+  //       setPhoneNumber('');
+  //     });
+  //   };
 
-//         if (audioDevices.length > 0) {
-//           setSelectedDeviceId(audioDevices[0].deviceId);
-//         }
-//       } catch (error) {
-//         console.error('Error enumerating devices:', error);
-//       }
-//     };
+  //   const enumerateDevices = async () => {
+  //     try {
+  //       await navigator.mediaDevices.getUserMedia({ audio: true });
+  //       const devices = await navigator.mediaDevices.enumerateDevices();
+  //       const audioDevices = devices.filter((device) => device.kind === 'audioinput');
+  //       setDevices(audioDevices);
 
-//     // Function to check socket connection status periodically
-//     const checkSocketConnection = () => {
-//       if (ua && ua.transport && ua.transport.socket) {
-//         const socketState = ua.transport.socket.readyState;
+  //       if (audioDevices.length > 0) {
+  //         setSelectedDeviceId(audioDevices[0].deviceId);
+  //       }
+  //     } catch (error) {
+  //       console.error('Error enumerating devices:', error);
+  //     }
+  //   };
 
-//         // WebSocket.CLOSED = 3, WebSocket.CLOSING = 2
-//         if (socketState === 3 || socketState === 2) {
-//           console.error('Socket connection lost');
-//           toast.error('Connection lost');
-//           localStorage.clear();
-//           // window.location.href = '/webphone/login';
-//         }
-//       }
-//     };
+  //   // Function to check socket connection status periodically
+  //   const checkSocketConnection = () => {
+  //     if (ua && ua.transport && ua.transport.socket) {
+  //       const socketState = ua.transport.socket.readyState;
 
-//     initializeJsSIP();
-//     enumerateDevices();
+  //       // WebSocket.CLOSED = 3, WebSocket.CLOSING = 2
+  //       if (socketState === 3 || socketState === 2) {
+  //         console.error('Socket connection lost');
+  //         toast.error('Connection lost');
+  //         localStorage.clear();
+  //         window.location.href = '/login';
+  //       }
+  //     }
+  //   };
 
-//     // Set up periodic connection check
-//     const socketCheckInterval = setInterval(checkSocketConnection, 10000); // Check every 10 seconds
+  //   initializeJsSIP();
+  //   enumerateDevices();
 
-//     navigator.mediaDevices.addEventListener('devicechange', enumerateDevices);
+  //   // Set up periodic connection check
+  //   const socketCheckInterval = setInterval(checkSocketConnection, 10000); // Check every 10 seconds
 
-//     return () => {
-//       navigator.mediaDevices.removeEventListener('devicechange', enumerateDevices);
-//       clearInterval(socketCheckInterval);
+  //   navigator.mediaDevices.addEventListener('devicechange', enumerateDevices);
 
-//       if (ua) {
-//         ua.off('newMessage');
-//         try {
-//           ua.stop();
-//         } catch (error) {
-//           console.error('Error stopping UA:', error);
-//         }
-//       }
-//     };
-//   }, [username, password, navigate]);
+  //   return () => {
+  //     navigator.mediaDevices.removeEventListener('devicechange', enumerateDevices);
+  //     clearInterval(socketCheckInterval);
 
+  //     if (ua) {
+  //       ua.off('newMessage');
+  //       try {
+  //         ua.stop();
+  //       } catch (error) {
+  //         console.error('Error stopping UA:', error);
+  //       }
+  //     }
+  //   };
+  // }, [username, password]);
 
   const handleCall = (formattedNumber) => {
     // if (!phoneNumber || phoneNumber.length < 10 || phoneNumber.length > 12) {
