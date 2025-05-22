@@ -29,10 +29,8 @@ import HistoryContext from '@/context/HistoryContext';
 export default function Login() {
   const router = useRouter();
 
-  // Use HistoryContext
   const { username, setUsername, password, setPassword } = useContext(HistoryContext);
 
-  // UI state
   const [validationErrors, setValidationErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,10 +39,9 @@ export default function Login() {
   const [subscriptionDialog, setSubscriptionDialog] = useState({
     isOpen: false,
     daysExpired: 0,
-    type: 'expired', // 'expired' | 'expiring'
+    type: 'expired',
   });
 
-  // Handle input changes
   const handleUsernameChange = (e) => {
     console.log(username, password);
     setUsername(e.target.value.replace(/\s+/g, ''));
@@ -54,7 +51,6 @@ export default function Login() {
     setPassword(e.target.value.replace(/\s+/g, ''));
   };
 
-  // Validate form
   const validateForm = () => {
     const errors = {};
     if (!username) errors.username = 'Please enter username';
@@ -65,7 +61,6 @@ export default function Login() {
     return Object.keys(errors).length === 0;
   };
 
-  // Check microphone access
   const checkMicrophoneAccess = async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
@@ -85,7 +80,6 @@ export default function Login() {
     }
   };
 
-  // Get subscription delay info
   const getSubscriptionDelayInfo = (daysExpired) => {
     const configs = {
       1: { time: 10000, message: 'Your subscription expired yesterday', color: 'amber', severity: 'medium' },
@@ -99,7 +93,6 @@ export default function Login() {
     return configs[day] || configs[5];
   };
 
-  // Handle subscription verification delay
   const handleSubscriptionDelay = async (daysExpired) => {
     const config = getSubscriptionDelayInfo(daysExpired);
 
@@ -111,7 +104,6 @@ export default function Login() {
       type: 'expired',
     });
 
-    // Start countdown timer
     const totalSeconds = config.time / 1000;
     setTimer(totalSeconds);
 
@@ -126,47 +118,23 @@ export default function Login() {
     return config.message;
   };
 
-  // Format time display
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
   };
 
-  // Navigate to home page
-  const navigateToHome = async () => {
-    try {
-      // Use replace instead of push to avoid back button issues
-      await router.replace('/');
-      
-      // Alternative approaches if the above doesn't work:
-      // Option 1: Force a hard refresh
-      // window.location.href = '/';
-      
-      // Option 2: Use router.push with a small delay
-      // setTimeout(() => router.push('/'), 100);
-    } catch (error) {
-      console.error('Navigation error:', error);
-      // Fallback to hard refresh
-      window.location.href = '/';
-    }
-  };
-
-  // Handle login submission
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
 
-    // Validate form
     if (!validateForm()) return;
 
-    // Check microphone access
     const hasMicrophone = await checkMicrophoneAccess();
     if (!hasMicrophone) return;
 
     setIsLoading(true);
 
     try {
-      // Call auth service
       const response = await authService.login(username, {
         username: username,
         password: password,
@@ -184,53 +152,55 @@ export default function Login() {
         return;
       }
 
-      // Check subscription status
       const userData = response.data.userData;
       const expiryDate = new Date(userData.ExpiryDate);
       const currentDate = new Date();
       const differenceInTime = expiryDate - currentDate;
       const differenceInDays = differenceInTime / (1000 * 60 * 60 * 24);
 
-      // Set token first
-      Cookies.set('samwad_token', response.data.token);
-
-      // Handle subscription cases
       if (differenceInDays < 0) {
         const daysExpired = Math.abs(differenceInDays);
 
         if (daysExpired > 5) {
+          setIsLoading(false);
+          toast.error('Your subscription has expired. Please renew to continue.');
           await router.replace('/subscription-expired');
           return;
         }
 
-        // Show subscription expiry dialog and wait
+        Cookies.set('samwad_token', response.data.token);
+
         const toastMessage = await handleSubscriptionDelay(daysExpired);
         toast.error(toastMessage);
+
+        toast.success('Login successfully');
+        setIsLoading(false);
+        await router.push('/');
       } else if (differenceInDays < 3) {
-        // Approaching expiry - show warning dialog
+        Cookies.set('samwad_token', response.data.token);
+
         setSubscriptionDialog({
           isOpen: true,
           daysExpired: Math.ceil(differenceInDays),
           type: 'expiring',
         });
 
-        // Auto close after 3 seconds
         setTimeout(() => {
           setSubscriptionDialog((prev) => ({ ...prev, isOpen: false }));
         }, 3000);
 
         toast.error('Your subscription is about to expire. Please renew soon!');
-      }
 
-      // Success login toast
-      toast.success('Login successfully');
-      
-      // Small delay to ensure token is set and toast is shown
-      setTimeout(async () => {
+        toast.success('Login successfully');
         setIsLoading(false);
-        await navigateToHome();
-      }, 500);
+        await router.push('/');
+      } else {
+        Cookies.set('samwad_token', response.data.token);
 
+        toast.success('Login successfully');
+        setIsLoading(false);
+        await router.push('/');
+      }
     } catch (error) {
       console.error('Login error:', error);
       toast.error(error.message || 'An error occurred. Please try again.');
@@ -240,17 +210,12 @@ export default function Login() {
 
   return (
     <>
-      {/* Subscription Dialog - NO CLOSE BUTTON */}
-      <Dialog
-        open={subscriptionDialog.isOpen}
-        onOpenChange={() => {}} // Completely disabled - user cannot close
-        modal={true}
-      >
+      <Dialog open={subscriptionDialog.isOpen} onOpenChange={() => {}} modal={true}>
         <DialogContent
-          className="sm:max-w-lg bg-white/95 [&>button]:hidden dark:bg-slate-900/95 backdrop-blur-md border border-gray-200 dark:border-slate-700 shadow-2xl z-50 [&>button]:hidden" // HIDE CLOSE BUTTON
-          onEscapeKeyDown={(e) => e.preventDefault()} // Prevent ESC key closing
-          onPointerDownOutside={(e) => e.preventDefault()} // Prevent clicking outside to close
-          onInteractOutside={(e) => e.preventDefault()} // Prevent any outside interaction
+          className="sm:max-w-lg bg-white/95 [&>button]:hidden dark:bg-slate-900/95 backdrop-blur-md border border-gray-200 dark:border-slate-700 shadow-2xl z-50"
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
         >
           <DialogHeader className="text-center pb-4">
             <div className="flex justify-center mb-6">
@@ -279,7 +244,11 @@ export default function Login() {
               {/* Progress Bar */}
               <div className="space-y-4">
                 <Progress
-                  value={((timer || 1) / ((timer || 1) + 1)) * 100}
+                  value={
+                    timer > 0
+                      ? (timer / (getSubscriptionDelayInfo(subscriptionDialog.daysExpired).time / 1000)) * 100
+                      : 0
+                  }
                   className="w-full h-4 rounded-full bg-gray-200 dark:bg-slate-700"
                 />
                 <div className="flex justify-between items-center">
@@ -336,10 +305,10 @@ export default function Login() {
               left: 0,
               right: 0,
               bottom: 0,
-              pointerEvents: 'all', // Ensure it captures all pointer events
+              pointerEvents: 'all',
             }}
-            onClick={(e) => e.preventDefault()} // Prevent any clicks
-            onContextMenu={(e) => e.preventDefault()} // Prevent right-click menu
+            onClick={(e) => e.preventDefault()}
+            onContextMenu={(e) => e.preventDefault()}
           />
         )}
       </Dialog>
