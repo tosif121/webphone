@@ -28,7 +28,6 @@ const useJssip = () => {
   const [isCallended, setIsCallended] = useState(false);
   const [messageDifference, setMessageDifference] = useState([]);
   const [avergaeMessageTimePerMinute, setAvergaeMessageTimePerMinute] = useState([]);
-  // const [isDialbuttonClicked, setIsDialbuttonClicked] = useState(false);
   const offlineToastIdRef = useRef(null);
   const agentSocketRef = useRef(null);
   const customerSocketRef = useRef(null);
@@ -39,7 +38,6 @@ const useJssip = () => {
   const { seconds, minutes, isRunning, pause, reset } = useStopwatch({
     autoStart: false,
   });
-
   const originWithoutProtocol = 'esamwad.iotcom.io';
   // const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
 
@@ -143,9 +141,9 @@ const useJssip = () => {
       }
 
       const data = response.data;
-      const tokenData = JSON.parse(localStorage.getItem('user_data'));
+      const tokenData = JSON.parse(localStorage.getItem('token'));
 
-      if (!tokenData?.campaign) {
+      if (!tokenData?.userData?.campaign) {
         console.error('Campaign information missing in token data');
         localStorage.clear();
         window.location.href = '/login';
@@ -156,7 +154,7 @@ const useJssip = () => {
         return true;
       }
 
-      const campaign = tokenData.campaign;
+      const campaign = tokenData.userData.campaign;
 
       if (data.message !== 'ok connection for user') {
         localStorage.clear();
@@ -723,48 +721,48 @@ const useJssip = () => {
   //     isMounted = false; //Cleanup to prevent memory leaks
   //   };
   // }, [])
-  useEffect(() => {
-    let isMounted = true; // Prevent state updates after unmount
+  // useEffect(() => {
+  //   let isMounted = true; // Prevent state updates after unmount
 
-    function checkUserLive() {
-      if (!isMounted) return;
+  //   function checkUserLive() {
+  //     if (!isMounted) return;
 
-      // ✅ Read latest state inside setTimeout
-      setMessageDifference((prev) => {
-        // if (prev.length < 12) {
-        // console.log('running recursion function for checking time :');
-        // console.log('messageDifference length :', prev);
-        const lastElement = prev[prev.length - 1];
-        // console.log('last element :', lastElement);
-        const timeOfLastElement = lastElement?.messageTime;
-        const currentTime = Date.now();
-        // console.log('current time :', currentTime);
-        const difference = currentTime - timeOfLastElement;
-        console.log('difference in messageDifference time check : ', difference);
+  //     // ✅ Read latest state inside setTimeout
+  //     setMessageDifference((prev) => {
+  //       // if (prev.length < 12) {
+  //       // console.log('running recursion function for checking time :');
+  //       // console.log('messageDifference length :', prev);
+  //       const lastElement = prev[prev.length - 1];
+  //       // console.log('last element :', lastElement);
+  //       const timeOfLastElement = lastElement?.messageTime;
+  //       const currentTime = Date.now();
+  //       // console.log('current time :', currentTime);
+  //       const difference = currentTime - timeOfLastElement;
+  //       console.log('difference in messageDifference time check : ', difference);
 
-        if (difference > 14000) {
-          console.log('User is not live');
-          toast.error('User is not live. Please login again.');
-          // setTimeout(checkUserLive, 15000);
-          // localStorage.clear();
-          // window.location.href = '/login';
-          localStorage.clear();
-          window.location.href = '/login';
-          return prev;
-        }
-        // }
+  //       if (difference > 14000) {
+  //         console.log('User is not live');
+  //         toast.error('User is not live. Please login again.');
+  //         // setTimeout(checkUserLive, 15000);
+  //         // localStorage.clear();
+  //         // window.location.href = '/login';
+  //         localStorage.clear();
+  //         window.location.href = '/login';
+  //         return prev;
+  //       }
+  //       // }
 
-        setTimeout(checkUserLive, 15000); // Recursively call every 5 seconds
-        return prev;
-      });
-    }
+  //       setTimeout(checkUserLive, 15000); // Recursively call every 5 seconds
+  //       return prev;
+  //     });
+  //   }
 
-    checkUserLive(); // Start the recursive function
+  //   checkUserLive(); // Start the recursive function
 
-    return () => {
-      isMounted = false; // Cleanup to prevent memory leaks
-    };
-  }, []);
+  //   return () => {
+  //     isMounted = false; // Cleanup to prevent memory leaks
+  //   };
+  // }, []);
 
   // useEffect(() => {
   //   const initializeJsSIP = () => {
@@ -800,7 +798,7 @@ const useJssip = () => {
 
   //       ua.on('registered', (data) => {
   //         console.log('Successfully registered:', data);
-  //         // checkUserReady();
+  //         checkUserReady();
   //       });
 
   //       ua.on('newMessage', (e) => {
@@ -830,7 +828,7 @@ const useJssip = () => {
   //           return updatedDifferences;
   //         });
   //         console.log('Message body :', message);
-  //         // connectioncheck();
+  //         connectioncheck();
   //       });
 
   //       ua.on('registrationFailed', (data) => {
@@ -971,7 +969,7 @@ const useJssip = () => {
     //   toast.error('Phone number must be 10 digit');
     //   return;
     // }
-    // setIsDialbuttonClicked(true);
+
     if (isConnectionLost) {
       return;
     }
@@ -1058,8 +1056,6 @@ const useJssip = () => {
     userCall,
     timeoutArray,
     isConnectionLost,
-    // isDialbuttonClicked,
-    // setIsDialbuttonClicked,
   ];
 };
 

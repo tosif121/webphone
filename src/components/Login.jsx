@@ -171,7 +171,7 @@ export default function Login() {
         }
 
         Cookies.set('samwad_token', response.data.token);
-        localStorage.setItem('user_data', JSON.stringify(response.data.userData));
+        localStorage.setItem('token', JSON.stringify(response.data));
 
         const toastMessage = await handleSubscriptionDelay(daysExpired);
         toast.error(toastMessage);
@@ -181,7 +181,7 @@ export default function Login() {
         await router.push('/');
       } else if (differenceInDays < 3) {
         Cookies.set('samwad_token', response.data.token);
-        localStorage.setItem('user_data', JSON.stringify(response.data.userData));
+        localStorage.setItem('token', JSON.stringify(response.data));
 
         setSubscriptionDialog({
           isOpen: true,
@@ -200,7 +200,7 @@ export default function Login() {
         await router.push('/');
       } else {
         Cookies.set('samwad_token', response.data.token);
-        localStorage.setItem('user_data', JSON.stringify(response.data.userData));
+        localStorage.setItem('token', JSON.stringify(response.data));
         toast.success('Login successfully');
         setIsLoading(false);
         await router.push('/');

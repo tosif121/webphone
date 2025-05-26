@@ -2,7 +2,13 @@ import React, { useState, useRef, useEffect, useContext } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import HistoryContext from '@/context/HistoryContext';
-import { Clock } from 'lucide-react';
+import { Clock, Coffee, Sandwich, GraduationCap, ChevronDown } from 'lucide-react';
+
+const breakTypes = [
+  { type: 'TeaBreak', label: 'Tea Break', icon: Coffee },
+  { type: 'LunchBreak', label: 'Lunch Break', icon: Sandwich },
+  { type: 'TrainingBreak', label: 'Training Break', icon: GraduationCap },
+];
 
 const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
   const { username, selectedBreak, setSelectedBreak } = useContext(HistoryContext);
@@ -11,55 +17,42 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
   const dropdownRef = useRef(null);
   const timerRef = useRef(null);
 
+  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Timer logic
   useEffect(() => {
     if (selectedBreak !== 'Break') {
       setTimer(0);
-      timerRef.current = setInterval(() => {
-        setTimer((prev) => prev + 1);
-      }, 1000);
+      timerRef.current = setInterval(() => setTimer((prev) => prev + 1), 1000);
     } else {
       clearInterval(timerRef.current);
       setTimer(0);
     }
-
-    return () => {
-      clearInterval(timerRef.current);
-    };
+    return () => clearInterval(timerRef.current);
   }, [selectedBreak]);
 
   const formatTime = (seconds) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-    }
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const removeBreak = async () => {
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/user/removebreakuser:${username}`);
-      if (response.status === 200) {
-        setSelectedBreak('Break');
-        setIsOpen(false);
-      }
+      await axios.post(`https://esamwad.iotcom.io/user/removebreakuser:${username}`);
+      setSelectedBreak('Break');
+      setIsOpen(false);
     } catch (error) {
-      console.error('Error removing break:', error);
+      toast.error('Error removing break');
     }
   };
 
@@ -68,89 +61,91 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
       await removeBreak();
       return;
     }
-
     try {
       if (dispoWithBreak && breakType !== 'Break') {
-        const dispositionData = {
-          bridgeID: bridgeID,
-          Disposition: `dispoWithBreak`,
-        };
-
-        const dispositionResponse = await axios.post(
+        await axios.post(
           `https://esamwad.iotcom.io/user/disposition${username}`,
-          dispositionData,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
+          { bridgeID, Disposition: `dispoWithBreak` },
+          { headers: { 'Content-Type': 'application/json' } }
         );
-
-        if (!dispositionResponse.data.success) {
-          throw new Error('Disposition failed');
-        }
       }
-
-      const response = await axios.post(`https://esamwad.iotcom.io/user/breakuser:${username}`, {
-        breakType,
-      });
-
-      if (response.status === 200) {
-        setSelectedBreak(breakType);
-        setIsOpen(false);
-        toast.success('Break applied successfully');
-      }
-    } catch (error) {
-      console.error('Error selecting break:', error);
+      await axios.post(`https://esamwad.iotcom.io/user/breakuser:${username}`, { breakType });
+      setSelectedBreak(breakType);
+      setIsOpen(false);
+      toast.success('Break applied successfully');
+    } catch {
       toast.error('Error applying break');
     }
   };
 
   const handleButtonClick = () => {
-    if (selectedBreak === 'Break') {
-      setIsOpen(!isOpen);
-    } else {
-      removeBreak();
-    }
+    if (selectedBreak === 'Break') setIsOpen((prev) => !prev);
+    else removeBreak();
   };
 
-  const breakTypes = [
-    { type: 'TeaBreak', label: 'Tea Break', color: 'green-500' },
-    { type: 'LunchBreak', label: 'Lunch Break', color: 'green-500' },
-    { type: 'TrainingBreak', label: 'Training Break', color: 'green-500' },
-  ];
-
-  const buttonClassName =
-    selectedBreak === 'Break'
-      ? 'primary-btn'
-      : `px-4 py-2 text-white bg-${
-          breakTypes.find((b) => b.type === selectedBreak)?.color
-        } rounded-md focus:outline-none flex items-center space-x-2`;
+  const isOnBreak = selectedBreak !== 'Break';
+  const selectedBreakObj = breakTypes.find((b) => b.type === selectedBreak);
 
   return (
-    <div className="relative inline-block text-left">
-      <button onClick={handleButtonClick} className={buttonClassName} disabled={selectedStatus !== 'start'}>
-        <span>{selectedBreak === 'Break' ? 'Break' : `${selectedBreak.replace('Break', '')} Break`}</span>
-        {selectedBreak !== 'Break' && (
-          <div className="flex items-center space-x-1">
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={handleButtonClick}
+        disabled={selectedStatus !== 'start'}
+        className={`
+          flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all
+          ${isOnBreak
+            ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md'
+            : 'bg-white/70 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-900/30'}
+          focus:outline-none focus:ring-2 focus:ring-blue-400
+        `}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        {isOnBreak && selectedBreakObj && (
+          <selectedBreakObj.icon className="w-5 h-5" />
+        )}
+        <span>
+          {isOnBreak
+            ? selectedBreakObj?.label || selectedBreak
+            : 'Take a Break'}
+        </span>
+        {isOnBreak && (
+          <span className="flex items-center gap-1 ml-2 text-xs font-medium">
             <Clock className="w-4 h-4" />
-            <span>{formatTime(timer)}</span>
-          </div>
+            {formatTime(timer)}
+          </span>
+        )}
+        {!isOnBreak && (
+          <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         )}
       </button>
 
+      {/* Dropdown */}
       {isOpen && selectedBreak === 'Break' && (
         <ul
-          ref={dropdownRef}
-          className="absolute z-10 mt-2 w-48 bg-white border dark:bg-black/50 dark:text-white dark:border-[#999] border-gray-200 rounded-md shadow-lg"
+          className="
+            absolute right-0 mt-2 w-48 z-50
+            bg-white/90 dark:bg-slate-900/90
+            border border-slate-200 dark:border-slate-700
+            rounded-xl shadow-xl backdrop-blur
+            py-2
+          "
+          role="listbox"
         >
-          {breakTypes.map(({ type, label }) => (
+          {breakTypes.map(({ type, label, icon: Icon }) => (
             <li
               key={type}
               onClick={() => sendBreakSelection(type)}
-              className="px-4 py-2 cursor-pointer hover:bg-gray-100 hover:dark:bg-gray-600 flex justify-between items-center group"
+              className="
+                flex items-center gap-3 px-4 py-3 cursor-pointer rounded-lg
+                hover:bg-blue-50 dark:hover:bg-blue-900/30
+                transition-colors
+              "
+              role="option"
+              aria-selected={selectedBreak === type}
             >
-              {label}
+              <Icon className="w-5 h-5 text-green-500" />
+              <span className="font-medium text-slate-700 dark:text-slate-200">{label}</span>
             </li>
           ))}
         </ul>

@@ -13,6 +13,8 @@ import HistoryScreen from './HistoryScreen';
 import Home from './Home';
 import useJssip from '@/hooks/useJssip';
 import { Bell, Phone, PhoneOff } from 'lucide-react';
+import { Rnd } from 'react-rnd';
+// import Modal from './Modal'; // Assuming you have a reusable Modal component
 
 function Dashboard() {
   const [
@@ -50,12 +52,10 @@ function Dashboard() {
     // setIsDialbuttonClicked,
   ] = useJssip();
 
-  const [seeLogs, setSeeLogs] = useState(false);
   const [callConference, setCallConference] = useState(false);
   const { username, dropCalls, setDropCalls, selectedBreak, setSelectedStatus, setInfo, info } =
     useContext(HistoryContext);
   const [usermissedCalls, setUsermissedCalls] = useState([]);
-  const [phoneShow, setPhoneShow] = useState(false);
   const tokenData = localStorage.getItem('token');
   const parsedData = JSON.parse(tokenData);
   const userCampaign = parsedData?.userData?.campaign;
@@ -94,11 +94,7 @@ function Dashboard() {
     }
   }, [ringtone]);
 
-  console.log(username, 'username');
   const fetchUserMissedCalls = async () => {
-    if (!username) {
-      return;
-    }
     try {
       const response = await axios.post(`https://esamwad.iotcom.io/usermissedCalls/${username}`);
       setUsermissedCalls(response.data.result || []);
@@ -202,27 +198,47 @@ function Dashboard() {
     createConferenceCall();
     setCallConference(false);
   }
-
   return (
     <>
-      {/* Notification badge for missed calls */}
+      {/* Missed Calls Notification Badge */}
       {/* {campaignMissedCallsLength > 0 && (
-        <div className="fixed top-4 right-20 md:right-24 z-50 animate-pulse">
-          <div className="relative">
-            <div className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center rounded-full bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs font-bold shadow-lg shadow-red-500/30">
+        <div className="fixed top-6 right-8 md:right-16 z-50 animate-pulse">
+          <button
+            onClick={() => setDropCalls(true)}
+            className="relative w-12 h-12 flex items-center justify-center rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-lg border border-white/30 dark:border-slate-700/30 hover:bg-white dark:hover:bg-slate-800 transition-all"
+            aria-label="Show missed calls"
+          >
+            <span className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center rounded-full bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs font-bold shadow-md">
               {campaignMissedCallsLength}
-            </div>
-            <button
-              onClick={() => setDropCalls(true)}
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm shadow-lg border border-white/20 dark:border-slate-700/20 hover:bg-white dark:hover:bg-slate-800 transition-all"
-            >
-              <Bell className="h-5 w-5 text-red-500" />
-            </button>
-          </div>
+            </span>
+            <Bell className="h-6 w-6 text-red-500" />
+          </button>
         </div>
       )} */}
 
-      <div className="min-h-screen w-full relative">
+      {/* Call Queue Alert */}
+      {ringtone.length > 0 && (
+        <div className="fixed top-24 left-0 right-0 mx-auto max-w-lg z-40">
+          <div className="backdrop-blur-md bg-blue-50/90 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 rounded-xl shadow-lg shadow-blue-500/10 p-4 mx-4">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-md animate-pulse">
+                {/* <FaPhoneAlt className="text-white" /> */}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Call Queue: ({ringtone.length})</p>
+                <div className="mt-1 text-xs font-medium truncate text-blue-600 dark:text-blue-300">
+                  {ringtone.map((call) => call.Caller).join(', ')}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phone Toggle Button */}
+      
+      {/* Main Dashboard Area */}
+      <div>
         {/* Modals */}
         {dispositionModal && (
           <Disposition
@@ -235,7 +251,7 @@ function Dashboard() {
           />
         )}
 
-        {info && (
+        {/* {info && (
           <Modal isOpen={info} onClose={() => setInfo(false)} title={`Users Not In Use (${adminUserData.length})`}>
             <InterModal
               adminUserData={adminUserData}
@@ -247,9 +263,9 @@ function Dashboard() {
               setConferenceNumber={setConferenceNumber}
             />
           </Modal>
-        )}
+        )} */}
 
-        {dropCalls && (
+        {/* {dropCalls && (
           <Modal
             isOpen={dropCalls}
             onClose={() => setDropCalls(false)}
@@ -257,129 +273,20 @@ function Dashboard() {
           >
             <DropCallsModal usermissedCalls={usermissedCalls} setDropCalls={setDropCalls} username={username} />
           </Modal>
-        )}
+        )} */}
 
-        {/* Call Queue Alert */}
-        {ringtone.length > 0 && (
-          <div className="fixed top-20 left-0 right-0 mx-auto max-w-lg z-40">
-            <div className="backdrop-blur-md bg-blue-50/90 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 rounded-xl shadow-lg shadow-blue-500/10 p-3 mx-4">
-              <div className="flex items-center gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-500/30 animate-pulse">
-                  <FaPhoneAlt className="text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                    Call Queue: ({ringtone.length})
-                  </p>
-                  <div className="mt-1 text-xs font-medium truncate text-blue-600 dark:text-blue-300">
-                    {ringtone.map((call) => call.Caller).join(', ')}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Phone toggle button */}
-        <div className="fixed bottom-6 right-6 z-50">
-          <button
-            className="w-14 h-14 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all hover:scale-105"
-            onClick={() => setPhoneShow(!phoneShow)}
-          >
-            {phoneShow ? (
-              <PhoneOff className="h-5 w-5" title="Hide phone" />
-            ) : (
-              <Phone className="h-5 w-5" title="Show phone" />
-            )}
-          </button>
+        <div className="max-w-lg">
+          {status !== 'start' && userCall ? (
+            <UserCall userCall={userCall} username={username} formData={formData} setFormData={setFormData} />
+          ) : (
+            <AutoDial
+              setPhoneNumber={setPhoneNumber}
+              dispositionModal={dispositionModal}
+              handleCall={handleCall}
+              phoneNumber={phoneNumber}
+            />
+          )}
         </div>
-
-        {/* Main content area */}
-            <div className="flex flex-col lg:flex-row gap-6">
-              {/* Left panel - Call info or Auto dialer */}
-              {status !== 'start' && userCall ? (
-                <div className="w-full lg:w-1/2 xl:w-3/5">
-                  <div className="h-full backdrop-blur-sm bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/20 p-4 shadow-lg shadow-blue-500/5">
-                    <UserCall userCall={userCall} username={username} formData={formData} setFormData={setFormData} />
-                  </div>
-                </div>
-              ) : (
-                <div className="w-full lg:w-1/2 xl:w-3/5 relative">
-                  <div className="h-full backdrop-blur-sm bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/20 p-4 shadow-lg shadow-blue-500/5">
-                    <AutoDial
-                      setPhoneNumber={setPhoneNumber}
-                      dispositionModal={dispositionModal}
-                      handleCall={handleCall}
-                      phoneNumber={phoneNumber}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Right panel - Call controls, dial pad, history */}
-              <div className={`w-full ${status !== 'start' ? 'lg:w-1/2 xl:w-2/5' : ''}`}>
-                <div
-                  className={`h-full backdrop-blur-sm bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/20 p-4 shadow-lg shadow-blue-500/5 transition-opacity duration-300 ${
-                    phoneShow ? 'opacity-0' : 'opacity-100'
-                  }`}
-                >
-                  {seeLogs ? (
-                    <HistoryScreen setSeeLogs={setSeeLogs} />
-                  ) : status === 'start' ? (
-                    <Home
-                      phoneNumber={phoneNumber}
-                      setPhoneNumber={setPhoneNumber}
-                      handleCall={handleCall}
-                      setSeeLogs={setSeeLogs}
-                      timeoutArray={timeoutArray}
-                      isConnectionLost={isConnectionLost}
-                    />
-                  ) : status === 'calling' || status === 'conference' ? (
-                    callConference ? (
-                      <CallConference
-                        conferenceNumber={conferenceNumber}
-                        setCallConference={setCallConference}
-                        setConferenceNumber={setConferenceNumber}
-                        handleCall={handleCalls}
-                        setSeeLogs={setSeeLogs}
-                        phoneNumber={phoneNumber}
-                      />
-                    ) : (
-                      <CallScreen
-                        conferenceNumber={conferenceNumber}
-                        userCall={userCall}
-                        reqUnHold={reqUnHold}
-                        setCallConference={setCallConference}
-                        toggleHold={toggleHold}
-                        isHeld={isHeld}
-                        isRecording={isRecording}
-                        startRecording={startRecording}
-                        stopRecording={stopRecording}
-                        phoneNumber={phoneNumber}
-                        session={session}
-                        seconds={seconds < 10 ? `0${seconds}` : `${seconds}`}
-                        minutes={minutes < 10 ? `0${minutes}` : `${minutes}`}
-                        isRunning={isRunning}
-                        devices={devices}
-                        selectedDeviceId={selectedDeviceId}
-                        changeAudioDevice={changeAudioDevice}
-                        conferenceStatus={conferenceStatus}
-                      />
-                    )
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                      <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center mb-4">
-                        <FaPhoneAlt className="h-6 w-6 text-slate-400 dark:text-slate-500" />
-                      </div>
-                      <h3 className="text-lg font-medium text-slate-600 dark:text-slate-300">No Active Calls</h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Ready to make or receive calls</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-        <audio ref={audioRef} autoPlay hidden />
       </div>
     </>
   );

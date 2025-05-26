@@ -1,3 +1,5 @@
+import { CornerDownLeft } from 'lucide-react';
+
 const keyboard = [
   { num: 1, text: '' },
   { num: 2, text: 'abc' },
@@ -13,23 +15,31 @@ const keyboard = [
   { num: '#', text: '' },
 ];
 
-const KeyPad = ({ setPhoneNumber }) => {
-  return (
-    <div className="flex justify-center items-center mt-3">
-      <div className="grid grid-cols-3 gap-x-8 gap-y-4">
-        {keyboard.map((item) => (
-          <button
-            key={item.num}
-            className=" hover:bg-slate-200 hover:dark:bg-gray-600 flex flex-col items-center justify-center w-16 h-16 rounded-full dark:border-[#999] border-[#ddd] border dark:bg-[#333] bg-[#EAEAEA] shadow-sm focus:outline-none transition-colors duration-200"
-            onClick={() => setPhoneNumber((prev) => prev + String(item.num))}
-          >
-            <span className="text-3xl font-semibold text-[#070707] dark:text-white">{item.num}</span>
-            <span className="text-xs text-gray-600 uppercase dark:text-white">{item.text}</span>
-          </button>
-        ))}
-      </div>
+const KeyPad = ({ setPhoneNumber }) => (
+  <div className="flex justify-center items-center mt-3">
+    <div className="grid grid-cols-3 gap-x-6 gap-y-4">
+      {keyboard.map((item) => (
+        <button
+          key={item.num}
+          type="button"
+          className="
+            flex flex-col items-center justify-center
+            w-16 h-16 rounded-full
+            bg-white/60 dark:bg-slate-800/60
+            border border-slate-200 dark:border-slate-700
+            shadow-sm
+            hover:bg-blue-50/60 dark:hover:bg-blue-900/30
+            focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800
+            transition-all
+          "
+          onClick={() => setPhoneNumber((prev) => prev + String(item.num))}
+        >
+          <span className="text-3xl font-semibold text-slate-700 dark:text-slate-100 select-none">{item.num}</span>
+          <span className="text-xs text-slate-400 uppercase tracking-widest select-none">{item.text}</span>
+        </button>
+      ))}
     </div>
-  );
-};
+  </div>
+);
 
 export default KeyPad;

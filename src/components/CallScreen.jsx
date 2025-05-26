@@ -1,4 +1,4 @@
-import { User, MicOff, Pause, UserPlus } from 'lucide-react';
+import { User, MicOff, Pause, UserPlus, Key } from 'lucide-react';
 import { XCircle } from 'lucide-react';
 import { PhoneOff } from 'lucide-react';
 import { Square } from 'lucide-react';
@@ -120,7 +120,7 @@ const CallScreen = ({
                   onClick={() => setShowKeyPad(true)}
                   title="Keypad"
                 >
-                  <Keypad className="text-3xl" />
+                  <Key className="text-3xl" />
                 </button>
               </div>
               <div className="flex justify-around items-center">

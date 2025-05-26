@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import { Menu, X, LogOut, ChevronDown, User, Settings, LayoutDashboard, PhoneCall } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
@@ -14,9 +14,10 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const { setDropCalls, selectedStatus } = useContext(HistoryContext);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
 
   const navLinks = [
     {
@@ -27,23 +28,32 @@ export default function Header() {
   ];
 
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
-  const toggleUserMenu = () => setUserMenuOpen(!userMenuOpen);
 
   const handleLogout = () => {
     Cookies.remove('samwad_token', { path: '/' });
     toast.success('Logged out!');
-    localStorage.clear;
+    localStorage.clear();
     router.push('/');
+    setUserMenuOpen(false);
   };
 
-  // Close menus when clicking outside
-  // useEffect(() => {
-  //   const handleClickOutside = (event) => {
-  //     if (userMenuOpen) setUserMenuOpen(false);
-  //   };
-  //   document.addEventListener('mousedown', handleClickOutside);
-  //   return () => document.removeEventListener('mousedown', handleClickOutside);
-  // }, [userMenuOpen]);
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    }
+
+    if (userMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    // Cleanup
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [userMenuOpen]);
 
   return (
     <header className="w-full backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-white/20 dark:border-slate-700/20 sticky top-0 z-40 shadow-lg shadow-blue-500/5">
@@ -77,16 +87,16 @@ export default function Header() {
                 </Link>
               );
             })}
-            {/* <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} /> */}
+            <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
           </nav>
 
           <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
 
-          <div className="relative">
+          <div className="relative" ref={userMenuRef}>
             <Button
               variant="ghost"
               size="sm"
-              onClick={toggleUserMenu}
+              onClick={() => setUserMenuOpen((open) => !open)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-white/50 dark:hover:bg-slate-800/40"
             >
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
