@@ -147,3 +147,14 @@ select:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0px 1000px rgba(29, 41, 61, 0.5) inset !important;
   -webkit-text-fill-color: #ffffff !important;
 }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

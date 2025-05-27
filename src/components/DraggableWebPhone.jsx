@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Rnd } from 'react-rnd';
 import { Phone, PhoneCall, PhoneOff } from 'lucide-react';
 
@@ -7,6 +7,7 @@ import Home from './Home';
 import CallScreen from './CallScreen';
 import useJssip from '@/hooks/useJssip';
 import CallConference from './CallConference';
+import { JssipContext } from '@/context/JssipContext';
 
 function getInitialWebphoneState() {
   if (typeof window === 'undefined')
@@ -29,7 +30,7 @@ function getInitialWebphoneState() {
 }
 
 export default function DraggableWebPhone() {
-  const [
+  const {
     ringtone,
     conferenceStatus,
     reqUnHold,
@@ -47,7 +48,6 @@ export default function DraggableWebPhone() {
     session,
     isRunning,
     audioRef,
-    setStatus,
     devices,
     selectedDeviceId,
     changeAudioDevice,
@@ -60,8 +60,8 @@ export default function DraggableWebPhone() {
     userCall,
     timeoutArray,
     isConnectionLost,
-  ] = useJssip();
-  console.log(status, 'status');
+  } = useContext(JssipContext);
+
   const [webphoneState, setWebphoneState] = useState(getInitialWebphoneState);
   const [phoneShow, setPhoneShow] = useState(() => {
     if (typeof window !== 'undefined') {

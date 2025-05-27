@@ -211,7 +211,7 @@ const CallScreen = ({
             aria-label="End Call"
             type="button"
           >
-            <Image src={'hang-up.svg'} width={35} height={35} />
+            <Image src={'hang-up.svg'} alt="end-call" width={35} height={35} />
           </button>
         </div>
 

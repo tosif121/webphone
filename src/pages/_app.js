@@ -1,5 +1,6 @@
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { HistoryProvider } from '@/context/HistoryContext';
+import { JssipProvider } from '@/context/JssipContext';
 import '@/styles/globals.css';
 import dynamic from 'next/dynamic';
 import { Jost } from 'next/font/google';
@@ -26,9 +27,11 @@ export default function App({ Component, pageProps }) {
           {isPublicPage ? (
             <Component {...pageProps} />
           ) : (
-            <Layout>
-              <Component {...pageProps} />
-            </Layout>
+            <JssipProvider>
+              <Layout>
+                <Component {...pageProps} />
+              </Layout>
+            </JssipProvider>
           )}
         </HistoryProvider>
       </ThemeProvider>

@@ -15,7 +15,7 @@ export default function Header() {
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState(null);
-  const { setDropCalls, selectedStatus } = useContext(HistoryContext);
+  const { setDropCalls, dropCalls, selectedStatus } = useContext(HistoryContext);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
 
@@ -54,7 +54,7 @@ export default function Header() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [userMenuOpen]);
-
+  const campaignMissedCallsLength = 6;
   return (
     <header className="w-full backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-white/20 dark:border-slate-700/20 sticky top-0 z-40 shadow-lg shadow-blue-500/5">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
@@ -87,6 +87,32 @@ export default function Header() {
                 </Link>
               );
             })}
+            <button
+              onClick={() => setDropCalls(true)}
+              className={cn(
+                'relative flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-blue-400',
+                dropCalls
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
+                  : 'bg-white/70 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-blue-700 dark:text-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/30'
+              )}
+              aria-label="Show Missed Calls"
+              type="button"
+            >
+              <PhoneCall className={cn('w-5 h-5', dropCalls ? 'text-white' : 'text-blue-600 dark:text-blue-300')} />
+              <span className="font-medium">Missed Calls</span>
+              {campaignMissedCallsLength > 0 && (
+                <span
+                  className="
+        absolute -top-2 -right-2 min-w-[1.5rem] h-6 flex items-center justify-center
+        rounded-full bg-blue-600 text-white text-xs font-bold px-2 shadow
+        border-2 border-white dark:border-slate-900
+      "
+                >
+                  {campaignMissedCallsLength}
+                </span>
+              )}
+            </button>
+
             <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
           </nav>
 

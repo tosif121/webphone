@@ -189,11 +189,11 @@ const useJssip = () => {
         toast.error('Server appears to be unresponsive. Retrying...');
         // localStorage.clear();
         // window.location.href = '/webphone/login';
-        addTimeout('timeout');
+        // addTimeout('timeout');
       } else if (err.message.includes('Network')) {
         console.error('Network error:', err.message);
         toast.error('Network error. Please check your connection.');
-        addTimeout('network');
+        // addTimeout('network');
       } else {
         console.error('Error during connection check:', err);
         if (err.response && err.response.status === 401) {
@@ -246,6 +246,12 @@ const useJssip = () => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (status === 'start') {
+      stopRecording();
+    }
+  }, [status]);
 
   const initializeWebSocketTranscription = () => {
     const createWebSocket = (isAgent = true) => {
@@ -1049,7 +1055,6 @@ const useJssip = () => {
     session,
     isRunning,
     audioRef,
-    setStatus,
     devices,
     selectedDeviceId,
     changeAudioDevice,
@@ -1062,8 +1067,6 @@ const useJssip = () => {
     userCall,
     timeoutArray,
     isConnectionLost,
-    // isDialbuttonClicked,
-    // setIsDialbuttonClicked,
   ];
 };
 
