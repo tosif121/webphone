@@ -36,7 +36,7 @@ export function JssipProvider({ children }) {
     timeoutArray,
     isConnectionLost,
   ] = useJssip();
-  console.log(status, 'staus in conetxt');
+
   return (
     <JssipContext.Provider
       value={{

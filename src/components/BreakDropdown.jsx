@@ -28,16 +28,18 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Timer logic
   useEffect(() => {
     if (selectedBreak !== 'Break') {
       setTimer(0);
-      timerRef.current = setInterval(() => setTimer((prev) => prev + 1), 1000);
+      timerRef.current = setInterval(() => {
+        setTimer((prev) => prev + 1);
+      }, 1000);
+      return () => clearInterval(timerRef.current);
     } else {
-      clearInterval(timerRef.current);
       setTimer(0);
+      clearInterval(timerRef.current);
     }
-    return () => clearInterval(timerRef.current);
+    // eslint-disable-next-line
   }, [selectedBreak]);
 
   const formatTime = (seconds) => {
@@ -90,34 +92,27 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={handleButtonClick}
-        disabled={selectedStatus !== 'start'}
         className={`
-          flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all
-          ${isOnBreak
-            ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md'
-            : 'bg-white/70 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-900/30'}
-          focus:outline-none focus:ring-2 focus:ring-blue-400
+          flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all
+          ${
+            isOnBreak
+              ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md'
+              : 'bg-white/70 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-blue-700 dark:text-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/30'
+          } ${isOpen && 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'}
+          focus:outline-none
         `}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        {isOnBreak && selectedBreakObj && (
-          <selectedBreakObj.icon className="w-5 h-5" />
-        )}
-        <span>
-          {isOnBreak
-            ? selectedBreakObj?.label || selectedBreak
-            : 'Take a Break'}
-        </span>
+        {isOnBreak && selectedBreakObj && <selectedBreakObj.icon className="w-5 h-5" />}
+        <span>{isOnBreak ? selectedBreakObj?.label || selectedBreak : 'Take a Break'}</span>
         {isOnBreak && (
           <span className="flex items-center gap-1 ml-2 text-xs font-medium">
             <Clock className="w-4 h-4" />
             {formatTime(timer)}
           </span>
         )}
-        {!isOnBreak && (
-          <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-        )}
+        {!isOnBreak && <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />}
       </button>
 
       {/* Dropdown */}

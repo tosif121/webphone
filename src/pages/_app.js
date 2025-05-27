@@ -22,8 +22,8 @@ export default function App({ Component, pageProps }) {
   return (
     <main className={`${jostSans.className} scroll-smooth font-[family-name:var(--font-jost-sans)]`}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <Toaster position="top-right" reverseOrder={false} />
         <HistoryProvider>
-          <Toaster position="top-right" reverseOrder={false} />
           {isPublicPage ? (
             <Component {...pageProps} />
           ) : (

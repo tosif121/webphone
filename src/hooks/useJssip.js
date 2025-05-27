@@ -746,7 +746,7 @@ const useJssip = () => {
         const currentTime = Date.now();
         // console.log('current time :', currentTime);
         const difference = currentTime - timeOfLastElement;
-        console.log('difference in messageDifference time check : ', difference);
+        // console.log('difference in messageDifference time check : ', difference);
 
         if (difference > 14000) {
           console.log('User is not live');

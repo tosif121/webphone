@@ -1,12 +1,14 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Phone, Clock, X, PhoneCall, Calendar } from 'lucide-react';
+import { Phone, Clock, PhoneCall, Calendar } from 'lucide-react';
 import moment from 'moment';
+import { Dialog, DialogContent } from '@/components/ui/dialog'; // shadcn/ui Dialog
+
 import { contactService } from '@/utils/services';
 
 const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMissedCallsLength }) => {
   const [loadingCaller, setLoadingCaller] = useState(null);
 
-  const tokenData = localStorage?.getItem('token');
+  const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const parsedData = tokenData ? JSON.parse(tokenData) : null;
   const userCampaign = parsedData?.userData?.campaign;
 
@@ -44,7 +46,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
     async (caller) => {
       try {
         const sanitizedCaller = removeCountryCode(caller);
-        const response = await contactService.dialmissedcall({
+        await contactService.dialmissedcall({
           caller: username,
           receiver: sanitizedCaller,
         });
@@ -63,23 +65,22 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
   const formatDateTime = (timestamp) => moment(timestamp).format('MMM DD, YYYY • hh:mm A');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      Backdrop
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-md z-40"
-        onClick={() => setDropCalls(false)}
-      />
-
-      {/* Modal */}
-      <div className="relative w-full max-w-lg mx-4 animate-in fade-in-0 zoom-in-95 duration-300 z-50">
+    <Dialog open={true} onOpenChange={setDropCalls}>
+      <DialogContent
+        className="
+          max-w-lg w-full p-0 border-none bg-transparent shadow-none
+          flex items-center justify-center
+        "
+      >
         <div
           className="
-        relative overflow-hidden rounded-2xl
-        border border-slate-200/80 dark:border-slate-700/30
-        bg-white/95 dark:bg-slate-900/80
-        shadow-2xl shadow-slate-900/20 dark:shadow-blue-500/10
-        backdrop-blur-md
-      "
+            relative overflow-hidden rounded-2xl
+            border border-slate-200/80 dark:border-slate-700/30
+            bg-white/95 dark:bg-slate-900/80
+            shadow-2xl shadow-slate-900/20 dark:shadow-blue-500/10
+            backdrop-blur-md
+            w-full
+          "
         >
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/60 dark:border-slate-700/20 bg-gradient-to-r from-blue-50/80 to-indigo-50/60 dark:from-slate-800/40 dark:to-slate-900/40">
@@ -88,24 +89,15 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
                 <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
                   <PhoneCall className="text-white" size={18} aria-hidden="true" />
                 </div>
-                <div className="absolute -top-2 -right-2 flex items-center justify-center w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold shadow-md border-2 border-white dark:border-slate-900">
+                <div className="absolute -top-2 -right-2 flex items-center justify-center w-max h-6 bg-red-500 text-white rounded-full text-xs font-bold shadow-md border-2 border-white dark:border-slate-900">
                   {campaignMissedCallsLength}
                 </div>
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-slate-800 dark:text-blue-200">Missed Calls</h2>
-                <p className="text-sm text-slate-600 dark:text-slate-400">{userCampaign}</p>
               </div>
             </div>
-            <button
-              onClick={() => setDropCalls(false)}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 border border-slate-200 dark:border-slate-700 transition-all"
-              aria-label="Close"
-            >
-              <X className="h-5 w-5 text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 transition-colors" />
-            </button>
           </div>
-
           {/* Content */}
           <div className="relative max-h-96 overflow-y-auto p-6 bg-gradient-to-b from-slate-50/30 to-white/90 dark:from-slate-900/20 dark:to-slate-900/60">
             {sortedEntries.length === 0 ? (
@@ -171,8 +163,8 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

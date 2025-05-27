@@ -1,120 +1,6 @@
-//
-//   const { username, dropCalls, setDropCalls, selectedBreak, setSelectedStatus, setInfo, info } =
-//     useContext(HistoryContext);
-//   const [usermissedCalls, setUsermissedCalls] = useState([]);
-//   const tokenData = localStorage.getItem('token');
-//   const parsedData = JSON.parse(tokenData);
-//   const userCampaign = parsedData?.userData?.campaign;
-//   const adminUser = parsedData?.userData?.adminuser;
-//   const userId = parsedData?.userData?.userid;
-//   const token = parsedData?.token;
-
-//   const campaignMissedCallsLength = useMemo(() => {
-//     return Object.values(usermissedCalls || {}).filter((call) => call?.campaign === userCampaign).length;
-//   }, [usermissedCalls, userCampaign]);
-//   const [adminUserData, setAdminUserData] = useState([]);
-
-//   const fetchAdminUser = async () => {
-//     try {
-//       const response = await axios.get(`https://esamwad.iotcom.io/users/${adminUser}`, {
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//         },
-//       });
-
-//       const filteredData = response.data.result?.filter((item) => item.Status === 'NOT_INUSE' && item.user !== userId);
-
-//       setAdminUserData(filteredData || []);
-//     } catch (error) {
-//       toast.error('Failed to fetch admin user.');
-//       console.error('Error fetching admin user:', error);
-//     }
-//   };
-
-//   // useEffect(() => {
-//   //   if (info) {
-//   //     fetchAdminUser();
-//   //   }
-//   // }, [info]);
-
-//   // useEffect(() => {
-//   //   if (userCall) {
-//   //     setFormData({
-//   //       firstName: userCall.firstName || '',
-//   //       lastName: userCall.lastName || '',
-//   //       number: userCall.contactNumber || '',
-//   //       alternateNumber: userCall.alternateNumber || '',
-//   //       address: userCall.Contactaddress || '',
-//   //       state: userCall.ContactState || '',
-//   //       district: userCall.ContactDistrict || '',
-//   //       city: userCall.ContactCity || '',
-//   //       postalCode: userCall.ContactPincode || '',
-//   //       email: userCall.emailId || '',
-//   //       comment: userCall.comment || '',
-//   //     });
-//   //   }
-//   // }, [userCall]);
-
-//   return (
-//     <>
-//       {/* Missed Calls Notification Badge */}
-//       {/* {campaignMissedCallsLength > 0 && (
-//         <div className="fixed top-6 right-8 md:right-16 z-50 animate-pulse">
-//           <button
-//             onClick={() => setDropCalls(true)}
-//             className="relative w-12 h-12 flex items-center justify-center rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-lg border border-white/30 dark:border-slate-700/30 hover:bg-white dark:hover:bg-slate-800 transition-all"
-//             aria-label="Show missed calls"
-//           >
-//             <span className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center rounded-full bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs font-bold shadow-md">
-//               {campaignMissedCallsLength}
-//             </span>
-//             <Bell className="h-6 w-6 text-red-500" />
-//           </button>
-//         </div>
-//       )} */}
-
-//       {/* Call Queue Alert */}
-//       {ringtone.length > 0 && (
-//         <div className="fixed top-24 left-0 right-0 mx-auto max-w-lg z-40">
-//           <div className="backdrop-blur-md bg-blue-50/90 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 rounded-xl shadow-lg shadow-blue-500/10 p-4 mx-4">
-//             <div className="flex items-center gap-3">
-//               <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-md animate-pulse">
-//                 <PhoneMissed className="text-white" />
-//               </div>
-//               <div className="flex-1">
-//                 <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Call Queue: ({ringtone.length})</p>
-//                 <div className="mt-1 text-xs font-medium truncate text-blue-600 dark:text-blue-300">
-//                   {ringtone.map((call) => call.Caller).join(', ')}
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-
-//       {/* Phone Toggle Button */}
-
-//       {/* Main Dashboard Area */}
-//       <div>
-//         {/* Modals */}
-
-//         {/* {info && (
-//           <Modal isOpen={info} onClose={() => setInfo(false)} title={`Users Not In Use (${adminUserData.length})`}>
-//             <InterModal
-//               adminUserData={adminUserData}
-//               handleCall={handleCall}
-//               handleCalls={handleCalls}
-//               setPhoneNumber={setPhoneNumber}
-//               setInfo={setInfo}
-//               status={status}
-//               setConferenceNumber={setConferenceNumber}
-//             />
-//           </Modal>
-//         )} */}
-
 import HistoryContext from '@/context/HistoryContext';
 import useJssip from '@/hooks/useJssip';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import UserCall from './UserCall';
 import AutoDial from './AutoDial';
 import Disposition from './Disposition';
@@ -123,6 +9,7 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import { contactService } from '@/utils/services';
 import DropCallsModal from './DropCallsModal';
+import { Bell } from 'lucide-react';
 
 function Dashboard() {
   const {
@@ -157,9 +44,32 @@ function Dashboard() {
     isConnectionLost,
   } = useContext(JssipContext);
 
-  const { username, dropCalls, setDropCalls, selectedBreak } = useContext(HistoryContext);
+  const {
+    username,
+    dropCalls,
+    setDropCalls,
+    selectedBreak,
+    setSelectedStatus,
+    setInfo,
+    info,
+    campaignMissedCallsLength,
+    setCampaignMissedCallsLength,
+  } = useContext(HistoryContext);
   const [usermissedCalls, setUsermissedCalls] = useState([]);
   const [callConference, setCallConference] = useState(false);
+  const tokenData = localStorage.getItem('token');
+  const parsedData = JSON.parse(tokenData);
+  const userCampaign = parsedData?.userData?.campaign;
+  const adminUser = parsedData?.userData?.adminuser;
+  const computedMissedCallsLength = useMemo(() => {
+  return Object.values(usermissedCalls || {}).filter((call) => call?.campaign === userCampaign).length;
+}, [usermissedCalls, userCampaign]);
+
+useEffect(() => {
+  setCampaignMissedCallsLength(computedMissedCallsLength);
+}, [computedMissedCallsLength, setCampaignMissedCallsLength]);
+
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -235,8 +145,86 @@ function Dashboard() {
     setCallConference(false);
   }
 
+  const fetchAdminUser = async () => {
+    try {
+      const response = await axios.get(`https://esamwad.iotcom.io/users/${adminUser}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const filteredData = response.data.result?.filter((item) => item.Status === 'NOT_INUSE' && item.user !== userId);
+
+      setAdminUserData(filteredData || []);
+    } catch (error) {
+      toast.error('Failed to fetch admin user.');
+      console.error('Error fetching admin user:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (info) {
+      fetchAdminUser();
+    }
+  }, [info]);
+
+  useEffect(() => {
+    if (userCall) {
+      setFormData({
+        firstName: userCall.firstName || '',
+        lastName: userCall.lastName || '',
+        number: userCall.contactNumber || '',
+        alternateNumber: userCall.alternateNumber || '',
+        address: userCall.Contactaddress || '',
+        state: userCall.ContactState || '',
+        district: userCall.ContactDistrict || '',
+        city: userCall.ContactCity || '',
+        postalCode: userCall.ContactPincode || '',
+        email: userCall.emailId || '',
+        comment: userCall.comment || '',
+      });
+    }
+  }, [userCall]);
+
+  useEffect(() => {
+    setCampaignMissedCallsLength(campaignMissedCallsLength);
+  }, [campaignMissedCallsLength]);
+
   return (
     <>
+      {/* Call Queue Alert */}
+      {ringtone.length > 0 && (
+        <div className="fixed top-24 left-0 right-0 mx-auto max-w-lg z-40">
+          <div className="backdrop-blur-md bg-blue-50/90 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 rounded-xl shadow-lg shadow-blue-500/10 p-4 mx-4">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-md animate-pulse">
+                <PhoneMissed className="text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Call Queue: ({ringtone.length})</p>
+                <div className="mt-1 text-xs font-medium truncate text-blue-600 dark:text-blue-300">
+                  {ringtone.map((call) => call.Caller).join(', ')}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* {info && (
+        <Modal isOpen={info} onClose={() => setInfo(false)} title={`Users Not In Use (${adminUserData.length})`}>
+          <InterModal
+            adminUserData={adminUserData}
+            handleCall={handleCall}
+            handleCalls={handleCalls}
+            setPhoneNumber={setPhoneNumber}
+            setInfo={setInfo}
+            status={status}
+            setConferenceNumber={setConferenceNumber}
+          />
+        </Modal>
+      )} */}
+
       {dispositionModal && (
         <Disposition
           bridgeID={bridgeID}
@@ -248,7 +236,12 @@ function Dashboard() {
         />
       )}
       {dropCalls && (
-        <DropCallsModal usermissedCalls={usermissedCalls} setDropCalls={setDropCalls} username={username} />
+        <DropCallsModal
+          usermissedCalls={usermissedCalls}
+          campaignMissedCallsLength={campaignMissedCallsLength}
+          setDropCalls={setDropCalls}
+          username={username}
+        />
       )}
       <div className="max-w-lg">
         {status !== 'start' && userCall ? (

@@ -14,6 +14,7 @@ export default function Layout({ children }) {
         <div className="absolute top-0 right-0 w-64 h-64 -mr-32 -mt-32 bg-gradient-to-br from-blue-400 to-purple-500 opacity-20 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 -ml-32 -mb-32 bg-gradient-to-tr from-emerald-400 to-cyan-500 opacity-20 rounded-full blur-3xl"></div>
       </div>
+
       {/* Main content */}
       <div className="relative z-10 flex flex-col min-h-screen">
         <Header />
