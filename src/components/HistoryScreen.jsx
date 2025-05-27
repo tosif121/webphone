@@ -12,7 +12,7 @@ const HistoryScreen = ({ setSeeLogs, setPhoneNumber, handleCall }) => {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20">
+      <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20">
         <div className="flex items-center gap-3">
           <button
             onClick={handleGoBack}
@@ -37,7 +37,7 @@ const HistoryScreen = ({ setSeeLogs, setPhoneNumber, handleCall }) => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-6 py-4 overflow-y-auto max-h-[60vh]">
+      <div className="flex-1 p-4 overflow-y-auto max-h-[60vh]">
         {history.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">

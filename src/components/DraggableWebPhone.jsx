@@ -101,6 +101,11 @@ export default function DraggableWebPhone() {
     });
   };
 
+  function handleCalls() {
+    createConferenceCall();
+    setCallConference(false);
+  }
+
   return (
     <>
       {/* Floating Toggle Button */}
