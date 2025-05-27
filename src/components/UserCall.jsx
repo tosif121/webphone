@@ -1,8 +1,9 @@
-import React from 'react';
+import { User, Mail, Phone, MapPin, Home, Building, MapPinned, Building2, MailOpen, MessageSquare } from 'lucide-react';
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from './ui/card';
 import { Input } from './ui/input';
-import maskPhoneNumber from '@/utils/maskPhoneNumber';
+import { Textarea } from './ui/textarea';
 
-const UserCall = ({ formData, setFormData, userCallOpen }) => {
+const UserCall = ({ formData, setFormData }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -12,101 +13,170 @@ const UserCall = ({ formData, setFormData, userCallOpen }) => {
   };
 
   return (
-    <div
-      className={`${
-        (!userCallOpen &&
-          'max-w-lg p-3 bg-white rounded-lg shadow-[0px_0px_7px_0px_rgba(0,0,0,0.1)] dark:bg-[#333]') ||
-        'p-3'
-      }`}
-    >
-      <form>
-        <div className="grid grid-cols-2 gap-2 md:gap-4">
-          <Input
-            label="First Name"
-            type="text"
-            name="firstName"
-            value={formData.firstName}
-            onChange={handleChange}
-          />
-          <Input label="Last Name" type="text" name="lastName" value={formData.lastName} onChange={handleChange} />
-          <Input
-            label="Mobile Number"
-            type="text"
-            name="number"
-            value={maskPhoneNumber(formData.number)}
-            onChange={handleChange}
-            placeholder="Enter Primary Number"
-          />
-          <Input
-            label="Alternate Number"
-            type="text"
-            name="alternateNumber"
-            value={formData.alternateNumber}
-            onChange={handleChange}
-            placeholder="Enter Alternate Number"
-          />
-          <Input
-            label="Address"
-            type="text"
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            placeholder="Enter Address Line 1"
-          />
-          <Input
-            label="State"
-            type="text"
-            name="state"
-            value={formData.state}
-            onChange={handleChange}
-            placeholder="Enter State"
-          />
-          <Input
-            label="District"
-            type="text"
-            name="district"
-            value={formData.district}
-            onChange={handleChange}
-            placeholder="Enter District"
-          />
-          <Input
-            label="City"
-            type="text"
-            name="city"
-            value={formData.city}
-            onChange={handleChange}
-            placeholder="Enter City"
-          />
-          <Input
-            label="Postal Code"
-            type="text"
-            name="postalCode"
-            value={formData.postalCode}
-            onChange={handleChange}
-            placeholder="Enter Postal Code"
-          />
-          <Input
-            label="Email"
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Enter Email Address"
-          />
+    <Card className="backdrop-blur-sm bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/20 shadow-lg shadow-blue-500/5">
+      <CardHeader className="pb-2">
+        <div className="flex items-center">
+          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-500/30">
+            <User className="text-white" size={18} aria-hidden="true" />
+          </div>
+          <div className="ml-3">
+            <CardTitle className="text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              Contact Details
+            </CardTitle>
+            <CardDescription>Edit or review contact information</CardDescription>
+          </div>
         </div>
+      </CardHeader>
 
-        <div className="mt-2">
-          <label className="input-label">Comment</label>
-          <textarea
-            name="comment"
-            value={formData.comment}
-            onChange={handleChange}
-            placeholder="Enter Your comment here!"
-            className="input-box"
-          />
-        </div>
-      </form>
-    </div>
+      <CardContent>
+        <form className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* First Name */}
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+              <Input
+                name="firstName"
+                type="text"
+                placeholder="First Name"
+                value={formData.firstName}
+                onChange={handleChange}
+                className="pl-10"
+                aria-label="First Name"
+              />
+            </div>
+            {/* Last Name */}
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+              <Input
+                name="lastName"
+                type="text"
+                placeholder="Last Name"
+                value={formData.lastName}
+                onChange={handleChange}
+                className="pl-10"
+                aria-label="Last Name"
+              />
+            </div>
+            {/* Mobile Number */}
+            <div className="relative">
+              <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+              <Input
+                name="number"
+                type="text"
+                placeholder="Mobile Number"
+                value={formData.number}
+                onChange={handleChange}
+                className="pl-10"
+                aria-label="Mobile Number"
+              />
+            </div>
+            {/* Alternate Number */}
+            <div className="relative">
+              <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+              <Input
+                name="alternateNumber"
+                type="text"
+                placeholder="Alternate Number"
+                value={formData.alternateNumber}
+                onChange={handleChange}
+                className="pl-10"
+                aria-label="Alternate Number"
+              />
+            </div>
+            {/* Address */}
+            <div className="relative">
+              <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+              <Input
+                name="address"
+                type="text"
+                placeholder="Address"
+                value={formData.address}
+                onChange={handleChange}
+                className="pl-10"
+                aria-label="Address"
+              />
+            </div>
+            {/* State */}
+            <div className="relative">
+              <MapPinned className="absolute left-3 top-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+              <Input
+                name="state"
+                type="text"
+                placeholder="State"
+                value={formData.state}
+                onChange={handleChange}
+                className="pl-10"
+                aria-label="State"
+              />
+            </div>
+            {/* District */}
+            <div className="relative">
+              <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+              <Input
+                name="district"
+                type="text"
+                placeholder="District"
+                value={formData.district}
+                onChange={handleChange}
+                className="pl-10"
+                aria-label="District"
+              />
+            </div>
+            {/* City */}
+            <div className="relative">
+              <Building2 className="absolute left-3 top-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+              <Input
+                name="city"
+                type="text"
+                placeholder="City"
+                value={formData.city}
+                onChange={handleChange}
+                className="pl-10"
+                aria-label="City"
+              />
+            </div>
+            {/* Postal Code */}
+            <div className="relative">
+              <MailOpen className="absolute left-3 top-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+              <Input
+                name="postalCode"
+                type="text"
+                placeholder="Postal Code"
+                value={formData.postalCode}
+                onChange={handleChange}
+                className="pl-10"
+                aria-label="Postal Code"
+              />
+            </div>
+            {/* Email */}
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+              <Input
+                name="email"
+                type="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={handleChange}
+                className="pl-10"
+                aria-label="Email"
+              />
+            </div>
+          </div>
+          {/* Comment */}
+          <div className="relative">
+            <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+            <Textarea
+              name="comment"
+              placeholder="Enter your comment here!"
+              value={formData.comment}
+              onChange={handleChange}
+              className="pl-10 min-h-20 resize-none"
+              aria-label="Comment"
+            />
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

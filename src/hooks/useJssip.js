@@ -28,6 +28,7 @@ const useJssip = () => {
   const [isCallended, setIsCallended] = useState(false);
   const [messageDifference, setMessageDifference] = useState([]);
   const [avergaeMessageTimePerMinute, setAvergaeMessageTimePerMinute] = useState([]);
+  // const [isDialbuttonClicked, setIsDialbuttonClicked] = useState(false);
   const offlineToastIdRef = useRef(null);
   const agentSocketRef = useRef(null);
   const customerSocketRef = useRef(null);
@@ -38,6 +39,7 @@ const useJssip = () => {
   const { seconds, minutes, isRunning, pause, reset } = useStopwatch({
     autoStart: false,
   });
+
   const originWithoutProtocol = 'esamwad.iotcom.io';
   // const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
 
@@ -186,7 +188,7 @@ const useJssip = () => {
         console.error('Connection timed out');
         toast.error('Server appears to be unresponsive. Retrying...');
         // localStorage.clear();
-        // window.location.href = '/login';
+        // window.location.href = '/webphone/login';
         addTimeout('timeout');
       } else if (err.message.includes('Network')) {
         console.error('Network error:', err.message);
@@ -721,255 +723,259 @@ const useJssip = () => {
   //     isMounted = false; //Cleanup to prevent memory leaks
   //   };
   // }, [])
-  // useEffect(() => {
-  //   let isMounted = true; // Prevent state updates after unmount
+  useEffect(() => {
+    let isMounted = true; // Prevent state updates after unmount
 
-  //   function checkUserLive() {
-  //     if (!isMounted) return;
+    function checkUserLive() {
+      if (!isMounted) return;
 
-  //     // ✅ Read latest state inside setTimeout
-  //     setMessageDifference((prev) => {
-  //       // if (prev.length < 12) {
-  //       // console.log('running recursion function for checking time :');
-  //       // console.log('messageDifference length :', prev);
-  //       const lastElement = prev[prev.length - 1];
-  //       // console.log('last element :', lastElement);
-  //       const timeOfLastElement = lastElement?.messageTime;
-  //       const currentTime = Date.now();
-  //       // console.log('current time :', currentTime);
-  //       const difference = currentTime - timeOfLastElement;
-  //       console.log('difference in messageDifference time check : ', difference);
+      // ✅ Read latest state inside setTimeout
+      setMessageDifference((prev) => {
+        // if (prev.length < 12) {
+        // console.log('running recursion function for checking time :');
+        // console.log('messageDifference length :', prev);
+        const lastElement = prev[prev.length - 1];
+        // console.log('last element :', lastElement);
+        const timeOfLastElement = lastElement?.messageTime;
+        const currentTime = Date.now();
+        // console.log('current time :', currentTime);
+        const difference = currentTime - timeOfLastElement;
+        console.log('difference in messageDifference time check : ', difference);
 
-  //       if (difference > 14000) {
-  //         console.log('User is not live');
-  //         toast.error('User is not live. Please login again.');
-  //         // setTimeout(checkUserLive, 15000);
-  //         // localStorage.clear();
-  //         // window.location.href = '/login';
-  //         localStorage.clear();
-  //         window.location.href = '/login';
-  //         return prev;
-  //       }
-  //       // }
+        if (difference > 14000) {
+          console.log('User is not live');
+          toast.error('User is not live. Please login again.');
+          // setTimeout(checkUserLive, 15000);
+          // localStorage.clear();
+          // window.location.href = '/webphone/login';
+          localStorage.clear();
+          window.location.href = '/login';
+          return prev;
+        }
+        // }
 
-  //       setTimeout(checkUserLive, 15000); // Recursively call every 5 seconds
-  //       return prev;
-  //     });
-  //   }
+        setTimeout(checkUserLive, 15000); // Recursively call every 5 seconds
+        return prev;
+      });
+    }
 
-  //   checkUserLive(); // Start the recursive function
+    checkUserLive(); // Start the recursive function
 
-  //   return () => {
-  //     isMounted = false; // Cleanup to prevent memory leaks
-  //   };
-  // }, []);
+    return () => {
+      isMounted = false; // Cleanup to prevent memory leaks
+    };
+  }, []);
 
-  // useEffect(() => {
-  //   const initializeJsSIP = () => {
-  //     try {
-  //       var socket = new JsSIP.WebSocketInterface(`wss://${originWithoutProtocol}:8089/ws`);
+  useEffect(() => {
+    const initializeJsSIP = () => {
+      try {
+        var socket = new JsSIP.WebSocketInterface(`wss://${originWithoutProtocol}:8089/ws`);
 
-  //       // Add direct socket error handling
-  //       socket.onclose = function (event) {
-  //         if (!event.wasClean) {
-  //           console.error('WebSocket connection died unexpectedly');
-  //           toast.error('Connection lost');
-  //           localStorage.clear();
-  //           window.location.href = '/login';
-  //         }
-  //       };
+        // Add direct socket error handling
+        socket.onclose = function (event) {
+          if (!event.wasClean) {
+            console.error('WebSocket connection died unexpectedly');
+            toast.error('Connection lost');
+            localStorage.clear();
+            window.location.href = '/login';
+          }
+        };
 
-  //       socket.onerror = function (error) {
-  //         console.error('WebSocket error:', error);
-  //         toast.error('Connection failed');
-  //         localStorage.clear();
-  //         window.location.href = '/login';
-  //       };
+        socket.onerror = function (error) {
+          console.error('WebSocket error:', error);
+          toast.error('Connection failed');
+          localStorage.clear();
+          window.location.href = '/login';
+        };
 
-  //       var configuration = {
-  //         sockets: [socket],
-  //         session_timers: false,
-  //         uri: `${username.replace('@', '-')}@${originWithoutProtocol}:8089`,
-  //         password: password,
-  //       };
+        var configuration = {
+          sockets: [socket],
+          session_timers: false,
+          uri: `${username.replace('@', '-')}@${originWithoutProtocol}:8089`,
+          password: password,
+        };
 
-  //       var ua = new JsSIP.UA(configuration);
-  //       ua.start();
+        var ua = new JsSIP.UA(configuration);
+        ua.start();
 
-  //       ua.on('registered', (data) => {
-  //         console.log('Successfully registered:', data);
-  //         checkUserReady();
-  //       });
+        ua.on('registered', (data) => {
+          console.log('Successfully registered:', data);
+          checkUserReady();
+        });
 
-  //       ua.on('newMessage', (e) => {
-  //         const message = e.request.body;
-  //         console.log('message event:', message);
-  //         // const messageTime = parseInt(message?.split(",")[1]?.trim(), 10); // Use parseInt with base 10
-  //         // console.log(`
-  //         //   ${messageTime}
-  //         //   ${Date.now()}
-  //         //   ==============================`
-  //         // );
+        ua.on('newMessage', (e) => {
+          const message = e.request.body;
+          console.log('message event:', message);
+          // const messageTime = parseInt(message?.split(",")[1]?.trim(), 10); // Use parseInt with base 10
+          // console.log(`
+          //   ${messageTime}
+          //   ${Date.now()}
+          //   ==============================`
+          // );
 
-  //         // // console.log('Message time:', messageTime, "current time:", Date.now());
-  //         // const difference = Date.now() - messageTime;
-  //         const objectToPush = {
-  //           messageTime: Date.now(),
-  //         };
-  //         // // console.log('Difference:', difference);
+          // // console.log('Message time:', messageTime, "current time:", Date.now());
+          // const difference = Date.now() - messageTime;
+          const objectToPush = {
+            messageTime: Date.now(),
+          };
+          // // console.log('Difference:', difference);
 
-  //         setMessageDifference((prev) => {
-  //           const updatedDifferences = [...prev, objectToPush]; // Add new difference
+          setMessageDifference((prev) => {
+            const updatedDifferences = [...prev, objectToPush]; // Add new difference
 
-  //           if (updatedDifferences.length > 10) {
-  //             updatedDifferences.shift(); // Remove the first (oldest) element
-  //           }
+            if (updatedDifferences.length > 10) {
+              updatedDifferences.shift(); // Remove the first (oldest) element
+            }
 
-  //           return updatedDifferences;
-  //         });
-  //         console.log('Message body :', message);
-  //         connectioncheck();
-  //       });
+            return updatedDifferences;
+          });
+          console.log('Message body :', message);
+          connectioncheck();
+        });
 
-  //       ua.on('registrationFailed', (data) => {
-  //         console.error('Registration failed:', data);
-  //         toast.error('User Phone not exits');
-  //         localStorage.clear();
-  //         window.location.href = '/login';
-  //       });
+        ua.on('registrationFailed', (data) => {
+          console.error('Registration failed:', data);
+          toast.error('User Phone not exits');
+          localStorage.clear();
+          window.location.href = '/login';
+        });
 
-  //       ua.on('stopped', (e) => {
-  //         console.error('stopped', e);
-  //         // Add logout behavior for stopped event
-  //         toast.error('Connection stopped');
-  //         localStorage.clear();
-  //         window.location.href = '/login';
-  //       });
+        ua.on('stopped', (e) => {
+          console.error('stopped', e);
+          // Add logout behavior for stopped event
+          toast.error('Connection stopped');
+          localStorage.clear();
+          window.location.href = '/login';
+        });
 
-  //       ua.on('disconnected', (e) => {
-  //         console.error('UA disconnected', e);
-  //         toast.error('Connection lost');
-  //         localStorage.clear();
-  //         window.location.href = '/login';
-  //       });
+        ua.on('disconnected', (e) => {
+          console.error('UA disconnected', e);
+          toast.error('Connection lost');
+          localStorage.clear();
+          window.location.href = '/login';
+        });
 
-  //       ua.on('newRTCSession', function (e) {
-  //         console.log('Session Direction:', e.session.direction);
+        ua.on('newRTCSession', function (e) {
+          console.log('Session Direction:', e.session.direction);
 
-  //         if (e.session.direction === 'incoming') {
-  //           handleIncomingCall(e.session, e.request);
-  //         } else {
-  //           setSession(e.session);
-  //           e.session.connection.addEventListener('addstream', (event) => {
-  //             audioRef.current.srcObject = event.stream;
-  //           });
-  //         }
-  //       });
+          if (e.session.direction === 'incoming') {
+            handleIncomingCall(e.session, e.request);
+          } else {
+            setSession(e.session);
+            session.connection.addEventListener('addstream', (event) => {
+              if (audioRef.current) {
+                audioRef.current.srcObject = event.stream;
+              }
+            });
+          }
+        });
 
-  //       setUa(ua);
-  //     } catch (error) {
-  //       console.error('Error initializing JsSIP:', error);
-  //       toast.error('You Are Logout');
-  //       localStorage.clear();
-  //       window.location.href = '/login';
-  //     }
-  //   };
+        setUa(ua);
+      } catch (error) {
+        console.error('Error initializing JsSIP:', error);
+        toast.error('You Are Logout');
+        localStorage.clear();
+        window.location.href = '/login';
+      }
+    };
 
-  //   const handleIncomingCall = (session, request) => {
-  //     const incomingNumber = request.from._uri._user;
-  //     // setInNotification(incomingNumber);
-  //     session.answer(options);
-  //     setSession(session);
-  //     setStatus('calling');
-  //     reset();
-  //     answercall(incomingNumber);
+    const handleIncomingCall = (session, request) => {
+      const incomingNumber = request.from._uri._user;
+      // setInNotification(incomingNumber);
+      session.answer(options);
+      setSession(session);
+      setStatus('calling');
+      reset();
+      answercall(incomingNumber);
 
-  //     session.connection.addEventListener('addstream', (event) => {
-  //       audioRef.current.srcObject = event.stream;
-  //     });
+      session.connection.addEventListener('addstream', (event) => {
+        if (audioRef.current) {
+          audioRef.current.srcObject = event.stream;
+        }
+      });
 
-  //     session.once('ended', () => {
-  //       setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
-  //       pause();
-  //       setStatus('start');
-  //       setPhoneNumber('');
-  //       // setDispositionModal(true);
-  //       // * this is new state added because user callended api was calling after
-  //       // * dispostion done api when auto disposition is done
-  //       setIsCallended(true);
-  //       setConferenceNumber('');
-  //     });
+      session.once('ended', () => {
+        setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
+        pause();
+        setStatus('start');
+        setPhoneNumber('');
+        // setDispositionModal(true);
+        // * this is new state added because user callended api was calling after
+        // * dispostion done api when auto disposition is done
+        setIsCallended(true);
+        setConferenceNumber('');
+      });
 
-  //     session.once('failed', () => {
-  //       setHistory((prev) => [
-  //         ...prev.slice(0, -1),
-  //         { ...prev[prev.length - 1], end: new Date().getTime(), status: 'Fail' },
-  //       ]);
-  //       pause();
-  //       setStatus('start');
-  //       setPhoneNumber('');
-  //     });
-  //   };
+      session.once('failed', () => {
+        setHistory((prev) => [
+          ...prev.slice(0, -1),
+          { ...prev[prev.length - 1], end: new Date().getTime(), status: 'Fail' },
+        ]);
+        pause();
+        setStatus('start');
+        setPhoneNumber('');
+      });
+    };
 
-  //   const enumerateDevices = async () => {
-  //     try {
-  //       await navigator.mediaDevices.getUserMedia({ audio: true });
-  //       const devices = await navigator.mediaDevices.enumerateDevices();
-  //       const audioDevices = devices.filter((device) => device.kind === 'audioinput');
-  //       setDevices(audioDevices);
+    const enumerateDevices = async () => {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioDevices = devices.filter((device) => device.kind === 'audioinput');
+        setDevices(audioDevices);
 
-  //       if (audioDevices.length > 0) {
-  //         setSelectedDeviceId(audioDevices[0].deviceId);
-  //       }
-  //     } catch (error) {
-  //       console.error('Error enumerating devices:', error);
-  //     }
-  //   };
+        if (audioDevices.length > 0) {
+          setSelectedDeviceId(audioDevices[0].deviceId);
+        }
+      } catch (error) {
+        console.error('Error enumerating devices:', error);
+      }
+    };
 
-  //   // Function to check socket connection status periodically
-  //   const checkSocketConnection = () => {
-  //     if (ua && ua.transport && ua.transport.socket) {
-  //       const socketState = ua.transport.socket.readyState;
+    // Function to check socket connection status periodically
+    const checkSocketConnection = () => {
+      if (ua && ua.transport && ua.transport.socket) {
+        const socketState = ua.transport.socket.readyState;
 
-  //       // WebSocket.CLOSED = 3, WebSocket.CLOSING = 2
-  //       if (socketState === 3 || socketState === 2) {
-  //         console.error('Socket connection lost');
-  //         toast.error('Connection lost');
-  //         localStorage.clear();
-  //         window.location.href = '/login';
-  //       }
-  //     }
-  //   };
+        // WebSocket.CLOSED = 3, WebSocket.CLOSING = 2
+        if (socketState === 3 || socketState === 2) {
+          console.error('Socket connection lost');
+          toast.error('Connection lost');
+          localStorage.clear();
+          window.location.href = '/login';
+        }
+      }
+    };
 
-  //   initializeJsSIP();
-  //   enumerateDevices();
+    initializeJsSIP();
+    enumerateDevices();
 
-  //   // Set up periodic connection check
-  //   const socketCheckInterval = setInterval(checkSocketConnection, 10000); // Check every 10 seconds
+    // Set up periodic connection check
+    const socketCheckInterval = setInterval(checkSocketConnection, 10000); // Check every 10 seconds
 
-  //   navigator.mediaDevices.addEventListener('devicechange', enumerateDevices);
+    navigator.mediaDevices.addEventListener('devicechange', enumerateDevices);
 
-  //   return () => {
-  //     navigator.mediaDevices.removeEventListener('devicechange', enumerateDevices);
-  //     clearInterval(socketCheckInterval);
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', enumerateDevices);
+      clearInterval(socketCheckInterval);
 
-  //     if (ua) {
-  //       ua.off('newMessage');
-  //       try {
-  //         ua.stop();
-  //       } catch (error) {
-  //         console.error('Error stopping UA:', error);
-  //       }
-  //     }
-  //   };
-  // }, [username, password]);
+      if (ua) {
+        ua.off('newMessage');
+        try {
+          ua.stop();
+        } catch (error) {
+          console.error('Error stopping UA:', error);
+        }
+      }
+    };
+  }, [username, password]);
 
   const handleCall = (formattedNumber) => {
     // if (!phoneNumber || phoneNumber.length < 10 || phoneNumber.length > 12) {
     //   toast.error('Phone number must be 10 digit');
     //   return;
     // }
-
+    // setIsDialbuttonClicked(true);
     if (isConnectionLost) {
       return;
     }
@@ -1056,6 +1062,8 @@ const useJssip = () => {
     userCall,
     timeoutArray,
     isConnectionLost,
+    // isDialbuttonClicked,
+    // setIsDialbuttonClicked,
   ];
 };
 

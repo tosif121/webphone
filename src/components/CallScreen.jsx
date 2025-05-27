@@ -1,15 +1,25 @@
-import { User, MicOff, Pause, UserPlus, Key } from 'lucide-react';
-import { XCircle } from 'lucide-react';
-import { PhoneOff } from 'lucide-react';
-import { Square } from 'lucide-react';
-import { useContext, useEffect, useState } from 'react';
-import { Merge } from 'lucide-react';
-import { PhoneForwarded } from 'lucide-react';
+import { useState, useEffect, useContext } from 'react';
+import {
+  User,
+  MicOff,
+  Pause,
+  UserPlus,
+  Grip,
+  XCircle,
+  PhoneOff,
+  Square,
+  Merge,
+  PhoneForwarded,
+  Clock,
+  Volume2,
+  Loader2,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import HistoryContext from '@/context/HistoryContext';
 import maskPhoneNumber from '@/utils/maskPhoneNumber';
 import KeyPad from './KeyPad';
+import Image from 'next/image';
 
 const CallScreen = ({
   conferenceNumber,
@@ -36,191 +46,230 @@ const CallScreen = ({
   const [showKeyPad, setShowKeyPad] = useState(false);
   const [muted, setMuted] = useState(false);
   const [isMerged, setIsMerged] = useState(false);
-  const tokenData = localStorage.getItem('token');
-  const parsedData = JSON.parse(tokenData);
-  const adminUser = parsedData?.userData?.adminuser;
+  const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const parsedData = tokenData ? JSON.parse(tokenData) : {};
   const { username } = useContext(HistoryContext);
   const numberMasking = parsedData?.userData?.numberMasking;
 
   const handleTransfer = async () => {
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/reqTransfer/${username}`, {});
+      await axios.post(`https://esamwad.iotcom.io/reqTransfer/${username}`, {});
       toast.success('Request successful!');
     } catch (error) {
-      console.error('Error:', error);
       toast.error('Request failed. Please try again.');
     }
   };
 
   const handleMerge = () => {
-    reqUnHold();
+    reqUnHold?.();
     setIsMerged(true);
   };
 
   useEffect(() => {
     if (conferenceNumber) {
-      session.unmute();
+      session?.unmute();
       setMuted(false);
     }
-  }, []);
+  }, [conferenceNumber, session]);
+
+  // Masking logic
+  const maybeMask = (num) => (numberMasking ? maskPhoneNumber?.(num) : num);
+
+  // Main phone display
+  const mainNumber = (() => {
+    if (isMerged && phoneNumber && conferenceNumber) {
+      return `${maybeMask(phoneNumber)} Conference with ${maybeMask(conferenceNumber)}`;
+    }
+    if (conferenceNumber) return maybeMask(conferenceNumber);
+    if (phoneNumber) return maybeMask(phoneNumber);
+    return maybeMask(userCall?.contactNumber) || '+1 (555) 123-4567';
+  })();
 
   return (
-    <div className="flex flex-col items-center md:justify-center min-h-screen">
-      <div className="flex flex-col items-center w-full max-w-72 p-6 bg-white dark:bg-[#3333] rounded-lg shadow-[0px_0px_7px_0px_rgba(0,0,0,0.1)]">
-        <div className={`flex flex-col items-center ${showKeyPad ? '' : 'mb-24'}`}>
-          <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center mb-4">
-            <User className="text-white text-2xl" />
+    <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <div
+        className="
+        w-full max-w-md
+        p-6 md:p-8
+        backdrop-blur-md
+        bg-white/80 dark:bg-slate-900/80
+        rounded-2xl
+        border border-white/30 dark:border-slate-700/30
+        shadow-xl shadow-blue-500/10
+        transition-all
+      "
+      >
+        {/* Header */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="relative mb-3">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+              <User className="text-white" size={28} />
+            </div>
           </div>
-          <marquee className="text-2xl font-bold text-primary mb-2">
-            {(() => {
-              const maybeMask = (num) => (numberMasking ? maskPhoneNumber(num) : num);
-
-              if (isMerged && phoneNumber && conferenceNumber) {
-                return `${maybeMask(phoneNumber)} Conference with ${maybeMask(conferenceNumber)}`;
-              }
-
-              if (conferenceNumber) return maybeMask(conferenceNumber);
-              if (phoneNumber) return maybeMask(phoneNumber);
-              return maybeMask(userCall?.contactNumber);
-            })()}
-          </marquee>
-
-          {!isRunning ? (
-            <span className="text-gray-500">Calling...</span>
-          ) : (
-            <span className="text-gray-500">
-              {minutes} : {seconds}
-            </span>
-          )}
+          <div className="text-center mb-2">
+            <div className="text-xl font-bold text-slate-800 dark:text-slate-100 truncate px-4">{mainNumber}</div>
+            <div className="flex items-center justify-center gap-2 mt-1">
+              {isRunning ? (
+                <>
+                  <Clock className="w-4 h-4 text-emerald-500" />
+                  <span className="text-lg font-mono text-emerald-600 dark:text-emerald-400">
+                    {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                  <span className="text-blue-400 text-sm">Calling...</span>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="w-full">
+        {/* Controls Section */}
+        <div className="space-y-6">
           {!showKeyPad ? (
-            <div className="mb-6">
-              <div className="flex justify-around items-center">
-                <button
+            <>
+              {/* Primary Controls Row */}
+              <div className="flex justify-center gap-4">
+                <ControlButton
                   onClick={toggleHold}
                   disabled={!session}
-                  className={`p-4 rounded-full ${isHeld ? 'bg-primary text-white' : 'text-gray-600 dark:text-white'}`}
+                  active={isHeld}
+                  icon={<Pause size={22} />}
                   title="Hold"
-                >
-                  <Pause className="text-3xl" />
-                </button>
-                <button
+                />
+                <ControlButton
                   disabled={!isMerged}
                   onClick={handleTransfer}
-                  className={`p-4 rounded-full dark:text-white ${isMerged ? 'opacity-100' : 'opacity-45'}`}
-                  title="Call Transfer"
-                >
-                  <PhoneForwarded className="text-3xl" />
-                </button>
-
-                <button
-                  className="p-4 text-gray-600 dark:text-white rounded-full"
-                  onClick={() => setShowKeyPad(true)}
-                  title="Keypad"
-                >
-                  <Key className="text-3xl" />
-                </button>
+                  icon={<PhoneForwarded size={22} />}
+                  title="Transfer"
+                  className={!isMerged ? 'opacity-40' : ''}
+                />
+                <ControlButton onClick={() => setShowKeyPad(true)} icon={<Grip size={22} />} title="Keypad" />
               </div>
-              <div className="flex justify-around items-center">
-                {(conferenceStatus && (
-                  <button
-                    className="p-4 rounded-full text-gray-600 dark:text-white"
+
+              {/* Secondary Controls Row */}
+              <div className="flex justify-center gap-4 mt-4">
+                {conferenceStatus ? (
+                  <ControlButton disabled={!session} onClick={handleMerge} icon={<Merge size={22} />} title="Merge" />
+                ) : (
+                  <ControlButton
                     disabled={!session}
-                    onClick={handleMerge}
-                    title="Merge"
-                  >
-                    <Merge className="text-3xl" />
-                  </button>
-                )) || (
-                  <button
-                    className="p-4 rounded-full text-gray-600 dark:text-white"
-                    disabled={!session}
-                    onClick={() => setCallConference(true)}
-                    title="Call Conference"
-                  >
-                    <UserPlus className="text-3xl" />
-                  </button>
+                    onClick={() => setCallConference?.(true)}
+                    icon={<UserPlus size={22} />}
+                    title="Add Call"
+                  />
                 )}
 
-                {!isRecording ? (
-                  <button
-                    onClick={startRecording}
-                    disabled={!session}
-                    className={`flex items-center space-x-2 px-4 py-2 text-gray-600 dark:text-white rounded-lg transition-opacity focus:outline-none ${
-                      !session ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                    title="Recording"
-                  >
-                    <Square className="text-3xl text-green-500" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={stopRecording}
-                    className="flex items-center space-x-2 px-4 py-2 text-gray-600 dark:text-white rounded-lg transition-opacity focus:outline-none"
-                  >
-                    <Square className="text-3xl text-red-500" />
-                    <span className="ml-2 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
-                  </button>
-                )}
-                <button
-                  className={`p-4 rounded-full ${muted ? 'bg-primary text-white' : 'text-gray-600 dark:text-white'}`}
+                {/* Recording Button */}
+                <ControlButton
+                  onClick={!isRecording ? startRecording : stopRecording}
+                  disabled={!session && !isRecording}
+                  icon={<Square size={22} className={isRecording ? 'text-red-400' : 'text-green-400'} />}
+                  title={isRecording ? 'Stop Recording' : 'Start Recording'}
+                  active={isRecording}
+                />
+
+                <ControlButton
+                  active={muted}
                   onClick={() => {
-                    muted ? session.unmute() : session.mute();
+                    muted ? session?.unmute() : session?.mute();
                     setMuted(!muted);
                   }}
+                  icon={<MicOff size={22} />}
                   title="Mute"
-                >
-                  <MicOff className="text-3xl" />
-                </button>
+                />
               </div>
-            </div>
+            </>
           ) : (
-            <div className="flex flex-col items-center mb-4 relative">
-              <div className="text-xl font-bold text-primary mb-2">{currNum}</div>
-              <KeyPad setPhoneNumber={setCurrNum} />
-              <div
-                className="flex items-center justify-center mt-4 text-primary cursor-pointer absolute -top-6 right-1"
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-                onClick={() => {
-                  setCurrNum('');
-                  setShowKeyPad(false);
-                }}
-              >
-                <XCircle className={`text-3xl ${isHovered ? 'fill-current' : ''}`} />
+            /* Keypad Section */
+            <div className="space-y-4">
+              <div className="relative">
+                <button
+                  className="absolute -top-2 right-0 z-10 p-2 text-slate-400 hover:text-red-400 transition-all duration-200"
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
+                  onClick={() => {
+                    setCurrNum('');
+                    setShowKeyPad(false);
+                  }}
+                  aria-label="Close Keypad"
+                >
+                  <XCircle size={22} className={isHovered ? 'text-red-400' : ''} />
+                </button>
+                <div className="backdrop-blur-sm bg-white/60 dark:bg-slate-900/40 rounded-xl p-4">
+                  <KeyPad setPhoneNumber={setCurrNum} />
+                </div>
               </div>
             </div>
           )}
-        </div>
 
-        <button
-          className="p-4 bg-red-500 text-white rounded-full hover:bg-red-600 focus:outline-none"
-          onClick={() => {
-            session.terminate();
-            stopRecording();
-          }}
-        >
-          <PhoneOff size={20} />
-        </button>
+          {/* End Call Button */}
+          <div className="flex justify-center pt-4">
+            <button
+              className="
+    w-14 h-14 flex items-center justify-center
+    rounded-full
+    bg-gradient-to-r from-red-500 to-pink-600
+    shadow-lg shadow-red-500/20
+    hover:shadow-xl hover:scale-105
+    transition-all duration-200
+    focus:outline-none focus:ring-2 focus:ring-red-400
+    group
+  "
+              onClick={() => {
+                session?.terminate();
+                stopRecording?.();
+              }}
+              aria-label="End Call"
+              type="button"
+            >
+              <Image src={'hang-up.svg'} width={35} height={35} />
+            </button>
+          </div>
 
-        <div className="mt-5">
-          <select
-            id="audio-device"
-            value={selectedDeviceId}
-            onChange={(e) => changeAudioDevice(e.target.value)}
-            className="bg-gray-50 border dark:text-white dark:bg-[#3333] dark:border-[#333] border-[#ddd] text-gray-900 text-sm rounded-lg block w-full p-2.5 outline-none"
-          >
-            {devices.map((device) => (
-              <option key={device.deviceId} value={device.deviceId}>
-                {device.label || `Audio device ${devices.indexOf(device) + 1}`}
-              </option>
-            ))}
-          </select>
+          {/* Audio Device Selector */}
+          <div className="pt-4">
+            <select
+              id="audio-device"
+              value={selectedDeviceId}
+              onChange={(e) => changeAudioDevice?.(e.target.value)}
+              className="w-full bg-blue-50/60 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 text-slate-800 dark:text-white text-sm rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-300 transition-all duration-200"
+            >
+              {devices?.map((device, index) => (
+                <option key={device.deviceId} value={device.deviceId}>
+                  {device.label || `Audio device ${index + 1}`}
+                </option>
+              )) || <option value="default">Default Audio Device</option>}
+            </select>
+          </div>
         </div>
       </div>
     </div>
+  );
+};
+
+// Reusable Control Button Component
+const ControlButton = ({ onClick, disabled, active, icon, title, className = '' }) => {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`
+        w-14 h-14 rounded-xl transition-all duration-200 flex items-center justify-center
+        ${
+          active
+            ? 'bg-blue-600/80 text-white shadow-lg shadow-blue-500/20'
+            : 'bg-white/70 dark:bg-slate-900/70 text-blue-600 dark:text-blue-300 hover:bg-indigo-50 dark:hover:bg-blue-900/30'
+        }
+        ${disabled ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105 hover:shadow-xl active:scale-95'}
+        ${className}
+      `}
+    >
+      {icon}
+    </button>
   );
 };
 

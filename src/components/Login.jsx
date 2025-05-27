@@ -24,16 +24,16 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { toast } from 'react-hot-toast';
 import { authService } from '@/utils/services';
 import { Progress } from '@/components/ui/progress';
+import HistoryContext from '@/context/HistoryContext';
 
 export default function Login() {
+  const { username, setUsername, password, setPassword } = useContext(HistoryContext);
   const router = useRouter();
   const [validationErrors, setValidationErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loaderMessage, setLoaderMessage] = useState('');
   const [timer, setTimer] = useState(0);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
 
   const [subscriptionDialog, setSubscriptionDialog] = useState({
     isOpen: false,
@@ -44,13 +44,11 @@ export default function Login() {
   const handleUsernameChange = (e) => {
     const value = e.target.value.replace(/\s+/g, '');
     setUsername(value);
-    localStorage.setItem('username', value);
   };
 
   const handlePasswordChange = (e) => {
     const value = e.target.value.replace(/\s+/g, '');
     setPassword(value);
-    localStorage.setItem('password', value);
   };
 
   const validateForm = () => {

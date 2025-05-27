@@ -44,9 +44,7 @@ const Home = ({ phoneNumber, setPhoneNumber, handleCall, setSeeLogs, timeoutArra
           onKeyDown={handleKeyDown}
           autoFocus
           placeholder="Phone number"
-          className="
-              w-full text-2xl font-medium
-              bg-transparent
+          className="w-full text-2xl font-medium bg-transparent
               border-b-2 border-blue-200 dark:border-blue-700
               focus:border-blue-500 dark:focus:border-blue-400
               outline-none

@@ -14,7 +14,7 @@ const HistoryItem = ({ date, phone, status, type, start, end, index, handleCall,
   };
 
   return (
-    <div className="bg-white p-2 flex items-baseline border-b justify-between">
+    <div className="p-2 flex items-baseline border-b justify-between">
       <div>
         <div className="gap-x-4 flex mb-2">
           <span className="text-sm text-gray-600">{format(new Date(date), 'MM/dd/yyyy')}</span>

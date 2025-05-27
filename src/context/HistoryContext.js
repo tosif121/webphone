@@ -25,8 +25,8 @@ export const HistoryProvider = ({ children }) => {
   const [dropCalls, setDropCalls] = useState(false);
   const [info, setInfo] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
-  const [username, setUsername] = useState('demo@surya');
-  const [password, setPassword] = useState('Demo@123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
 
   // Save call history to localStorage whenever it changes
   useEffect(() => {
@@ -44,20 +44,6 @@ export const HistoryProvider = ({ children }) => {
   //     if (storedPassword) setPassword(storedPassword);
   //   }
   // }, []);
-
-  // Save username to localStorage whenever it changes
-  useEffect(() => {
-    if (typeof window !== 'undefined' && username) {
-      localStorage.setItem('username', username);
-    }
-  }, [username]);
-
-  // Save password to localStorage whenever it changes
-  useEffect(() => {
-    if (typeof window !== 'undefined' && password) {
-      localStorage.setItem('password', password);
-    }
-  }, [password]);
 
   return (
     <HistoryContext.Provider

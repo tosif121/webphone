@@ -265,7 +265,6 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
         <Dialog open={userCallOpen} onOpenChange={setUserCallOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Contact Details</DialogTitle>
             </DialogHeader>
             <UserCall formData={formData} setFormData={setFormData} />
           </DialogContent>

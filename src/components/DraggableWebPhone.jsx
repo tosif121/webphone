@@ -4,9 +4,9 @@ import { Phone, PhoneCall, PhoneOff } from 'lucide-react';
 
 import HistoryScreen from './HistoryScreen';
 import Home from './Home';
-import CallConference from './CallConference';
 import CallScreen from './CallScreen';
 import useJssip from '@/hooks/useJssip';
+import CallConference from './CallConference';
 
 function getInitialWebphoneState() {
   if (typeof window === 'undefined')
@@ -61,7 +61,7 @@ export default function DraggableWebPhone() {
     timeoutArray,
     isConnectionLost,
   ] = useJssip();
-  
+  console.log(status, 'status');
   const [webphoneState, setWebphoneState] = useState(getInitialWebphoneState);
   const [phoneShow, setPhoneShow] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -72,6 +72,7 @@ export default function DraggableWebPhone() {
   });
 
   const [seeLogs, setSeeLogs] = useState(false);
+  const [callConference, setCallConference] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('phoneShow', JSON.stringify(phoneShow));
@@ -193,9 +194,9 @@ export default function DraggableWebPhone() {
               </div>
             )}
           </div>
-          <audio ref={audioRef} autoPlay hidden />
         </Rnd>
       )}
+      <audio ref={audioRef} autoPlay hidden />
     </>
   );
 }
