@@ -198,79 +198,94 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <Card className="w-full max-w-3xl mx-4 shadow-xl rounded-2xl">
-        <div className="p-6 space-y-6">
-          <div className="space-y-1">
-            <h3 className="text-xl font-bold">Select Disposition</h3>
-            <p className="text-sm text-muted-foreground">Choose the appropriate outcome for this call</p>
-          </div>
+    <>
+      <Dialog open={true} onOpenChange={setDispositionModal}>
+        <DialogContent
+          className="
+     sm:max-w-2xl w-full p-0 border-none bg-transparent shadow-none
+    flex items-center justify-center [&>button]:hidden"
+        >
+          <div
+            className="
+      relative overflow-hidden rounded-2xl
+      border border-slate-200/80 dark:border-slate-700/30
+      bg-white/95 dark:bg-slate-900/80
+      shadow-2xl shadow-slate-900/20 dark:shadow-blue-500/10
+      backdrop-blur-md
+      w-full
+    "
+          >
+            <div className="p-6 space-y-6 overflow-auto">
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold">Select Disposition</h3>
+                <p className="text-sm text-muted-foreground">Choose the appropriate outcome for this call</p>
+              </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {dispositionActions.map((item) => {
-              const isSelected = selectedAction === item.action;
-              const styles = getStylesForAction(item.action, isSelected);
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {dispositionActions.map((item) => {
+                  const isSelected = selectedAction === item.action;
+                  const styles = getStylesForAction(item.action, isSelected);
 
-              return (
-                <Button
-                  key={`${item.action}-${item.label}`} // More unique key
-                  variant={styles.variant}
-                  style={styles.style}
-                  className={`h-auto py-3 px-4 whitespace-normal text-sm font-medium transition-all duration-200 border-2 hover:opacity-90 ${
-                    isSelected ? 'ring-2 ring-offset-2 ring-offset-background shadow-lg' : 'hover:shadow-md'
-                  }`}
-                  onClick={(event) => handleActionClick(item.action, event)}
-                  disabled={isSubmitting} // Disable during submission
-                  type="button" // Explicitly set button type
-                >
-                  {item.label}
-                </Button>
-              );
-            })}
-          </div>
+                  return (
+                    <Button
+                      key={`${item.action}-${item.label}`}
+                      variant={styles.variant}
+                      style={styles.style}
+                      className={`h-auto py-3 px-4 whitespace-normal text-sm font-medium transition-all duration-200 border-2 hover:opacity-90 ${
+                        isSelected ? 'ring-2 ring-offset-2 ring-offset-background shadow-lg' : 'hover:shadow-md'
+                      }`}
+                      onClick={(event) => handleActionClick(item.action, event)}
+                      disabled={isSubmitting}
+                      type="button"
+                    >
+                      {item.label}
+                    </Button>
+                  );
+                })}
+              </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start border-t pt-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="auto-dial-toggle"
-                checked={isAutoLeadDialDisabled}
-                onCheckedChange={setIsAutoLeadDialDisabled}
-              />
-              <Label htmlFor="auto-dial-toggle">Disable Auto Dial</Label>
+              <div className="flex flex-col lg:flex-row gap-4 justify-end items-start border-t pt-4">
+                {/* <div className="flex items-center space-x-2">
+            <Checkbox
+              id="auto-dial-toggle"
+              checked={isAutoLeadDialDisabled}
+              onCheckedChange={setIsAutoLeadDialDisabled}
+            />
+            <Label htmlFor="auto-dial-toggle">Disable Auto Dial</Label>
+          </div> */}
+
+                <div className="flex flex-wrap gap-2 w-full lg:w-auto justify-end">
+                  <BreakDropdown bridgeID={bridgeID} dispoWithBreak={true} />
+
+                  <Button variant="outline" onClick={() => setUserCallOpen(true)}>
+                    View Contact Form
+                  </Button>
+
+                  <Button onClick={submitForm} disabled={isSubmitting || !selectedAction}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      'Submit Disposition'
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
-
-            <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
-              <BreakDropdown bridgeID={bridgeID} dispoWithBreak={true} />
-
-              <Button variant="outline" onClick={() => setUserCallOpen(true)}>
-                View Contact Form
-              </Button>
-
-              <Button onClick={submitForm} disabled={isSubmitting || !selectedAction}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  'Submit Disposition'
-                )}
-              </Button>
-            </div>
           </div>
-        </div>
-      </Card>
-
+        </DialogContent>
+      </Dialog>
       {userCallOpen && (
         <Dialog open={userCallOpen} onOpenChange={setUserCallOpen}>
           <DialogContent className="max-w-2xl">
-            <DialogHeader>
-            </DialogHeader>
-            <UserCall formData={formData} setFormData={setFormData} />
+            <DialogHeader className="text-xl font-bold">Contact Details</DialogHeader>
+            <UserCall formData={formData} setFormData={setFormData} userCallDialog={true} />
           </DialogContent>
         </Dialog>
       )}
-    </div>
+    </>
   );
 };
 

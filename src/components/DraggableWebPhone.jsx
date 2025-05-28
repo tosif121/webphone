@@ -142,7 +142,7 @@ export default function DraggableWebPhone() {
             bottomLeft: true,
             topLeft: true,
           }}
-          style={{ zIndex: 1000 }}
+          style={{ zIndex: 50 }}
           className="backdrop-blur-md bg-white/80 dark:bg-slate-900/80 rounded-2xl border border-white/30 dark:border-slate-700/30 shadow-xl shadow-blue-500/10 transition-all overflow-hidden"
         >
           <div className="webphone-drag-handle w-full h-full">

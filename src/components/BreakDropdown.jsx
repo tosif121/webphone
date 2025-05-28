@@ -118,13 +118,13 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
       {/* Dropdown */}
       {isOpen && selectedBreak === 'Break' && (
         <ul
-          className="
-            absolute right-0 mt-2 w-48 z-50
+          className={`${!dispoWithBreak && 'absolute' || ''}
+            right-0 mt-2 w-48 z-50
             bg-white/90 dark:bg-slate-900/90
             border border-slate-200 dark:border-slate-700
             rounded-xl shadow-xl backdrop-blur
             py-2
-          "
+          `}
           role="listbox"
         >
           {breakTypes.map(({ type, label, icon: Icon }) => (
