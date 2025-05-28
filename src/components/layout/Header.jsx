@@ -56,7 +56,6 @@ export default function Header() {
     };
   }, [userMenuOpen]);
 
-
   return (
     <header className="w-full backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-white/20 dark:border-slate-700/20 sticky top-0 z-40 shadow-lg shadow-blue-500/5">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">

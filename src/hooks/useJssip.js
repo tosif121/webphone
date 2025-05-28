@@ -247,12 +247,6 @@ const useJssip = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (status === 'start') {
-      stopRecording();
-    }
-  }, [status]);
-
   const initializeWebSocketTranscription = () => {
     const createWebSocket = (isAgent = true) => {
       const socketRef = isAgent ? agentSocketRef : customerSocketRef;

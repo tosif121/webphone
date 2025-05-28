@@ -106,6 +106,12 @@ export default function DraggableWebPhone() {
     setCallConference(false);
   }
 
+    useEffect(() => {
+    if (status === 'start') {
+      stopRecording();
+    }
+  }, [status]);
+
   return (
     <>
       {/* Floating Toggle Button */}
@@ -120,7 +126,7 @@ export default function DraggableWebPhone() {
       </div>
 
       {/* Only show RND card if phoneShow is true */}
-      {phoneShow && (
+      {!dispositionModal && phoneShow && (
         <Rnd
           position={{ x: webphoneState.x, y: webphoneState.y }}
           size={{ width: webphoneState.width, height: webphoneState.height }}
