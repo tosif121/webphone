@@ -63,20 +63,41 @@ export default function DraggableWebPhone() {
   } = useContext(JssipContext);
 
   const [webphoneState, setWebphoneState] = useState(getInitialWebphoneState);
-  const [phoneShow, setPhoneShow] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('phoneShow');
-      return saved ? JSON.parse(saved) : false;
-    }
-    return false;
-  });
+
+  // Always start with false to match server-side rendering
+  const [phoneShow, setPhoneShow] = useState(false);
+
+  // Track if component has hydrated
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const [seeLogs, setSeeLogs] = useState(false);
   const [callConference, setCallConference] = useState(false);
 
+  // Handle hydration and localStorage sync
   useEffect(() => {
-    localStorage.setItem('phoneShow', JSON.stringify(phoneShow));
-  }, [phoneShow]);
+    setIsHydrated(true);
+
+    // Load phoneShow state from localStorage after hydration
+    try {
+      const saved = localStorage.getItem('phoneShow');
+      if (saved) {
+        setPhoneShow(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.warn('Failed to load phoneShow from localStorage:', error);
+    }
+  }, []);
+
+  // Save phoneShow to localStorage when it changes (but only after hydration)
+  useEffect(() => {
+    if (isHydrated) {
+      try {
+        localStorage.setItem('phoneShow', JSON.stringify(phoneShow));
+      } catch (error) {
+        console.warn('Failed to save phoneShow to localStorage:', error);
+      }
+    }
+  }, [phoneShow, isHydrated]);
 
   useEffect(() => {
     if (webphoneState) {
@@ -106,7 +127,7 @@ export default function DraggableWebPhone() {
     setCallConference(false);
   }
 
-    useEffect(() => {
+  useEffect(() => {
     if (status === 'start') {
       stopRecording();
     }

@@ -67,6 +67,9 @@ function Dashboard() {
   }, [usermissedCalls, userCampaign]);
   const [selectedDate, setSelectedDate] = useState('');
   const [token, setToken] = useState('');
+  const [formState, setFormState] = useState({});
+  const [formConfig, setFormConfig] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const tokenData = localStorage.getItem('token');
@@ -227,6 +230,68 @@ function Dashboard() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!userCampaign || !token) return;
+
+    async function loadForm() {
+      setLoading(true);
+      try {
+        // Step 1: Get formId from campaign
+        const res1 = await fetch(`https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res1.ok) throw new Error('Failed to fetch form config');
+        const data1 = await res1.json();
+        const formId = data1.agentWebForm?.formId;
+        if (!formId) throw new Error('Form ID not found');
+
+        // Step 2: Get full form config by formId
+        const res2 = await fetch(`https://esamwad.iotcom.io/getDynamicFormData/${formId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res2.ok) throw new Error('Failed to fetch full form');
+        const data2 = await res2.json();
+        setFormConfig(data2.result);
+      } catch (err) {
+        toast.error(err.message || 'Failed to load form.');
+        setFormConfig(null);
+      }
+      setLoading(false);
+    }
+
+    loadForm();
+  }, [userCampaign, token]);
+
+  const handleSubmit = async () => {
+    if (!formConfig) return;
+
+    const payload = {
+      user: username,
+      isFresh: userCall?.isFresh,
+      data: {
+        ...formState,
+        formId: formConfig.formId,
+      },
+    };
+
+    try {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.data?.success) {
+        toast.success(response.data.message || 'Contact saved successfully.');
+      } else {
+        toast.error(response.data.message || 'Failed to save contact.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error occurred.');
+      console.error('Add/Modify contact error:', err);
+    }
+  };
+
   return (
     <>
       {/* Call Queue Alert */}
@@ -266,9 +331,10 @@ function Dashboard() {
           bridgeID={bridgeID}
           setDispositionModal={setDispositionModal}
           userCall={userCall}
-          handleContact={handleContact}
-          setFormData={setFormData}
-          formData={formData}
+          handleContact={handleSubmit}
+          setFormData={setFormState}
+          formData={formState}
+          formConfig={formConfig}
         />
       )}
       {dropCalls && (
@@ -282,7 +348,7 @@ function Dashboard() {
       <div className="max-w-lg">
         {/* <UserCall userCall={userCall} username={username} formData={formData} setFormData={setFormData} /> */}
         {status !== 'start' && userCall ? (
-          <DynamicForm />
+          <DynamicForm {...{ formConfig, formState, setFormState, userCall }} />
         ) : (
           <AutoDial
             setPhoneNumber={setPhoneNumber}

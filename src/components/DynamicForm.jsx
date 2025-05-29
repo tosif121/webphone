@@ -63,60 +63,7 @@ function getFieldIcon(field) {
   return <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-300" aria-hidden="true" />;
 }
 
-export default function DynamicForm() {
-  const [formState, setFormState] = useState({});
-  const [formConfig, setFormConfig] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState('');
-  const [campaignId, setCampaignId] = useState(null);
-
-  // Load token and campaignId from localStorage
-  useEffect(() => {
-    const tokenData = localStorage.getItem('token');
-    if (tokenData) {
-      try {
-        const parsedData = JSON.parse(tokenData);
-        setToken(parsedData.token);
-        setCampaignId(parsedData.userData?.campaign); // Correct extraction
-      } catch (err) {
-        console.error('Invalid token format');
-      }
-    }
-  }, []);
-
-  // Fetch form config after token and campaignId are available
-  useEffect(() => {
-    if (!campaignId || !token) return;
-
-    async function loadForm() {
-      setLoading(true);
-      try {
-        // Step 1: Get formId from campaign
-        const res1 = await fetch(`https://esamwad.iotcom.io/getDynamicFormDataAgent/${campaignId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res1.ok) throw new Error('Failed to fetch form config');
-        const data1 = await res1.json();
-        const formId = data1.agentWebForm?.formId;
-        if (!formId) throw new Error('Form ID not found');
-
-        // Step 2: Get full form config by formId
-        const res2 = await fetch(`https://esamwad.iotcom.io/getDynamicFormData/${formId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res2.ok) throw new Error('Failed to fetch full form');
-        const data2 = await res2.json();
-        setFormConfig(data2.result);
-      } catch (err) {
-        toast.error(err.message || 'Failed to load form.');
-        setFormConfig(null);
-      }
-      setLoading(false);
-    }
-
-    loadForm();
-  }, [campaignId, token]);
-
+export default function DynamicForm({ formConfig, formState, userCallDialog, setFormState, userCall }) {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormState((prev) => ({
@@ -132,38 +79,32 @@ export default function DynamicForm() {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formConfig) return;
-
-    const payload = {
-      ...formState,
-      formId: formConfig.formId,
-    };
-
-    try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.data?.success) {
-        toast.success(response.data.message || 'Contact saved successfully.');
-      } else {
-        toast.error(response.data.message || 'Failed to save contact.');
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error occurred.');
-      console.error('Add/Modify contact error:', err);
-    }
-  };
-
-  if (loading) return <p className="text-center py-10">Loading form...</p>;
   if (!formConfig) return <p className="text-center py-10 text-red-500">No form found.</p>;
 
+  useEffect(() => {
+    if (userCall && formConfig?.sections) {
+      const filledState = {};
+      formConfig.sections.forEach((section) => {
+        section.fields.forEach((field) => {
+          const fieldName = field.name;
+          const lowerFieldName = fieldName.toLowerCase();
+          const userCallKeys = Object.keys(userCall);
+          const matchedKey = userCallKeys.find((key) => key.toLowerCase() === lowerFieldName);
+          filledState[fieldName] = matchedKey !== undefined ? userCall[matchedKey] ?? '' : '';
+        });
+      });
+      setFormState(filledState);
+    }
+  }, [userCall, formConfig]);
+
   return (
-    <Card className="backdrop-blur-sm bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/20 shadow-lg shadow-blue-500/5 max-w-2xl mx-auto">
+    <Card
+      className={`${
+        !userCallDialog
+          ? 'backdrop-blur-sm bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/20 shadow-lg shadow-blue-500/5 max-w-2xl mx-auto'
+          : 'bg-transparent border-0 shadow-none p-0'
+      }`}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-center">
           <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-500/30">
@@ -181,7 +122,7 @@ export default function DynamicForm() {
       </CardHeader>
 
       <CardContent>
-        <form className="space-y-8" onSubmit={handleSubmit}>
+        <form className="space-y-8">
           {formConfig.sections?.map((section) => (
             <div key={section.id} className="mb-6">
               {formConfig.sections.length > 1 && (
@@ -291,13 +232,6 @@ export default function DynamicForm() {
               </div>
             </div>
           ))}
-          <Button
-            type="submit"
-            className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold rounded-lg"
-            size="lg"
-          >
-            Submit
-          </Button>
         </form>
       </CardContent>
     </Card>

@@ -974,11 +974,6 @@ const useJssip = () => {
   }, [username, password]);
 
   const handleCall = (formattedNumber) => {
-    // if (!phoneNumber || phoneNumber.length < 10 || phoneNumber.length > 12) {
-    //   toast.error('Phone number must be 10 digit');
-    //   return;
-    // }
-    // setIsDialbuttonClicked(true);
     if (isConnectionLost) {
       return;
     }
@@ -992,14 +987,17 @@ const useJssip = () => {
     ]);
     localStorage.setItem('dialing', true);
 
-    fetch(`https://esamwad.iotcom.io/dialnumber`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-ID': `${username}`,
-      },
-      body: JSON.stringify({ caller: username, receiver: phoneNumber || formattedNumber }),
-    })
+    axios
+      .post(
+        'https://esamwad.iotcom.io/dialnumber',
+        { caller: username, receiver: phoneNumber || formattedNumber },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': `${username}`,
+          },
+        }
+      )
       .then(() => {
         setPhoneNumber(phoneNumber || formattedNumber);
       })

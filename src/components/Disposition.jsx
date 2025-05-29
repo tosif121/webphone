@@ -11,8 +11,9 @@ import toast from 'react-hot-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import axios from 'axios';
+import DynamicForm from './DynamicForm';
 
-const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData, formData }) => {
+const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData, formData, formConfig }) => {
   const { username } = useContext(HistoryContext);
   const [selectedAction, setSelectedAction] = useState(null);
   const [isAutoLeadDialDisabled, setIsAutoLeadDialDisabled] = useState(false);
@@ -79,8 +80,8 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
       'Do Not Call': {
         variant: 'outline',
         style: isSelected
-          ? { backgroundColor: '#004a57', color: '#FFFFFF', borderColor: '#004a57' } // Deep Purple
-          : { backgroundColor: 'transparent', color: '#004a57', borderColor: '#004a57' },
+          ? { backgroundColor: '#bc6c25', color: '#FFFFFF', borderColor: '#bc6c25' } // Deep Purple
+          : { backgroundColor: 'transparent', color: '#bc6c25', borderColor: '#bc6c25' },
       },
       Disconnected: {
         variant: 'outline',
@@ -280,8 +281,14 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
       {userCallOpen && (
         <Dialog open={userCallOpen} onOpenChange={setUserCallOpen}>
           <DialogContent className="max-w-2xl">
-            <DialogHeader className="text-xl font-bold">Contact Details</DialogHeader>
-            <UserCall formData={formData} setFormData={setFormData} userCallDialog={true} />
+            <DialogHeader className="text-xl font-bold"></DialogHeader>
+            <DynamicForm
+              formConfig={formConfig}
+              formState={formData}
+              setFormState={setFormData}
+              userCallDialog={true}
+            />
+            {/* <UserCall formData={formData} setFormData={setFormData} userCallDialog={true} /> */}
           </DialogContent>
         </Dialog>
       )}
