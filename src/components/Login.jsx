@@ -232,6 +232,21 @@ export default function Login() {
       setIsLoading(false);
     }
   };
+  
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    try {
+      const parsedToken = JSON.parse(token);
+      if (!parsedToken) {
+        router.push('/login');
+      } else {
+        router.push('/');
+      }
+    } catch (error) {
+      // Invalid JSON, treat as no token
+      router.push('/login');
+    }
+  }, []);
 
   return (
     <>

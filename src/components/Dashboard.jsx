@@ -11,6 +11,7 @@ import DropCallsModal from './DropCallsModal';
 import { Bell } from 'lucide-react';
 import CallbackForm from './CallbackForm';
 import { useRouter } from 'next/router';
+import DynamicForm from './DynamicForm';
 
 function Dashboard() {
   const {
@@ -211,13 +212,20 @@ function Dashboard() {
     setCampaignMissedCallsLength(campaignMissedCallsLength);
   }, [campaignMissedCallsLength]);
 
-  // useEffect(() => {
-  //   if (token === '') {
-  //     router.push('/login');
-  //   } else {
-  //     router.push('/');
-  //   }
-  // }, [router]);
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    try {
+      const parsedToken = JSON.parse(token);
+      if (!parsedToken) {
+        router.push('/login');
+      } else {
+        router.push('/');
+      }
+    } catch (error) {
+      // Invalid JSON, treat as no token
+      router.push('/login');
+    }
+  }, []);
 
   return (
     <>
@@ -272,8 +280,9 @@ function Dashboard() {
         />
       )}
       <div className="max-w-lg">
+        {/* <UserCall userCall={userCall} username={username} formData={formData} setFormData={setFormData} /> */}
         {status !== 'start' && userCall ? (
-          <UserCall userCall={userCall} username={username} formData={formData} setFormData={setFormData} />
+          <DynamicForm />
         ) : (
           <AutoDial
             setPhoneNumber={setPhoneNumber}

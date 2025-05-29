@@ -134,7 +134,7 @@ const useJssip = () => {
 
       if (response.status === 401 || !response.data.isUserLogin) {
         localStorage.clear();
-        // window.location.href = '/login';
+        window.location.href = '/login';
         toast.error('Session expired. Please log in again.');
         session.terminate();
         stopRecording();
@@ -148,7 +148,7 @@ const useJssip = () => {
       if (!tokenData?.userData?.campaign) {
         console.error('Campaign information missing in token data');
         localStorage.clear();
-        // window.location.href = '/login';
+        window.location.href = '/login';
         toast.error('Invalid session. Please log in again.');
         session.terminate();
         stopRecording();
@@ -160,7 +160,7 @@ const useJssip = () => {
 
       if (data.message !== 'ok connection for user') {
         localStorage.clear();
-        // window.location.href = '/login';
+        window.location.href = '/login';
         session.terminate();
         stopRecording();
         toast.error('Connection lost. Please log in again.');
@@ -780,7 +780,7 @@ const useJssip = () => {
             console.error('WebSocket connection died unexpectedly');
             toast.error('Connection lost');
             localStorage.clear();
-            // window.location.href = '/login';
+            window.location.href = '/login';
           }
         };
 
@@ -788,7 +788,7 @@ const useJssip = () => {
           console.error('WebSocket error:', error);
           toast.error('Connection failed');
           localStorage.clear();
-          // window.location.href = '/login';
+          window.location.href = '/login';
         };
 
         var configuration = {
