@@ -858,17 +858,15 @@ const useJssip = () => {
           // window.location.href = '/login';
         });
 
-        ua.on('newRTCSession', function (e) {
+          ua.on('newRTCSession', function (e) {
           console.log('Session Direction:', e.session.direction);
 
           if (e.session.direction === 'incoming') {
             handleIncomingCall(e.session, e.request);
           } else {
             setSession(e.session);
-            session.connection.addEventListener('addstream', (event) => {
-              if (audioRef.current) {
-                audioRef.current.srcObject = event.stream;
-              }
+            e.session.connection.addEventListener('addstream', (event) => {
+              audioRef.current.srcObject = event.stream;
             });
           }
         });
