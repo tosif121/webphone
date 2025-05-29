@@ -5,7 +5,7 @@ import { useState, useEffect, useContext, useRef } from 'react';
 import { Menu, X, LogOut, ChevronDown, User, Settings, LayoutDashboard, PhoneCall } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
-import Cookies from 'js-cookie';
+
 import ThemeToggle from './ThemeToggle';
 import BreakDropdown from '../BreakDropdown';
 import HistoryContext from '@/context/HistoryContext';
@@ -31,10 +31,9 @@ export default function Header() {
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
 
   const handleLogout = () => {
-    Cookies.remove('samwad_token', { path: '/' });
     toast.success('Logged out!');
     localStorage.clear();
-    router.push('/');
+    window.location.href = '/login';
     setUserMenuOpen(false);
   };
 

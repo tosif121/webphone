@@ -1,6 +1,6 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Cookies from 'js-cookie';
+
 import {
   Eye,
   EyeOff,
@@ -22,18 +22,18 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
-import { authService } from '@/utils/services';
 import { Progress } from '@/components/ui/progress';
-import HistoryContext from '@/context/HistoryContext';
+import axios from 'axios';
 
 export default function Login() {
-  const { username, setUsername, password, setPassword } = useContext(HistoryContext);
   const router = useRouter();
   const [validationErrors, setValidationErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loaderMessage, setLoaderMessage] = useState('');
   const [timer, setTimer] = useState(0);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
 
   const [subscriptionDialog, setSubscriptionDialog] = useState({
     isOpen: false,
@@ -44,11 +44,13 @@ export default function Login() {
   const handleUsernameChange = (e) => {
     const value = e.target.value.replace(/\s+/g, '');
     setUsername(value);
+    localStorage.setItem('username', value);
   };
 
   const handlePasswordChange = (e) => {
     const value = e.target.value.replace(/\s+/g, '');
     setPassword(value);
+    localStorage.setItem('password', value);
   };
 
   const validateForm = () => {
@@ -124,6 +126,8 @@ export default function Login() {
     return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
   };
 
+  const apiUrl = 'https://esamwad.iotcom.io/';
+
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
 
@@ -135,10 +139,20 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const response = await authService.login(username, {
-        username: username,
-        password: password,
-      });
+      // Axios POST request
+      const { data: response } = await axios.post(
+        `${apiUrl}userlogin/${username}`,
+        { username, password },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      console.log('API response:', response);
+
+      if (!response) {
+        toast.error('No response from server.');
+        setIsLoading(false);
+        return;
+      }
 
       if (response.message === 'wrong login info') {
         toast.error('Incorrect username or password');
@@ -152,11 +166,27 @@ export default function Login() {
         return;
       }
 
-      const userData = response.data.userData;
+      if (response.message === 'Request failed') {
+        toast.error('Login request failed. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+
+      // 🚩 Corrected here!
+      const userData = response?.userData;
+      if (!userData || !userData.ExpiryDate) {
+        toast.error('Invalid user data received.');
+        setIsLoading(false);
+        return;
+      }
+
       const expiryDate = new Date(userData.ExpiryDate);
       const currentDate = new Date();
       const differenceInTime = expiryDate - currentDate;
       const differenceInDays = differenceInTime / (1000 * 60 * 60 * 24);
+
+      // Store the whole response (or just the token if you prefer)
+      localStorage.setItem('token', JSON.stringify(response));
 
       if (differenceInDays < 0) {
         const daysExpired = Math.abs(differenceInDays);
@@ -168,44 +198,37 @@ export default function Login() {
           return;
         }
 
-        Cookies.set('samwad_token', response.data.token);
-        localStorage.setItem('token', JSON.stringify(response.data));
-
         const toastMessage = await handleSubscriptionDelay(daysExpired);
         toast.error(toastMessage);
-
         toast.success('Login successfully');
         setIsLoading(false);
         await router.push('/');
       } else if (differenceInDays < 3) {
-        Cookies.set('samwad_token', response.data.token);
-        localStorage.setItem('token', JSON.stringify(response.data));
-
         setSubscriptionDialog({
           isOpen: true,
           daysExpired: Math.ceil(differenceInDays),
           type: 'expiring',
         });
-
         setTimeout(() => {
           setSubscriptionDialog((prev) => ({ ...prev, isOpen: false }));
         }, 3000);
-
         toast.error('Your subscription is about to expire. Please renew soon!');
-
         toast.success('Login successfully');
         setIsLoading(false);
         await router.push('/');
       } else {
-        Cookies.set('samwad_token', response.data.token);
-        localStorage.setItem('token', JSON.stringify(response.data));
         toast.success('Login successfully');
         setIsLoading(false);
         await router.push('/');
       }
     } catch (error) {
+      // Axios error handling
       console.error('Login error:', error);
-      toast.error(error.message || 'An error occurred. Please try again.');
+      if (error.response && error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error(error.message || 'An error occurred. Please try again.');
+      }
       setIsLoading(false);
     }
   };

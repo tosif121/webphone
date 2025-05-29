@@ -1,9 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Phone, Clock, PhoneCall, Calendar } from 'lucide-react';
 import moment from 'moment';
-import { Dialog, DialogContent } from '@/components/ui/dialog'; // shadcn/ui Dialog
-
-import { contactService } from '@/utils/services';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMissedCallsLength }) => {
   const [loadingCaller, setLoadingCaller] = useState(null);
@@ -11,6 +9,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
   const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const parsedData = tokenData ? JSON.parse(tokenData) : null;
   const userCampaign = parsedData?.userData?.campaign;
+  const apiUrl = 'https://esamwad.iotcom.io/';
 
   const groupedCalls = useMemo(() => {
     const filteredCalls = Object.values(usermissedCalls || {}).filter((call) => call?.campaign === userCampaign);
@@ -46,7 +45,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
     async (caller) => {
       try {
         const sanitizedCaller = removeCountryCode(caller);
-        await contactService.dialmissedcall({
+        const response = await axios.post(`${apiUrl }/dialmissedcall`, {
           caller: username,
           receiver: sanitizedCaller,
         });

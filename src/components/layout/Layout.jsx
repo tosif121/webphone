@@ -1,9 +1,9 @@
 import React from 'react';
-import dynamic from 'next/dynamic';
 
-const Header = dynamic(() => import('./Header'));
-const Footer = dynamic(() => import('./Footer'));
-const DraggableWebPhone = dynamic(() => import('../DraggableWebPhone'));
+import Header from './Header';
+import { Footer } from 'react-day-picker';
+import DraggableWebPhone from '../DraggableWebPhone';
+
 
 export default function Layout({ children }) {
   return (

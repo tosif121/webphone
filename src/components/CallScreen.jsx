@@ -223,11 +223,15 @@ const CallScreen = ({
             onChange={(e) => changeAudioDevice?.(e.target.value)}
             className="w-full bg-blue-50/60 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 text-slate-800 dark:text-white text-sm rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-300 transition-all duration-200"
           >
-            {devices?.map((device, index) => (
-              <option key={device.deviceId} value={device.deviceId}>
-                {device.label || `Audio device ${index + 1}`}
-              </option>
-            )) || <option value="default">Default Audio Device</option>}
+            {Array.isArray(devices) && devices.length > 0 ? (
+              devices.map((device, index) => (
+                <option key={device.deviceId} value={device.deviceId}>
+                  {device.label || `Audio device ${index + 1}`}
+                </option>
+              ))
+            ) : (
+              <option value="default">Default Audio Device</option>
+            )}
           </select>
         </div>
       </div>

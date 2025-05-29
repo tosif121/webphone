@@ -7,11 +7,10 @@ import Disposition from './Disposition';
 import { JssipContext } from '@/context/JssipContext';
 import toast from 'react-hot-toast';
 import axios from 'axios';
-import { contactService } from '@/utils/services';
 import DropCallsModal from './DropCallsModal';
 import { Bell } from 'lucide-react';
 import CallbackForm from './CallbackForm';
-import { DateTimePicker } from './DateTimePicker';
+import { useRouter } from 'next/router';
 
 function Dashboard() {
   const {
@@ -59,18 +58,30 @@ function Dashboard() {
   } = useContext(HistoryContext);
   const [usermissedCalls, setUsermissedCalls] = useState([]);
   const [callConference, setCallConference] = useState(false);
-  const tokenData = localStorage.getItem('token');
-  const parsedData = JSON.parse(tokenData);
-  const userCampaign = parsedData?.userData?.campaign;
-  const adminUser = parsedData?.userData?.adminuser;
+  const [adminUser, setAdminUser] = useState(null);
+  const [userCampaign, setUserCampaign] = useState(null);
+  const router = useRouter();
   const computedMissedCallsLength = useMemo(() => {
     return Object.values(usermissedCalls || {}).filter((call) => call?.campaign === userCampaign).length;
   }, [usermissedCalls, userCampaign]);
   const [selectedDate, setSelectedDate] = useState('');
+  const [token, setToken] = useState('');
+
+  useEffect(() => {
+    const tokenData = localStorage.getItem('token');
+    if (tokenData) {
+      const parsedData = JSON.parse(tokenData);
+      setUserCampaign(parsedData?.userData?.campaign);
+      setAdminUser(parsedData?.userData?.adminuser);
+      setToken(parsedData.token);
+    }
+  }, []);
 
   useEffect(() => {
     setCampaignMissedCallsLength(computedMissedCallsLength);
   }, [computedMissedCallsLength, setCampaignMissedCallsLength]);
+
+  const apiUrl = 'https://esamwad.iotcom.io/';
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -106,7 +117,12 @@ function Dashboard() {
     };
 
     try {
-      const response = await contactService.addModifyContact(payload);
+      const response = await axios.post(`${apiUrl}/addModifyContact`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       if (response.data?.success) {
         toast.success(response.data.message || 'Contact saved successfully.');
       } else {
@@ -131,8 +147,11 @@ function Dashboard() {
   }, [ringtone]);
 
   const fetchUserMissedCalls = async () => {
+    if (!username) {
+      return;
+    }
     try {
-      const response = await contactService.usermissedCalls(username);
+      const response = await axios.post(`${apiUrl}usermissedCalls/${username}`);
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
@@ -192,10 +211,18 @@ function Dashboard() {
     setCampaignMissedCallsLength(campaignMissedCallsLength);
   }, [campaignMissedCallsLength]);
 
+  // useEffect(() => {
+  //   if (token === '') {
+  //     router.push('/login');
+  //   } else {
+  //     router.push('/');
+  //   }
+  // }, [router]);
+
   return (
     <>
       {/* Call Queue Alert */}
-      {ringtone.length > 0 && (
+      {ringtone && ringtone.length > 0 && (
         <div className="fixed top-24 left-0 right-0 mx-auto max-w-lg z-40">
           <div className="backdrop-blur-md bg-blue-50/90 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 rounded-xl shadow-lg shadow-blue-500/10 p-4 mx-4">
             <div className="flex items-center gap-3">

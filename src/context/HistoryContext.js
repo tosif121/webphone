@@ -35,15 +35,14 @@ export const HistoryProvider = ({ children }) => {
     }
   }, [history]);
 
-  // Load username and password from localStorage on mount
-  // useEffect(() => {
-  //   if (typeof window !== 'undefined') {
-  //     const storedUsername = localStorage.getItem('username');
-  //     const storedPassword = localStorage.getItem('password');
-  //     if (storedUsername) setUsername(storedUsername);
-  //     if (storedPassword) setPassword(storedPassword);
-  //   }
-  // }, []);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedUsername = localStorage.getItem('username');
+      const storedPassword = localStorage.getItem('password');
+      if (storedUsername) setUsername(storedUsername || '');
+      if (storedPassword) setPassword(storedPassword || '');
+    }
+  }, []);
 
   return (
     <HistoryContext.Provider

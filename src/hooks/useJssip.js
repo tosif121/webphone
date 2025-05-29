@@ -134,7 +134,7 @@ const useJssip = () => {
 
       if (response.status === 401 || !response.data.isUserLogin) {
         localStorage.clear();
-        window.location.href = '/login';
+        // window.location.href = '/login';
         toast.error('Session expired. Please log in again.');
         session.terminate();
         stopRecording();
@@ -148,7 +148,7 @@ const useJssip = () => {
       if (!tokenData?.userData?.campaign) {
         console.error('Campaign information missing in token data');
         localStorage.clear();
-        window.location.href = '/login';
+        // window.location.href = '/login';
         toast.error('Invalid session. Please log in again.');
         session.terminate();
         stopRecording();
@@ -160,7 +160,7 @@ const useJssip = () => {
 
       if (data.message !== 'ok connection for user') {
         localStorage.clear();
-        window.location.href = '/login';
+        // window.location.href = '/login';
         session.terminate();
         stopRecording();
         toast.error('Connection lost. Please log in again.');
@@ -198,7 +198,7 @@ const useJssip = () => {
         console.error('Error during connection check:', err);
         if (err.response && err.response.status === 401) {
           localStorage.clear();
-          window.location.href = '/login';
+          // window.location.href = '/login';
           toast.error('Session expired. Please log in again.');
           session.terminate();
           stopRecording();
@@ -233,7 +233,7 @@ const useJssip = () => {
         },
       });
 
-      window.location.href = '/login';
+      // window.location.href = '/login';
     };
 
     window.addEventListener('offline', handleOffline);
@@ -749,7 +749,7 @@ const useJssip = () => {
           // localStorage.clear();
           // window.location.href = '/webphone/login';
           localStorage.clear();
-          window.location.href = '/login';
+          // window.location.href = '/login';
           return prev;
         }
         // }
@@ -767,6 +767,9 @@ const useJssip = () => {
   }, []);
 
   useEffect(() => {
+    if (!username || !password) {
+      return;
+    }
     const initializeJsSIP = () => {
       try {
         var socket = new JsSIP.WebSocketInterface(`wss://${originWithoutProtocol}:8089/ws`);
@@ -777,7 +780,7 @@ const useJssip = () => {
             console.error('WebSocket connection died unexpectedly');
             toast.error('Connection lost');
             localStorage.clear();
-            window.location.href = '/login';
+            // window.location.href = '/login';
           }
         };
 
@@ -785,7 +788,7 @@ const useJssip = () => {
           console.error('WebSocket error:', error);
           toast.error('Connection failed');
           localStorage.clear();
-          window.location.href = '/login';
+          // window.location.href = '/login';
         };
 
         var configuration = {
@@ -837,7 +840,7 @@ const useJssip = () => {
           console.error('Registration failed:', data);
           toast.error('User Phone not exits');
           localStorage.clear();
-          window.location.href = '/login';
+          // window.location.href = '/login';
         });
 
         ua.on('stopped', (e) => {
@@ -845,14 +848,14 @@ const useJssip = () => {
           // Add logout behavior for stopped event
           toast.error('Connection stopped');
           localStorage.clear();
-          window.location.href = '/login';
+          // window.location.href = '/login';
         });
 
         ua.on('disconnected', (e) => {
           console.error('UA disconnected', e);
           toast.error('Connection lost');
           localStorage.clear();
-          window.location.href = '/login';
+          // window.location.href = '/login';
         });
 
         ua.on('newRTCSession', function (e) {
@@ -875,7 +878,7 @@ const useJssip = () => {
         console.error('Error initializing JsSIP:', error);
         toast.error('You Are Logout');
         localStorage.clear();
-        window.location.href = '/login';
+        // window.location.href = '/login';
       }
     };
 
@@ -942,7 +945,7 @@ const useJssip = () => {
           console.error('Socket connection lost');
           toast.error('Connection lost');
           localStorage.clear();
-          window.location.href = '/login';
+          // window.location.href = '/login';
         }
       }
     };

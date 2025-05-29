@@ -11,7 +11,7 @@ const Home = ({ phoneNumber, setPhoneNumber, handleCall, setSeeLogs, timeoutArra
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') handleCall();
   };
-
+  console.log(isConnectionLost);
   return (
     <div className="p-6 h-full flex flex-col">
       {/* Header (Drag Handle) */}
@@ -89,7 +89,7 @@ const Home = ({ phoneNumber, setPhoneNumber, handleCall, setSeeLogs, timeoutArra
               disabled:bg-gray-300 disabled:cursor-not-allowed
             "
           onClick={handleCall}
-          disabled={isConnectionLost}
+          // disabled={isConnectionLost}
           aria-label="Call"
         >
           <Phone size={20} />
