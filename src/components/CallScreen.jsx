@@ -13,6 +13,7 @@ import {
   Clock,
   Volume2,
   Loader2,
+  Phone,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axios from 'axios';
@@ -200,7 +201,7 @@ const CallScreen = ({
     bg-gradient-to-r from-red-500 to-pink-600
     shadow-lg shadow-red-500/20
     hover:shadow-xl hover:scale-105
-    transition-all duration-200
+    transition-all duration-200 rotate-[133deg]
     focus:outline-none focus:ring-2 focus:ring-red-400
     group
   "
@@ -211,7 +212,7 @@ const CallScreen = ({
             aria-label="End Call"
             type="button"
           >
-            <Image src={'hang-up.svg'} alt="end-call" width={35} height={35} />
+            <Phone />
           </button>
         </div>
 
