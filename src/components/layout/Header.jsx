@@ -34,14 +34,6 @@ export default function Header() {
 
   const userMenuRef = useRef(null);
 
-  const navLinks = [
-    {
-      name: 'Dashboard',
-      href: '/',
-      icon: <LayoutDashboard className="w-4 h-4" />,
-    },
-  ];
-
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
 
   const handleLogout = () => {
@@ -110,54 +102,39 @@ export default function Header() {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-4">
-          <nav className="flex gap-2">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
+          {pathname != '/agent-dashboard' && (
+            <>
+              <nav className="flex gap-2">
+                <button
+                  onClick={() => setDropCalls(true)}
                   className={cn(
-                    'px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2',
-                    isActive
+                    'relative flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all focus:outline-none',
+                    dropCalls
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
-                      : 'text-slate-700 hover:bg-white/50 dark:text-slate-200 dark:hover:bg-slate-800/40'
+                      : 'bg-white/70 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-blue-700 dark:text-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/30'
                   )}
+                  aria-label="Show Missed Calls"
+                  type="button"
                 >
-                  {link.icon}
-                  {link.name}
-                </Link>
-              );
-            })}
-            <button
-              onClick={() => setDropCalls(true)}
-              className={cn(
-                'relative flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all focus:outline-none',
-                dropCalls
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
-                  : 'bg-white/70 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-blue-700 dark:text-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/30'
-              )}
-              aria-label="Show Missed Calls"
-              type="button"
-            >
-              <PhoneCall className={cn('w-5 h-5', dropCalls ? 'text-white' : 'text-blue-600 dark:text-blue-300')} />
-              <span className="font-medium">Missed Calls</span>
-              {campaignMissedCallsLength > 0 && (
-                <span
-                  className="
+                  <PhoneCall className={cn('w-5 h-5', dropCalls ? 'text-white' : 'text-blue-600 dark:text-blue-300')} />
+                  <span className="font-medium">Missed Calls</span>
+                  {campaignMissedCallsLength > 0 && (
+                    <span
+                      className="
                     absolute -top-2 -right-2 min-w-[1.5rem] h-6 flex items-center justify-center
                     rounded-full bg-blue-600 text-white text-xs font-bold px-2 shadow
                     border-2 border-white dark:border-slate-900
                   "
-                >
-                  {campaignMissedCallsLength}
-                </span>
-              )}
-            </button>
-            <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
-          </nav>
-
-          <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                    >
+                      {campaignMissedCallsLength}
+                    </span>
+                  )}
+                </button>
+                <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
+              </nav>
+              <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+            </>
+          )}
 
           {/* Single Modern User Dropdown */}
           <div className="relative" ref={userMenuRef}>
@@ -211,9 +188,9 @@ export default function Header() {
 
                 {/* Navigation Links */}
                 <div className="py-2">
-                  {pathname !== '/dashboard' ? (
+                  {pathname !== '/' ? (
                     <Link
-                      href="/dashboard"
+                      href="/"
                       onClick={() => setUserMenuOpen(false)}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/50 transition-colors"
                     >
