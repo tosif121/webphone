@@ -199,7 +199,7 @@ export default function Header() {
                     </Link>
                   ) : (
                     <Link
-                      href="/agent-dashboard"
+                      href="/webphone/agent-dashboard"
                       onClick={() => setUserMenuOpen(false)}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/50 transition-colors"
                     >
