@@ -146,7 +146,6 @@ export default function Login() {
         { headers: { 'Content-Type': 'application/json' } }
       );
 
-      console.log('API response:', response);
 
       if (!response) {
         toast.error('No response from server.');

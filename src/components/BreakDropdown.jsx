@@ -2,20 +2,65 @@ import React, { useState, useRef, useEffect, useContext } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import HistoryContext from '@/context/HistoryContext';
-import { Clock, Coffee, Sandwich, GraduationCap, ChevronDown } from 'lucide-react';
-
-const breakTypes = [
-  { type: 'TeaBreak', label: 'Tea Break', icon: Coffee },
-  { type: 'LunchBreak', label: 'Lunch Break', icon: Sandwich },
-  { type: 'TrainingBreak', label: 'Training Break', icon: GraduationCap },
-];
+import { Clock, ChevronDown, Coffee, Utensils, Clock3, Users, Activity } from 'lucide-react';
 
 const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
   const { username, selectedBreak, setSelectedBreak } = useContext(HistoryContext);
   const [isOpen, setIsOpen] = useState(false);
   const [timer, setTimer] = useState(0);
+  const [breakTypes, setBreakTypes] = useState([]);
   const dropdownRef = useRef(null);
   const timerRef = useRef(null);
+
+  // Map break types to icons dynamically based on keywords
+  const getBreakIcon = (label) => {
+    if (!label) return Activity;
+    
+    const lowerLabel = label.toLowerCase();
+    
+    // Food related
+    if (lowerLabel.includes('lunch') || lowerLabel.includes('dinner') || lowerLabel.includes('meal')) return Utensils;
+    
+    // Drink related  
+    if (lowerLabel.includes('coffee') || lowerLabel.includes('tea') || lowerLabel.includes('drink')) return Coffee;
+    
+    // Time related
+    if (lowerLabel.includes('short') || lowerLabel.includes('quick') || lowerLabel.includes('brief')) return Clock3;
+    
+    // Meeting/people related
+    if (lowerLabel.includes('meeting') || lowerLabel.includes('call') || lowerLabel.includes('conference')) return Users;
+    
+    // General break related
+    if (lowerLabel.includes('break') || lowerLabel.includes('rest') || lowerLabel.includes('pause')) return Clock;
+    
+    // Default for any other type
+    return Activity;
+  };
+
+  useEffect(() => {
+    const tokenData = localStorage.getItem('token');
+    if (tokenData) {
+      const parsedData = JSON.parse(tokenData);
+      const rawBreakOptions = parsedData?.userData?.breakoptions || [];
+      
+      // Handle different possible data structures flexibly
+      const transformedBreakOptions = rawBreakOptions.map(option => {
+        // Handle different property names that might exist
+        const type = option.value || option.type || option.name || option.id;
+        const label = option.label || option.name || option.title || option.value || option.type;
+        const id = option.id || option.value || option.type;
+        
+        return {
+          type: type,
+          label: label,
+          icon: getBreakIcon(label),
+          id: id
+        };
+      });
+      
+      setBreakTypes(transformedBreakOptions);
+    }
+  }, []);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -37,7 +82,9 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
       return () => clearInterval(timerRef.current);
     } else {
       setTimer(0);
-      clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
     }
     // eslint-disable-next-line
   }, [selectedBreak]);
@@ -53,7 +100,9 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
       await axios.post(`https://esamwad.iotcom.io/user/removebreakuser:${username}`);
       setSelectedBreak('Break');
       setIsOpen(false);
+      toast.success('Break removed successfully');
     } catch (error) {
+      console.error('Error removing break:', error);
       toast.error('Error removing break');
     }
   };
@@ -75,7 +124,8 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
       setSelectedBreak(breakType);
       setIsOpen(false);
       toast.success('Break applied successfully');
-    } catch {
+    } catch (error) {
+      console.error('Error applying break:', error);
       toast.error('Error applying break');
     }
   };
@@ -104,7 +154,9 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        {isOnBreak && selectedBreakObj && <selectedBreakObj.icon className="w-5 h-5" />}
+        {isOnBreak && selectedBreakObj && (
+          <selectedBreakObj.icon className="w-5 h-5" />
+        )}
         <span>{isOnBreak ? selectedBreakObj?.label || selectedBreak : 'Take a Break'}</span>
         {isOnBreak && (
           <span className="flex items-center gap-1 ml-2 text-xs font-medium">
@@ -116,9 +168,9 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
       </button>
 
       {/* Dropdown */}
-      {isOpen && selectedBreak === 'Break' && (
+      {isOpen && selectedBreak === 'Break' && breakTypes.length > 0 && (
         <ul
-          className={`${!dispoWithBreak && 'absolute' || ''}
+          className={`${(!dispoWithBreak && 'absolute') || ''}
             right-0 mt-2 w-48 z-50
             bg-white/90 dark:bg-slate-900/90
             border border-slate-200 dark:border-slate-700
@@ -127,9 +179,9 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
           `}
           role="listbox"
         >
-          {breakTypes.map(({ type, label, icon: Icon }) => (
+          {breakTypes.map(({ type, label, icon: Icon, id }) => (
             <li
-              key={type}
+              key={id || type}
               onClick={() => sendBreakSelection(type)}
               className="
                 flex items-center gap-3 px-4 py-3 cursor-pointer rounded-lg
