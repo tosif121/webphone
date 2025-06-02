@@ -39,7 +39,7 @@ export default function Header() {
   const handleLogout = () => {
     toast.success('Logged out!');
     localStorage.clear();
-    window.location.href = '/login';
+    window.location.href = '/webphone/login';
     setUserMenuOpen(false);
   };
 
@@ -188,9 +188,9 @@ export default function Header() {
 
                 {/* Navigation Links */}
                 <div className="py-2">
-                  {pathname !== '/' ? (
+                  {pathname !== '/webphone' ? (
                     <Link
-                      href="/"
+                      href="/webphone"
                       onClick={() => setUserMenuOpen(false)}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/50 transition-colors"
                     >
@@ -209,7 +209,7 @@ export default function Header() {
                   )}
 
                   <Link
-                    href={'/'}
+                    href={'/webphone'}
                     onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/50 transition-colors"
                   >
@@ -218,7 +218,7 @@ export default function Header() {
                   </Link>
 
                   <Link
-                    href={'/'}
+                    href={'/webphone'}
                     onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/50 transition-colors"
                   >

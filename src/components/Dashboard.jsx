@@ -220,13 +220,13 @@ function Dashboard() {
     try {
       const parsedToken = JSON.parse(token);
       if (!parsedToken) {
-        router.push('/login');
+        router.push('/webphone/login');
       } else {
-        router.push('/');
+        router.push('/webphone');
       }
     } catch (error) {
       // Invalid JSON, treat as no token
-      router.push('/login');
+      router.push('/webphone/login');
     }
   }, []);
 
