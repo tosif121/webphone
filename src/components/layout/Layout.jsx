@@ -3,9 +3,10 @@ import React from 'react';
 import Header from './Header';
 import { Footer } from 'react-day-picker';
 import DraggableWebPhone from '../DraggableWebPhone';
-
+import { useRouter } from 'next/router';
 
 export default function Layout({ children }) {
+  const router = useRouter();
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 dark:from-slate-900 dark:to-blue-950 px-4 py-8">
       {/* Decorative background elements */}
@@ -25,7 +26,7 @@ export default function Layout({ children }) {
         </main>
         <Footer />
       </div>
-      <DraggableWebPhone />
+      {router.pathname != '/webphone/agent-dashboard' && <DraggableWebPhone />}
     </div>
   );
 }

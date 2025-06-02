@@ -39,12 +39,14 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
 
   useEffect(() => {
     const tokenData = localStorage.getItem('token');
+    let transformedBreakOptions = [];
+    
     if (tokenData) {
       const parsedData = JSON.parse(tokenData);
       const rawBreakOptions = parsedData?.userData?.breakoptions || [];
       
       // Handle different possible data structures flexibly
-      const transformedBreakOptions = rawBreakOptions.map(option => {
+      transformedBreakOptions = rawBreakOptions.map(option => {
         // Handle different property names that might exist
         const type = option.value || option.type || option.name || option.id;
         const label = option.label || option.name || option.title || option.value || option.type;
@@ -57,9 +59,21 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
           id: id
         };
       });
-      
-      setBreakTypes(transformedBreakOptions);
     }
+    
+    // If no break options found or array is empty, add default break options
+    if (transformedBreakOptions.length === 0) {
+      transformedBreakOptions = [
+        {
+          type: 'General Break',
+          label: 'Break',
+          icon: getBreakIcon('General Break'),
+          id: 'default-general'
+        }
+      ];
+    }
+    
+    setBreakTypes(transformedBreakOptions);
   }, []);
 
   // Close dropdown on outside click
@@ -168,7 +182,7 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
       </button>
 
       {/* Dropdown */}
-      {isOpen && selectedBreak === 'Break' && breakTypes.length > 0 && (
+      {isOpen && selectedBreak === 'Break' && (
         <ul
           className={`${(!dispoWithBreak && 'absolute') || ''}
             right-0 mt-2 w-48 z-50
@@ -179,22 +193,28 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
           `}
           role="listbox"
         >
-          {breakTypes.map(({ type, label, icon: Icon, id }) => (
-            <li
-              key={id || type}
-              onClick={() => sendBreakSelection(type)}
-              className="
-                flex items-center gap-3 px-4 py-3 cursor-pointer rounded-lg
-                hover:bg-blue-50 dark:hover:bg-blue-900/30
-                transition-colors
-              "
-              role="option"
-              aria-selected={selectedBreak === type}
-            >
-              <Icon className="w-5 h-5 text-green-500" />
-              <span className="font-medium text-slate-700 dark:text-slate-200">{label}</span>
+          {breakTypes.length > 0 ? (
+            breakTypes.map(({ type, label, icon: Icon, id }) => (
+              <li
+                key={id || type}
+                onClick={() => sendBreakSelection(type)}
+                className="
+                  flex items-center gap-3 px-4 py-3 cursor-pointer rounded-lg
+                  hover:bg-blue-50 dark:hover:bg-blue-900/30
+                  transition-colors
+                "
+                role="option"
+                aria-selected={selectedBreak === type}
+              >
+                <Icon className="w-5 h-5 text-green-500" />
+                <span className="font-medium text-slate-700 dark:text-slate-200">{label}</span>
+              </li>
+            ))
+          ) : (
+            <li className="px-4 py-3 text-slate-500 dark:text-slate-400 text-sm">
+              No break options available
             </li>
-          ))}
+          )}
         </ul>
       )}
     </div>
