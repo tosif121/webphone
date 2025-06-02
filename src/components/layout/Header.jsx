@@ -102,7 +102,7 @@ export default function Header() {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-4">
-          {pathname != '/agent-dashboard' && (
+          {pathname != '/webphone/agent-dashboard' && (
             <>
               <nav className="flex gap-2">
                 <button
