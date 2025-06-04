@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Phone, Clock, PhoneCall, Calendar } from 'lucide-react';
 import moment from 'moment';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import axios from 'axios';
 
 const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMissedCallsLength }) => {
   const [loadingCaller, setLoadingCaller] = useState(null);
@@ -45,7 +46,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
     async (caller) => {
       try {
         const sanitizedCaller = removeCountryCode(caller);
-        const response = await axios.post(`${apiUrl }/dialmissedcall`, {
+        const response = await axios.post(`${apiUrl}/dialmissedcall`, {
           caller: username,
           receiver: sanitizedCaller,
         });

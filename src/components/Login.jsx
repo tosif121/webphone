@@ -139,13 +139,11 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // Axios POST request
       const { data: response } = await axios.post(
         `${apiUrl}userlogin/${username}`,
         { username, password },
         { headers: { 'Content-Type': 'application/json' } }
       );
-
 
       if (!response) {
         toast.error('No response from server.');
@@ -171,7 +169,6 @@ export default function Login() {
         return;
       }
 
-      // 🚩 Corrected here!
       const userData = response?.userData;
       if (!userData || !userData.ExpiryDate) {
         toast.error('Invalid user data received.');

@@ -1,17 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Phone,
-  PhoneOff,
-  User,
-  Clock,
-  BarChart2,
-  List,
-  TrendingUp,
-  Activity,
-  Timer,
-  Eye,
-  Maximize2,
-} from 'lucide-react';
+import { Phone, PhoneOff, User, Clock, BarChart2, List, TrendingUp, Activity, Timer, Eye } from 'lucide-react';
 import axios from 'axios';
 
 import {
@@ -21,6 +9,7 @@ import {
   DispositionChart,
 } from '@/utils/agent-dashboard';
 import AgentCallData from './AgentCallData';
+import { Dialog, DialogContent } from './ui/dialog';
 
 const statusColor = {
   INUSE: 'bg-gradient-to-r from-emerald-400 to-green-500 text-white shadow-lg shadow-green-500/25',
@@ -182,9 +171,6 @@ export default function AgentDashboard() {
           <div className="w-20 h-20 border-4 border-blue-200 dark:border-slate-700 rounded-full animate-spin"></div>
           <div className="absolute top-0 left-0 w-20 h-20 border-4 border-blue-600 dark:border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
-        <p className="mt-4 text-lg font-semibold text-gray-700 dark:text-gray-300 animate-pulse">
-          Loading Dashboard...
-        </p>
       </div>
     );
   }
@@ -322,10 +308,10 @@ export default function AgentDashboard() {
       )}
 
       {/* Activity Modal */}
-      {showActivityModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow max-w-4xl w-full max-h-[80vh] overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 dark:from-indigo-800 dark:to-purple-900 p-6">
+      <Dialog open={showActivityModal} onOpenChange={setShowActivityModal}>
+        <DialogContent className="max-w-4xl w-full p-0 overflow-hidden rounded-2xl border-0">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl">
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 dark:from-indigo-800 dark:to-purple-900 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/20 dark:bg-slate-700/40 rounded-xl">
@@ -336,16 +322,10 @@ export default function AgentDashboard() {
                     <p className="text-indigo-100 dark:text-indigo-200">Complete activity timeline</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setShowActivityModal(false)}
-                  className="p-2 hover:bg-white/20 dark:hover:bg-slate-700/40 rounded-xl transition-colors duration-200"
-                >
-                  <Maximize2 className="w-5 h-5 text-white rotate-45" />
-                </button>
               </div>
             </div>
 
-            <div className="p-6 overflow-y-auto max-h-96">
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
               <div className="space-y-4">
                 {dashboardData.activityData.map((activity, index) => (
                   <div
@@ -369,8 +349,8 @@ export default function AgentDashboard() {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

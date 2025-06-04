@@ -746,10 +746,8 @@ const useJssip = () => {
           console.log('User is not live');
           toast.error('User is not live. Please login again.');
           // setTimeout(checkUserLive, 15000);
-          // localStorage.clear();
-          // window.location.href = '/webphone/login';
           localStorage.clear();
-          // window.location.href = '/webphone/login';
+          window.location.href = '/webphone/login';
           return prev;
         }
         // }
@@ -858,7 +856,7 @@ const useJssip = () => {
           // window.location.href = '/webphone/login';
         });
 
-          ua.on('newRTCSession', function (e) {
+        ua.on('newRTCSession', function (e) {
           console.log('Session Direction:', e.session.direction);
 
           if (e.session.direction === 'incoming') {

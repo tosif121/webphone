@@ -139,10 +139,10 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    if (status == 'start') {
+    if (status == 'start' && username) {
       fetchUserMissedCalls();
     }
-  }, [status]);
+  }, [status, username]);
 
   useEffect(() => {
     if (selectedBreak != 'Break' && ringtone.length >= 0) {
@@ -151,9 +151,6 @@ function Dashboard() {
   }, [ringtone]);
 
   const fetchUserMissedCalls = async () => {
-    if (!username) {
-      return;
-    }
     try {
       const response = await axios.post(`${apiUrl}usermissedCalls/${username}`);
       if (response.data) {

@@ -159,5 +159,9 @@ select:-webkit-autofill:focus {
   }
 }
 
-
-
+.dark .react-datepicker__header,
+.dark .react-datepicker__current-month,
+.dark .react-datepicker__day-name {
+  color: #ffffff !important;
+  background-color: #333 !important;
+}
