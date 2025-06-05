@@ -7,6 +7,7 @@ import {
   calculateCallStatistics,
   ActivityChart,
   DispositionChart,
+  generateChartData,
 } from '@/utils/agent-dashboard';
 import AgentCallData from './AgentCallData';
 import { Dialog, DialogContent } from './ui/dialog';
