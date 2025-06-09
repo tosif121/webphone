@@ -48,8 +48,10 @@ const AutoDial = ({ setPhoneNumber, dispositionModal, handleCall }) => {
   };
 
   useEffect(() => {
-    handleDial();
-  }, []);
+    if (username) {
+      handleDial();
+    }
+  }, [username]);
 
   useEffect(() => {
     if (dispositionModal) {

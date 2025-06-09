@@ -195,7 +195,7 @@ const CallScreen = ({
         {/* End Call Button */}
         <div className="flex justify-center pt-4">
           <button
-            className="
+            className="text-white
     w-14 h-14 flex items-center justify-center
     rounded-full
     bg-gradient-to-r from-red-500 to-pink-600
