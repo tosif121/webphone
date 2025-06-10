@@ -65,19 +65,59 @@ export default function Login() {
 
   const checkMicrophoneAccess = async () => {
     try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const hasAudioInput = devices.some((device) => device.kind === 'audioinput');
+      // Check if we're in a mobile environment
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-      if (!hasAudioInput) {
-        toast.error('Microphone Required: Please connect a microphone to continue.');
-        return false;
+      // On mobile, we need to show a more descriptive prompt
+      if (isMobile) {
+        const confirmed = window.confirm(
+          'This app requires microphone access for calling features. ' +
+            'Please allow microphone permissions when prompted.'
+        );
+
+        if (!confirmed) {
+          toast.error('Microphone access is required to use calling features.');
+          return false;
+        }
       }
 
+      // Check permissions if available
+      if (navigator.permissions) {
+        try {
+          const result = await navigator.permissions.query({ name: 'microphone' });
+          if (result.state === 'denied') {
+            toast.error(
+              isMobile
+                ? 'Microphone access was denied. Please enable it in your browser settings.'
+                : 'Microphone access denied. Please enable it in your browser settings.'
+            );
+            return false;
+          }
+        } catch (err) {
+          console.warn('Permissions API not fully supported', err);
+        }
+      }
+
+      // Request access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((track) => track.stop());
+
       return true;
     } catch (err) {
-      toast.error('Microphone Access Denied: Please connect a microphone and allow access to continue.');
+      console.error('Microphone access error:', err);
+
+      let errorMessage = 'Microphone access denied or unavailable.';
+      if (err.name === 'NotAllowedError') {
+        errorMessage = isMobile
+          ? 'Microphone permission was denied. Please check your browser settings.'
+          : 'Microphone permission was denied. Please allow microphone access.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMessage = 'No microphone device found.';
+      } else if (err.name === 'NotReadableError') {
+        errorMessage = 'Microphone is already in use by another application.';
+      }
+
+      toast.error(errorMessage);
       return false;
     }
   };
@@ -248,25 +288,25 @@ export default function Login() {
     <>
       <Dialog open={subscriptionDialog.isOpen} onOpenChange={() => {}} modal={true}>
         <DialogContent
-          className="sm:max-w-lg bg-white/95 [&>button]:hidden dark:bg-slate-900/95 backdrop-blur-md border border-gray-200 dark:border-slate-700 shadow-2xl z-50"
+          className="sm:max-w-lg bg-card/95 [&>button]:hidden backdrop-blur-md border shadow-2xl z-50"
           onEscapeKeyDown={(e) => e.preventDefault()}
           onPointerDownOutside={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
         >
           <DialogHeader className="text-center pb-4">
             <div className="flex justify-center mb-6">
-              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+              <div className="h-20 w-20 rounded-full bg-primary flex items-center justify-center shadow-lg">
                 {subscriptionDialog.type === 'expiring' ? (
-                  <AlertTriangle className="h-10 w-10 text-white" />
+                  <AlertTriangle className="h-10 w-10 text-primary-foreground" />
                 ) : (
-                  <AlertCircle className="h-10 w-10 text-white" />
+                  <AlertCircle className="h-10 w-10 text-primary-foreground" />
                 )}
               </div>
             </div>
-            <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white text-center">
+            <DialogTitle className="text-2xl font-bold text-foreground text-center">
               {subscriptionDialog.type === 'expiring' ? 'Subscription Expiring Soon' : 'Subscription Expired'}
             </DialogTitle>
-            <DialogDescription className="text-base mt-2 text-gray-600 dark:text-gray-300 text-center">
+            <DialogDescription className="text-base mt-2 text-muted-foreground text-center">
               {subscriptionDialog.type === 'expiring'
                 ? `Your subscription expires in ${subscriptionDialog.daysExpired} day${
                     subscriptionDialog.daysExpired !== 1 ? 's' : ''
@@ -285,26 +325,26 @@ export default function Login() {
                       ? (timer / (getSubscriptionDelayInfo(subscriptionDialog.daysExpired).time / 1000)) * 100
                       : 0
                   }
-                  className="w-full h-4 rounded-full bg-gray-200 dark:bg-slate-700"
+                  className="w-full h-4"
                 />
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                  <span className="text-sm font-medium text-muted-foreground">
                     Please wait while we verify your subscription...
                   </span>
-                  <div className="flex items-center gap-2 bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-full">
-                    <Clock className="h-4 w-4 text-blue-600" />
-                    <span className="text-lg font-bold text-gray-900 dark:text-white">{formatTime(timer)}</span>
+                  <div className="flex items-center gap-2 bg-muted px-3 py-1 rounded-full">
+                    <Clock className="h-4 w-4 text-primary" />
+                    <span className="text-lg font-bold text-foreground">{formatTime(timer)}</span>
                   </div>
                 </div>
               </div>
 
               {/* Grace Period Info Card */}
-              <div className="bg-blue-50 dark:bg-slate-800 rounded-lg p-4 border border-blue-200 dark:border-slate-600">
+              <div className="bg-secondary/50 rounded-lg p-4 border border-border">
                 <div className="flex items-start gap-3">
-                  <Crown className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <Crown className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <div>
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-1">Grace Period Active</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                    <h4 className="font-medium text-foreground mb-1">Grace Period Active</h4>
+                    <p className="text-sm text-muted-foreground">
                       You can still access your account while we verify your subscription status. Please wait for the
                       verification to complete.
                     </p>
@@ -316,12 +356,12 @@ export default function Login() {
 
           {subscriptionDialog.type === 'expiring' && (
             <div className="py-4">
-              <div className="bg-amber-50 dark:bg-slate-800 rounded-lg p-4 border border-amber-200 dark:border-slate-600">
+              <div className="bg-accent/50 rounded-lg p-4 border border-border">
                 <div className="flex items-start gap-3">
-                  <Calendar className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <Calendar className="h-5 w-5 text-accent-foreground mt-0.5 flex-shrink-0" />
                   <div>
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-1">Renew Your Subscription</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                    <h4 className="font-medium text-foreground mb-1">Renew Your Subscription</h4>
+                    <p className="text-sm text-muted-foreground">
                       Don't lose access to your account. Renew now to continue using all features without interruption.
                     </p>
                   </div>
@@ -334,7 +374,7 @@ export default function Login() {
         {/* Custom Full Screen Blocking Overlay */}
         {subscriptionDialog.isOpen && (
           <div
-            className="fixed inset-0 z-40 bg-black/80 dark:bg-black/90 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm"
             style={{
               position: 'fixed',
               top: 0,
@@ -349,22 +389,25 @@ export default function Login() {
         )}
       </Dialog>
 
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-100 dark:from-slate-900 dark:to-blue-950 px-4">
-        <div className="absolute top-0 left-0 w-full h-full opacity-30 bg-[radial-gradient(circle_at_30%_20%,rgba(120,120,255,0.4)_0%,rgba(0,0,0,0)_60%),radial-gradient(circle_at_70%_60%,rgba(120,255,190,0.3)_0%,rgba(0,0,0,0)_60%)]"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 bg-muted/20 md:block hidden">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/10 rounded-full blur-3xl"></div>
+        </div>
 
-        <Card className="w-full max-w-md shadow-2xl border-0 overflow-hidden backdrop-blur-sm bg-white/90 dark:bg-slate-900/90 rounded-2xl">
-          <div className="absolute top-0 right-0 w-32 h-32 -mr-16 -mt-16 bg-gradient-to-br from-blue-400 to-purple-500 opacity-20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-32 h-32 -ml-16 -mb-16 bg-gradient-to-tr from-emerald-400 to-cyan-500 opacity-20 rounded-full blur-3xl"></div>
+        <Card className="w-full max-w-md shadow-lg border backdrop-blur-sm bg-card/95 relative z-10">
+          {/* Decorative elements */}
+          <div className="absolute md:block hidden top-0 right-0 w-32 h-32 -mr-16 -mt-16 bg-accent/20 rounded-full blur-2xl"></div>
+          <div className="absolute bottom-0 left-0 w-32 h-32 -ml-16 -mb-16 bg-primary/10 rounded-full blur-2xl"></div>
 
           <CardHeader className="space-y-1 pb-6 pt-10">
             <div className="flex items-center justify-center mb-6">
-              <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                <PhoneCall className="h-8 w-8 text-white" />
+              <div className="h-16 w-16 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                <PhoneCall className="h-8 w-8 text-primary-foreground" />
               </div>
             </div>
-            <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              SAMWAD
-            </CardTitle>
+            <CardTitle className="text-3xl font-bold text-center text-foreground">SAMWAD</CardTitle>
             <CardDescription className="text-center text-base mt-2">Sign in to your account</CardDescription>
           </CardHeader>
 
@@ -375,39 +418,38 @@ export default function Login() {
                   Username
                 </Label>
                 <div className="relative group">
-                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground">
                     <User className="h-5 w-5" />
                   </div>
                   <Input
                     id="username"
                     placeholder="Enter your username"
-                    className="h-14 pl-12 pr-4 bg-gray-50/50 dark:bg-slate-800/50 rounded-xl border-gray-200 dark:border-slate-700 focus:border-blue-500 ring-blue-500/30 focus:ring-4 transition-all"
+                    className="h-14 pl-12 pr-4 bg-background border-input focus:border-ring focus:ring-ring/30 focus:ring-4 transition-all"
                     value={username}
                     onChange={handleUsernameChange}
                     disabled={isLoading}
                   />
                 </div>
                 {validationErrors.username && (
-                  <p className="text-sm font-medium text-red-500 flex items-center gap-1 mt-1 pl-1">
+                  <p className="text-sm font-medium text-destructive flex items-center gap-1 mt-1 pl-1">
                     <AlertTriangle className="h-3 w-3" />
                     {validationErrors.username}
                   </p>
                 )}
               </div>
-
               <div className="space-y-3">
                 <Label htmlFor="password" className="text-sm font-medium pl-1">
                   Password
                 </Label>
                 <div className="relative group">
-                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground">
                     <Lock className="h-5 w-5" />
                   </div>
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
-                    className="h-14 pl-12 pr-12 bg-gray-50/50 dark:bg-slate-800/50 rounded-xl border-gray-200 dark:border-slate-700 focus:border-blue-500 ring-blue-500/30 focus:ring-4 transition-all"
+                    className="h-14 pl-12 pr-12 bg-background border-input focus:border-ring focus:ring-ring/30 focus:ring-4 transition-all"
                     value={password}
                     onChange={handlePasswordChange}
                     disabled={isLoading}
@@ -416,7 +458,7 @@ export default function Login() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-4 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                    className="absolute right-0 top-0 h-full px-4 text-muted-foreground hover:text-foreground"
                     onClick={() => setShowPassword(!showPassword)}
                     disabled={isLoading}
                   >
@@ -425,15 +467,14 @@ export default function Login() {
                   </Button>
                 </div>
                 {validationErrors.password && (
-                  <p className="text-sm font-medium text-red-500 flex items-center gap-1 mt-1 pl-1">
+                  <p className="text-sm font-medium text-destructive flex items-center gap-1 mt-1 pl-1">
                     <AlertTriangle className="h-3 w-3" />
                     {validationErrors.password}
                   </p>
                 )}
               </div>
-
               <Button
-                className="w-full h-14 text-base font-medium dark:text-white mt-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40"
+                className="w-full h-14 text-base cursor-pointer font-medium mt-8 shadow-lg hover:shadow-xl transition-all"
                 disabled={isLoading}
                 type="submit"
               >

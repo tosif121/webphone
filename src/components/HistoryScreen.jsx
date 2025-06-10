@@ -12,23 +12,21 @@ const HistoryScreen = ({ setSeeLogs, setPhoneNumber, handleCall }) => {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20">
+      <div className="flex items-center justify-between p-4 border-b border-border bg-muted/60">
         <div className="flex items-center gap-3">
           <button
             onClick={handleGoBack}
-            className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-slate-600 dark:text-slate-300 hover:text-blue-700"
+            className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted hover:bg-accent transition-colors text-muted-foreground hover:text-primary"
             aria-label="Back"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <h1 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Call History
-          </h1>
+          <h1 className="text-lg font-semibold text-primary">Call History</h1>
         </div>
         {history.length > 0 && (
           <button
             onClick={handleClearHistory}
-            className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors text-red-500 dark:text-red-400 hover:text-red-600"
+            className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-destructive/10 hover:bg-destructive/20 transition-colors text-destructive hover:text-destructive-foreground"
             aria-label="Clear Call Logs"
           >
             <Trash2 className="w-4 h-4" />
@@ -40,11 +38,11 @@ const HistoryScreen = ({ setSeeLogs, setPhoneNumber, handleCall }) => {
       <div className="flex-1 p-4 overflow-y-auto max-h-[60vh]">
         {history.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-              <Phone className="w-8 h-8 text-blue-300 dark:text-blue-500" />
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+              <Phone className="w-8 h-8 text-primary/40" />
             </div>
-            <h3 className="text-lg font-medium text-slate-700 dark:text-slate-200 mb-2">No call history</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs">
+            <h3 className="text-lg font-medium text-foreground mb-2">No call history</h3>
+            <p className="text-sm text-muted-foreground max-w-xs">
               Your recent calls will appear here once you start making calls.
             </p>
           </div>
@@ -53,7 +51,7 @@ const HistoryScreen = ({ setSeeLogs, setPhoneNumber, handleCall }) => {
             {[...history].reverse().map((item, index) => (
               <div
                 key={index}
-                className="bg-white/60 dark:bg-slate-800/60 hover:bg-white/90 dark:hover:bg-slate-800/90 rounded-xl p-3 transition-all border border-transparent hover:border-blue-100 dark:hover:border-blue-900/30 shadow-sm"
+                className="bg-card/70 hover:bg-accent/80 rounded-xl p-3 transition-all border border-transparent hover:border-accent shadow-sm"
               >
                 <HistoryItem
                   date={item.startTime}
@@ -74,8 +72,8 @@ const HistoryScreen = ({ setSeeLogs, setPhoneNumber, handleCall }) => {
 
       {/* Footer hint */}
       {history.length > 5 && (
-        <div className="bg-slate-50/80 dark:bg-slate-900/40 border-t border-slate-100 dark:border-slate-800 px-6 py-3">
-          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <div className="bg-muted/70 border-t border-border px-6 py-3">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <AlertCircle className="w-4 h-4" />
             <span>Scroll to see more call history</span>
           </div>

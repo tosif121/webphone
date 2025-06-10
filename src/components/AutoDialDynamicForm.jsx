@@ -61,10 +61,10 @@ function getFieldIcon(field) {
   for (const key in iconMap) {
     if (label.includes(key) || type === key) {
       const Icon = iconMap[key];
-      return <Icon className="absolute left-3 top-3 h-4 w-4 text-gray-400" aria-hidden="true" />;
+      return <Icon className="absolute left-3 top-3 h-4 w-4 text-slate-400" aria-hidden="true" />;
     }
   }
-  return <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-300" aria-hidden="true" />;
+  return <FileText className="absolute left-3 top-3 h-4 w-4 text-slate-300" aria-hidden="true" />;
 }
 
 export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispositionModal, handleCall, phoneNumber }) {
@@ -102,47 +102,33 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
     }
   }, [dispositionModal]);
 
-  const populateFormFromLead = (leadData) => {
-    if (!formConfig?.sections) return;
-
+  // Fixed function signature - now accepts leadData parameter
+  function populateFormFromLead(leadData) {
     const filledState = {};
-    formConfig.sections.forEach((section) => {
-      section.fields.forEach((field) => {
+    const leadKeys = Object.keys(leadData || {});
+
+    for (const section of formConfig.sections || []) {
+      for (const field of section.fields) {
         const fieldName = field.name;
         const lowerFieldName = fieldName.toLowerCase();
 
-        // Map common lead fields to form fields
-        const leadFieldMap = {
-          name: leadData.name,
-          fullname: leadData.name,
-          firstname: leadData.name?.split(' ')[0],
-          lastname: leadData.name?.split(' ').slice(1).join(' '),
-          email: leadData.emailAddress,
-          emailaddress: leadData.emailAddress,
-          phone: leadData.number,
-          phonenumber: leadData.number,
-          mobile: leadData.number,
-          number: leadData.number,
-          address: leadData.address,
-          address1: leadData.address,
-          address2: leadData.address2,
-          city: leadData.city,
-          state: leadData.state,
-          country: leadData.country,
-          postalcode: leadData.postalCode,
-          postal: leadData.postalCode,
-          pin: leadData.postalCode,
-        };
+        // Try direct match
+        let matchedKey = leadKeys.find((key) => key.toLowerCase() === lowerFieldName);
 
-        // Try to match field name with lead data
-        const mappedValue = leadFieldMap[lowerFieldName];
-        filledState[fieldName] = mappedValue || '';
-      });
-    });
+        // Try partial match if no direct match
+        if (!matchedKey) {
+          matchedKey = leadKeys.find((key) => key.toLowerCase().includes(lowerFieldName));
+        }
 
+        filledState[fieldName] = matchedKey !== undefined ? leadData[matchedKey] ?? '' : '';
+      }
+    }
+
+    // Update the form state with populated data
     setFormState(filledState);
-  };
+  }
 
+  // Updated handleDial function
   const handleDial = async () => {
     const payload = {
       user: username,
@@ -156,6 +142,7 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
         const result = response.data.result;
         setCurrentLeadId(result.leadId);
         setIsManualPhone(false);
+        // Fixed: Pass the result data to populate function
         populateFormFromLead(result);
       } else {
         setIsManualPhone(true);
@@ -176,6 +163,7 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
     }
   };
 
+  // Updated handleNextLead function
   const handleNextLead = useCallback(async () => {
     const payload = {
       user: username,
@@ -196,6 +184,7 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
         const result = response.data.result;
         setCurrentLeadId(result.leadId);
         setIsManualPhone(false);
+        // Fixed: Pass the result data to populate function
         populateFormFromLead(result);
       } else {
         setIsManualPhone(true);
@@ -248,9 +237,6 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
       caller: username,
       leaddata: {
         _id: currentLeadId,
-        name: formState.name || formState.fullName || '',
-        number: phoneValue,
-        address: formState.address || formState.address1 || '',
       },
     };
 
@@ -270,21 +256,16 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
     }
   };
 
-  if (!formConfig) return <p className="text-center py-10 text-red-500">No form found.</p>;
-
   return (
-    <Card className="backdrop-blur-sm bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/20 shadow-lg shadow-blue-500/5 max-w-2xl mx-auto">
+    <Card className="backdrop-blur-sm bg-card/80 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg max-w-2xl mx-auto">
       <CardHeader className="pb-2">
         <div className="flex items-center">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-500/30">
-            <Phone className="text-white" size={18} aria-hidden="true" />
+          <div className="h-10 w-10 rounded-full bg-slate-900 dark:bg-slate-100 flex items-center justify-center shadow-md">
+            <Phone className="text-slate-50 dark:text-slate-900" size={18} aria-hidden="true" />
           </div>
           <div className="ml-3">
-            <CardTitle className="text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              {/* {formConfig.formTitle || 'Lead Auto Dialer'} */}
-              Lead Auto Dialer
-            </CardTitle>
-            <CardDescription>
+            <CardTitle className="text-xl text-slate-900 dark:text-slate-50">Lead Auto Dialer</CardTitle>
+            <CardDescription className="text-slate-600 dark:text-slate-400">
               {formConfig.sections?.length > 1 ? 'Fill out the form sections below' : 'Connect with your leads'}
             </CardDescription>
           </div>
@@ -296,8 +277,8 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
           {formConfig.sections?.map((section) => (
             <div key={section.id} className="mb-6">
               {formConfig.sections.length > 1 && (
-                <h3 className="text-lg font-medium text-indigo-600 mb-4 flex items-center gap-2">
-                  <List className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+                  <List className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                   {section.title}
                 </h3>
               )}
@@ -323,8 +304,8 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
                           disabled={isDisabled}
                           className={`pl-10 min-h-20 resize-none ${
                             isManualPhone && isPhoneField
-                              ? 'border-blue-400 dark:border-blue-600 bg-blue-50/40 dark:bg-blue-900/20'
-                              : ''
+                              ? 'border-slate-400 bg-slate-50 dark:bg-slate-800 dark:border-slate-500'
+                              : 'border-slate-200 dark:border-slate-700'
                           }`}
                           aria-label={field.label}
                         />
@@ -344,8 +325,8 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
                           <SelectTrigger
                             className={`pl-10 ${
                               isManualPhone && isPhoneField
-                                ? 'border-blue-400 dark:border-blue-600 bg-blue-50/40 dark:bg-blue-900/20'
-                                : ''
+                                ? 'border-slate-400 bg-slate-50 dark:bg-slate-800 dark:border-slate-500'
+                                : 'border-slate-200 dark:border-slate-700'
                             }`}
                           >
                             <SelectValue placeholder={field.label} />
@@ -364,14 +345,14 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
                   // Checkbox
                   if (field.type === 'checkbox') {
                     return (
-                      <label className="flex items-center gap-2" key={idx}>
+                      <label className="flex items-center gap-2 text-slate-700 dark:text-slate-300" key={idx}>
                         <input
                           type="checkbox"
                           name={field.name}
                           checked={!!formState[field.name]}
                           onChange={handleChange}
                           disabled={isDisabled}
-                          className="accent-indigo-500"
+                          className="accent-slate-900 dark:accent-slate-100"
                         />
                         {field.label}
                         {field.required && <span className="text-red-500 ml-1">*</span>}
@@ -382,10 +363,10 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
                   if (field.type === 'radio' && field.options?.length) {
                     return (
                       <div className="flex flex-col gap-2" key={idx}>
-                        <span className="font-medium">{field.label}</span>
+                        <span className="font-medium text-slate-700 dark:text-slate-300">{field.label}</span>
                         <div className="flex gap-4">
                           {field.options.map((option, i) => (
-                            <label className="flex items-center gap-2" key={i}>
+                            <label className="flex items-center gap-2 text-slate-600 dark:text-slate-400" key={i}>
                               <input
                                 type="radio"
                                 name={field.name}
@@ -393,7 +374,7 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
                                 checked={formState[field.name] === (option.value || option)}
                                 onChange={handleChange}
                                 disabled={isDisabled}
-                                className="accent-indigo-500"
+                                className="accent-slate-900 dark:accent-slate-100"
                               />
                               {option.label || option}
                             </label>
@@ -416,8 +397,8 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
                         disabled={isDisabled}
                         className={`pl-10 ${
                           isManualPhone && isPhoneField
-                            ? 'border-blue-400 dark:border-blue-600 bg-blue-50/40 dark:bg-blue-900/20'
-                            : ''
+                            ? 'border-slate-400 bg-slate-50 dark:bg-slate-800 dark:border-slate-500'
+                            : 'border-slate-200 dark:border-slate-700'
                         }`}
                         aria-label={field.label}
                       />
@@ -427,55 +408,14 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
               </div>
             </div>
           ))}
-
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 mt-6">
-            <Button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                handleLeadCall();
-              }}
-              disabled={isLoading}
-              className={`w-36 h-12 text-base font-semibold rounded-xl transition-all shadow-md shadow-blue-500/20 ${
-                isLoading
-                  ? 'bg-blue-400/70 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 text-white hover:to-indigo-700'
-              }`}
-              aria-label={isLoading ? 'Dialing...' : 'Dial Lead'}
-            >
-              {isLoading ? (
-                <span className="flex items-center">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                  Dialing...
-                </span>
-              ) : (
-                <>
-                  <Phone className="mr-2" size={16} aria-hidden="true" /> Dial
-                </>
-              )}
+            <Button onClick={handleLeadCall} disabled={isLoading} className="w-36 cursor-pointer">
+              <Phone className="mr-2 h-4 w-4" /> Dial
             </Button>
-            <Button
-              type="button"
-              onClick={handleNextLead}
-              disabled={isLoading}
-              className={`w-36 h-12 text-base font-semibold rounded-xl transition-all shadow-md shadow-emerald-500/20 ${
-                isLoading
-                  ? 'bg-emerald-400/70 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white'
-              }`}
-              aria-label={isLoading ? 'Loading next lead...' : 'Next Lead'}
-            >
-              {isLoading ? (
-                <span className="flex items-center">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                  Loading...
-                </span>
-              ) : (
-                <>
-                  Next Lead <ArrowRight className="ml-2" size={14} aria-hidden="true" />
-                </>
-              )}
+
+            <Button onClick={handleNextLead} disabled={isLoading} variant="secondary" className="w-36 cursor-pointer">
+              Next Lead <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </form>

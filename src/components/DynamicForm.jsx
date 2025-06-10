@@ -21,7 +21,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import axios from 'axios';
 import toast from 'react-hot-toast';
 
 // Icon mapping based on label or type
@@ -57,10 +56,10 @@ function getFieldIcon(field) {
   for (const key in iconMap) {
     if (label.includes(key) || type === key) {
       const Icon = iconMap[key];
-      return <Icon className="absolute left-3 top-3 h-4 w-4 text-gray-400" aria-hidden="true" />;
+      return <Icon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />;
     }
   }
-  return <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-300" aria-hidden="true" />;
+  return <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />;
 }
 
 export default function DynamicForm({ formConfig, formState, userCallDialog, setFormState, userCall }) {
@@ -78,8 +77,6 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
       [name]: value,
     }));
   };
-
-  if (!formConfig) return <p className="text-center py-10 text-red-500">No form found.</p>;
 
   useEffect(() => {
     if (userCall && formConfig?.sections) {
@@ -101,19 +98,17 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
     <Card
       className={`${
         !userCallDialog
-          ? 'backdrop-blur-sm bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/20 shadow-lg shadow-blue-500/5 max-w-2xl mx-auto'
+          ? 'backdrop-blur-sm bg-card/80 rounded-xl border border-border shadow-lg max-w-2xl mx-auto'
           : 'bg-transparent border-0 shadow-none p-0'
       }`}
     >
       <CardHeader className="pb-2">
         <div className="flex items-center">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-500/30">
-            <User className="text-white" size={18} aria-hidden="true" />
+          <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center shadow-md">
+            <User className="text-primary-foreground" size={18} aria-hidden="true" />
           </div>
           <div className="ml-3">
-            <CardTitle className="text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              {formConfig.formTitle}
-            </CardTitle>
+            <CardTitle className="text-xl text-primary">{formConfig.formTitle}</CardTitle>
             <CardDescription>
               {formConfig.sections?.length > 1 ? 'Fill out the form sections below' : 'Fill out the form below'}
             </CardDescription>
@@ -126,8 +121,8 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
           {formConfig.sections?.map((section) => (
             <div key={section.id} className="mb-6">
               {formConfig.sections.length > 1 && (
-                <h3 className="text-lg font-medium text-indigo-600 mb-4 flex items-center gap-2">
-                  <List className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-lg font-medium text-primary mb-4 flex items-center gap-2">
+                  <List className="w-5 h-5 text-muted-foreground" />
                   {section.title}
                 </h3>
               )}
@@ -182,10 +177,10 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
                           name={field.name}
                           checked={!!formState[field.name]}
                           onChange={handleChange}
-                          className="accent-indigo-500"
+                          className="accent-primary"
                         />
                         {field.label}
-                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                        {field.required && <span className="text-destructive ml-1">*</span>}
                       </label>
                     );
                   }
@@ -203,7 +198,7 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
                                 value={option.value || option}
                                 checked={formState[field.name] === (option.value || option)}
                                 onChange={handleChange}
-                                className="accent-indigo-500"
+                                className="accent-primary"
                               />
                               {option.label || option}
                             </label>

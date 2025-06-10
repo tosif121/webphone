@@ -13,11 +13,13 @@ import {
   PhoneCall,
   UserCircle,
   Rocket,
+  Phone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
 
 import ThemeToggle from './ThemeToggle';
+import ThemeSelector from './ThemeSelector';
 import BreakDropdown from '../BreakDropdown';
 import HistoryContext from '@/context/HistoryContext';
 
@@ -38,8 +40,10 @@ export default function Header() {
 
   const handleLogout = () => {
     toast.success('Logged out!');
-    localStorage.clear();
-    window.location.href = '/webphone/login';
+    if (typeof window !== 'undefined') {
+      localStorage.clear();
+      window.location.href = '/webphone/login';
+    }
     setUserMenuOpen(false);
   };
 
@@ -79,6 +83,20 @@ export default function Header() {
     };
   }, [userMenuOpen]);
 
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [mobileMenuOpen]);
+
   const getInitials = (name = '') => {
     const words = name.trim().split(' ');
     return words
@@ -87,56 +105,72 @@ export default function Header() {
       .join('');
   };
 
+  const navLinks = [
+    {
+      href: '/webphone',
+      name: 'Agent Panel',
+      icon: <Phone className="w-4 h-4" />,
+    },
+    {
+      href: '/webphone/agent-dashboard',
+      name: 'Agent Dashboard',
+      icon: <LayoutDashboard className="w-4 h-4" />,
+    },
+    {
+      href: '/webphone/profile',
+      name: 'Your Profile',
+      icon: <User className="w-4 h-4" />,
+    },
+    {
+      href: '/webphone/settings',
+      name: 'Settings',
+      icon: <Settings className="w-4 h-4" />,
+    },
+  ];
+
   return (
-    <header className="w-full backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-white/20 dark:border-slate-700/20 sticky top-0 z-40 shadow-lg shadow-blue-500/5">
+    <header className="w-full bg-white dark:bg-slate-900 shadow-md border-b border-border sticky top-0 z-40">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         {/* Logo and Brand */}
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <PhoneCall className="w-5 h-5 text-white" />
+        <Link href={'/'} className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center shadow-sm">
+            <PhoneCall className="w-5 h-5 text-primary-foreground" />
           </div>
-          <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent hidden sm:block">
-            SAMWAD
-          </span>
-        </div>
+          <div className="hidden sm:block">
+            <span className="text-xl font-bold text-foreground">SAMWAD</span>
+          </div>
+        </Link>
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-4">
-          {pathname != '/webphone/agent-dashboard' && (
+          {pathname !== '/webphone/agent-dashboard' && (
             <>
               <nav className="flex gap-2">
                 <button
                   onClick={() => setDropCalls(true)}
                   className={cn(
-                    'relative flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all focus:outline-none',
-                    dropCalls
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
-                      : 'bg-white/70 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-blue-700 dark:text-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/30'
+                    'relative flex items-center gap-2 px-4 py-2 border cursor-pointer rounded-lg font-medium transition-all',
+                    dropCalls ? 'bg-primary text-primary-foreground' : 'text-secondary-foreground hover:bg-secondary/80'
                   )}
                   aria-label="Show Missed Calls"
                   type="button"
                 >
-                  <PhoneCall className={cn('w-5 h-5', dropCalls ? 'text-white' : 'text-blue-600 dark:text-blue-300')} />
-                  <span className="font-medium">Missed Calls</span>
+                  <PhoneCall className="w-4 h-4" />
+                  <span>Missed Calls</span>
                   {campaignMissedCallsLength > 0 && (
-                    <span
-                      className="
-                    absolute -top-2 -right-2 min-w-[1.5rem] h-6 flex items-center justify-center
-                    rounded-full bg-blue-600 text-white text-xs font-bold px-2 shadow
-                    border-2 border-white dark:border-slate-900
-                  "
-                    >
+                    <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
                       {campaignMissedCallsLength}
                     </span>
                   )}
                 </button>
                 <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
+                <ThemeSelector />
               </nav>
-              <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+              <div className="h-6 w-px bg-border mx-1"></div>
             </>
           )}
 
-          {/* Single Modern User Dropdown */}
+          {/* Modern User Dropdown */}
           <div className="relative" ref={userMenuRef}>
             <Button
               variant="ghost"
@@ -144,45 +178,46 @@ export default function Header() {
               onClick={() => setUserMenuOpen((open) => !open)}
               aria-expanded={userMenuOpen}
               aria-haspopup="true"
-              className="flex items-center cursor-pointer gap-3 px-3 py-2 rounded-xl hover:bg-white/50 dark:hover:bg-slate-800/40 transition-all"
+              className="flex items-center cursor-pointer gap-3 px-3 py-2 h-auto hover:bg-accent"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/20">
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-sm shadow-sm">
                 {getInitials(username)}
               </div>
-              <div className="hidden sm:flex flex-col items-start">
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{username}</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">{userId}</span>
+              <div className="hidden sm:flex flex-col items-start text-left">
+                <span className="text-sm font-medium text-foreground leading-none">{username}</span>
+                <span className="text-xs text-muted-foreground mt-0.5">{userId}</span>
               </div>
               <ChevronDown
-                className={cn('w-4 h-4 transition-transform duration-200 text-slate-500', userMenuOpen && 'rotate-180')}
+                className={cn(
+                  'w-4 h-4 transition-transform duration-200 text-muted-foreground',
+                  userMenuOpen && 'rotate-180'
+                )}
               />
             </Button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 mt-2 w-80 backdrop-blur-md bg-white/95 dark:bg-slate-800/95 border border-white/20 dark:border-slate-700/20 rounded-xl shadow-xl shadow-blue-500/10 z-50 overflow-hidden animate-in slide-in-from-top-2 duration-200">
+              <div className="absolute right-0 mt-2 w-80 bg-popover border rounded-lg shadow-lg z-50 animate-in slide-in-from-top-2 duration-200">
                 {/* User Info Header */}
-                <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700 border-b border-slate-200 dark:border-slate-600">
+                <div className="px-4 py-4 bg-muted/50 border-b">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20">
+                    <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold shadow-sm">
                       {getInitials(username)}
                     </div>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
-                        {username}
-                      </div>
-                      <div className="text-xs text-slate-600 dark:text-slate-300">ID: {userId}</div>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-foreground truncate">{username}</div>
+                      <div className="text-xs text-muted-foreground">ID: {userId}</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Campaign Info */}
-                <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
+                <div className="px-4 py-3 border-b">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                      <Rocket className="w-4 h-4 text-blue-500" />
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Rocket className="w-4 h-4" />
                       Campaign
                     </div>
-                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{campaignName}</span>
+                    <span className="text-sm font-medium text-foreground truncate max-w-[180px]">{campaignName}</span>
                   </div>
                 </div>
 
@@ -192,50 +227,51 @@ export default function Header() {
                     <Link
                       href="/webphone"
                       onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/50 transition-colors"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                     >
-                      <LayoutDashboard className="w-4 h-4 text-purple-500" />
+                      <Phone className="w-4 h-4 text-muted-foreground" />
                       Agent Panel
                     </Link>
                   ) : (
                     <Link
                       href="/webphone/agent-dashboard"
                       onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/50 transition-colors"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                     >
-                      <User className="w-4 h-4 text-green-600" />
+                      <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
                       Agent Dashboard
                     </Link>
                   )}
 
                   <Link
-                    href={'/webphone'}
+                    href="/webphone/profile"
                     onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/50 transition-colors"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                   >
-                    <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <User className="w-4 h-4 text-muted-foreground" />
                     Your Profile
                   </Link>
 
                   <Link
-                    href={'/webphone'}
+                    href="/webphone/settings"
                     onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/50 transition-colors"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                   >
-                    <Settings className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <Settings className="w-4 h-4 text-muted-foreground" />
                     Settings
                   </Link>
                 </div>
 
                 {/* Theme Toggle */}
-                <div className="py-2 px-4 border-t border-slate-200 dark:border-slate-700">
-                  {/* Logout */}
+                <div className="py-3 px-4 border-t">
                   <ThemeToggle />
                 </div>
-                <div className="py-2 border-t border-slate-200 dark:border-slate-700">
+
+                {/* Logout */}
+                <div className="py-2 border-t">
                   <button
                     onClick={handleLogout}
-                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
                     Sign out
@@ -247,52 +283,175 @@ export default function Header() {
         </div>
 
         {/* Mobile Menu Button */}
-        <div className="flex md:hidden items-center gap-3">
-          <ThemeToggle />
-          <button
+        <div className="flex md:hidden items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={toggleMobileMenu}
-            className="p-2 rounded-full hover:bg-white/50 dark:hover:bg-slate-800/40 transition-colors"
+            className="p-2 transition-transform duration-200 hover:scale-105"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+            <div className="relative w-5 h-5">
+              <Menu
+                className={cn(
+                  'w-5 h-5 absolute inset-0 transition-all duration-300 ease-in-out',
+                  mobileMenuOpen ? 'opacity-0 rotate-90 scale-75' : 'opacity-100 rotate-0 scale-100'
+                )}
+              />
+              <X
+                className={cn(
+                  'w-5 h-5 absolute inset-0 transition-all duration-300 ease-in-out',
+                  mobileMenuOpen ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-75'
+                )}
+              />
+            </div>
+          </Button>
         </div>
       </div>
 
       {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden backdrop-blur-md bg-white/90 dark:bg-slate-900/90 border-t border-white/20 dark:border-slate-700/20 px-4 py-3 space-y-1 animate-in slide-in-from-top">
-          {navLinks.map((link) => {
-            const isActive = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
-                  isActive
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'
-                    : 'hover:bg-white/50 dark:hover:bg-slate-800/40'
-                )}
-              >
-                {link.icon}
-                {link.name}
-              </Link>
-            );
-          })}
+      <div
+        className={cn(
+          'fixed inset-0 z-50 md:hidden transition-all duration-300 ease-in-out',
+          mobileMenuOpen ? 'visible' : 'invisible'
+        )}
+      >
+        {/* Overlay */}
+        <div
+          className={cn(
+            'absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ease-in-out',
+            mobileMenuOpen ? 'opacity-100' : 'opacity-0'
+          )}
+          onClick={() => setMobileMenuOpen(false)}
+          aria-label="Close menu overlay"
+        />
 
-          <button
-            onClick={() => {
-              setMobileMenuOpen(false);
-              handleLogout();
-            }}
-            className="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors mt-2"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign out
-          </button>
+        {/* Left-side Drawer */}
+        <div
+          className={cn(
+            'absolute top-0 left-0 h-full w-4/5 max-w-sm bg-background shadow-2xl transform transition-transform duration-300 ease-in-out',
+            mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          )}
+          tabIndex={-1}
+          aria-modal="true"
+          role="dialog"
+        >
+          <div className="flex flex-col h-full">
+            {/* Header with close button */}
+            <div className="flex items-center justify-between p-4 border-b bg-muted/30">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shadow-sm">
+                  <PhoneCall className="w-4 h-4 text-primary-foreground" />
+                </div>
+                <span className="text-lg font-bold text-foreground">SAMWAD</span>
+              </div>
+              <button
+                className="p-2 rounded-lg hover:bg-muted text-foreground transition-colors duration-200"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+              {/* User Info */}
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-sm shadow-sm">
+                  {getInitials(username)}
+                </div>
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-sm font-medium text-foreground leading-none">{username}</span>
+                  <span className="text-xs text-muted-foreground mt-0.5">ID: {userId}</span>
+                </div>
+              </div>
+
+              {/* Campaign Info */}
+              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Rocket className="w-4 h-4" />
+                  Campaign
+                </div>
+                <span className="text-sm font-medium text-foreground truncate max-w-[140px]">{campaignName}</span>
+              </div>
+
+              {/* Missed Calls & BreakDropdown */}
+              {pathname !== '/webphone/agent-dashboard' && (
+                <div className="space-y-3">
+                  <button
+                    onClick={() => {
+                      setDropCalls(true);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={cn(
+                      'relative flex items-center gap-2 w-full px-4 py-2 rounded-lg font-medium border transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                      dropCalls
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-secondary-foreground hover:bg-secondary/80'
+                    )}
+                    aria-label="Show Missed Calls"
+                    type="button"
+                  >
+                    <PhoneCall className="w-4 h-4" />
+                    <span>Missed Calls</span>
+                    {campaignMissedCallsLength > 0 && (
+                      <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
+                        {campaignMissedCallsLength}
+                      </span>
+                    )}
+                  </button>
+                  <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
+                </div>
+              )}
+
+              {/* Navigation Links */}
+              <div className="space-y-1">
+                {navLinks.map((link, index) => {
+                  const isActive = pathname === link.href;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={cn(
+                        'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group',
+                        isActive
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'hover:bg-accent hover:translate-x-1'
+                      )}
+                      style={{
+                        transitionDelay: `${index * 50}ms`,
+                      }}
+                    >
+                      <div className="transition-transform duration-200 group-hover:scale-110">{link.icon}</div>
+                      {link.name}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Theme Toggle */}
+              <div className="p-4 border-t">
+                <ThemeToggle />
+              </div>
+            </div>
+
+            {/* Footer with logout */}
+            <div className="p-4 border-t bg-muted/30">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleLogout();
+                }}
+                className="flex w-full items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-all duration-200 hover:translate-x-1 group"
+              >
+                <LogOut className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
+                Sign out
+              </button>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </header>
   );
 }

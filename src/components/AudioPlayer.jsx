@@ -19,7 +19,6 @@ const AudioPlayer = ({ audioUrl, bridgeId, isOpen, onClose }) => {
   const [volume, setVolume] = useState(1);
   const audioRef = useRef(null);
 
-  // Reset and cleanup when modal closes
   useEffect(() => {
     if (!isOpen && audioRef.current) {
       audioRef.current.pause();
@@ -29,7 +28,6 @@ const AudioPlayer = ({ audioUrl, bridgeId, isOpen, onClose }) => {
     }
   }, [isOpen]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (audioRef.current) {
@@ -56,13 +54,8 @@ const AudioPlayer = ({ audioUrl, bridgeId, isOpen, onClose }) => {
     }
   };
 
-  const handleTimeUpdate = () => {
-    setCurrentTime(audioRef.current.currentTime);
-  };
-
-  const handleLoadedMetadata = () => {
-    setDuration(audioRef.current.duration);
-  };
+  const handleTimeUpdate = () => setCurrentTime(audioRef.current.currentTime);
+  const handleLoadedMetadata = () => setDuration(audioRef.current.duration);
 
   const handleSeek = (e) => {
     const time = (e.target.value / 100) * duration;
@@ -93,23 +86,21 @@ const AudioPlayer = ({ audioUrl, bridgeId, isOpen, onClose }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={open => !open ? handleDialogClose() : undefined}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm bg-card border border-border shadow-lg">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold dark:text-gray-200 text-gray-800 text-left">
+          <DialogTitle className="text-lg font-semibold text-foreground text-left">
             Playing Recording
           </DialogTitle>
         </DialogHeader>
-        {/* Bridge ID or animated icon */}
         <div className="flex flex-col items-center justify-center w-full p-4">
           {isPlaying ? (
             <AudioLines className="w-9 h-9 animate-pulse text-primary mb-2" />
           ) : (
-            <div className="text-gray-600 dark:text-gray-300 text-sm mb-2 flex items-center gap-2">
-              <FileAudio className="w-7 h-7 text-blue-500 dark:text-blue-400" /> {bridgeId}
+            <div className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
+              <FileAudio className="w-7 h-7 text-primary" /> {bridgeId}
             </div>
           )}
 
-          {/* Audio Element */}
           <audio
             ref={audioRef}
             src={audioUrl}
@@ -118,30 +109,27 @@ const AudioPlayer = ({ audioUrl, bridgeId, isOpen, onClose }) => {
             onEnded={handleEnded}
           />
 
-          {/* Seek Bar */}
           <div className="flex items-center space-x-3 w-full max-w-xs mt-4">
-            <span className="text-xs dark:text-gray-300 text-gray-600 w-10 text-right">{formatTime(currentTime)}</span>
+            <span className="text-xs text-muted-foreground w-10 text-right">{formatTime(currentTime)}</span>
             <input
               type="range"
               min="0"
               max="100"
               value={duration ? (currentTime / duration) * 100 : 0}
               onChange={handleSeek}
-              className="flex-grow appearance-none h-1 bg-gray-300 dark:bg-gray-600 rounded-lg accent-primary"
+              className="flex-grow appearance-none h-1 bg-muted rounded-lg accent-primary"
             />
-            <span className="text-xs dark:text-gray-300 text-gray-600 w-10 text-left">{formatTime(duration)}</span>
+            <span className="text-xs text-muted-foreground w-10 text-left">{formatTime(duration)}</span>
           </div>
 
-          {/* Controls */}
           <div className="flex items-center justify-center space-x-6 mt-6">
-            {/* Volume Control */}
             <div className="flex items-center space-x-2">
               {volume === 0 ? (
-                <Volume className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                <Volume className="w-5 h-5 text-muted-foreground" />
               ) : volume < 0.5 ? (
-                <Volume1 className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                <Volume1 className="w-5 h-5 text-muted-foreground" />
               ) : (
-                <Volume2 className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                <Volume2 className="w-5 h-5 text-muted-foreground" />
               )}
               <input
                 type="range"
@@ -150,14 +138,12 @@ const AudioPlayer = ({ audioUrl, bridgeId, isOpen, onClose }) => {
                 step="0.1"
                 value={volume}
                 onChange={handleVolumeChange}
-                className="w-24 h-1 rounded-lg appearance-none bg-gray-300 dark:bg-gray-600 accent-primary"
+                className="w-24 h-1 rounded-lg appearance-none bg-muted accent-primary"
               />
             </div>
-
-            {/* Play/Pause Button */}
             <button
               onClick={handlePlayPause}
-              className="bg-primary text-white p-3 rounded-full hover:bg-transparent hover:text-primary flex justify-center items-center transition-all shadow-md"
+              className="bg-primary text-primary-foreground p-3 rounded-full hover:bg-accent hover:text-accent-foreground flex justify-center items-center transition-all shadow-md"
             >
               {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
             </button>

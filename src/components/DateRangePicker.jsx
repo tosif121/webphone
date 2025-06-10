@@ -104,7 +104,10 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate }) => 
           <span className="hidden md:inline">{getDateRangeText()}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-4" align="end">
+      <PopoverContent
+        className="w-auto max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl p-4 bg-card border border-border shadow-lg"
+        align="end"
+      >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2">
             <Button variant="outline" size="sm" onClick={() => applyPresetRange(7)}>
@@ -120,21 +123,20 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate }) => 
               Today
             </Button>
           </div>
-
           <div className="pt-2">
             <DatePicker
-              selectsRange={true}
+              selectsRange
               startDate={startDate}
               endDate={endDate}
               onChange={handleDateRangeChange}
               inline
-              monthsShown={2}
+              monthsShown={window.innerWidth < 640 ? 1 : 2}
               showPreviousMonths
-              calendarClassName="!bg-white dark:!bg-slate-800 !border-0"
+              calendarClassName="!bg-card !border-0 !text-foreground"
+              dayClassName={() => 'hover:bg-accent hover:text-accent-foreground'}
             />
           </div>
-
-          <div className="flex justify-end gap-2">
+          <div className="flex items-center justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setIsOpen(false)}>
               Cancel
             </Button>

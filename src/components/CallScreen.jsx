@@ -91,24 +91,24 @@ const CallScreen = ({
       {/* Header */}
       <div className="flex flex-col items-center my-6">
         <div className="relative mb-3">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-            <User className="text-white" size={28} />
+          <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-lg">
+            <User className="text-primary-foreground" size={28} />
           </div>
         </div>
         <div className="text-center mb-2">
-          <div className="text-xl font-bold text-slate-800 dark:text-slate-100 truncate px-4">{mainNumber}</div>
+          <div className="text-xl font-bold text-foreground truncate px-4">{mainNumber}</div>
           <div className="flex items-center justify-center gap-2 mt-1">
             {isRunning ? (
               <>
-                <Clock className="w-4 h-4 text-emerald-500" />
-                <span className="text-lg font-mono text-emerald-600 dark:text-emerald-400">
+                <Clock className="w-4 h-4 text-secondary-foreground" />
+                <span className="text-lg font-mono text-secondary-foreground">
                   {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
                 </span>
               </>
             ) : (
               <>
-                <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-                <span className="text-blue-400 text-sm">Calling...</span>
+                <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                <span className="text-primary text-sm">Calling...</span>
               </>
             )}
           </div>
@@ -155,7 +155,7 @@ const CallScreen = ({
               <ControlButton
                 onClick={!isRecording ? startRecording : stopRecording}
                 disabled={!session && !isRecording}
-                icon={<Square size={22} className={isRecording ? 'text-red-400' : 'text-green-400'} />}
+                icon={<Square size={22} className={isRecording ? 'text-destructive' : 'text-secondary-foreground'} />}
                 title={isRecording ? 'Stop Recording' : 'Start Recording'}
                 active={isRecording}
               />
@@ -176,7 +176,7 @@ const CallScreen = ({
           <div className="space-y-4">
             <div className="relative">
               <button
-                className="absolute -top-8 right-0 z-10 p-2 text-slate-400 hover:text-red-400 transition-all duration-200"
+                className="absolute -top-8 right-0 z-10 p-2 text-muted-foreground hover:text-destructive transition-all duration-200"
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 onClick={() => {
@@ -185,7 +185,7 @@ const CallScreen = ({
                 }}
                 aria-label="Close Keypad"
               >
-                <XCircle size={22} className={isHovered ? 'text-red-400' : ''} />
+                <XCircle size={22} className={isHovered ? 'text-destructive' : ''} />
               </button>
               <KeyPad setPhoneNumber={setCurrNum} />
             </div>
@@ -195,16 +195,7 @@ const CallScreen = ({
         {/* End Call Button */}
         <div className="flex justify-center pt-4">
           <button
-            className="text-white
-    w-14 h-14 flex items-center justify-center
-    rounded-full
-    bg-gradient-to-r from-red-500 to-pink-600
-    shadow-lg shadow-red-500/20
-    hover:shadow-xl hover:scale-105
-    transition-all duration-200 rotate-[133deg]
-    focus:outline-none focus:ring-2 focus:ring-red-400
-    group
-  "
+            className="text-white cursor-pointer w-14 h-14 flex items-center justify-center rounded-full bg-destructive shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 rotate-[133deg] focus:outline-none focus:ring-2 focus:ring-destructive group"
             onClick={() => {
               session?.terminate();
               stopRecording?.();
@@ -222,7 +213,7 @@ const CallScreen = ({
             id="audio-device"
             value={selectedDeviceId}
             onChange={(e) => changeAudioDevice?.(e.target.value)}
-            className="w-full bg-blue-50/60 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 text-slate-800 dark:text-white text-sm rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-300 transition-all duration-200"
+            className="w-full bg-muted border border-border text-foreground text-sm rounded-xl p-3 outline-none focus:ring-2 focus:ring-accent transition-all duration-200"
           >
             {Array.isArray(devices) && devices.length > 0 ? (
               devices.map((device, index) => (
@@ -249,11 +240,7 @@ const ControlButton = ({ onClick, disabled, active, icon, title, className = '' 
       title={title}
       className={`
         w-14 h-14 rounded-xl transition-all duration-200 flex items-center justify-center
-        ${
-          active
-            ? 'bg-blue-600/80 text-white shadow-lg shadow-blue-500/20'
-            : 'bg-white/70 dark:bg-slate-900/70 text-blue-600 dark:text-blue-300 hover:bg-indigo-50 dark:hover:bg-blue-900/30'
-        }
+        ${active ? 'bg-primary text-primary-foreground shadow-lg' : 'bg-card/80 text-primary hover:bg-accent'}
         ${disabled ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105 hover:shadow-xl active:scale-95'}
         ${className}
       `}

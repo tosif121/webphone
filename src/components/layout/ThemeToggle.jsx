@@ -2,7 +2,7 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
 
-export default function ThemeSliderWithIcon() {
+export default function ThemeToggle() {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -21,7 +21,7 @@ export default function ThemeSliderWithIcon() {
   return (
     <label htmlFor="theme-toggle" className="flex items-center justify-between cursor-pointer gap-3">
       <div className="flex items-center gap-x-2">
-        {isDark ? <Sun className="w-3.5 h-3.5 text-yellow-400" /> : <Moon className="w-3.5 h-3.5 text-blue-500" />}
+        {!isDark ? <Sun className="w-3.5 h-3.5 text-yellow-400" /> : <Moon className="w-3.5 h-3.5 text-blue-500" />}
         <span className="text-xs font-medium text-gray-700 dark:text-gray-200 select-none">
           {isDark ? 'Dark' : 'Light'}
         </span>
@@ -39,7 +39,7 @@ export default function ThemeSliderWithIcon() {
           className={`dot absolute top-1 w-5 h-5 rounded-full transition-transform duration-300 ease-in-out flex items-center justify-center
             ${isDark ? 'translate-x-7 bg-black/50' : 'translate-x-1 bg-white'}`}
         >
-          {isDark ? <Sun className="w-3.5 h-3.5 text-yellow-400" /> : <Moon className="w-3.5 h-3.5 text-blue-500" />}
+          {!isDark ? <Sun className="w-3.5 h-3.5 text-yellow-400" /> : <Moon className="w-3.5 h-3.5 text-blue-500" />}
         </div>
       </div>
     </label>

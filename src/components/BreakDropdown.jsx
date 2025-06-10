@@ -15,24 +15,25 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
   // Map break types to icons dynamically based on keywords
   const getBreakIcon = (label) => {
     if (!label) return Activity;
-    
+
     const lowerLabel = label.toLowerCase();
-    
+
     // Food related
     if (lowerLabel.includes('lunch') || lowerLabel.includes('dinner') || lowerLabel.includes('meal')) return Utensils;
-    
-    // Drink related  
+
+    // Drink related
     if (lowerLabel.includes('coffee') || lowerLabel.includes('tea') || lowerLabel.includes('drink')) return Coffee;
-    
+
     // Time related
     if (lowerLabel.includes('short') || lowerLabel.includes('quick') || lowerLabel.includes('brief')) return Clock3;
-    
+
     // Meeting/people related
-    if (lowerLabel.includes('meeting') || lowerLabel.includes('call') || lowerLabel.includes('conference')) return Users;
-    
+    if (lowerLabel.includes('meeting') || lowerLabel.includes('call') || lowerLabel.includes('conference'))
+      return Users;
+
     // General break related
     if (lowerLabel.includes('break') || lowerLabel.includes('rest') || lowerLabel.includes('pause')) return Clock;
-    
+
     // Default for any other type
     return Activity;
   };
@@ -40,27 +41,27 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
   useEffect(() => {
     const tokenData = localStorage.getItem('token');
     let transformedBreakOptions = [];
-    
+
     if (tokenData) {
       const parsedData = JSON.parse(tokenData);
       const rawBreakOptions = parsedData?.userData?.breakoptions || [];
-      
+
       // Handle different possible data structures flexibly
-      transformedBreakOptions = rawBreakOptions.map(option => {
+      transformedBreakOptions = rawBreakOptions.map((option) => {
         // Handle different property names that might exist
         const type = option.value || option.type || option.name || option.id;
         const label = option.label || option.name || option.title || option.value || option.type;
         const id = option.id || option.value || option.type;
-        
+
         return {
           type: type,
           label: label,
           icon: getBreakIcon(label),
-          id: id
+          id: id,
         };
       });
     }
-    
+
     // If no break options found or array is empty, add default break options
     if (transformedBreakOptions.length === 0) {
       transformedBreakOptions = [
@@ -68,11 +69,11 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
           type: 'General Break',
           label: 'Break',
           icon: getBreakIcon('General Break'),
-          id: 'default-general'
-        }
+          id: 'default-general',
+        },
       ];
     }
-    
+
     setBreakTypes(transformedBreakOptions);
   }, []);
 
@@ -157,21 +158,22 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
       <button
         onClick={handleButtonClick}
         className={`
-          flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all
+          flex items-center gap-2 border px-4 py-2 cursor-pointer rounded-lg w-full font-medium transition-all
           ${
             isOnBreak
-              ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md'
-              : 'bg-white/70 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-blue-700 dark:text-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/30'
-          } ${isOpen && 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'}
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-card text-primary hover:bg-muted hover:text-primary'
+          }
+          ${isOpen && !isOnBreak && 'bg-primary text-primary-foreground'}
           focus:outline-none
         `}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        {isOnBreak && selectedBreakObj && (
-          <selectedBreakObj.icon className="w-5 h-5" />
-        )}
-        <span>{isOnBreak ? selectedBreakObj?.label || selectedBreak : 'Take a Break'}</span>
+        {isOnBreak && selectedBreakObj && selectedBreakObj.icon && <selectedBreakObj.icon className="w-5 h-5" />}
+        <span className={(!dispoWithBreak && 'text-base') || 'text-sm'}>
+          {isOnBreak ? selectedBreakObj?.label || selectedBreak : 'Take a Break'}
+        </span>
         {isOnBreak && (
           <span className="flex items-center gap-1 ml-2 text-xs font-medium">
             <Clock className="w-4 h-4" />
@@ -184,13 +186,9 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
       {/* Dropdown */}
       {isOpen && selectedBreak === 'Break' && (
         <ul
-          className={`${(!dispoWithBreak && 'absolute') || ''}
-            right-0 mt-2 w-48 z-50
-            bg-white/90 dark:bg-slate-900/90
-            border border-slate-200 dark:border-slate-700
-            rounded-xl shadow-xl backdrop-blur
-            py-2
-          `}
+          className={`${
+            (dispoWithBreak && 'absolute') || ''
+          } right-0 mt-2 w-48 z-50 bg-card border border-border rounded-lg shadow backdrop-blur py-2`}
           role="listbox"
         >
           {breakTypes.length > 0 ? (
@@ -198,22 +196,16 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
               <li
                 key={id || type}
                 onClick={() => sendBreakSelection(type)}
-                className="
-                  flex items-center gap-3 px-4 py-3 cursor-pointer rounded-lg
-                  hover:bg-blue-50 dark:hover:bg-blue-900/30
-                  transition-colors
-                "
+                className="mx-1 flex items-center gap-3 px-4 py-3 cursor-pointer rounded-lg transition-colors hover:bg-accent hover:text-accent-foreground"
                 role="option"
                 aria-selected={selectedBreak === type}
               >
-                <Icon className="w-5 h-5 text-green-500" />
-                <span className="font-medium text-slate-700 dark:text-slate-200">{label}</span>
+                {Icon && <Icon className="w-5 h-5 text-secondary-foreground" />}
+                <span className="font-medium text-foreground">{label}</span>
               </li>
             ))
           ) : (
-            <li className="px-4 py-3 text-slate-500 dark:text-slate-400 text-sm">
-              No break options available
-            </li>
+            <li className="px-4 py-3 text-muted-foreground text-sm">No break options available</li>
           )}
         </ul>
       )}

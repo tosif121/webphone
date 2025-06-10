@@ -25,18 +25,15 @@ const DataTable = ({
   const [globalFilter, setGlobalFilter] = React.useState('');
   const [sorting, setSorting] = React.useState([]);
   const [rowSelection, setRowSelection] = React.useState({});
-
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
     pageSize: initialPageSize,
   });
 
-  // Ensure all columns have an ID
   const processedColumns = React.useMemo(
     () =>
       columns.map((column) => ({
         ...column,
-        // Ensure every column has an id
         id: column.id || column.accessorKey || String(column.header),
         enableSorting: disableSorting ? false : column.disableSorting !== true,
       })),
@@ -66,26 +63,23 @@ const DataTable = ({
 
   return (
     <div className="w-full">
-      {/* Header actions */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-        {/* Search */}
         <div className="relative flex-1 max-w-max">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={searchPlaceholder}
             value={globalFilter ?? ''}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            className="pl-8 bg-white dark:bg-slate-900"
+            className="pl-8 bg-card text-foreground border-border"
           />
         </div>
-
         <Select
           value={pagination.pageSize.toString()}
           onValueChange={(value) => {
             table.setPageSize(Number(value));
           }}
         >
-          <SelectTrigger className="w-[130px]">
+          <SelectTrigger className="w-[130px] border-border">
             <SelectValue placeholder="Rows per page" />
           </SelectTrigger>
           <SelectContent>
@@ -97,9 +91,7 @@ const DataTable = ({
           </SelectContent>
         </Select>
       </div>
-
-      {/* Table */}
-      <div className="rounded-md border">
+      <div className="rounded-md border border-border bg-card">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -110,7 +102,7 @@ const DataTable = ({
                       <Button
                         variant="ghost"
                         onClick={() => header.column.toggleSorting(header.column.getIsSorted() === 'asc')}
-                        className="hover:bg-zinc-100 dark:hover:bg-slate-800"
+                        className="hover:bg-accent hover:text-accent-foreground"
                       >
                         {flexRender(header.column.columnDef.header, header.getContext())}
                         {header.column.getIsSorted() === 'asc' ? (
@@ -134,13 +126,15 @@ const DataTable = ({
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    <TableCell key={cell.id} className="text-foreground">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={processedColumns.length} className="h-24 text-center">
+                <TableCell colSpan={processedColumns.length} className="h-24 text-center text-muted-foreground">
                   No results found.
                 </TableCell>
               </TableRow>
@@ -148,8 +142,7 @@ const DataTable = ({
           </TableBody>
         </Table>
       </div>
-      {/* Footer */}
-      <div className="flex items-center justify-between mt-4">
+      <div className="flex items-center justify-between mt-4 flex-wrap gap-4 md:gap-0">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -163,18 +156,13 @@ const DataTable = ({
             {Array.from({ length: Math.min(table.getPageCount(), 5) }, (_, i) => {
               const pageIndex = pagination.pageIndex;
               const pageCount = table.getPageCount();
-              // Show pages around the current page
               let startPage = Math.max(0, pageIndex - 2);
               let endPage = Math.min(pageCount - 1, startPage + 4);
-
-              // Adjust if we're near the end
               if (endPage - startPage < 4) {
                 startPage = Math.max(0, endPage - 4);
               }
-
               const currentPageIndex = startPage + i;
               if (currentPageIndex >= pageCount) return null;
-
               return (
                 <Button
                   key={currentPageIndex}
@@ -191,9 +179,8 @@ const DataTable = ({
             Next
           </Button>
         </div>
-        <div className="text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
-          Page {pagination.pageIndex + 1} of {table.getPageCount()} | {table.getFilteredRowModel().rows.length} total
-          rows
+        <div className="text-sm text-muted-foreground flex items-center gap-2">
+          Page {pagination.pageIndex + 1} of {table.getPageCount()} | {table.getFilteredRowModel().rows.length} total rows
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { Rnd } from 'react-rnd';
 import { Phone, PhoneCall, PhoneOff } from 'lucide-react';
-
+import { Button } from '@/components/ui/button';
 import HistoryScreen from './HistoryScreen';
 import Home from './Home';
 import CallScreen from './CallScreen';
@@ -136,14 +136,16 @@ export default function DraggableWebPhone() {
   return (
     <>
       {/* Floating Toggle Button */}
-      <div className="fixed bottom-20 right-8 z-50">
-        <button
-          className="w-16 h-16 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-500/40 hover:shadow-blue-500/60 transition-all hover:scale-105"
+      <div className="fixed bottom-20 right-8 z-0 md:z-[51]">
+        <Button
+          type="button"
+          size="lg"
+          className="rounded-full w-14 h-14"
           onClick={() => setPhoneShow((prev) => !prev)}
           aria-label={phoneShow ? 'Hide phone' : 'Show phone'}
         >
-          {!phoneShow ? <PhoneOff className="h-6 w-6" /> : <Phone className="h-6 w-6" />}
-        </button>
+          {!phoneShow ? <PhoneOff className="h-8 w-8" /> : <Phone className="h-8 w-8" />}
+        </Button>
       </div>
 
       {/* Only show RND card if phoneShow is true */}
@@ -169,8 +171,7 @@ export default function DraggableWebPhone() {
             bottomLeft: true,
             topLeft: true,
           }}
-          style={{ zIndex: 50 }}
-          className="backdrop-blur-md bg-white/80 dark:bg-slate-900/80 rounded-2xl border border-white/30 dark:border-slate-700/30 shadow-xl shadow-blue-500/10 transition-all overflow-hidden"
+          className="backdrop-blur-md z-0 md:z-[50] bg-card/80 rounded-2xl border border-border shadow-xl transition-all overflow-hidden"
         >
           <div className="webphone-drag-handle w-full h-full">
             {seeLogs ? (
@@ -228,6 +229,7 @@ export default function DraggableWebPhone() {
           </div>
         </Rnd>
       )}
+
       <audio ref={audioRef} autoPlay hidden />
     </>
   );

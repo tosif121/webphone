@@ -1,19 +1,39 @@
-import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react';
 
-function index() {
-  const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+function Index() {
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    router.push('/webphone');
-  }, [router]);
+    // Set client-side flag
+    setIsClient(true);
 
-  if (!mounted) {
-    return null;
+    // Only run on client side
+    if (typeof window !== 'undefined') {
+      const checkAuthAndRedirect = () => {
+        try {
+          const token = localStorage.getItem('token');
+          const parsedToken = token ? JSON.parse(token) : null;
+          
+          if (parsedToken) {
+            window.location.href = '/webphone';
+          } else {
+            window.location.href = '/webphone/login';
+          }
+        } catch (error) {
+          console.error('Token parsing error:', error);
+          window.location.href = '/webphone/login';
+        }
+      };
+
+      checkAuthAndRedirect();
+    }
+  }, []);
+
+  if (!isClient) {
+    return null; // Or loading state for SSR
   }
-  return <div></div>;
+
+  return null; // Or loading spinner while redirecting
 }
 
-export default index;
+export default Index;

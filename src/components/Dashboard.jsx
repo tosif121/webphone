@@ -238,16 +238,16 @@ function Dashboard() {
         const res1 = await fetch(`https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res1.ok) throw new Error('Failed to fetch form config');
+        // if (!res1.ok) throw new Error('Failed to fetch form config');
         const data1 = await res1.json();
         const formId = data1.agentWebForm?.formId;
-        if (!formId) throw new Error('Form ID not found');
+        // if (!formId) throw new Error('Form ID not found');
 
         // Step 2: Get full form config by formId
         const res2 = await fetch(`https://esamwad.iotcom.io/getDynamicFormData/${formId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res2.ok) throw new Error('Failed to fetch full form');
+        // if (!res2.ok) throw new Error('Failed to fetch full form');
         const data2 = await res2.json();
         setFormConfig(data2.result);
       } catch (err) {
@@ -323,7 +323,6 @@ function Dashboard() {
           />
         </Modal>
       )} */}
-      {/* <CallbackForm />  */}
       {dispositionModal && (
         <Disposition
           bridgeID={bridgeID}
@@ -343,6 +342,7 @@ function Dashboard() {
           username={username}
         />
       )}
+
       <div className="max-w-lg">
         {status !== 'start' && userCall ? (
           <>

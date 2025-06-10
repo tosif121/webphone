@@ -426,16 +426,20 @@ export default function AgentCallData() {
         <div className="flex items-center gap-x-2">
           <button
             onClick={handleDownloadCSV}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 shadow"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded flex items-center gap-2 shadow"
           >
-            <Download size={16} /> Download CSV
+            <Download size={16} />
+            <span className="hidden xs:inline">Download CSV</span>
           </button>
           <button
             onClick={handleDownloadPDF}
             disabled={isPdfLoading}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded flex items-center gap-2 shadow"
+            className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded flex items-center gap-2 shadow"
           >
-            <FileText size={16} /> {isPdfLoading ? <Loader2 className="animate-spin w-4 h-4" /> : 'Download PDF'}
+            <FileText size={16} />
+            <span className="hidden xs:inline">
+              {isPdfLoading ? <Loader2 className="animate-spin w-4 h-4" /> : 'Download PDF'}
+            </span>
           </button>
         </div>
 
@@ -456,11 +460,7 @@ export default function AgentCallData() {
           <Loader2 className="animate-spin w-8 h-8 mx-auto text-blue-500" />
         </div>
       ) : (
-        <DataTable
-          data={callDetails}
-          columns={columns}
-          searchPlaceholder="Search Calls Logs..."
-        />
+        <DataTable data={callDetails} columns={columns} searchPlaceholder="Search Calls Logs..." />
       )}
     </div>
   );

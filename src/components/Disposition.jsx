@@ -9,7 +9,7 @@ import UserCall from './UserCall';
 import HistoryContext from '@/context/HistoryContext';
 import toast from 'react-hot-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import axios from 'axios';
 import DynamicForm from './DynamicForm';
 
@@ -164,6 +164,31 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
     }, 0);
   }, []);
 
+  // Handle modal close with validation
+  const handleModalClose = useCallback((open) => {
+    if (!open) {
+      // Prevent closing if no action is selected and not submitting
+      if (!selectedAction && !isSubmitting) {
+        toast.error('Please select a disposition action before closing');
+        return;
+      }
+      setDispositionModal(false);
+    }
+  }, [selectedAction, isSubmitting, setDispositionModal]);
+
+  // Handle X button click with validation
+  const handleXButtonClick = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!selectedAction && !isSubmitting) {
+      toast.error('Please select a disposition action before closing');
+      return;
+    }
+    
+    setDispositionModal(false);
+  }, [selectedAction, isSubmitting, setDispositionModal]);
+
   const submitForm = useCallback(async () => {
     if (!selectedAction) {
       toast.error('Please select a disposition action');
@@ -200,41 +225,36 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
 
   return (
     <>
-      <Dialog open={true} onOpenChange={setDispositionModal}>
-        <DialogContent
-          className="
-     sm:max-w-2xl w-full p-0 border-none bg-transparent shadow-none
-    flex items-center justify-center [&>button]:hidden"
+      <Dialog open={true} onOpenChange={handleModalClose}>
+        <DialogContent 
+          className="sm:max-w-2xl w-full p-0 border-none bg-transparent shadow-none flex items-center justify-center"
+          // Remove the CSS selector that hides the close button and handle it manually
         >
-          <div
-            className="
-      relative overflow-hidden rounded-2xl
-      border border-slate-200/80 dark:border-slate-700/30
-      bg-white/95 dark:bg-slate-900/80
-      shadow-2xl shadow-slate-900/20 dark:shadow-blue-500/10
-      backdrop-blur-md
-      w-full
-    "
-          >
+          <div className="relative overflow-hidden rounded-2xl border border-border bg-card/95 shadow-2xl backdrop-blur-md w-full">
+            {/* Custom close button with validation */}
+            <button
+              onClick={handleXButtonClick}
+              className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none z-10"
+              disabled={isSubmitting}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </button>
+            
             <div className="p-6 space-y-6 overflow-auto">
-              <div className="space-y-1">
-                <h3 className="text-xl font-bold">Select Disposition</h3>
+              <div className="space-y-1 pr-8">
+                <DialogTitle className="text-xl font-bold text-foreground">Select Disposition</DialogTitle>
                 <p className="text-sm text-muted-foreground">Choose the appropriate outcome for this call</p>
               </div>
-
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {dispositionActions.map((item) => {
                   const isSelected = selectedAction === item.action;
                   const styles = getStylesForAction(item.action, isSelected);
-
                   return (
                     <Button
                       key={`${item.action}-${item.label}`}
-                      variant={styles.variant}
                       style={styles.style}
-                      className={`h-auto py-3 px-4 whitespace-normal text-sm font-medium transition-all duration-200 border-2 hover:opacity-90 ${
-                        isSelected ? 'ring-2 ring-offset-2 ring-offset-background shadow-lg' : 'hover:shadow-md'
-                      }`}
+                      className="h-auto py-3 px-4 whitespace-normal text-sm font-medium transition-all duration-200 border-2"
                       onClick={(event) => handleActionClick(item.action, event)}
                       disabled={isSubmitting}
                       type="button"
@@ -244,24 +264,12 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
                   );
                 })}
               </div>
-
               <div className="flex flex-col lg:flex-row gap-4 justify-end items-start border-t pt-4">
-                {/* <div className="flex items-center space-x-2">
-            <Checkbox
-              id="auto-dial-toggle"
-              checked={isAutoLeadDialDisabled}
-              onCheckedChange={setIsAutoLeadDialDisabled}
-            />
-            <Label htmlFor="auto-dial-toggle">Disable Auto Dial</Label>
-          </div> */}
-
                 <div className="flex flex-wrap gap-2 w-full lg:w-auto justify-end">
                   <BreakDropdown bridgeID={bridgeID} dispoWithBreak={true} />
-
                   <Button variant="outline" onClick={() => setUserCallOpen(true)}>
                     View Contact Form
                   </Button>
-
                   <Button onClick={submitForm} disabled={isSubmitting || !selectedAction}>
                     {isSubmitting ? (
                       <>
@@ -281,14 +289,15 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
       {userCallOpen && (
         <Dialog open={userCallOpen} onOpenChange={setUserCallOpen}>
           <DialogContent className="max-w-2xl">
-            <DialogHeader className="text-xl font-bold"></DialogHeader>
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-foreground"></DialogTitle>
+            </DialogHeader>
             <DynamicForm
               formConfig={formConfig}
               formState={formData}
               setFormState={setFormData}
               userCallDialog={true}
             />
-            {/* <UserCall formData={formData} setFormData={setFormData} userCallDialog={true} /> */}
           </DialogContent>
         </Dialog>
       )}
