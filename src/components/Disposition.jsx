@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import BreakDropdown from './BreakDropdown';
+import Callback from './Callback';
 import UserCall from './UserCall';
 import HistoryContext from '@/context/HistoryContext';
 import toast from 'react-hot-toast';
@@ -12,6 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Loader2, X } from 'lucide-react';
 import axios from 'axios';
 import DynamicForm from './DynamicForm';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
 
 const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData, formData, formConfig }) => {
   const { username } = useContext(HistoryContext);
@@ -20,6 +23,12 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userCallOpen, setUserCallOpen] = useState(false);
   const [dispositionActions, setDispositionActions] = useState([]);
+  const [followUpDate, setFollowUpDate] = useState('');
+  const [followUpTime, setFollowUpTime] = useState('');
+  const [followUpDetails, setFollowUpDetails] = useState('');
+  const [isDispositionModalOpen, setDispositionModalOpen] = useState(false);
+  const [isCallbackDialogOpen, setCallbackDialogOpen] = useState(false);
+  const [callbackIncomplete, setCallbackIncomplete] = useState(false);
 
   const getStylesForAction = (action, isSelected) => {
     const actionStyles = {
@@ -149,45 +158,64 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
     }
   }, []);
 
-  // Fixed click handler with proper event handling
   const handleActionClick = useCallback((action, event) => {
-    // Prevent any potential event bubbling
     event.preventDefault();
     event.stopPropagation();
 
-    // Add a small delay to ensure state update is processed
     setTimeout(() => {
       setSelectedAction((prevAction) => {
-        // Toggle selection if same action is clicked, otherwise select new action
-        return prevAction === action ? null : action;
+        const newAction = prevAction === action ? null : action;
+        setCallbackDialogOpen(newAction === 'Callback Scheduled');
+        // Track if callback was opened
+        if (newAction === 'Callback Scheduled') {
+          setCallbackIncomplete(true);
+        }
+        return newAction;
       });
     }, 0);
   }, []);
 
-  // Handle modal close with validation
-  const handleModalClose = useCallback((open) => {
-    if (!open) {
-      // Prevent closing if no action is selected and not submitting
+  // Modify the handleModalClose function
+  const handleModalClose = useCallback(
+    (open) => {
+      if (!open) {
+        // Prevent closing if callback was opened but not completed
+        if (callbackIncomplete) {
+          toast.error('Please complete the callback details or select another disposition');
+          return;
+        }
+        // Prevent closing if no action is selected
+        if (!selectedAction && !isSubmitting) {
+          toast.error('Please select a disposition action before closing');
+          return;
+        }
+        setDispositionModal(false);
+      }
+    },
+    [selectedAction, isSubmitting, callbackIncomplete, setDispositionModal]
+  );
+
+  // Modify the handleXButtonClick function
+  const handleXButtonClick = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Prevent closing if callback was opened but not completed
+      if (callbackIncomplete) {
+        toast.error('Please complete the callback details or select another disposition');
+        return;
+      }
+
       if (!selectedAction && !isSubmitting) {
         toast.error('Please select a disposition action before closing');
         return;
       }
-      setDispositionModal(false);
-    }
-  }, [selectedAction, isSubmitting, setDispositionModal]);
 
-  // Handle X button click with validation
-  const handleXButtonClick = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!selectedAction && !isSubmitting) {
-      toast.error('Please select a disposition action before closing');
-      return;
-    }
-    
-    setDispositionModal(false);
-  }, [selectedAction, isSubmitting, setDispositionModal]);
+      setDispositionModal(false);
+    },
+    [selectedAction, isSubmitting, callbackIncomplete, setDispositionModal]
+  );
 
   const submitForm = useCallback(async () => {
     if (!selectedAction) {
@@ -195,14 +223,31 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
       return;
     }
 
+    if (selectedAction === 'Callback Scheduled') {
+      if (!followUpDate || !followUpTime || !followUpDetails) {
+        toast.error('Please provide follow-up date, time, and details.');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, {
+      const requestBody = {
         bridgeID,
         Disposition: selectedAction,
         autoDialDisabled: isAutoLeadDialDisabled,
-      });
+      };
+
+      if (selectedAction === 'Callback Scheduled') {
+        requestBody.followUpDisposition = {
+          date: followUpDate,
+          time: followUpTime,
+          comment: followUpDetails,
+        };
+      }
+
+      const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody);
 
       if (response.data.success) {
         toast.success('Disposition submitted successfully');
@@ -217,7 +262,17 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedAction, bridgeID, username, isAutoLeadDialDisabled, handleContact, setDispositionModal]);
+  }, [
+    selectedAction,
+    bridgeID,
+    username,
+    isAutoLeadDialDisabled,
+    followUpDate,
+    followUpTime,
+    followUpDetails,
+    handleContact,
+    setDispositionModal,
+  ]);
 
   if (dispositionActions.length === 0) {
     return null;
@@ -225,11 +280,22 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
 
   return (
     <>
+      <Callback
+        {...{
+          followUpDate,
+          setFollowUpDate,
+          followUpTime,
+          setFollowUpTime,
+          followUpDetails,
+          setFollowUpDetails,
+          isCallbackDialogOpen,
+          setCallbackDialogOpen,
+          submitForm,
+          onClose: () => setCallbackIncomplete(false),
+        }}
+      />
       <Dialog open={true} onOpenChange={handleModalClose}>
-        <DialogContent 
-          className="sm:max-w-2xl w-full p-0 border-none bg-transparent shadow-none flex items-center justify-center"
-          // Remove the CSS selector that hides the close button and handle it manually
-        >
+        <DialogContent className="sm:max-w-2xl [&>button]:hidden  w-full p-0 border-none bg-transparent shadow-none flex items-center justify-center">
           <div className="relative overflow-hidden rounded-2xl border border-border bg-card/95 shadow-2xl backdrop-blur-md w-full">
             {/* Custom close button with validation */}
             <button
@@ -240,7 +306,7 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
             </button>
-            
+
             <div className="p-6 space-y-6 overflow-auto">
               <div className="space-y-1 pr-8">
                 <DialogTitle className="text-xl font-bold text-foreground">Select Disposition</DialogTitle>

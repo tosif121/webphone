@@ -146,12 +146,10 @@ export default function Header() {
           {pathname !== '/webphone/agent-dashboard' && (
             <>
               <nav className="flex gap-2">
-                <button
+                <Button
                   onClick={() => setDropCalls(true)}
-                  className={cn(
-                    'relative flex items-center gap-2 px-4 py-2 border cursor-pointer rounded-lg font-medium transition-all',
-                    dropCalls ? 'bg-primary text-primary-foreground' : 'text-secondary-foreground hover:bg-secondary/80'
-                  )}
+                  variant={dropCalls ? 'default' : 'outline'}
+                  className="relative flex items-center gap-2"
                   aria-label="Show Missed Calls"
                   type="button"
                 >
@@ -162,7 +160,7 @@ export default function Header() {
                       {campaignMissedCallsLength}
                     </span>
                   )}
-                </button>
+                </Button>
                 <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
                 <ThemeSelector />
               </nav>

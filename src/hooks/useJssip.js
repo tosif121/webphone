@@ -117,6 +117,10 @@ const useJssip = () => {
 
   const withTimeout = (promise, timeoutMs) =>
     Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))]);
+  
+  const addTimeout = (type) => {
+    setTimeoutArray((prev) => [...prev, type]);
+  };
 
   const connectioncheck = async () => {
     try {
@@ -189,16 +193,16 @@ const useJssip = () => {
         toast.error('Server appears to be unresponsive. Retrying...');
         // localStorage.clear();
         // window.location.href = '/webphone/login';
-        // addTimeout('timeout');
+        addTimeout('timeout');
       } else if (err.message.includes('Network')) {
         console.error('Network error:', err.message);
         toast.error('Network error. Please check your connection.');
-        // addTimeout('network');
+        addTimeout('network');
       } else {
         console.error('Error during connection check:', err);
         if (err.response && err.response.status === 401) {
           localStorage.clear();
-          // window.location.href = '/webphone/login';
+          window.location.href = '/webphone/login';
           toast.error('Session expired. Please log in again.');
           session.terminate();
           stopRecording();

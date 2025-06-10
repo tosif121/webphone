@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { useTheme } from 'next-themes';
 
 const colorThemes = [
   { label: 'Default', value: 'default' },
@@ -16,79 +20,72 @@ const colorThemes = [
 ];
 
 export default function ThemeSelector() {
-  const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const [currentTheme, setCurrentTheme] = useState('default');
 
   useEffect(() => {
     setMounted(true);
+    // Get initial theme from HTML element or default to 'default'
+    const html = document.documentElement;
+    const existingTheme = colorThemes.find((theme) => html.classList.contains(theme.value));
+    if (existingTheme) {
+      setCurrentTheme(existingTheme.value);
+    }
   }, []);
 
-  // Apply theme to document root immediately
+  // Apply theme class to HTML element
   useEffect(() => {
-    if (mounted && theme) {
-      const root = document.documentElement;
-      
-      // Remove all existing theme data attributes
+    if (mounted) {
+      const html = document.documentElement;
+
+      // Remove all theme classes
       colorThemes.forEach(({ value }) => {
-        root.removeAttribute(`data-theme-${value}`);
+        html.classList.remove(value);
       });
-      
-      // Set current theme data attribute
-      root.setAttribute('data-theme', theme || 'default');
-      
-      // Force a re-render by updating CSS custom properties
-      if (theme && theme !== 'default') {
-        root.style.setProperty('--theme-applied', theme);
-      } else {
-        root.style.removeProperty('--theme-applied');
+
+      // Add current theme class (but not 'default' since it's the root styles)
+      if (currentTheme !== 'default') {
+        html.classList.add(currentTheme);
       }
     }
-  }, [theme, mounted]);
+  }, [currentTheme, mounted]);
 
-  const handleSelect = (color) => {
-    setTheme(color);
-    setOpen(false);
+  const handleSelect = (themeValue) => {
+    setCurrentTheme(themeValue);
   };
 
-  // Don't render until mounted to avoid hydration mismatch
   if (!mounted) {
     return (
       <Button variant="outline" className="flex items-center gap-2">
-        <span className="font-medium">Color:</span>
+        <span className="font-medium">Theme:</span>
         <span>Loading...</span>
         <ChevronDown className="ml-2 h-4 w-4" />
       </Button>
     );
   }
 
-  const currentTheme = colorThemes.find((c) => c.value === theme);
-  const displayLabel = currentTheme?.label || 'Default';
+  const selectedTheme = colorThemes.find((c) => c.value === currentTheme) || colorThemes[0];
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2 text-base !py-5 rounded-lg">
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="flex items-center gap-2">
           <span className="font-medium">Theme:</span>
-          <span>{displayLabel}</span>
+          <span>{selectedTheme.label}</span>
           <ChevronDown className="ml-2 h-4 w-4" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-48 p-0">
-        <div>
-          {colorThemes.map((c) => (
-            <Button
-              key={c.value}
-              variant="ghost"
-              className={`w-full justify-start px-4 py-2 ${theme === c.value ? 'font-bold' : ''}`}
-              onClick={() => handleSelect(c.value)}
-            >
-              {c.label}
-              {theme === c.value && <span className="ml-auto">✓</span>}
-            </Button>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-48">
+        {colorThemes.map((theme) => (
+          <DropdownMenuItem
+            key={theme.value}
+            onClick={() => handleSelect(theme.value)}
+            className={currentTheme === theme.value ? 'bg-accent text-accent-foreground space-x-5' : ''}
+          >
+            {theme.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
