@@ -10,10 +10,8 @@ export default function Layout({ children }) {
     <div>
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 bg-muted text-muted-foreground flex items-center justify-center">
-          <div className="w-full container px-4 mx-auto py-8">
-            {children}
-          </div>
+        <main className="flex-1 bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+          <div className="w-full container px-4 mx-auto py-8">{children}</div>
         </main>
         <Footer />
       </div>

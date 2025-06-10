@@ -332,6 +332,8 @@ function Dashboard() {
           setFormData={setFormState}
           formData={formState}
           formConfig={formConfig}
+          phoneNumber={phoneNumber}
+          setPhoneNumber={setPhoneNumber}
         />
       )}
       {dropCalls && (

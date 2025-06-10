@@ -16,16 +16,28 @@ import DynamicForm from './DynamicForm';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 
-const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData, formData, formConfig }) => {
+const Disposition = ({
+  bridgeID,
+  setDispositionModal,
+  handleContact,
+  setFormData,
+  formData,
+  formConfig,
+  phoneNumber,
+  setPhoneNumber,
+}) => {
   const { username } = useContext(HistoryContext);
   const [selectedAction, setSelectedAction] = useState(null);
   const [isAutoLeadDialDisabled, setIsAutoLeadDialDisabled] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userCallOpen, setUserCallOpen] = useState(false);
   const [dispositionActions, setDispositionActions] = useState([]);
-  const [followUpDate, setFollowUpDate] = useState('');
-  const [followUpTime, setFollowUpTime] = useState('');
+
+  // Changed to store Date objects for the Callback component
+  const [followUpDate, setFollowUpDate] = useState(undefined);
+  const [followUpTime, setFollowUpTime] = useState(new Date());
   const [followUpDetails, setFollowUpDetails] = useState('');
+
   const [isDispositionModalOpen, setDispositionModalOpen] = useState(false);
   const [isCallbackDialogOpen, setCallbackDialogOpen] = useState(false);
   const [callbackIncomplete, setCallbackIncomplete] = useState(false);
@@ -104,7 +116,6 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
           ? { backgroundColor: '#22C55E', color: '#FFFFFF', borderColor: '#22C55E' } // Green
           : { backgroundColor: 'transparent', color: '#22C55E', borderColor: '#22C55E' },
       },
-      // Add missing actions from default array
       'Not Answered': {
         variant: 'outline',
         style: isSelected
@@ -217,62 +228,101 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
     [selectedAction, isSubmitting, callbackIncomplete, setDispositionModal]
   );
 
-  const submitForm = useCallback(async () => {
-    if (!selectedAction) {
-      toast.error('Please select a disposition action');
-      return;
-    }
-
-    if (selectedAction === 'Callback Scheduled') {
-      if (!followUpDate || !followUpTime || !followUpDetails) {
-        toast.error('Please provide follow-up date, time, and details.');
+  const submitForm = useCallback(
+    async (callbackData = null) => {
+      if (!selectedAction) {
+        toast.error('Please select a disposition action');
         return;
       }
-    }
 
-    setIsSubmitting(true);
+      // For callback scheduled, we need the formatted data
 
-    try {
-      const requestBody = {
-        bridgeID,
-        Disposition: selectedAction,
-        autoDialDisabled: isAutoLeadDialDisabled,
-      };
+      setIsSubmitting(true);
 
-      if (selectedAction === 'Callback Scheduled') {
-        requestBody.followUpDisposition = {
-          date: followUpDate,
-          time: followUpTime,
-          comment: followUpDetails,
+      try {
+        const requestBody = {
+          bridgeID,
+          Disposition: selectedAction,
+          autoDialDisabled: isAutoLeadDialDisabled,
         };
-      }
 
-      const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody);
+        if (selectedAction === 'Callback Scheduled') {
+          if (callbackData) {
+            // Use the formatted data from Callback component
+            requestBody.followUpDisposition = {
+              date: callbackData.date,
+              time: callbackData.time,
+              comment: callbackData.details,
+              phoneNumber: phoneNumber,
+            };
+          } else {
+            // Fallback to existing state (shouldn't happen with new flow)
+            requestBody.followUpDisposition = {
+              date: followUpDate,
+              time: followUpTime,
+              comment: followUpDetails,
+              phoneNumber: phoneNumber,
+            };
+          }
+        }
 
-      if (response.data.success) {
-        toast.success('Disposition submitted successfully');
-        handleContact();
-        setDispositionModal(false);
-      } else {
-        toast.error(response.data.message || 'Submission failed');
+        const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody);
+
+        if (response.data.success) {
+          toast.success('Disposition submitted successfully');
+          handleContact();
+          setDispositionModal(false);
+          setPhoneNumber('');
+        } else {
+          toast.error(response.data.message || 'Submission failed');
+        }
+      } catch (error) {
+        toast.error(error.response?.data?.message || 'An unexpected error occurred');
+        console.error('Disposition error:', error);
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'An unexpected error occurred');
-      console.error('Disposition error:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [
-    selectedAction,
-    bridgeID,
-    username,
-    isAutoLeadDialDisabled,
-    followUpDate,
-    followUpTime,
-    followUpDetails,
-    handleContact,
-    setDispositionModal,
-  ]);
+    },
+    [
+      selectedAction,
+      bridgeID,
+      username,
+      isAutoLeadDialDisabled,
+      followUpDate,
+      followUpTime,
+      followUpDetails,
+      handleContact,
+      setDispositionModal,
+      phoneNumber,
+    ]
+  );
+
+  const handleCallbackSubmit = useCallback(
+    (callbackData) => {
+      if (selectedAction === 'Callback Scheduled') {
+        if (callbackData) {
+          if (!callbackData.date || !callbackData.time || !callbackData.details) {
+            toast.error('Please provide follow-up date, time, and details.');
+            return;
+          }
+        } else {
+          if (!followUpDate || !followUpTime || !followUpDetails) {
+            toast.error('Please complete the callback details first.');
+            return;
+          }
+          callbackData = {
+            date: formatDate(followUpDate),
+            time: formatTime(followUpTime),
+            details: followUpDetails,
+          };
+        }
+      }
+      setCallbackIncomplete(false);
+      setCallbackDialogOpen(false);
+      submitForm(callbackData);
+    },
+    [selectedAction, followUpDate, followUpTime, followUpDetails, submitForm]
+  );
 
   if (dispositionActions.length === 0) {
     return null;
@@ -290,7 +340,7 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
           setFollowUpDetails,
           isCallbackDialogOpen,
           setCallbackDialogOpen,
-          submitForm,
+          submitForm: handleCallbackSubmit,
           onClose: () => setCallbackIncomplete(false),
         }}
       />
@@ -336,7 +386,7 @@ const Disposition = ({ bridgeID, setDispositionModal, handleContact, setFormData
                   <Button variant="outline" onClick={() => setUserCallOpen(true)}>
                     View Contact Form
                   </Button>
-                  <Button onClick={submitForm} disabled={isSubmitting || !selectedAction}>
+                  <Button onClick={() => submitForm()} disabled={isSubmitting || !selectedAction}>
                     {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

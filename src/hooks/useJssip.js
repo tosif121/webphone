@@ -495,7 +495,7 @@ const useJssip = () => {
   const eventHandlers = {
     failed: function (e) {
       setStatus('fail');
-      setPhoneNumber('');
+      // setPhoneNumber('');
       if (isRecording) {
         stopRecording();
       }
@@ -522,7 +522,7 @@ const useJssip = () => {
       setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
       pause();
       setStatus('start');
-      setPhoneNumber('');
+      // setPhoneNumber('');
     },
   };
 
@@ -901,7 +901,7 @@ const useJssip = () => {
         setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
         pause();
         setStatus('start');
-        setPhoneNumber('');
+        // setPhoneNumber('');
         // setDispositionModal(true);
         // * this is new state added because user callended api was calling after
         // * dispostion done api when auto disposition is done
@@ -916,7 +916,7 @@ const useJssip = () => {
         ]);
         pause();
         setStatus('start');
-        setPhoneNumber('');
+        // setPhoneNumber('');
       });
     };
 
