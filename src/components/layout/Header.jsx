@@ -19,7 +19,6 @@ import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
 
 import ThemeToggle from './ThemeToggle';
-import ThemeSelector from './ThemeSelector';
 import BreakDropdown from '../BreakDropdown';
 import HistoryContext from '@/context/HistoryContext';
 
@@ -273,8 +272,7 @@ export default function Header() {
                 </div>
 
                 {/* Theme Toggle */}
-                <div className="py-3 px-4 border-t flex items-center justify-between">
-                  <ThemeSelector />
+                <div className="py-3 px-4 border-t">
                   <ThemeToggle />
                 </div>
 
@@ -442,7 +440,7 @@ export default function Header() {
               </div>
 
               {/* Theme Toggle */}
-              <div className="p-4 border-t">
+              <div className="py-3 border-t">
                 <ThemeToggle />
               </div>
             </div>

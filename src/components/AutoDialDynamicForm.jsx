@@ -260,9 +260,10 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
     <Card className="backdrop-blur-sm bg-card/80 rounded-lg max-w-2xl mx-auto">
       <CardHeader className="pb-2">
         <div className="flex items-center">
-          <div className="h-10 w-10 rounded-full bg-slate-900 dark:bg-slate-100 flex items-center justify-center shadow-md">
-            <Phone className="text-slate-50 dark:text-slate-900" size={18} aria-hidden="true" />
+          <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
+            <Phone className="text-primary-foreground" size={20} aria-hidden="true" />
           </div>
+
           <div className="ml-3">
             <CardTitle className="text-xl text-slate-900 dark:text-slate-50">Lead Auto Dialer</CardTitle>
             <CardDescription className="text-slate-600 dark:text-slate-400">

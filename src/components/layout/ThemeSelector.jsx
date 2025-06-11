@@ -71,18 +71,16 @@ const themeStorage = {
     } catch (e) {
       // localStorage not available, continue with fallbacks
     }
-    
+
     // Fallback to data attributes
     const fromDataAttr = document.documentElement.getAttribute('data-color-theme');
     if (fromDataAttr) return fromDataAttr;
-    
+
     // Check existing theme classes
-    const existingTheme = colorThemes.find(theme => 
-      document.documentElement.classList.contains(theme.value)
-    );
+    const existingTheme = colorThemes.find((theme) => document.documentElement.classList.contains(theme.value));
     return existingTheme ? existingTheme.value : 'default';
   },
-  
+
   setItem: (key, value) => {
     try {
       // Try localStorage first
@@ -92,39 +90,33 @@ const themeStorage = {
     } catch (e) {
       // localStorage failed, continue with fallbacks
     }
-    
+
     // Always set data attribute as backup
     document.documentElement.setAttribute('data-color-theme', value);
-  }
+  },
 };
 
 export default function ThemeSelector() {
   const [mounted, setMounted] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState('default');
+  const [currentTheme, setCurrentTheme] = useState(() => themeStorage.getItem('color-theme') || 'default');
 
   useEffect(() => {
     setMounted(true);
-
-    // Small delay to ensure DOM is ready
-    const initTheme = () => {
-      const storedTheme = themeStorage.getItem('color-theme');
-      console.log('Stored theme:', storedTheme); // Debug log
-      
-      if (storedTheme && colorThemes.find((t) => t.value === storedTheme)) {
-        setCurrentTheme(storedTheme);
-      } else {
-        const html = document.documentElement;
-        const existingTheme = colorThemes.find((theme) => html.classList.contains(theme.value));
-        const finalTheme = existingTheme ? existingTheme.value : 'default';
-        setCurrentTheme(finalTheme);
-        console.log('No stored theme, using:', finalTheme); // Debug log
-      }
-    };
-
-    // Try immediately and also with a small delay
-    initTheme();
-    setTimeout(initTheme, 10);
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      const html = document.documentElement;
+      // Remove all theme classes
+      colorThemes.forEach(({ value }) => html.classList.remove(value));
+      // Add selected theme class
+      if (currentTheme !== 'default') {
+        html.classList.add(currentTheme);
+      }
+      // Save to storage
+      themeStorage.setItem('color-theme', currentTheme);
+    }
+  }, [currentTheme, mounted]);
 
   useEffect(() => {
     if (mounted) {

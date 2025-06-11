@@ -32,6 +32,7 @@ const Disposition = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userCallOpen, setUserCallOpen] = useState(false);
   const [dispositionActions, setDispositionActions] = useState([]);
+  const [hasSubmittedSuccessfully, setHasSubmittedSuccessfully] = useState(false);
 
   // Changed to store Date objects for the Callback component
   const [followUpDate, setFollowUpDate] = useState(undefined);
@@ -180,37 +181,67 @@ const Disposition = ({
         // Track if callback was opened
         if (newAction === 'Callback Scheduled') {
           setCallbackIncomplete(true);
+        } else {
+          setCallbackIncomplete(false);
         }
         return newAction;
       });
     }, 0);
   }, []);
 
-  // Modify the handleModalClose function
+  // Enhanced modal close handler with better validation
   const handleModalClose = useCallback(
     (open) => {
       if (!open) {
+        // Allow closing if successfully submitted
+        if (hasSubmittedSuccessfully) {
+          setDispositionModal(false);
+          return;
+        }
+
+        // Prevent closing if currently submitting
+        if (isSubmitting) {
+          toast.error('Please wait while submission is in progress');
+          return;
+        }
+
         // Prevent closing if callback was opened but not completed
         if (callbackIncomplete) {
           toast.error('Please complete the callback details or select another disposition');
           return;
         }
+
         // Prevent closing if no action is selected
-        if (!selectedAction && !isSubmitting) {
+        if (!selectedAction) {
           toast.error('Please select a disposition action before closing');
           return;
         }
-        setDispositionModal(false);
+
+        // If action is selected but not submitted, show warning
+        toast.error('Please submit the disposition before closing');
+        return;
       }
     },
-    [selectedAction, isSubmitting, callbackIncomplete, setDispositionModal]
+    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully, setDispositionModal]
   );
 
-  // Modify the handleXButtonClick function
+  // Enhanced X button click handler
   const handleXButtonClick = useCallback(
     (e) => {
       e.preventDefault();
       e.stopPropagation();
+
+      // Allow closing if successfully submitted
+      if (hasSubmittedSuccessfully) {
+        setDispositionModal(false);
+        return;
+      }
+
+      // Prevent closing if currently submitting
+      if (isSubmitting) {
+        toast.error('Please wait while submission is in progress');
+        return;
+      }
 
       // Prevent closing if callback was opened but not completed
       if (callbackIncomplete) {
@@ -218,15 +249,53 @@ const Disposition = ({
         return;
       }
 
-      if (!selectedAction && !isSubmitting) {
+      // Prevent closing if no action is selected
+      if (!selectedAction) {
         toast.error('Please select a disposition action before closing');
         return;
       }
 
-      setDispositionModal(false);
+      // If action is selected but not submitted, show warning
+      toast.error('Please submit the disposition before closing');
     },
-    [selectedAction, isSubmitting, callbackIncomplete, setDispositionModal]
+    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully, setDispositionModal]
   );
+
+  // Prevent ESC key from closing modal
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Allow closing if successfully submitted
+        if (hasSubmittedSuccessfully) {
+          setDispositionModal(false);
+          return;
+        }
+
+        // Show appropriate error message
+        if (isSubmitting) {
+          toast.error('Please wait while submission is in progress');
+        } else if (callbackIncomplete) {
+          toast.error('Please complete the callback details or select another disposition');
+        } else if (!selectedAction) {
+          toast.error('Please select a disposition action before closing');
+        } else {
+          toast.error('Please submit the disposition before closing');
+        }
+      }
+    },
+    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully, setDispositionModal]
+  );
+
+  // Add event listener for ESC key
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]);
 
   const submitForm = useCallback(
     async (callbackData = null) => {
@@ -234,8 +303,6 @@ const Disposition = ({
         toast.error('Please select a disposition action');
         return;
       }
-
-      // For callback scheduled, we need the formatted data
 
       setIsSubmitting(true);
 
@@ -270,9 +337,13 @@ const Disposition = ({
 
         if (response.data.success) {
           toast.success('Disposition submitted successfully');
+          setHasSubmittedSuccessfully(true);
           handleContact();
-          setDispositionModal(false);
-          setPhoneNumber('');
+          // Close modal after successful submission
+          setTimeout(() => {
+            setDispositionModal(false);
+            setPhoneNumber('');
+          }, 200);
         } else {
           toast.error(response.data.message || 'Submission failed');
         }
@@ -344,8 +415,18 @@ const Disposition = ({
           onClose: () => setCallbackIncomplete(false),
         }}
       />
-      <Dialog open={true} onOpenChange={handleModalClose}>
-        <DialogContent className="sm:max-w-2xl [&>button]:hidden  w-full p-0 border-none bg-transparent shadow-none flex items-center justify-center">
+      <Dialog
+        open={true}
+        onOpenChange={handleModalClose}
+        // Prevent closing on outside click
+        modal={true}
+      >
+        <DialogContent
+          className="sm:max-w-2xl [&>button]:hidden w-full p-0 border-none bg-transparent shadow-none flex items-center justify-center"
+          // Prevent closing on outside click
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <div className="relative overflow-hidden rounded-2xl border border-border bg-card/95 shadow-2xl backdrop-blur-md w-full">
             {/* Custom close button with validation */}
             <button
@@ -372,7 +453,7 @@ const Disposition = ({
                       style={styles.style}
                       className="h-auto py-3 px-4 whitespace-normal text-sm font-medium transition-all duration-200 border-2"
                       onClick={(event) => handleActionClick(item.action, event)}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || hasSubmittedSuccessfully}
                       type="button"
                     >
                       {item.label}
@@ -383,15 +464,25 @@ const Disposition = ({
               <div className="flex flex-col lg:flex-row gap-4 justify-end items-start border-t pt-4">
                 <div className="flex flex-wrap gap-2 w-full lg:w-auto justify-end">
                   <BreakDropdown bridgeID={bridgeID} dispoWithBreak={true} />
-                  <Button variant="outline" onClick={() => setUserCallOpen(true)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setUserCallOpen(true)}
+                    disabled={isSubmitting || hasSubmittedSuccessfully}
+                  >
                     View Contact Form
                   </Button>
-                  <Button onClick={() => submitForm()} disabled={isSubmitting || !selectedAction}>
+                  <Button
+                    onClick={() => submitForm()}
+                    disabled={isSubmitting || !selectedAction || hasSubmittedSuccessfully}
+                    className={hasSubmittedSuccessfully}
+                  >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Submitting...
                       </>
+                    ) : hasSubmittedSuccessfully ? (
+                      'Submitted Successfully!'
                     ) : (
                       'Submit Disposition'
                     )}
