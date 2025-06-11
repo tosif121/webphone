@@ -98,7 +98,7 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
     <Card
       className={`${
         !userCallDialog
-          ? 'backdrop-blur-sm bg-card/80 rounded-xl border border-border shadow-lg max-w-2xl mx-auto'
+          ? 'backdrop-blur-sm bg-card/80 rounded-lg max-w-2xl mx-auto'
           : 'bg-transparent border-0 shadow-none p-0'
       }`}
     >

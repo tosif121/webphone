@@ -429,7 +429,7 @@ export default function AgentCallData() {
             className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded flex items-center gap-2 shadow"
           >
             <Download size={16} />
-            <span className="hidden xs:inline">Download CSV</span>
+            <span className="hidden md:inline">Download CSV</span>
           </button>
           <button
             onClick={handleDownloadPDF}
@@ -437,7 +437,7 @@ export default function AgentCallData() {
             className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded flex items-center gap-2 shadow"
           >
             <FileText size={16} />
-            <span className="hidden xs:inline">
+            <span className="hidden md:inline">
               {isPdfLoading ? <Loader2 className="animate-spin w-4 h-4" /> : 'Download PDF'}
             </span>
           </button>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { Palette, Check } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,15 +9,94 @@ import {
 import { Button } from '@/components/ui/button';
 
 const colorThemes = [
-  { label: 'Default', value: 'default' },
-  { label: 'Blue', value: 'blue' },
-  { label: 'Green', value: 'green' },
-  { label: 'Amber', value: 'amber' },
-  { label: 'Rose', value: 'rose' },
-  { label: 'Purple', value: 'purple' },
-  { label: 'Orange', value: 'orange' },
-  { label: 'Teal', value: 'teal' },
+  {
+    label: 'Default',
+    value: 'default',
+    color: 'bg-[oklch(0.208_0.042_265.755)]',
+    border: 'border-[oklch(0.704_0.04_256.788)]',
+  },
+  {
+    label: 'Blue',
+    value: 'blue',
+    color: 'bg-[oklch(0.546_0.245_262.881)]',
+    border: 'border-[oklch(0.623_0.214_259.815)]',
+  },
+  {
+    label: 'Green',
+    value: 'green',
+    color: 'bg-[oklch(0.648_0.2_131.684)]',
+    border: 'border-[oklch(0.648_0.2_131.684)]',
+  },
+  {
+    label: 'Amber',
+    value: 'amber',
+    color: 'bg-[oklch(0.666_0.179_58.318)]',
+    border: 'border-[oklch(0.769_0.188_70.08)]',
+  },
+  {
+    label: 'Rose',
+    value: 'rose',
+    color: 'bg-[oklch(0.586_0.253_17.585)]',
+    border: 'border-[oklch(0.645_0.246_16.439)]',
+  },
+  {
+    label: 'Purple',
+    value: 'purple',
+    color: 'bg-[oklch(0.558_0.288_302.321)]',
+    border: 'border-[oklch(0.627_0.265_303.9)]',
+  },
+  {
+    label: 'Orange',
+    value: 'orange',
+    color: 'bg-[oklch(0.646_0.222_41.116)]',
+    border: 'border-[oklch(0.705_0.213_47.604)]',
+  },
+  {
+    label: 'Teal',
+    value: 'teal',
+    color: 'bg-[oklch(0.6_0.118_184.704)]',
+    border: 'border-[oklch(0.704_0.14_182.503)]',
+  },
 ];
+
+// Enhanced storage that persists across refreshes
+const themeStorage = {
+  getItem: (key) => {
+    try {
+      // First check localStorage if available
+      if (typeof localStorage !== 'undefined') {
+        const stored = localStorage.getItem(key);
+        if (stored) return stored;
+      }
+    } catch (e) {
+      // localStorage not available, continue with fallbacks
+    }
+    
+    // Fallback to data attributes
+    const fromDataAttr = document.documentElement.getAttribute('data-color-theme');
+    if (fromDataAttr) return fromDataAttr;
+    
+    // Check existing theme classes
+    const existingTheme = colorThemes.find(theme => 
+      document.documentElement.classList.contains(theme.value)
+    );
+    return existingTheme ? existingTheme.value : 'default';
+  },
+  
+  setItem: (key, value) => {
+    try {
+      // Try localStorage first
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(key, value);
+      }
+    } catch (e) {
+      // localStorage failed, continue with fallbacks
+    }
+    
+    // Always set data attribute as backup
+    document.documentElement.setAttribute('data-color-theme', value);
+  }
+};
 
 export default function ThemeSelector() {
   const [mounted, setMounted] = useState(false);
@@ -25,15 +104,28 @@ export default function ThemeSelector() {
 
   useEffect(() => {
     setMounted(true);
-    // Get initial theme from HTML element or default to 'default'
-    const html = document.documentElement;
-    const existingTheme = colorThemes.find((theme) => html.classList.contains(theme.value));
-    if (existingTheme) {
-      setCurrentTheme(existingTheme.value);
-    }
+
+    // Small delay to ensure DOM is ready
+    const initTheme = () => {
+      const storedTheme = themeStorage.getItem('color-theme');
+      console.log('Stored theme:', storedTheme); // Debug log
+      
+      if (storedTheme && colorThemes.find((t) => t.value === storedTheme)) {
+        setCurrentTheme(storedTheme);
+      } else {
+        const html = document.documentElement;
+        const existingTheme = colorThemes.find((theme) => html.classList.contains(theme.value));
+        const finalTheme = existingTheme ? existingTheme.value : 'default';
+        setCurrentTheme(finalTheme);
+        console.log('No stored theme, using:', finalTheme); // Debug log
+      }
+    };
+
+    // Try immediately and also with a small delay
+    initTheme();
+    setTimeout(initTheme, 10);
   }, []);
 
-  // Apply theme class to HTML element
   useEffect(() => {
     if (mounted) {
       const html = document.documentElement;
@@ -43,23 +135,35 @@ export default function ThemeSelector() {
         html.classList.remove(value);
       });
 
-      // Add current theme class (but not 'default' since it's the root styles)
+      // Add selected theme class
       if (currentTheme !== 'default') {
         html.classList.add(currentTheme);
       }
+
+      // Save to our storage mechanism
+      themeStorage.setItem('color-theme', currentTheme);
     }
   }, [currentTheme, mounted]);
 
-  const handleSelect = (themeValue) => {
+  const handleSelect = (themeValue, event) => {
+    // Prevent event from bubbling up to parent dropdowns
+    event.stopPropagation();
     setCurrentTheme(themeValue);
+  };
+
+  // Prevent clicks on the dropdown content from closing parent menus
+  const handleDropdownClick = (event) => {
+    event.stopPropagation();
   };
 
   if (!mounted) {
     return (
-      <Button variant="outline" className="flex items-center gap-2">
-        <span className="font-medium">Theme:</span>
-        <span>Loading...</span>
-        <ChevronDown className="ml-2 h-4 w-4" />
+      <Button variant="outline" className="flex items-center gap-3 px-4 py-2">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded-full bg-gray-300 animate-pulse"></div>
+          <span className="text-sm font-medium">Loading...</span>
+        </div>
+        <Palette className="w-4 h-4" />
       </Button>
     );
   }
@@ -69,22 +173,45 @@ export default function ThemeSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2">
-          <span className="font-medium">Theme:</span>
-          <span>{selectedTheme.label}</span>
-          <ChevronDown className="ml-2 h-4 w-4" />
+        <Button
+          variant="outline"
+          className="flex items-center gap-3 px-4 py-2"
+          onClick={handleDropdownClick} // Prevent trigger click from bubbling
+        >
+          <div className="flex items-center gap-2">
+            <div className={`w-5 h-5 rounded-full ${selectedTheme.color} ${selectedTheme.border} border-2`}></div>
+            <span className="text-sm font-medium">{selectedTheme.label}</span>
+          </div>
+          <Palette className="w-4 h-4 text-gray-500 dark:text-gray-400" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-48">
-        {colorThemes.map((theme) => (
-          <DropdownMenuItem
-            key={theme.value}
-            onClick={() => handleSelect(theme.value)}
-            className={currentTheme === theme.value ? 'bg-accent text-accent-foreground space-x-5' : ''}
-          >
-            {theme.label}
-          </DropdownMenuItem>
-        ))}
+      <DropdownMenuContent
+        className="w-56 p-3"
+        onClick={handleDropdownClick} // Prevent content clicks from bubbling
+      >
+        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">
+          Choose Theme
+        </div>
+
+        <div className="grid grid-cols-2 gap-1">
+          {colorThemes.map((theme) => (
+            <DropdownMenuItem
+              key={theme.value}
+              onClick={(e) => handleSelect(theme.value, e)}
+              className="flex items-center gap-3 p-3 rounded-lg cursor-pointer focus:bg-accent focus:text-accent-foreground"
+            >
+              <div className="relative">
+                <div className={`w-6 h-6 rounded-full ${theme.color} ${theme.border} border-2 shadow-sm`}></div>
+                {currentTheme === theme.value && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Check className="w-3 h-3 text-white drop-shadow-sm" />
+                  </div>
+                )}
+              </div>
+              <span className="text-sm font-medium flex-1">{theme.label}</span>
+            </DropdownMenuItem>
+          ))}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

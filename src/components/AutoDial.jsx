@@ -178,7 +178,7 @@ const AutoDial = ({ setPhoneNumber, dispositionModal, handleCall }) => {
   };
 
   return (
-    <Card className="backdrop-blur-sm bg-card/80 rounded-xl border border-border shadow-lg">
+    <Card className="backdrop-blur-sm bg-card/80 rounded-lg max-w-2xl mx-auto">
       <CardHeader className="pb-2">
         <div className="flex items-center">
           <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center shadow-md">

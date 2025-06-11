@@ -173,7 +173,7 @@ export default function AgentDashboard() {
   }
 
   return (
-    <Card className="backdrop-blur-sm bg-card/80 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg mx-auto">
+    <Card className="backdrop-blur-sm bg-card/80 rounded-lg  mx-auto">
       <CardContent className="space-y-8">
         <div className="text-center md:text-start">
           <CardTitle className="text-2xl font-bold text-primary mb-2">Agent Dashboard</CardTitle>

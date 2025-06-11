@@ -257,7 +257,7 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
   };
 
   return (
-    <Card className="backdrop-blur-sm bg-card/80 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg max-w-2xl mx-auto">
+    <Card className="backdrop-blur-sm bg-card/80 rounded-lg max-w-2xl mx-auto">
       <CardHeader className="pb-2">
         <div className="flex items-center">
           <div className="h-10 w-10 rounded-full bg-slate-900 dark:bg-slate-100 flex items-center justify-center shadow-md">

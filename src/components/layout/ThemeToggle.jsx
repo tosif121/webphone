@@ -20,12 +20,12 @@ export default function ThemeToggle() {
 
   return (
     <label htmlFor="theme-toggle" className="flex items-center justify-between cursor-pointer gap-3">
-      <div className="flex items-center gap-x-2">
+      {/* <div className="flex items-center gap-x-2">
         {!isDark ? <Sun className="w-3.5 h-3.5 text-yellow-400" /> : <Moon className="w-3.5 h-3.5 text-blue-500" />}
         <span className="text-xs font-medium text-gray-700 dark:text-gray-200 select-none">
           {isDark ? 'Dark' : 'Light'}
         </span>
-      </div>
+      </div> */}
       <div className="relative">
         <input type="checkbox" id="theme-toggle" className="sr-only" checked={isDark} onChange={toggleTheme} />
         {/* Track adapts to theme */}

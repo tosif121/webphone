@@ -67,17 +67,30 @@ export default function Header() {
     }
   }, []);
 
+  // In your Header component, update the handleClickOutside function:
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
-        setUserMenuOpen(false);
+        // Check if the click is on a dropdown menu item or content
+        const isDropdownContent =
+          event.target.closest('[data-radix-popper-content-wrapper]') ||
+          event.target.closest('[role="menu"]') ||
+          event.target.closest('.dropdown-content');
+
+        // Only close if it's not a dropdown interaction
+        if (!isDropdownContent) {
+          setUserMenuOpen(false);
+        }
       }
     }
+
     if (userMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     } else {
       document.removeEventListener('mousedown', handleClickOutside);
     }
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
@@ -129,7 +142,7 @@ export default function Header() {
   ];
 
   return (
-    <header className="w-full bg-white dark:bg-slate-900 shadow-md border-b border-border sticky top-0 z-40">
+    <header className="w-full bg-white dark:bg-background shadow-md border-b border-border sticky top-0 z-40">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         {/* Logo and Brand */}
         <Link href={'/'} className="flex items-center gap-3">
@@ -162,7 +175,6 @@ export default function Header() {
                   )}
                 </Button>
                 <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
-                <ThemeSelector />
               </nav>
               <div className="h-6 w-px bg-border mx-1"></div>
             </>
@@ -261,7 +273,8 @@ export default function Header() {
                 </div>
 
                 {/* Theme Toggle */}
-                <div className="py-3 px-4 border-t">
+                <div className="py-3 px-4 border-t flex items-center justify-between">
+                  <ThemeSelector />
                   <ThemeToggle />
                 </div>
 
