@@ -117,7 +117,7 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
       </CardHeader>
 
       <CardContent>
-        <form className="space-y-8">
+        <form className="space-y-8 sm:h-auto h-[500px] overflow-y-auto">
           {formConfig.sections?.map((section) => (
             <div key={section.id} className="mb-6">
               {formConfig.sections.length > 1 && (

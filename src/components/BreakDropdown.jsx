@@ -122,7 +122,13 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
   return (
     <>
       {isOnBreak ? (
-        <Button variant="default" className="gap-2 font-medium sm:w-auto w-full justify-baseline" onClick={removeBreak}>
+        <Button
+          variant="default"
+          className={`${
+            (dispoWithBreak && 'w-auto') || 'w-full sm:w-auto'
+          } gap-2 font-medium sm:w-auto justify-baseline`}
+          onClick={removeBreak}
+        >
           {selectedBreakObj?.icon ? <selectedBreakObj.icon className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
           <span>{selectedBreakObj?.label}</span>
           <span className="flex items-center gap-1 ml-2 text-xs">
@@ -132,7 +138,10 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
         </Button>
       ) : (
         <DropdownMenu>
-          <DropdownMenuTrigger asChild className="w-full sm:w-auto justify-baseline">
+          <DropdownMenuTrigger
+            asChild
+            className={`${(dispoWithBreak && 'w-auto') || 'w-full sm:w-auto'} justify-baseline`}
+          >
             <Button variant="outline" className="gap-2 font-medium">
               <Activity className="w-4 h-4" />
               <span>Take Break</span>

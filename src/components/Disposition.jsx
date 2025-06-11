@@ -465,7 +465,7 @@ const Disposition = ({
                     <Button
                       key={`${item.action}-${item.label}`}
                       style={styles.style}
-                      className="h-auto py-3 px-4 whitespace-normal text-sm font-medium transition-all duration-200 border-2"
+                      className="h-auto py-3 px-4 whitespace-normal text-xs sm:text-sm font-medium transition-all duration-200 border-2"
                       onClick={(event) => handleActionClick(item.action, event)}
                       disabled={isSubmitting || hasSubmittedSuccessfully}
                       type="button"
@@ -476,31 +476,35 @@ const Disposition = ({
                 })}
               </div>
               <div className="flex flex-col lg:flex-row gap-4 justify-end items-start border-t pt-4">
-                <div className="flex flex-wrap gap-2 w-full lg:w-auto justify-end">
-                  <BreakDropdown bridgeID={bridgeID} dispoWithBreak={true} />
-                  <Button
-                    variant="outline"
-                    onClick={() => setUserCallOpen(true)}
-                    disabled={isSubmitting || hasSubmittedSuccessfully}
-                  >
-                    View Contact Form
-                  </Button>
-                  <Button
-                    onClick={() => submitForm()}
-                    disabled={isSubmitting || !selectedAction || hasSubmittedSuccessfully}
-                    className={hasSubmittedSuccessfully}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : hasSubmittedSuccessfully ? (
-                      'Submitted Successfully!'
-                    ) : (
-                      'Submit Disposition'
-                    )}
-                  </Button>
+                <div className="flex flex-wrap sm:flex-row flex-col-reverse gap-2 w-full lg:w-auto md:justify-end">
+                  <div>
+                    <BreakDropdown bridgeID={bridgeID} dispoWithBreak={true} />
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setUserCallOpen(true)}
+                      disabled={isSubmitting || hasSubmittedSuccessfully}
+                    >
+                      View Contact Form
+                    </Button>
+                    <Button
+                      onClick={() => submitForm()}
+                      disabled={isSubmitting || !selectedAction || hasSubmittedSuccessfully}
+                      className={hasSubmittedSuccessfully}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : hasSubmittedSuccessfully ? (
+                        'Submitted Successfully!'
+                      ) : (
+                        'Submit Disposition'
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -509,7 +513,7 @@ const Disposition = ({
       </Dialog>
       {userCallOpen && (
         <Dialog open={userCallOpen} onOpenChange={setUserCallOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl p-0">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold text-foreground"></DialogTitle>
             </DialogHeader>
