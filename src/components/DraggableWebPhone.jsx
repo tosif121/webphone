@@ -60,6 +60,7 @@ export default function DraggableWebPhone() {
     userCall,
     timeoutArray,
     isConnectionLost,
+    followUpDispoes,
   } = useContext(JssipContext);
 
   const [webphoneState, setWebphoneState] = useState(getInitialWebphoneState);

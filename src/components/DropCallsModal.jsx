@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Phone, Clock, PhoneCall, Calendar } from 'lucide-react';
+import { Phone, Clock, PhoneMissed, Calendar } from 'lucide-react';
 import moment from 'moment';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import axios from 'axios';
@@ -76,9 +76,9 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg">
-                      <PhoneCall className="text-primary-foreground" size={18} aria-hidden="true" />
+                      <PhoneMissed className="text-primary-foreground" size={18} aria-hidden="true" />
                     </div>
-                    <div className="absolute -top-2 -right-2 flex items-center justify-center w-max h-6 bg-destructive text-white rounded-full text-xs font-bold shadow-md border-2 border-background">
+                    <div className="absolute -top-3 -right-3 flex items-center justify-center min-w-6 w-max h-6 bg-destructive text-white rounded-full text-xs font-bold shadow-md border-2 border-background">
                       {campaignMissedCallsLength}
                     </div>
                   </div>
@@ -141,7 +141,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
 
                       <Button
                         size="icon"
-                        className="w-14 h-14 cursor-pointer rounded-full text-2xl text-white shadow-lg bg-green-600 hover:bg-green-700 focus-visible:ring-green-500"
+                        className="w-10 h-10 cursor-pointer rounded-full text-2xl text-white shadow-lg bg-green-600 hover:bg-green-700 focus-visible:ring-green-500"
                         onClick={() => initiateCall(caller)}
                         disabled={loadingCaller === caller}
                         aria-label={`Call ${caller}`}

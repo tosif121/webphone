@@ -13,6 +13,8 @@ import { Bell } from 'lucide-react';
 import CallbackForm from './CallbackForm';
 import { useRouter } from 'next/router';
 import DynamicForm from './DynamicForm';
+import FollowUpCallsModal from './FollowUpCallsModal';
+import moment from 'moment';
 
 function Dashboard() {
   const {
@@ -45,6 +47,7 @@ function Dashboard() {
     userCall,
     timeoutArray,
     isConnectionLost,
+    followUpDispoes,
   } = useContext(JssipContext);
 
   const {
@@ -57,6 +60,10 @@ function Dashboard() {
     info,
     campaignMissedCallsLength,
     setCampaignMissedCallsLength,
+    callAlert,
+    setCallAlert,
+    scheduleCallsLength,
+    setScheduleCallsLength,
   } = useContext(HistoryContext);
   const [usermissedCalls, setUsermissedCalls] = useState([]);
   const [callConference, setCallConference] = useState(false);
@@ -66,11 +73,34 @@ function Dashboard() {
   const computedMissedCallsLength = useMemo(() => {
     return Object.values(usermissedCalls || {}).filter((call) => call?.campaign === userCampaign).length;
   }, [usermissedCalls, userCampaign]);
+
   const [selectedDate, setSelectedDate] = useState('');
   const [token, setToken] = useState('');
   const [formState, setFormState] = useState({});
   const [formConfig, setFormConfig] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const now = new Date();
+    const processed = (followUpDispoes || [])
+      .filter((item) => item.date && item.time)
+      .map((item) => {
+        const dateTimeStr = `${item.date} ${item.time}`;
+        const callTime = moment(dateTimeStr, 'YYYY-MM-DD hh:mm A').toDate();
+        return {
+          ...item,
+          callTime,
+          id: `${item.date}-${item.time}-${item.comment || 'call'}`,
+        };
+      });
+
+    const fiveMinEarly = processed.filter((item) => {
+      const alertWindowStart = new Date(item.callTime.getTime() - 5 * 60 * 1000);
+      return now >= alertWindowStart && now <= item.callTime;
+    });
+
+    setScheduleCallsLength(fiveMinEarly.length);
+  }, [followUpDispoes, setScheduleCallsLength]);
 
   useEffect(() => {
     const tokenData = localStorage.getItem('token');
@@ -336,11 +366,21 @@ function Dashboard() {
           setPhoneNumber={setPhoneNumber}
         />
       )}
+
       {dropCalls && (
         <DropCallsModal
           usermissedCalls={usermissedCalls}
           campaignMissedCallsLength={campaignMissedCallsLength}
           setDropCalls={setDropCalls}
+          username={username}
+        />
+      )}
+
+      {callAlert && (
+        <FollowUpCallsModal
+          followUpDispoes={followUpDispoes}
+          scheduleCallsLength={scheduleCallsLength}
+          setCallAlert={setCallAlert}
           username={username}
         />
       )}

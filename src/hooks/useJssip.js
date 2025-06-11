@@ -29,6 +29,7 @@ const useJssip = () => {
   const [messageDifference, setMessageDifference] = useState([]);
   const [avergaeMessageTimePerMinute, setAvergaeMessageTimePerMinute] = useState([]);
   // const [isDialbuttonClicked, setIsDialbuttonClicked] = useState(false);
+  const [followUpDispoes, setFollowUpDispoes] = useState([]);
   const offlineToastIdRef = useRef(null);
   const agentSocketRef = useRef(null);
   const customerSocketRef = useRef(null);
@@ -117,7 +118,7 @@ const useJssip = () => {
 
   const withTimeout = (promise, timeoutMs) =>
     Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))]);
-  
+
   const addTimeout = (type) => {
     setTimeoutArray((prev) => [...prev, type]);
   };
@@ -148,7 +149,7 @@ const useJssip = () => {
 
       const data = response.data;
       const tokenData = JSON.parse(localStorage.getItem('token'));
-
+      setFollowUpDispoes(data.followUpDispoes);
       if (!tokenData?.userData?.campaign) {
         console.error('Campaign information missing in token data');
         localStorage.clear();
@@ -1062,6 +1063,7 @@ const useJssip = () => {
     userCall,
     timeoutArray,
     isConnectionLost,
+    followUpDispoes,
   ];
 };
 

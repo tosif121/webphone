@@ -15,6 +15,7 @@ import axios from 'axios';
 import DynamicForm from './DynamicForm';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
+import moment from 'moment';
 
 const Disposition = ({
   bridgeID,
@@ -339,11 +340,8 @@ const Disposition = ({
           toast.success('Disposition submitted successfully');
           setHasSubmittedSuccessfully(true);
           handleContact();
-          // Close modal after successful submission
-          setTimeout(() => {
-            setDispositionModal(false);
-            setPhoneNumber('');
-          }, 200);
+          setDispositionModal(false);
+          setPhoneNumber('');
         } else {
           toast.error(response.data.message || 'Submission failed');
         }
@@ -370,24 +368,40 @@ const Disposition = ({
 
   const handleCallbackSubmit = useCallback(
     (callbackData) => {
+      let date, time, details;
       if (selectedAction === 'Callback Scheduled') {
         if (callbackData) {
-          if (!callbackData.date || !callbackData.time || !callbackData.details) {
+          date = callbackData.date;
+          time = callbackData.time;
+          details = callbackData.details;
+          if (!date || !time || !details) {
             toast.error('Please provide follow-up date, time, and details.');
             return;
           }
         } else {
-          if (!followUpDate || !followUpTime || !followUpDetails) {
+          date = formatDate(followUpDate);
+          time = formatTime(followUpTime);
+          details = followUpDetails;
+          if (!date || !time || !details) {
             toast.error('Please complete the callback details first.');
             return;
           }
-          callbackData = {
-            date: formatDate(followUpDate),
-            time: formatTime(followUpTime),
-            details: followUpDetails,
-          };
+          callbackData = { date, time, details };
+        }
+
+        // Combine date and time into a single moment object for validation
+        const dateTimeStr = `${date} ${time}`;
+        const scheduledMoment = moment(dateTimeStr, 'YYYY-MM-DD hh:mm A');
+        if (!scheduledMoment.isValid()) {
+          toast.error('Invalid date or time format.');
+          return;
+        }
+        if (scheduledMoment.isBefore(moment())) {
+          toast.error('Follow-up date and time cannot be in the past.');
+          return;
         }
       }
+
       setCallbackIncomplete(false);
       setCallbackDialogOpen(false);
       submitForm(callbackData);

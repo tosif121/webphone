@@ -11,6 +11,8 @@ const HistoryContext = createContext({
   setSelectedBreak: () => {},
   dropCalls: false,
   setDropCalls: () => {},
+  callAlert: false,
+  setCallAlert: () => {},
   info: false,
   setInfo: () => {},
   selectedStatus: '',
@@ -23,11 +25,14 @@ export const HistoryProvider = ({ children }) => {
   const [history, setHistory] = useState(initialHistory);
   const [selectedBreak, setSelectedBreak] = useState('Break');
   const [dropCalls, setDropCalls] = useState(false);
+  const [callAlert, setCallAlert] = useState(false);
   const [info, setInfo] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [campaignMissedCallsLength, setCampaignMissedCallsLength] = useState(0);
+  const [scheduleCallsLength, setScheduleCallsLength] = useState(0);
+
   // Save call history to localStorage whenever it changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -57,12 +62,16 @@ export const HistoryProvider = ({ children }) => {
         setSelectedBreak,
         dropCalls,
         setDropCalls,
+        callAlert,
+        setCallAlert,
         info,
         setInfo,
         selectedStatus,
         setSelectedStatus,
         campaignMissedCallsLength,
         setCampaignMissedCallsLength,
+        scheduleCallsLength,
+        setScheduleCallsLength,
       }}
     >
       {children}

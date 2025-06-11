@@ -14,6 +14,8 @@ import {
   UserCircle,
   Rocket,
   Phone,
+  PhoneForwarded,
+  PhoneMissed,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
@@ -26,7 +28,15 @@ export default function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState(null);
-  const { setDropCalls, dropCalls, selectedStatus, campaignMissedCallsLength } = useContext(HistoryContext);
+  const {
+    setDropCalls,
+    dropCalls,
+    setCallAlert,
+    callAlert,
+    selectedStatus,
+    campaignMissedCallsLength,
+    scheduleCallsLength,
+  } = useContext(HistoryContext);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const [username, setUsername] = useState('Guest');
@@ -165,7 +175,7 @@ export default function Header() {
                   aria-label="Show Missed Calls"
                   type="button"
                 >
-                  <PhoneCall className="w-4 h-4" />
+                  <PhoneMissed className="w-4 h-4" />
                   <span>Missed Calls</span>
                   {campaignMissedCallsLength > 0 && (
                     <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
@@ -173,6 +183,22 @@ export default function Header() {
                     </span>
                   )}
                 </Button>
+                <Button
+                  onClick={() => setCallAlert(true)}
+                  variant={callAlert ? 'default' : 'outline'}
+                  className="relative flex items-center gap-2"
+                  aria-label="Show Followup"
+                  type="button"
+                >
+                  <PhoneForwarded className="w-4 h-4" />
+                  <span>Follow Ups</span>
+                  {scheduleCallsLength > 0 && (
+                    <span className="absolute animate-caret-blink -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
+                      {scheduleCallsLength}
+                    </span>
+                  )}
+                </Button>
+
                 <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
               </nav>
               <div className="h-6 w-px bg-border mx-1"></div>

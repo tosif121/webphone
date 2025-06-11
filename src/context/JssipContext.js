@@ -35,6 +35,7 @@ export function JssipProvider({ children }) {
     userCall,
     timeoutArray,
     isConnectionLost,
+    followUpDispoes,
   ] = useJssip();
 
   return (
@@ -69,6 +70,7 @@ export function JssipProvider({ children }) {
         userCall,
         timeoutArray,
         isConnectionLost,
+        followUpDispoes,
       }}
     >
       {children}
