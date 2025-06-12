@@ -9,7 +9,7 @@ import { JssipContext } from '@/context/JssipContext';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import DropCallsModal from './DropCallsModal';
-import { Bell } from 'lucide-react';
+import { Bell, PhoneMissed } from 'lucide-react';
 import CallbackForm from './CallbackForm';
 import { useRouter } from 'next/router';
 import DynamicForm from './DynamicForm';
@@ -109,6 +109,22 @@ function Dashboard() {
       setUserCampaign(parsedData?.userData?.campaign);
       setAdminUser(parsedData?.userData?.adminuser);
       setToken(parsedData.token);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (token && window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            type: 'token',
+            token: token,
+            timestamp: Date.now(),
+          })
+        );
+      }
+    } catch (e) {
+      console.error('Invalid token JSON in localStorage:', e);
     }
   }, []);
 

@@ -104,7 +104,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
                 {sortedEntries.map(([caller, data], index) => (
                   <div
                     key={caller}
-                    className="group relative overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:bg-accent hover:border-accent"
+                    className="group relative overflow-hidden rounded-lg border border-border bg-card p-3 shadow-sm hover:shadow-md transition-all duration-300 hover:bg-accent hover:border-accent"
                     style={{
                       animationDelay: `${index * 100}ms`,
                       animation: 'fadeInUp 0.5s ease-out forwards',
@@ -112,25 +112,25 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
                   >
                     <div className="relative flex items-center justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
+                        <div className="flex items-center gap-2">
                           <div className="relative">
-                            <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shadow-md">
-                              <Phone className="text-primary-foreground" size={20} aria-hidden="true" />
+                            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shadow-sm">
+                              <Phone className="text-primary-foreground" size={16} aria-hidden="true" />
                             </div>
                             {data.count > 1 && (
-                              <div className="absolute -top-2 -right-2 flex items-center justify-center w-6 h-6 bg-destructive text-white rounded-full text-xs font-bold shadow-md border-2 border-background">
+                              <div className="absolute -top-1 -right-1 flex items-center justify-center min-w-5 w-max h-5 bg-destructive text-white rounded-full text-[10px] font-bold shadow-sm border border-background">
                                 {data.count}
                               </div>
                             )}
                           </div>
-                          <div className="flex-1">
-                            <div className="font-semibold text-foreground mb-1 text-base">{caller}</div>
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-foreground text-sm truncate">{caller}</div>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
                                 <span>{formatTimeAgo(data.latestTime)}</span>
                               </div>
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
                                 <span>{formatDateTime(data.latestTime)}</span>
                               </div>
@@ -141,12 +141,12 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
 
                       <Button
                         size="icon"
-                        className="w-10 h-10 cursor-pointer rounded-full text-2xl text-white shadow-lg bg-green-600 hover:bg-green-700 focus-visible:ring-green-500"
+                        className="w-8 h-8 cursor-pointer rounded-full text-white shadow-md bg-green-600 hover:bg-green-700 focus-visible:ring-green-500 ml-2"
                         onClick={() => initiateCall(caller)}
                         disabled={loadingCaller === caller}
                         aria-label={`Call ${caller}`}
                       >
-                        <Phone className="h-8 w-8" />
+                        <Phone className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>

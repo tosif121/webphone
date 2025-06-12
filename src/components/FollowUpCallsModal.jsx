@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 import axios from 'axios';
 
 const TABS = [
-  { key: 'upcoming', label: 'Upcoming' },
+  { key: 'upcoming', label: 'Pending' },
   { key: 'complete', label: 'Complete' },
 ];
 
@@ -114,11 +114,11 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                   <p className="text-sm text-muted-foreground">No upcoming calls scheduled</p>
                 </div>
               ) : (
-                <ul className="space-y-3">
+                <ul className="space-y-2">
                   {upcomingCalls.map((call) => (
                     <li
                       key={call.id}
-                      className={`group relative overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-300 hover:bg-accent hover:border-accent
+                      className={`group relative overflow-hidden rounded-lg border border-border bg-card p-3 shadow-sm transition-all duration-300 hover:bg-accent hover:border-accent
                       ${
                         call.isAlert
                           ? 'ring-2 ring-green-400 animate-pulse animate-duration-700 bg-green-50/80 dark:bg-green-900/30 dark:ring-green-500'
@@ -128,48 +128,42 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                     >
                       <div className="relative flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="relative">
-                              <div
-                                className={`h-12 w-12 rounded-xl flex items-center justify-center shadow-md
-                                ${call.isAlert ? 'bg-green-600 dark:bg-green-700' : 'bg-primary dark:bg-primary/70'}
-                              `}
-                              >
-                                <Phone className="text-white" size={20} />
-                              </div>
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-semibold text-foreground mb-1 text-base">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-foreground text-sm mb-1 truncate">
                                 {call.comment || 'Follow-up Call'}
                               </div>
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                                <div className="flex items-center gap-1">
                                   <Clock className="h-3 w-3" />
-                                  <span>
-                                    {formatTimeAgo(call.callTime)} •{' ' + formatDateTime(call.callTime)}
-                                  </span>
+                                  <span>{formatTimeAgo(call.callTime)}</span>
                                 </div>
-                                {call.phoneNumber && (
-                                  <div className="text-xs text-muted-foreground">Phone: {call.phoneNumber}</div>
-                                )}
+                                <span>{formatDateTime(call.callTime)}</span>
                               </div>
+                              {call.phoneNumber && (
+                                <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-md border border-blue-200 dark:border-blue-800">
+                                  <Phone className="h-3 w-3" />
+                                  <span className="font-mono">{call.phoneNumber}</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
+
                         <Button
                           size="icon"
-                          className={`w-10 h-10 rounded-full text-white shadow-lg
-        ${
-          call.isAlert
-            ? 'bg-green-600 dark:bg-green-700 animate-bounce'
-            : 'bg-green-600 hover:bg-green-700 focus-visible:ring-green-500 dark:bg-green-700 dark:hover:bg-green-800'
-        }
-      `}
+                          className={`w-8 h-8 rounded-full text-white shadow-md ml-2
+                          ${
+                            call.isAlert
+                              ? 'bg-green-600 dark:bg-green-700 animate-bounce'
+                              : 'bg-green-600 hover:bg-green-700 focus-visible:ring-green-500 dark:bg-green-700 dark:hover:bg-green-800'
+                          }
+                        `}
                           onClick={() => initiateCall(call.phoneNumber)}
                           disabled={!call.phoneNumber}
                           aria-label={`Call ${call.phoneNumber}`}
                         >
-                          <Phone className="h-8 w-8" />
+                          <Phone className="h-4 w-4" />
                         </Button>
                       </div>
                     </li>
@@ -184,50 +178,35 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                 <h3 className="mb-2 text-lg font-semibold text-foreground">No completed calls</h3>
               </div>
             ) : (
-              <ul className="space-y-3">
+              <ul className="space-y-2">
                 {completeCalls.map((call) => (
                   <li
                     key={call.id}
-                    className="group relative overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm hover:bg-accent hover:border-accent"
+                    className="group relative overflow-hidden rounded-lg border border-border bg-card p-3 shadow-sm transition-all duration-300 hover:bg-accent hover:border-accent"
                   >
                     <div className="relative flex items-center justify-between">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center shadow-md">
-                          <Phone className="text-accent-foreground" size={20} />
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-semibold text-foreground mb-1 text-base">
-                            {call.comment || 'Follow-up Call'}
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              <span>
-                                {formatTimeAgo(call.callTime)} •{' ' + formatDateTime(call.callTime)}
-                              </span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-foreground text-sm mb-1 truncate">
+                              {call.comment || 'Follow-up Call'}
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                <span>{formatTimeAgo(call.callTime)}</span>
+                              </div>
+                              <span>{formatDateTime(call.callTime)}</span>
                             </div>
                             {call.phoneNumber && (
-                              <div className="text-xs text-muted-foreground">Phone: {call.phoneNumber}</div>
+                              <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-md border border-blue-200 dark:border-blue-800">
+                                <Phone className="h-3 w-3" />
+                                <span className="font-mono">{call.phoneNumber}</span>
+                              </div>
                             )}
                           </div>
                         </div>
                       </div>
-
-                      <Button
-                        size="icon"
-                        className={`w-10 h-10 rounded-full text-white shadow-lg
-                            ${
-                              call.isAlert
-                                ? 'bg-green-600 animate-bounce'
-                                : 'bg-green-600 hover:bg-green-700 focus-visible:ring-green-500'
-                            }
-                          `}
-                        onClick={() => initiateCall(call.phoneNumber)}
-                        disabled={!call.phoneNumber}
-                        aria-label={`Call ${call.phoneNumber}`}
-                      >
-                        <Phone className="h-8 w-8" />
-                      </Button>
                     </div>
                   </li>
                 ))}
