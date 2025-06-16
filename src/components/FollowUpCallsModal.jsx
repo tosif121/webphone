@@ -18,7 +18,6 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
   const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const parsedData = tokenData ? JSON.parse(tokenData) : null;
   const userCampaign = parsedData?.userData?.campaign;
-  const apiUrl = '${window.location.origin}/';
 
   useEffect(() => {
     const now = new Date();
@@ -48,7 +47,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
       try {
         const cleanPhoneNumber = caller?.replace(/\s+/g, '') || '';
 
-        const response = await axios.post(`${apiUrl}/dialmissedcall`, {
+        const response = await axios.post(`${window.location.origin}/dialmissedcall`, {
           caller: username,
           receiver: cleanPhoneNumber,
         });

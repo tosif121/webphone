@@ -166,8 +166,6 @@ export default function Login() {
     return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
   };
 
-  const apiUrl = '${window.location.origin}/';
-
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
 
@@ -180,7 +178,7 @@ export default function Login() {
 
     try {
       const { data: response } = await axios.post(
-        `${apiUrl}userlogin/${username}`,
+        `${window.location.origin}userlogin/${username}`,
         { username, password },
         { headers: { 'Content-Type': 'application/json' } }
       );

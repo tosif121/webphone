@@ -132,8 +132,6 @@ function Dashboard() {
     setCampaignMissedCallsLength(computedMissedCallsLength);
   }, [computedMissedCallsLength, setCampaignMissedCallsLength]);
 
-  const apiUrl = '${window.location.origin}/';
-
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -168,7 +166,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`${apiUrl}/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -199,7 +197,7 @@ function Dashboard() {
 
   const fetchUserMissedCalls = async () => {
     try {
-      const response = await axios.post(`${apiUrl}usermissedCalls/${username}`);
+      const response = await axios.post(`${window.location.origin}usermissedCalls/${username}`);
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
