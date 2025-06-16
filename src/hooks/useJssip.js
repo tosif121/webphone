@@ -41,8 +41,13 @@ const useJssip = () => {
     autoStart: false,
   });
 
-  const originWithoutProtocol =
-    typeof window !== 'undefined' ? window.location.origin.replace(/^https?:\/\//, '') : 'esamwad.iotcom.io';
+  // const origin = 'esamwad.iotcom.io';
+  const [origin, setOrigin] = useState('esamwad.iotcom.io');
+
+  useEffect(() => {
+    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    setOrigin(originWithoutProtocol);
+  }, []);
 
   function notifyMe() {
     if (!('Notification' in window)) {
@@ -255,7 +260,7 @@ const useJssip = () => {
   const initializeWebSocketTranscription = () => {
     const createWebSocket = (isAgent = true) => {
       const socketRef = isAgent ? agentSocketRef : customerSocketRef;
-      const socket = new WebSocket(`wss://${originWithoutProtocol}/socket`);
+      const socket = new WebSocket(`wss://${origin}/socket`);
 
       socketRef.current = socket;
 
@@ -775,7 +780,7 @@ const useJssip = () => {
     }
     const initializeJsSIP = () => {
       try {
-        var socket = new JsSIP.WebSocketInterface(`wss://${originWithoutProtocol}:8089/ws`);
+        var socket = new JsSIP.WebSocketInterface(`wss://${origin}:8089/ws`);
 
         // Add direct socket error handling
         socket.onclose = function (event) {
@@ -797,7 +802,7 @@ const useJssip = () => {
         var configuration = {
           sockets: [socket],
           session_timers: false,
-          uri: `${username.replace('@', '-')}@${originWithoutProtocol}:8089`,
+          uri: `${username.replace('@', '-')}@${origin}:8089`,
           password: password,
         };
 
