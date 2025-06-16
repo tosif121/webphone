@@ -132,7 +132,7 @@ function Dashboard() {
     setCampaignMissedCallsLength(computedMissedCallsLength);
   }, [computedMissedCallsLength, setCampaignMissedCallsLength]);
 
-  const apiUrl = 'https://esamwad.iotcom.io/';
+  const apiUrl = '${window.location.origin}/';
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -216,7 +216,7 @@ function Dashboard() {
 
   const fetchAdminUser = async () => {
     try {
-      const response = await axios.get(`https://esamwad.iotcom.io/users/${adminUser}`, {
+      const response = await axios.get(`${window.location.origin}/users/${adminUser}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -281,7 +281,7 @@ function Dashboard() {
       setLoading(true);
       try {
         // Step 1: Get formId from campaign
-        const res1 = await fetch(`https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`, {
+        const res1 = await fetch(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         // if (!res1.ok) throw new Error('Failed to fetch form config');
@@ -290,7 +290,7 @@ function Dashboard() {
         // if (!formId) throw new Error('Form ID not found');
 
         // Step 2: Get full form config by formId
-        const res2 = await fetch(`https://esamwad.iotcom.io/getDynamicFormData/${formId}`, {
+        const res2 = await fetch(`${window.location.origin}/getDynamicFormData/${formId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         // if (!res2.ok) throw new Error('Failed to fetch full form');
@@ -319,7 +319,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

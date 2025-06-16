@@ -166,7 +166,7 @@ export default function Login() {
     return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
   };
 
-  const apiUrl = 'https://esamwad.iotcom.io/';
+  const apiUrl = '${window.location.origin}/';
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();

@@ -41,8 +41,8 @@ const useJssip = () => {
     autoStart: false,
   });
 
-  const originWithoutProtocol = 'esamwad.iotcom.io';
-  // const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+  const originWithoutProtocol =
+    typeof window !== 'undefined' ? window.location.origin.replace(/^https?:\/\//, '') : 'esamwad.iotcom.io';
 
   function notifyMe() {
     if (!('Notification' in window)) {
@@ -87,7 +87,7 @@ const useJssip = () => {
 
   const createConferenceCall = async () => {
     try {
-      const response = await fetch(`https://esamwad.iotcom.io/reqConf/${username}`, {
+      const response = await fetch(`${window.location.origin}/reqConf/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ const useJssip = () => {
       // Ensure request times out if API is stuck
       const response = await withTimeout(
         axios.post(
-          `https://esamwad.iotcom.io/userconnection`,
+          `${window.location.origin}/userconnection`,
           { user: username },
           { headers: { 'Content-Type': 'application/json' } }
         ),
@@ -216,7 +216,7 @@ const useJssip = () => {
 
   const checkUserReady = async () => {
     try {
-      const url = `https://esamwad.iotcom.io/userready/${username}`;
+      const url = `${window.location.origin}/userready/${username}`;
       const response = await axios.post(url, {}, { headers: { 'Content-Type': 'application/json' } });
       return response.data;
     } catch (error) {
@@ -348,7 +348,7 @@ const useJssip = () => {
     if (!session) return;
 
     try {
-      const response = await fetch(`https://esamwad.iotcom.io/reqUnHold/${username}`, {
+      const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -376,7 +376,7 @@ const useJssip = () => {
 
     try {
       if (!isHeld) {
-        await fetch(`https://esamwad.iotcom.io/reqHold/${username}`, {
+        await fetch(`${window.location.origin}/reqHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -392,7 +392,7 @@ const useJssip = () => {
 
         setIsHeld(true);
       } else {
-        await fetch(`https://esamwad.iotcom.io/reqUnHold/${username}`, {
+        await fetch(`${window.location.origin}/reqUnHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -629,7 +629,7 @@ const useJssip = () => {
   const answercall = async (incomingNumber = null) => {
     try {
       const response = await axios.post(
-        `https://esamwad.iotcom.io/useroncall/${username}`,
+        `${window.location.origin}/useroncall/${username}`,
         {},
         {
           headers: {
@@ -995,7 +995,7 @@ const useJssip = () => {
 
     axios
       .post(
-        'https://esamwad.iotcom.io/dialnumber',
+        '${window.location.origin}/dialnumber',
         { caller: username, receiver: phoneNumber || formattedNumber },
         {
           headers: {
@@ -1019,7 +1019,7 @@ const useJssip = () => {
       if (isCallended) {
         try {
           await axios.post(
-            `https://esamwad.iotcom.io/user/callended${username}`,
+            `${window.location.origin}/user/callended${username}`,
             {},
             {
               headers: {

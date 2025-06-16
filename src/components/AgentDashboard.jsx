@@ -96,7 +96,7 @@ export default function AgentDashboard() {
       try {
         const tokenData = JSON.parse(localStorage.getItem('token'));
         const response = await axios.post(
-          'https://esamwad.iotcom.io/agentDashboardData',
+          '${window.location.origin}/agentDashboardData',
           { user: tokenData.userData.userid },
           {
             headers: {

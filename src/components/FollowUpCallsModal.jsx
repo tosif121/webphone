@@ -18,7 +18,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
   const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const parsedData = tokenData ? JSON.parse(tokenData) : null;
   const userCampaign = parsedData?.userData?.campaign;
-  const apiUrl = 'https://esamwad.iotcom.io/';
+  const apiUrl = '${window.location.origin}/';
 
   useEffect(() => {
     const now = new Date();
