@@ -178,7 +178,7 @@ export default function Login() {
 
     try {
       const { data: response } = await axios.post(
-        `${window.location.origin}userlogin/${username}`,
+        `${window.location.origin}/userlogin//${username}`,
         { username, password },
         { headers: { 'Content-Type': 'application/json' } }
       );
