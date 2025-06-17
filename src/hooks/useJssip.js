@@ -5,7 +5,7 @@ import JsSIP from 'jssip';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const useJssip = () => {
+const useJssip = (isMobile = false) => {
   const { setHistory, username, password } = useContext(HistoryContext);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [conferenceNumber, setConferenceNumber] = useState('');
@@ -29,12 +29,17 @@ const useJssip = () => {
   const [messageDifference, setMessageDifference] = useState([]);
   const [avergaeMessageTimePerMinute, setAvergaeMessageTimePerMinute] = useState([]);
   // const [isDialbuttonClicked, setIsDialbuttonClicked] = useState(false);
+  const [incomingSession, setIncomingSession] = useState(null);
+  const [incomingNumber, setIncomingNumber] = useState('');
+  const [isIncomingRinging, setIsIncomingRinging] = useState(false);
   const [followUpDispoes, setFollowUpDispoes] = useState([]);
   const offlineToastIdRef = useRef(null);
   const agentSocketRef = useRef(null);
   const customerSocketRef = useRef(null);
   const agentMediaRecorderRef = useRef(null);
   const customerMediaRecorderRef = useRef(null);
+  const dialingNumberRef = useRef('');
+  const ringtoneRef = useRef(null);
   const audioRef = useRef();
   const chunks = useRef([]);
   const { seconds, minutes, isRunning, pause, reset } = useStopwatch({
@@ -45,8 +50,8 @@ const useJssip = () => {
   const [origin, setOrigin] = useState('esamwad.iotcom.io');
 
   useEffect(() => {
-    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-    setOrigin(originWithoutProtocol);
+    // const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    // setOrigin(originWithoutProtocol);
   }, []);
 
   function notifyMe() {
@@ -65,6 +70,37 @@ const useJssip = () => {
       });
     }
   }
+
+  const playRingtone = () => {
+    if (ringtoneRef.current) {
+      ringtoneRef.current.currentTime = 0;
+      ringtoneRef.current.volume = 0.5;
+
+      // Handle autoplay policy
+      const playPromise = ringtoneRef.current.play();
+
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('Ringtone started playing');
+          })
+          .catch((error) => {
+            console.error('Error playing ringtone:', error);
+            // Try to play with user interaction
+            if (error.name === 'NotAllowedError') {
+              console.log('Autoplay prevented. User interaction required.');
+            }
+          });
+      }
+    }
+  };
+
+  const stopRingtone = () => {
+    if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+    }
+  };
 
   function createNotification() {
     const notifiOptions = {
@@ -92,7 +128,7 @@ const useJssip = () => {
 
   const createConferenceCall = async () => {
     try {
-      const response = await fetch(`${window.location.origin}/reqConf/${username}`, {
+      const response = await fetch(`https://esamwad.iotcom.io/reqConf/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -130,23 +166,39 @@ const useJssip = () => {
 
   const connectioncheck = async () => {
     try {
-      setIsConnectionLost(false); // Reset state before checking connection
+      // Don't run connection check during call events or disposition modal
+      if (isIncomingRinging || status === 'calling' || status === 'conference' || dispositionModal) {
+        return false;
+      }
 
-      // Ensure request times out if API is stuck
+      // Add a delay after call events before checking connection
+      const now = Date.now();
+      const lastCallEvent = localStorage.getItem('lastCallEvent');
+      if (lastCallEvent && now - parseInt(lastCallEvent) < 5000) {
+        return false; // Wait 5 seconds after call events
+      }
+
+      setIsConnectionLost(false);
+
       const response = await withTimeout(
         axios.post(
-          `${window.location.origin}/userconnection`,
+          `https://esamwad.iotcom.io/userconnection`,
           { user: username },
           { headers: { 'Content-Type': 'application/json' } }
         ),
         3000
       );
 
+      // Rest of your existing logic...
       if (response.status === 401 || !response.data.isUserLogin) {
         localStorage.clear();
         window.location.href = '/webphone/login';
         toast.error('Session expired. Please log in again.');
-        session.terminate();
+
+        if (session && session.status < 6) {
+          session.terminate();
+        }
+
         stopRecording();
         setIsConnectionLost(true);
         return true;
@@ -154,30 +206,40 @@ const useJssip = () => {
 
       const data = response.data;
       const tokenData = JSON.parse(localStorage.getItem('token'));
+
+      if (!tokenData) {
+        console.error('No token data found');
+        return false;
+      }
+
       setFollowUpDispoes(data.followUpDispoes);
+
       if (!tokenData?.userData?.campaign) {
         console.error('Campaign information missing in token data');
-        localStorage.clear();
-        window.location.href = '/webphone/login';
-        toast.error('Invalid session. Please log in again.');
-        session.terminate();
-        stopRecording();
-        setIsConnectionLost(true);
-        return true;
+        return false;
       }
 
       const campaign = tokenData.userData.campaign;
 
       if (data.message !== 'ok connection for user') {
-        localStorage.clear();
-        window.location.href = '/webphone/login';
-        session.terminate();
-        stopRecording();
-        toast.error('Connection lost. Please log in again.');
-        setIsConnectionLost(true);
-        return true;
+        // Don't logout immediately during call events
+        if (status === 'start' && !dispositionModal) {
+          localStorage.clear();
+          window.location.href = '/webphone/login';
+
+          if (session && session.status < 6) {
+            session.terminate();
+          }
+
+          stopRecording();
+          toast.error('Connection lost. Please log in again.');
+          setIsConnectionLost(true);
+          return true;
+        }
+        return false;
       }
 
+      // Rest of your existing logic...
       if (data.currentCallqueue?.length > 0) {
         if (campaign === data.currentCallqueue[0].campaign) {
           setTimeoutArray([]);
@@ -188,29 +250,37 @@ const useJssip = () => {
         }
       } else {
         setRingtone([]);
-        // console.log('No current call queue data available');
       }
 
-      setIsConnectionLost(false); // Connection is fine
+      setIsConnectionLost(false);
       return false;
     } catch (err) {
+      // Handle errors more gracefully
       if (err.message === 'Timeout') {
         console.error('Connection timed out');
-        toast.error('Server appears to be unresponsive. Retrying...');
-        // localStorage.clear();
-        // window.location.href = '/webphone/login';
+        // Don't show error during call events
+        if (status === 'start' && !dispositionModal) {
+          toast.error('Server appears to be unresponsive. Retrying...');
+        }
         addTimeout('timeout');
       } else if (err.message.includes('Network')) {
         console.error('Network error:', err.message);
-        toast.error('Network error. Please check your connection.');
+        if (status === 'start' && !dispositionModal) {
+          toast.error('Network error. Please check your connection.');
+        }
         addTimeout('network');
       } else {
         console.error('Error during connection check:', err);
-        if (err.response && err.response.status === 401) {
+        // Only logout on specific auth errors and not during call events
+        if (err.response && err.response.status === 401 && status === 'start' && !dispositionModal) {
           localStorage.clear();
           window.location.href = '/webphone/login';
           toast.error('Session expired. Please log in again.');
-          session.terminate();
+
+          if (session && session.status < 6) {
+            session.terminate();
+          }
+
           stopRecording();
         }
       }
@@ -221,7 +291,7 @@ const useJssip = () => {
 
   const checkUserReady = async () => {
     try {
-      const url = `${window.location.origin}/userready/${username}`;
+      const url = `https://esamwad.iotcom.io/userready/${username}`;
       const response = await axios.post(url, {}, { headers: { 'Content-Type': 'application/json' } });
       return response.data;
     } catch (error) {
@@ -353,7 +423,7 @@ const useJssip = () => {
     if (!session) return;
 
     try {
-      const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
+      const response = await fetch(`https://esamwad.iotcom.io/reqUnHold/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -381,7 +451,7 @@ const useJssip = () => {
 
     try {
       if (!isHeld) {
-        await fetch(`${window.location.origin}/reqHold/${username}`, {
+        await fetch(`https://esamwad.iotcom.io/reqHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -397,7 +467,7 @@ const useJssip = () => {
 
         setIsHeld(true);
       } else {
-        await fetch(`${window.location.origin}/reqUnHold/${username}`, {
+        await fetch(`https://esamwad.iotcom.io/reqUnHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -634,7 +704,7 @@ const useJssip = () => {
   const answercall = async (incomingNumber = null) => {
     try {
       const response = await axios.post(
-        `${window.location.origin}/useroncall/${username}`,
+        `https://esamwad.iotcom.io/useroncall/${username}`,
         {},
         {
           headers: {
@@ -668,6 +738,56 @@ const useJssip = () => {
     } catch (error) {
       console.error('Error processing call:', error);
     }
+  };
+
+  const answerIncomingCall = async () => {
+    if (incomingSession) {
+      try {
+        stopRingtone(); // Stop ringtone when call is answered
+
+        incomingSession.answer(options);
+        setSession(incomingSession);
+        setIncomingSession(null);
+        setIsIncomingRinging(false);
+        setStatus('calling');
+        reset();
+
+        // Set up audio stream
+        incomingSession.connection.addEventListener('addstream', (event) => {
+          if (audioRef.current) {
+            audioRef.current.srcObject = event.stream;
+          }
+        });
+
+        // Update history
+        setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], status: 'Success' }]);
+
+        const callerNumber = incomingNumber;
+        await answercall(callerNumber);
+      } catch (error) {
+        console.error('Error answering call:', error);
+        toast.error('Failed to answer call');
+      }
+    }
+  };
+
+  const rejectIncomingCall = () => {
+    stopRingtone();
+
+    if (incomingSession && incomingSession.status < 6) {
+      incomingSession.terminate();
+    }
+    setIncomingSession(null);
+    setIsIncomingRinging(false);
+    setStatus('start');
+
+    // Update history as rejected
+    setHistory((prev) => [
+      ...prev.slice(0, -1),
+      { ...prev[prev.length - 1], status: 'Rejected', end: new Date().getTime() },
+    ]);
+
+    setDispositionModal(true);
   };
 
   useEffect(() => {
@@ -865,16 +985,119 @@ const useJssip = () => {
           localStorage.clear();
           // window.location.href = '/webphone/login';
         });
-
         ua.on('newRTCSession', function (e) {
-          console.log('Session Direction:', e.session.direction);
+          console.log('🔍 Session Direction:', e.session.direction);
+          console.log('🔍 Is Mobile:', isMobile);
 
           if (e.session.direction === 'incoming') {
-            handleIncomingCall(e.session, e.request);
+            const remoteNumber = e.session.remote_identity.uri.user;
+            const isActuallyOutgoing = dialingNumberRef.current && remoteNumber === dialingNumberRef.current;
+
+            if (isActuallyOutgoing) {
+              console.log('✅ This is our OUTGOING call (auto-answer)');
+              dialingNumberRef.current = '';
+              handleIncomingCall(e.session, e.request); // Your existing auto-answer logic
+            } else {
+              console.log('✅ This is TRUE INCOMING call');
+
+              if (isMobile) {
+                // Mobile: Show UI with ringtone
+                console.log('📱 Mobile - showing incoming call UI');
+                const incomingNumber = e.request.from._uri._user;
+                setIncomingSession(e.session);
+                setIncomingNumber(incomingNumber);
+                setIsIncomingRinging(true);
+                setStatus('incoming');
+                playRingtone(); // Play ringtone on mobile
+
+                // Add history and event listeners for mobile...
+                setHistory((prev) => [
+                  ...prev,
+                  {
+                    phoneNumber: incomingNumber,
+                    type: 'incoming',
+                    status: 'Ringing',
+                    start: new Date().getTime(),
+                    startTime: new Date(),
+                  },
+                ]);
+
+                e.session.on('ended', () => {
+                  stopRingtone();
+                  setIncomingSession(null);
+                  setIsIncomingRinging(false);
+                  setStatus('start');
+                  setHistory((prev) => [
+                    ...prev.slice(0, -1),
+                    { ...prev[prev.length - 1], status: 'Missed', end: new Date().getTime() },
+                  ]);
+                  setDispositionModal(true);
+                });
+
+                e.session.on('failed', () => {
+                  stopRingtone();
+                  setIncomingSession(null);
+                  setIsIncomingRinging(false);
+                  setStatus('start');
+                  setHistory((prev) => [
+                    ...prev.slice(0, -1),
+                    { ...prev[prev.length - 1], status: 'Failed', end: new Date().getTime() },
+                  ]);
+                  setDispositionModal(true);
+                });
+              } else {
+                // Desktop: Auto-answer (no UI, no ringtone)
+                console.log('🖥️ Desktop - auto-answering incoming call');
+                handleIncomingCall(e.session, e.request); // Reuse existing auto-answer logic
+              }
+            }
           } else {
+            console.log('✅ Normal OUTGOING call');
+            // Handle normal outgoing calls (when direction is actually "outgoing")
             setSession(e.session);
+            setStatus('calling');
+
+            // Set up audio stream
             e.session.connection.addEventListener('addstream', (event) => {
-              audioRef.current.srcObject = event.stream;
+              if (audioRef.current) {
+                audioRef.current.srcObject = event.stream;
+              }
+            });
+
+            // Add event listeners for outgoing calls
+            e.session.on('confirmed', () => {
+              reset();
+              startRecording();
+              setHistory((prev) => [
+                ...prev.slice(0, -1),
+                {
+                  ...prev[prev.length - 1],
+                  status: 'Success',
+                  start: new Date().getTime(),
+                },
+              ]);
+            });
+
+            e.session.on('ended', () => {
+              if (isRecording) {
+                stopRecording();
+              }
+              setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
+              pause();
+              setStatus('start');
+              setIsCallended(true);
+              setConferenceNumber('');
+            });
+
+            e.session.on('failed', () => {
+              setStatus('fail');
+              if (isRecording) {
+                stopRecording();
+              }
+              setHistory((prev) => [
+                ...prev.slice(0, -1),
+                { ...prev[prev.length - 1], status: 'Fail', start: 0, end: 0 },
+              ]);
             });
           }
         });
@@ -890,8 +1113,7 @@ const useJssip = () => {
 
     const handleIncomingCall = (session, request) => {
       const incomingNumber = request.from._uri._user;
-      // setInNotification(incomingNumber);
-      session.answer(options);
+      session.answer(options); // Auto-answers (good for outgoing)
       setSession(session);
       setStatus('calling');
       reset();
@@ -903,16 +1125,14 @@ const useJssip = () => {
         }
       });
 
+      // Your existing event listeners...
       session.once('ended', () => {
         setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
         pause();
         setStatus('start');
-        // setPhoneNumber('');
-        // setDispositionModal(true);
-        // * this is new state added because user callended api was calling after
-        // * dispostion done api when auto disposition is done
         setIsCallended(true);
         setConferenceNumber('');
+        setDispositionModal(true);
       });
 
       session.once('failed', () => {
@@ -922,7 +1142,7 @@ const useJssip = () => {
         ]);
         pause();
         setStatus('start');
-        // setPhoneNumber('');
+        setDispositionModal(true);
       });
     };
 
@@ -984,24 +1204,36 @@ const useJssip = () => {
       return;
     }
 
-    if (!phoneNumber || phoneNumber.length < 10 || phoneNumber.length > 12) {
+    const targetNumber = phoneNumber || formattedNumber;
+
+    if (!targetNumber || targetNumber.length < 10 || targetNumber.length > 12) {
       toast.error('Phone number must be 10 digit');
       return;
     }
+
+    console.log('🚀 Starting OUTGOING call to:', targetNumber);
+
+    // Store in ref immediately (synchronous)
+    dialingNumberRef.current = targetNumber.replace(/\D/g, ''); // Remove spaces/formatting
+
+    // Also set state (asynchronous)
+    setPhoneNumber(targetNumber);
 
     setHistory((prev) => [
       ...prev,
       {
         startTime: new Date(),
-        phoneNumber,
+        phoneNumber: targetNumber,
+        type: 'outgoing',
       },
     ]);
+
     localStorage.setItem('dialing', true);
 
     axios
       .post(
-        `${window.location.origin}/dialnumber`,
-        { caller: username, receiver: phoneNumber || formattedNumber },
+        'https://esamwad.iotcom.io/dialnumber',
+        { caller: username, receiver: targetNumber },
         {
           headers: {
             'Content-Type': 'application/json',
@@ -1010,11 +1242,14 @@ const useJssip = () => {
         }
       )
       .then(() => {
-        setPhoneNumber(phoneNumber || formattedNumber);
+        console.log('✅ Backend dial API success');
       })
       .catch((error) => {
-        console.error('Error dialing:', error);
+        console.error('❌ Backend dial API failed:', error);
         toast.error('Failed to initiate the call');
+        setStatus('start');
+        setPhoneNumber('');
+        dialingNumberRef.current = ''; // Clear ref on error
       });
   };
 
@@ -1024,7 +1259,7 @@ const useJssip = () => {
       if (isCallended) {
         try {
           await axios.post(
-            `${window.location.origin}/user/callended${username}`,
+            `https://esamwad.iotcom.io/user/callended${username}`,
             {},
             {
               headers: {
@@ -1042,6 +1277,8 @@ const useJssip = () => {
 
     callApi();
   }, [isCallended, username]);
+
+  console.log('isIncomingRinging', isIncomingRinging);
 
   return [
     ringtone,
@@ -1074,6 +1311,14 @@ const useJssip = () => {
     timeoutArray,
     isConnectionLost,
     followUpDispoes,
+    incomingSession,
+    incomingNumber,
+    isIncomingRinging,
+    answerIncomingCall,
+    rejectIncomingCall,
+    ringtoneRef,
+    playRingtone,
+    stopRingtone,
   ];
 };
 

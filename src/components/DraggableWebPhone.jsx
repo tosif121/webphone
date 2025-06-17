@@ -8,6 +8,7 @@ import CallScreen from './CallScreen';
 import useJssip from '@/hooks/useJssip';
 import CallConference from './CallConference';
 import { JssipContext } from '@/context/JssipContext';
+import IncomingCall from './IncomingCall';
 
 function getInitialWebphoneState() {
   if (typeof window === 'undefined')
@@ -27,24 +28,6 @@ function getInitialWebphoneState() {
     width: 330,
     height: 550,
   };
-}
-
-// Hook to detect mobile devices
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkIsMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkIsMobile();
-    window.addEventListener('resize', checkIsMobile);
-
-    return () => window.removeEventListener('resize', checkIsMobile);
-  }, []);
-
-  return isMobile;
 }
 
 export default function DraggableWebPhone() {
@@ -79,10 +62,18 @@ export default function DraggableWebPhone() {
     timeoutArray,
     isConnectionLost,
     followUpDispoes,
+    incomingSession,
+    incomingNumber,
+    isIncomingRinging,
+    answerIncomingCall,
+    rejectIncomingCall,
+    ringtoneRef,
+    playRingtone,
+    stopRingtone,
+    isMobile,
   } = useContext(JssipContext);
 
   const [webphoneState, setWebphoneState] = useState(getInitialWebphoneState);
-  const isMobile = useIsMobile();
 
   // Always start with false to match server-side rendering
   const [phoneShow, setPhoneShow] = useState(false);
@@ -92,7 +83,7 @@ export default function DraggableWebPhone() {
 
   const [seeLogs, setSeeLogs] = useState(false);
   const [callConference, setCallConference] = useState(false);
-  
+
   useEffect(() => {
     if (isMobile && phoneShow) {
       document.body.style.overflow = 'hidden';
@@ -171,9 +162,18 @@ export default function DraggableWebPhone() {
   // Render the phone content
   const renderPhoneContent = () => (
     <div className={isMobile ? 'w-full h-full' : 'webphone-drag-handle w-full h-full'}>
-      {seeLogs ? (
-        <HistoryScreen setSeeLogs={setSeeLogs} />
-      ) : status === 'start' ? (
+      {/* Incoming Call - Only show on mobile when ringing */}
+      {isMobile && isIncomingRinging && (
+        <IncomingCall
+          {...{ incomingNumber, incomingSession, isIncomingRinging, answerIncomingCall, rejectIncomingCall }}
+        />
+      )}
+
+      {/* History Screen - Don't show during incoming calls on mobile */}
+      {!(isMobile && isIncomingRinging) && seeLogs && <HistoryScreen setSeeLogs={setSeeLogs} />}
+
+      {/* Home Screen - Don't show during incoming calls on mobile */}
+      {!(isMobile && isIncomingRinging) && !seeLogs && status === 'start' && (
         <Home
           phoneNumber={phoneNumber}
           setPhoneNumber={setPhoneNumber}
@@ -182,8 +182,13 @@ export default function DraggableWebPhone() {
           timeoutArray={timeoutArray}
           isConnectionLost={isConnectionLost}
         />
-      ) : status === 'calling' || status === 'conference' ? (
-        callConference ? (
+      )}
+
+      {/* Active Call Screens - Don't show during incoming calls on mobile */}
+      {!(isMobile && isIncomingRinging) &&
+        !seeLogs &&
+        (status === 'calling' || status === 'ringing' || status === 'conference') &&
+        (callConference ? (
           <CallConference
             conferenceNumber={conferenceNumber}
             setCallConference={setCallConference}
@@ -212,22 +217,64 @@ export default function DraggableWebPhone() {
             selectedDeviceId={selectedDeviceId}
             changeAudioDevice={changeAudioDevice}
             conferenceStatus={conferenceStatus}
+            status={status}
           />
-        )
-      ) : (
-        <div className="flex flex-col items-center justify-center h-full text-center py-16">
-          <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center mb-6">
-            <PhoneCall className="h-8 w-8 text-slate-400 dark:text-slate-500" />
+        ))}
+
+      {/* Fallback - Don't show during incoming calls on mobile */}
+      {!(isMobile && isIncomingRinging) &&
+        !seeLogs &&
+        !['start', 'calling', 'ringing', 'conference'].includes(status) && (
+          <div className="flex flex-col items-center justify-center h-full text-center py-16">
+            <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center mb-6">
+              <PhoneCall className="h-8 w-8 text-slate-400 dark:text-slate-500" />
+            </div>
+            <h3 className="text-xl font-semibold text-slate-600 dark:text-slate-200">No Active Calls</h3>
+            <p className="text-base text-slate-500 dark:text-slate-400 mt-2">Ready to make or receive calls</p>
           </div>
-          <h3 className="text-xl font-semibold text-slate-600 dark:text-slate-200">No Active Calls</h3>
-          <p className="text-base text-slate-500 dark:text-slate-400 mt-2">Ready to make or receive calls</p>
-        </div>
-      )}
+        )}
     </div>
   );
 
+  // Add this useEffect to your DraggableWebPhone component
+  useEffect(() => {
+    const enableAudio = () => {
+      if (ringtoneRef.current) {
+        // Try to play and immediately pause to enable audio
+        ringtoneRef.current
+          .play()
+          .then(() => {
+            ringtoneRef.current.pause();
+            ringtoneRef.current.currentTime = 0;
+          })
+          .catch(() => {
+            // Audio not ready yet
+          });
+      }
+    };
+
+    // Enable audio on first user interaction
+    const handleUserInteraction = () => {
+      enableAudio();
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+    };
+
+    document.addEventListener('click', handleUserInteraction);
+    document.addEventListener('touchstart', handleUserInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+    };
+  }, []);
+
   return (
     <>
+      <audio ref={ringtoneRef} loop preload="auto" style={{ display: 'none' }}>
+        <source src={`${window.location.origin}/sounds/ringtone.mp3`} type="audio/mpeg" />
+      </audio>
+
       {/* Floating Toggle Button */}
       <div className="fixed bottom-2 sm:bottom-20 right-8 z-[51]">
         <Button
@@ -281,7 +328,6 @@ export default function DraggableWebPhone() {
           )}
         </>
       )}
-
       <audio ref={audioRef} autoPlay hidden />
     </>
   );

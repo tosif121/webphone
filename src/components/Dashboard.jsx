@@ -48,6 +48,14 @@ function Dashboard() {
     timeoutArray,
     isConnectionLost,
     followUpDispoes,
+    incomingSession,
+    incomingNumber,
+    isIncomingRinging,
+    answerIncomingCall,
+    rejectIncomingCall,
+    ringtoneRef,
+  playRingtone,
+  stopRingtone,
   } = useContext(JssipContext);
 
   const {
@@ -166,7 +174,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -197,7 +205,7 @@ function Dashboard() {
 
   const fetchUserMissedCalls = async () => {
     try {
-      const response = await axios.post(`${window.location.origin}/usermissedCalls/${username}`);
+      const response = await axios.post(`https://esamwad.iotcom.io/usermissedCalls/${username}`);
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
@@ -214,7 +222,7 @@ function Dashboard() {
 
   const fetchAdminUser = async () => {
     try {
-      const response = await axios.get(`${window.location.origin}/users/${adminUser}`, {
+      const response = await axios.get(`https://esamwad.iotcom.io/users/${adminUser}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -279,7 +287,7 @@ function Dashboard() {
       setLoading(true);
       try {
         // Step 1: Get formId from campaign
-        const res1 = await fetch(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
+        const res1 = await fetch(`https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         // if (!res1.ok) throw new Error('Failed to fetch form config');
@@ -288,7 +296,7 @@ function Dashboard() {
         // if (!formId) throw new Error('Form ID not found');
 
         // Step 2: Get full form config by formId
-        const res2 = await fetch(`${window.location.origin}/getDynamicFormData/${formId}`, {
+        const res2 = await fetch(`https://esamwad.iotcom.io/getDynamicFormData/${formId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         // if (!res2.ok) throw new Error('Failed to fetch full form');
@@ -317,7 +325,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -333,23 +341,20 @@ function Dashboard() {
       console.error('Add/Modify contact error:', err);
     }
   };
-
   return (
     <>
       {/* Call Queue Alert */}
       {ringtone && ringtone.length > 0 && (
-        <div className="fixed top-24 left-0 right-0 mx-auto max-w-lg z-40">
-          <div className="backdrop-blur-md bg-blue-50/90 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 rounded-xl shadow-lg shadow-blue-500/10 p-4 mx-4">
-            <div className="flex items-center gap-3">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-md animate-pulse">
-                <PhoneMissed className="text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Call Queue: ({ringtone.length})</p>
-                <div className="mt-1 text-xs font-medium truncate text-blue-600 dark:text-blue-300">
-                  {ringtone.map((call) => call.Caller).join(', ')}
-                </div>
-              </div>
+        <div className="backdrop-blur-md bg-blue-50/90 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 rounded-xl shadow-lg shadow-blue-500/10 mb-6 p-4 mx-4">
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-md animate-pulse">
+              <PhoneMissed className="text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Call Queue: ({ringtone.length})</p>
+              <marquee className="mt-1 text-xs font-medium truncate text-blue-600 dark:text-blue-300">
+                {ringtone.map((call) => call.Caller).join(', ')}
+              </marquee>
             </div>
           </div>
         </div>
