@@ -1000,7 +1000,7 @@ const useJssip = () => {
 
     axios
       .post(
-        '${window.location.origin}/dialnumber',
+        `${window.location.origin}/dialnumber`,
         { caller: username, receiver: phoneNumber || formattedNumber },
         {
           headers: {
