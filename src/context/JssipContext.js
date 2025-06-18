@@ -56,7 +56,7 @@ export function JssipProvider({ children }) {
     ringtoneRef,
     playRingtone,
     stopRingtone,
-  ] = useJssip(isMobile); // Pass isMobile here
+  ] = useJssip(isMobile);
 
   return (
     <JssipContext.Provider

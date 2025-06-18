@@ -47,7 +47,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
       try {
         const cleanPhoneNumber = caller?.replace(/\s+/g, '') || '';
 
-        const response = await axios.post(`https://esamwad.iotcom.io/dialmissedcall`, {
+        const response = await axios.post(`${window.location.origin}/dialmissedcall`, {
           caller: username,
           receiver: cleanPhoneNumber,
         });

@@ -178,7 +178,7 @@ export default function Login() {
 
     try {
       const { data: response } = await axios.post(
-        `https://esamwad.iotcom.io/userlogin//${username}`,
+        `${window.location.origin}/userlogin//${username}`,
         { username, password },
         { headers: { 'Content-Type': 'application/json' } }
       );
