@@ -1231,7 +1231,7 @@ const useJssip = (isMobile = false) => {
 
     axios
       .post(
-        '${window.location.origin}/dialnumber',
+        `${window.location.origin}/dialnumber`,
         { caller: username, receiver: targetNumber },
         {
           headers: {
