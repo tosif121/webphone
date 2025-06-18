@@ -44,13 +44,11 @@ export default function Login() {
   const handleUsernameChange = (e) => {
     const value = e.target.value.replace(/\s+/g, '');
     setUsername(value);
-    localStorage.setItem('username', value);
   };
 
   const handlePasswordChange = (e) => {
     const value = e.target.value.replace(/\s+/g, '');
     setPassword(value);
-    localStorage.setItem('password', value);
   };
 
   const validateForm = () => {
@@ -166,20 +164,38 @@ export default function Login() {
     return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
   };
 
-  const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
+  // Auto login with saved credentials
+  const handleAutoLogin = async () => {
+    const savedUsername = localStorage.getItem('savedUsername');
+    const savedPassword = localStorage.getItem('savedPassword');
+    
+    // Use the saved credentials for login
+    await performLogin(savedUsername, savedPassword);
+  };
 
-    if (!validateForm()) return;
+  // Perform the actual login logic
+  const performLogin = async (usernameParam, passwordParam) => {
+    const loginUsername = usernameParam || username;
+    const loginPassword = passwordParam || password;
+
+    if (!loginUsername || !loginPassword) {
+      if (!usernameParam) { // Only show validation errors for manual login
+        validateForm();
+      }
+      setIsLoading(false);
+      return;
+    }
 
     const hasMicrophone = await checkMicrophoneAccess();
-    if (!hasMicrophone) return;
-
-    setIsLoading(true);
+    if (!hasMicrophone) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const { data: response } = await axios.post(
-        `${window.location.origin}/userlogin//${username}`,
-        { username, password },
+        `${window.location.origin}/userlogin//${loginUsername}`,
+        { username: loginUsername, password: loginPassword },
         { headers: { 'Content-Type': 'application/json' } }
       );
 
@@ -219,8 +235,13 @@ export default function Login() {
       const differenceInTime = expiryDate - currentDate;
       const differenceInDays = differenceInTime / (1000 * 60 * 60 * 24);
 
-      // Store the whole response (or just the token if you prefer)
+      // Store the token and save credentials for future auto-login
       localStorage.setItem('token', JSON.stringify(response));
+      localStorage.setItem('savedUsername', loginUsername);
+      localStorage.setItem('savedPassword', loginPassword);
+      
+      // Remove logout flag since user successfully logged in
+      localStorage.removeItem('userLoggedOut');
 
       if (differenceInDays < 0) {
         const daysExpired = Math.abs(differenceInDays);
@@ -267,23 +288,58 @@ export default function Login() {
     }
   };
 
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    await performLogin();
+  };
+
+  // Check for auto-login on component mount
   useEffect(() => {
     const token = localStorage.getItem('token');
-    try {
-      const parsedToken = JSON.parse(token);
-      if (!parsedToken) {
-        router.push('/webphone/login');
-      } else {
-        router.push('/webphone');
+    const userLoggedOut = localStorage.getItem('userLoggedOut');
+    const savedUsername = localStorage.getItem('savedUsername');
+    const savedPassword = localStorage.getItem('savedPassword');
+
+    // Check if it's a mobile device
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    // If user has valid token and didn't manually logout, redirect to webphone
+    if (token && !userLoggedOut) {
+      try {
+        const parsedToken = JSON.parse(token);
+        if (parsedToken) {
+          router.push('/webphone');
+          return;
+        }
+      } catch (error) {
+        // Invalid token, continue with login flow
       }
-    } catch (error) {
-      // Invalid JSON, treat as no token
-      router.push('/webphone/login');
     }
-  }, []);
+
+    // If user logged out manually, clear the logout flag and show login form
+    if (userLoggedOut) {
+      localStorage.removeItem('userLoggedOut');
+    }
+
+    // Auto-login directly on mobile if we have saved credentials and user didn't manually logout
+    if (savedUsername && savedPassword && !userLoggedOut && isMobile) {
+      setUsername(savedUsername);
+      setPassword(savedPassword);
+      // Trigger auto-login after a short delay to ensure state is set
+      setTimeout(() => {
+        handleAutoLogin();
+      }, 100);
+    }
+  }, [router]);
 
   return (
     <>
+
+
       <Dialog open={subscriptionDialog.isOpen} onOpenChange={() => {}} modal={true}>
         <DialogContent
           className="sm:max-w-lg bg-card/95 [&>button]:hidden backdrop-blur-md border shadow-2xl z-50"

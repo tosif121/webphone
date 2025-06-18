@@ -42,10 +42,18 @@ export const HistoryProvider = ({ children }) => {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedUsername = localStorage.getItem('username');
-      const storedPassword = localStorage.getItem('password');
-      if (storedUsername) setUsername(storedUsername || '');
-      if (storedPassword) setPassword(storedPassword || '');
+      try {
+        // Try 'username' first, then fall back to 'savedUsername'
+        const storedUsername = localStorage.getItem('username') ?? localStorage.getItem('savedUsername');
+        // Try 'password' first, then fall back to 'savedPassword'
+        const storedPassword = localStorage.getItem('password') ?? localStorage.getItem('savedPassword');
+
+        // Update state only if values exist
+        if (storedUsername) setUsername(storedUsername);
+        if (storedPassword) setPassword(storedPassword);
+      } catch (error) {
+        console.error('Error accessing localStorage:', error);
+      }
     }
   }, []);
 

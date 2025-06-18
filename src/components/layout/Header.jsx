@@ -47,13 +47,18 @@ export default function Header() {
 
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
 
-  const handleLogout = () => {
-    toast.success('Logged out!');
+  const handleLogout = async () => {
     if (typeof window !== 'undefined') {
-      localStorage.clear();
+      localStorage.setItem('userLoggedOut', 'true');
+
+      localStorage.removeItem('token');
+
+      toast.success('Logged out successfully');
+
+      setUserMenuOpen(false);
+
       window.location.href = '/webphone/login';
     }
-    setUserMenuOpen(false);
   };
 
   useEffect(() => {
