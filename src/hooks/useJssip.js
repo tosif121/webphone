@@ -1249,6 +1249,8 @@ const useJssip = (isMobile = false) => {
         setStatus('start');
         setPhoneNumber('');
         dialingNumberRef.current = ''; // Clear ref on error
+        localStorage.clear();
+        window.location.href = '/webphone/login';
       });
   };
 
