@@ -74,6 +74,7 @@ export default function DraggableWebPhone() {
   } = useContext(JssipContext);
 
   const [webphoneState, setWebphoneState] = useState(getInitialWebphoneState);
+  const [audioSrc, setAudioSrc] = useState('');
 
   // Always start with false to match server-side rendering
   const [phoneShow, setPhoneShow] = useState(false);
@@ -269,10 +270,14 @@ export default function DraggableWebPhone() {
     };
   }, []);
 
+  useEffect(() => {
+    setAudioSrc(`${window.location.origin}/sounds/ringtone.mp3`);
+  }, []);
+
   return (
     <>
       <audio ref={ringtoneRef} loop preload="auto" style={{ display: 'none' }}>
-        <source src="/sounds/ringtone.mp3" type="audio/mpeg" />
+        <source src={audioSrc} type="audio/mpeg" />
       </audio>
 
       {/* Floating Toggle Button */}
