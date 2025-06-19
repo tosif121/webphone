@@ -188,19 +188,20 @@ const useJssip = (isMobile = false) => {
         3000
       );
 
-      // Rest of your existing logic...
       if (response.status === 401 || !response.data.isUserLogin) {
-        localStorage.clear();
-        window.location.href = '/webphone/login';
-        toast.error('Session expired. Please log in again.');
-
-        if (session && session.status < 6) {
-          session.terminate();
+        if (status === 'start' && !dispositionModal) {
+          // Only logout if not in a call or modal
+          localStorage.clear();
+          window.location.href = '/webphone/login';
+          toast.error('Session expired. Please log in again.');
+          if (session && session.status < 6) {
+            session.terminate();
+          }
+          stopRecording();
+          setIsConnectionLost(true);
+          return true;
         }
-
-        stopRecording();
-        setIsConnectionLost(true);
-        return true;
+        return false;
       }
 
       const data = response.data;
@@ -776,6 +777,7 @@ const useJssip = (isMobile = false) => {
     if (incomingSession && incomingSession.status < 6) {
       incomingSession.terminate();
     }
+    checkUserReady();
     setIncomingSession(null);
     setIsIncomingRinging(false);
     setStatus('start');
@@ -786,7 +788,7 @@ const useJssip = (isMobile = false) => {
       { ...prev[prev.length - 1], status: 'Rejected', end: new Date().getTime() },
     ]);
 
-    setDispositionModal(true);
+    setDispositionModal(false);
   };
 
   useEffect(() => {
@@ -1023,6 +1025,7 @@ const useJssip = (isMobile = false) => {
 
                 e.session.on('ended', () => {
                   stopRingtone();
+                  checkUserReady();
                   setIncomingSession(null);
                   setIsIncomingRinging(false);
                   setStatus('start');
@@ -1030,11 +1033,12 @@ const useJssip = (isMobile = false) => {
                     ...prev.slice(0, -1),
                     { ...prev[prev.length - 1], status: 'Missed', end: new Date().getTime() },
                   ]);
-                  setDispositionModal(true);
+                  setDispositionModal(false);
                 });
 
                 e.session.on('failed', () => {
                   stopRingtone();
+                  checkUserReady();
                   setIncomingSession(null);
                   setIsIncomingRinging(false);
                   setStatus('start');
@@ -1042,7 +1046,7 @@ const useJssip = (isMobile = false) => {
                     ...prev.slice(0, -1),
                     { ...prev[prev.length - 1], status: 'Failed', end: new Date().getTime() },
                   ]);
-                  setDispositionModal(true);
+                  setDispositionModal(false);
                 });
               } else {
                 // Desktop: Auto-answer (no UI, no ringtone)

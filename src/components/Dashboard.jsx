@@ -137,6 +137,12 @@ function Dashboard() {
   }, []);
 
   useEffect(() => {
+    if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'isIncomingRinging', value: isIncomingRinging }));
+    }
+  }, [isIncomingRinging]);
+
+  useEffect(() => {
     setCampaignMissedCallsLength(computedMissedCallsLength);
   }, [computedMissedCallsLength, setCampaignMissedCallsLength]);
 

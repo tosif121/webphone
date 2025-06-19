@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import { Rnd } from 'react-rnd';
 import { Phone, PhoneCall, PhoneOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -123,6 +123,18 @@ export default function DraggableWebPhone() {
   }, [phoneShow, isHydrated]);
 
   useEffect(() => {
+    if (isIncomingRinging) {
+      setPhoneShow(true);
+    }
+  }, [isIncomingRinging]);
+
+  useEffect(() => {
+    if (status === 'calling') {
+      setPhoneShow(true);
+    }
+  }, [status]);
+
+  useEffect(() => {
     if (webphoneState && !isMobile) {
       localStorage.setItem('webphone-position', JSON.stringify(webphoneState));
     }
@@ -237,47 +249,10 @@ export default function DraggableWebPhone() {
     </div>
   );
 
-  // Add this useEffect to your DraggableWebPhone component
-  useEffect(() => {
-    const enableAudio = () => {
-      if (ringtoneRef.current) {
-        // Try to play and immediately pause to enable audio
-        ringtoneRef.current
-          .play()
-          .then(() => {
-            ringtoneRef.current.pause();
-            ringtoneRef.current.currentTime = 0;
-          })
-          .catch(() => {
-            // Audio not ready yet
-          });
-      }
-    };
-
-    // Enable audio on first user interaction
-    const handleUserInteraction = () => {
-      enableAudio();
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('touchstart', handleUserInteraction);
-    };
-
-    document.addEventListener('click', handleUserInteraction);
-    document.addEventListener('touchstart', handleUserInteraction);
-
-    return () => {
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('touchstart', handleUserInteraction);
-    };
-  }, []);
-
-  useEffect(() => {
-    setAudioSrc(`${window.location.origin}/sounds/ringtone.mp3`);
-  }, []);
-
   return (
     <>
-      <audio ref={ringtoneRef} loop preload="auto" style={{ display: 'none' }}>
-        <source src={audioSrc} type="audio/mpeg" />
+      <audio ref={ringtoneRef} preload="auto">
+        <source src="/sounds/ringtone.mp3" type="audio/mp3" />
       </audio>
 
       {/* Floating Toggle Button */}
