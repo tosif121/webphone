@@ -29,6 +29,7 @@ const useJssip = (isMobile = false) => {
   const [messageDifference, setMessageDifference] = useState([]);
   const [avergaeMessageTimePerMinute, setAvergaeMessageTimePerMinute] = useState([]);
   // const [isDialbuttonClicked, setIsDialbuttonClicked] = useState(false);
+  const [callHandled, setCallHandled] = useState(false);
   const [incomingSession, setIncomingSession] = useState(null);
   const [incomingNumber, setIncomingNumber] = useState('');
   const [isIncomingRinging, setIsIncomingRinging] = useState(false);
@@ -41,6 +42,7 @@ const useJssip = (isMobile = false) => {
   const dialingNumberRef = useRef('');
   const ringtoneRef = useRef(null);
   const audioRef = useRef();
+  const callHandledRef = useRef(false);
   const chunks = useRef([]);
   const { seconds, minutes, isRunning, pause, reset } = useStopwatch({
     autoStart: false,
@@ -49,8 +51,8 @@ const useJssip = (isMobile = false) => {
   const [origin, setOrigin] = useState('esamwad.iotcom.io');
 
   useEffect(() => {
-    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-    setOrigin(originWithoutProtocol);
+    // const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    // setOrigin(originWithoutProtocol);
   }, []);
 
   function notifyMe() {
@@ -127,7 +129,7 @@ const useJssip = (isMobile = false) => {
 
   const createConferenceCall = async () => {
     try {
-      const response = await fetch(`${window.location.origin}/reqConf/${username}`, {
+      const response = await fetch(`https://esamwad.iotcom.io/reqConf/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -181,7 +183,7 @@ const useJssip = (isMobile = false) => {
 
       const response = await withTimeout(
         axios.post(
-          `${window.location.origin}/userconnection`,
+          `https://esamwad.iotcom.io/userconnection`,
           { user: username },
           { headers: { 'Content-Type': 'application/json' } }
         ),
@@ -291,7 +293,7 @@ const useJssip = (isMobile = false) => {
 
   const checkUserReady = async () => {
     try {
-      const url = `${window.location.origin}/userready/${username}`;
+      const url = `https://esamwad.iotcom.io/userready/${username}`;
       const response = await axios.post(url, {}, { headers: { 'Content-Type': 'application/json' } });
       return response.data;
     } catch (error) {
@@ -423,7 +425,7 @@ const useJssip = (isMobile = false) => {
     if (!session) return;
 
     try {
-      const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
+      const response = await fetch(`https://esamwad.iotcom.io/reqUnHold/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -451,7 +453,7 @@ const useJssip = (isMobile = false) => {
 
     try {
       if (!isHeld) {
-        await fetch(`${window.location.origin}/reqHold/${username}`, {
+        await fetch(`https://esamwad.iotcom.io/reqHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -467,7 +469,7 @@ const useJssip = (isMobile = false) => {
 
         setIsHeld(true);
       } else {
-        await fetch(`${window.location.origin}/reqUnHold/${username}`, {
+        await fetch(`https://esamwad.iotcom.io/reqUnHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -704,7 +706,7 @@ const useJssip = (isMobile = false) => {
   const answercall = async (incomingNumber = null) => {
     try {
       const response = await axios.post(
-        `${window.location.origin}/useroncall/${username}`,
+        `https://esamwad.iotcom.io/useroncall/${username}`,
         {},
         {
           headers: {
@@ -744,7 +746,8 @@ const useJssip = (isMobile = false) => {
     if (incomingSession) {
       try {
         stopRingtone(); // Stop ringtone when call is answered
-
+        setCallHandled(true);
+        callHandledRef.current = true;
         incomingSession.answer(options);
         setSession(incomingSession);
         setIncomingSession(null);
@@ -1010,7 +1013,6 @@ const useJssip = (isMobile = false) => {
                 setIsIncomingRinging(true);
                 setStatus('incoming');
                 playRingtone(); // Play ringtone on mobile
-
                 // Add history and event listeners for mobile...
                 setHistory((prev) => [
                   ...prev,
@@ -1033,7 +1035,9 @@ const useJssip = (isMobile = false) => {
                     ...prev.slice(0, -1),
                     { ...prev[prev.length - 1], status: 'Missed', end: new Date().getTime() },
                   ]);
-                  setDispositionModal(false);
+                  setDispositionModal(callHandledRef.current);
+                  setCallHandled(false);
+                  callHandledRef.current = false;
                 });
 
                 e.session.on('failed', () => {
@@ -1046,7 +1050,9 @@ const useJssip = (isMobile = false) => {
                     ...prev.slice(0, -1),
                     { ...prev[prev.length - 1], status: 'Failed', end: new Date().getTime() },
                   ]);
-                  setDispositionModal(false);
+                  setDispositionModal(callHandledRef.current);
+                  setCallHandled(false);
+                  callHandledRef.current = false;
                 });
               } else {
                 // Desktop: Auto-answer (no UI, no ringtone)
@@ -1235,7 +1241,7 @@ const useJssip = (isMobile = false) => {
 
     axios
       .post(
-        `${window.location.origin}/dialnumber`,
+        `https://esamwad.iotcom.io/dialnumber`,
         { caller: username, receiver: targetNumber },
         {
           headers: {
@@ -1264,7 +1270,7 @@ const useJssip = (isMobile = false) => {
       if (isCallended) {
         try {
           await axios.post(
-            `${window.location.origin}/user/callended${username}`,
+            `https://esamwad.iotcom.io/user/callended${username}`,
             {},
             {
               headers: {

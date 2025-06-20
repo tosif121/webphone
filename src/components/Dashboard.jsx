@@ -136,12 +136,44 @@ function Dashboard() {
     }
   }, []);
 
+  // In your web app React component:
+
   useEffect(() => {
-    if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'isIncomingRinging', value: isIncomingRinging }));
-    }
+    // Expose functions to React Native
+    window.answerIncomingCall = function () {
+      console.log('answerIncomingCall called from React Native');
+      answerIncomingCall();
+    };
+
+    window.rejectIncomingCall = function () {
+      console.log('rejectIncomingCall called from React Native');
+      rejectIncomingCall();
+    };
+
+    // Cleanup function
+    return () => {
+      delete window.answerIncomingCall;
+      delete window.rejectIncomingCall;
+    };
+  }, []);
+
+  useEffect(() => {
+    const sendRingingState = () => {
+      if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+        console.log('Sending isIncomingRinging to React Native:', isIncomingRinging);
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            type: 'isIncomingRinging',
+            value: isIncomingRinging,
+          })
+        );
+      }
+    };
+
+    sendRingingState();
   }, [isIncomingRinging]);
 
+ 
   useEffect(() => {
     setCampaignMissedCallsLength(computedMissedCallsLength);
   }, [computedMissedCallsLength, setCampaignMissedCallsLength]);
@@ -180,7 +212,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -211,7 +243,7 @@ function Dashboard() {
 
   const fetchUserMissedCalls = async () => {
     try {
-      const response = await axios.post(`${window.location.origin}/usermissedCalls/${username}`);
+      const response = await axios.post(`https://esamwad.iotcom.io/usermissedCalls/${username}`);
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
@@ -228,7 +260,7 @@ function Dashboard() {
 
   const fetchAdminUser = async () => {
     try {
-      const response = await axios.get(`${window.location.origin}/users/${adminUser}`, {
+      const response = await axios.get(`https://esamwad.iotcom.io/users/${adminUser}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -293,7 +325,7 @@ function Dashboard() {
       setLoading(true);
       try {
         // Step 1: Get formId from campaign
-        const res1 = await fetch(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
+        const res1 = await fetch(`https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         // if (!res1.ok) throw new Error('Failed to fetch form config');
@@ -302,7 +334,7 @@ function Dashboard() {
         // if (!formId) throw new Error('Form ID not found');
 
         // Step 2: Get full form config by formId
-        const res2 = await fetch(`${window.location.origin}/getDynamicFormData/${formId}`, {
+        const res2 = await fetch(`https://esamwad.iotcom.io/getDynamicFormData/${formId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         // if (!res2.ok) throw new Error('Failed to fetch full form');
@@ -331,7 +363,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
