@@ -49,9 +49,10 @@ export default function Header() {
 
   const handleLogout = async () => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('userLoggedOut', 'true');
+      // localStorage.setItem('userLoggedOut', 'true');
 
-      localStorage.removeItem('token');
+      // localStorage.removeItem('token');
+      localStorage.clear();
 
       toast.success('Logged out successfully');
 
