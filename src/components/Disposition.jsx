@@ -34,6 +34,7 @@ const Disposition = ({
   const [userCallOpen, setUserCallOpen] = useState(false);
   const [dispositionActions, setDispositionActions] = useState([]);
   const [hasSubmittedSuccessfully, setHasSubmittedSuccessfully] = useState(false);
+  const [shouldShowModal, setShouldShowModal] = useState(false);
 
   // Changed to store Date objects for the Callback component
   const [followUpDate, setFollowUpDate] = useState(undefined);
@@ -147,27 +148,74 @@ const Disposition = ({
     );
   };
 
+  // Main effect to handle disposition options and auto disposition
   useEffect(() => {
     const dispoData = JSON.parse(localStorage.getItem('token'))?.userData?.dispostionOptions;
+
     if (dispoData?.length > 0) {
+      // Has disposition options - show modal
       setDispositionActions(
         dispoData.map((item) => ({
           action: item.value,
           label: item.label,
         }))
       );
+      setShouldShowModal(true);
     } else {
-      setDispositionActions([
-        { action: 'Busy', label: 'B - Busy' },
-        { action: 'Not Reachable', label: 'NR - Not Reachable' },
-        { action: 'Switched Off', label: 'SW - Switched Off' },
-        { action: 'Interested', label: 'INT - Interested' },
-        { action: 'Not Answered', label: 'N - Not Answered' },
-        { action: 'Test Call', label: 'TEST - Test Call' },
-        { action: 'Connected', label: 'CO - Connected' },
-        { action: 'Wrong Number', label: 'WN - Wrong Number' },
-        { action: 'Not Interested', label: 'NI - Not Interested' },
-      ]);
+      // No disposition options - trigger auto disposition immediately
+      console.log('No disposition options found, triggering auto disposition:', Date.now());
+
+      const autoDispoFunc = async () => {
+        try {
+          const requestBody = {
+            bridgeID,
+            Disposition: 'Auto Disposed',
+            autoDialDisabled: false,
+          };
+
+          const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
+
+          if (response.data.success) {
+            toast.success('Auto disposition completed successfully');
+            handleContact(); // Move to next contact
+            setDispositionModal(false); // Close modal
+            setPhoneNumber(''); // Clear phone number
+          } else {
+            toast.error(response.data.message || 'Auto disposition failed');
+            // If auto disposition fails, show default options as fallback
+            setDispositionActions([
+              { action: 'Busy', label: 'B - Busy' },
+              { action: 'Not Reachable', label: 'NR - Not Reachable' },
+              { action: 'Switched Off', label: 'SW - Switched Off' },
+              { action: 'Interested', label: 'INT - Interested' },
+              { action: 'Not Answered', label: 'N - Not Answered' },
+              { action: 'Test Call', label: 'TEST - Test Call' },
+              { action: 'Connected', label: 'CO - Connected' },
+              { action: 'Wrong Number', label: 'WN - Wrong Number' },
+              { action: 'Not Interested', label: 'NI - Not Interested' },
+            ]);
+            setShouldShowModal(true);
+          }
+        } catch (error) {
+          console.error('Auto disposition error:', error);
+          toast.error('An error occurred during auto disposition');
+          // If auto disposition fails, show default options as fallback
+          setDispositionActions([
+            { action: 'Busy', label: 'B - Busy' },
+            { action: 'Not Reachable', label: 'NR - Not Reachable' },
+            { action: 'Switched Off', label: 'SW - Switched Off' },
+            { action: 'Interested', label: 'INT - Interested' },
+            { action: 'Not Answered', label: 'N - Not Answered' },
+            { action: 'Test Call', label: 'TEST - Test Call' },
+            { action: 'Connected', label: 'CO - Connected' },
+            { action: 'Wrong Number', label: 'WN - Wrong Number' },
+            { action: 'Not Interested', label: 'NI - Not Interested' },
+          ]);
+          setShouldShowModal(true);
+        }
+      };
+
+      autoDispoFunc();
     }
   }, []);
 
@@ -292,11 +340,13 @@ const Disposition = ({
 
   // Add event listener for ESC key
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [handleKeyDown]);
+    if (shouldShowModal) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [handleKeyDown, shouldShowModal]);
 
   const submitForm = useCallback(
     async (callbackData = null) => {
@@ -409,7 +459,8 @@ const Disposition = ({
     [selectedAction, followUpDate, followUpTime, followUpDetails, submitForm]
   );
 
-  if (dispositionActions.length === 0) {
+  // Don't render anything if modal shouldn't be shown
+  if (!shouldShowModal) {
     return null;
   }
 
@@ -429,6 +480,7 @@ const Disposition = ({
           onClose: () => setCallbackIncomplete(false),
         }}
       />
+
       <Dialog
         open={true}
         onOpenChange={handleModalClose}

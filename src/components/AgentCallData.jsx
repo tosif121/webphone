@@ -1,12 +1,10 @@
-'use client';
-
 import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import moment from 'moment';
 import { Download, FileText, Headphones, Loader2 } from 'lucide-react';
 import AudioPlayer from './AudioPlayer';
 import DataTable from './DataTable';
-import DateRangePicker from './DateRangePicker'; // Import the new DateRangePicker
+import DateRangePicker from './DateRangePicker';
 import toast from 'react-hot-toast';
 import maskPhoneNumber from '@/utils/maskPhoneNumber';
 
@@ -22,7 +20,6 @@ export default function AgentCallData() {
 
   useEffect(() => {
     if (startDate && endDate) fetchCallData();
-    // eslint-disable-next-line
   }, [startDate, endDate]);
 
   const getTokenDetails = () => {

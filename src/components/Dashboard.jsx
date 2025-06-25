@@ -9,7 +9,7 @@ import { JssipContext } from '@/context/JssipContext';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import DropCallsModal from './DropCallsModal';
-import { Bell, PhoneMissed } from 'lucide-react';
+import { Bell, PhoneMissed, Activity } from 'lucide-react';
 import CallbackForm from './CallbackForm';
 import { useRouter } from 'next/router';
 import DynamicForm from './DynamicForm';
@@ -136,26 +136,52 @@ function Dashboard() {
     }
   }, []);
 
-  // In your web app React component:
+  // useEffect(() => {
+  //   // Store references to the original functions before overwriting
+  //   const originalAnswerIncomingCall = window.answerIncomingCall;
+  //   const originalRejectIncomingCall = window.rejectIncomingCall;
 
-  useEffect(() => {
-    // Expose functions to React Native
-    window.answerIncomingCall = function () {
-      console.log('answerIncomingCall called from React Native');
-      answerIncomingCall();
-    };
+  //   window.answerIncomingCall = function () {
+  //     toast.success('answerIncomingCall called from React Native');
+  //     if (answerIncomingCall && typeof answerIncomingCall === 'function') {
+  //       // Call the React component's answerIncomingCall function
+  //       answerIncomingCall();
+  //     } else if (originalAnswerIncomingCall && typeof originalAnswerIncomingCall === 'function') {
+  //       // Fallback to original window function if it exists
+  //       originalAnswerIncomingCall();
+  //     } else {
+  //       console.warn('answerIncomingCall function not available');
+  //     }
+  //   };
 
-    window.rejectIncomingCall = function () {
-      console.log('rejectIncomingCall called from React Native');
-      rejectIncomingCall();
-    };
+  //   window.rejectIncomingCall = function () {
+  //     toast.success('rejectIncomingCall called from React Native');
+  //     if (rejectIncomingCall && typeof rejectIncomingCall === 'function') {
+  //       // Call the React component's rejectIncomingCall function
+  //       rejectIncomingCall();
+  //     } else if (originalRejectIncomingCall && typeof originalRejectIncomingCall === 'function') {
+  //       // Fallback to original window function if it exists
+  //       originalRejectIncomingCall();
+  //     } else {
+  //       console.warn('rejectIncomingCall function not available');
+  //     }
+  //   };
 
-    // Cleanup function
-    return () => {
-      delete window.answerIncomingCall;
-      delete window.rejectIncomingCall;
-    };
-  }, []);
+  //   return () => {
+  //     // Restore original functions or delete if they didn't exist
+  //     if (originalAnswerIncomingCall) {
+  //       window.answerIncomingCall = originalAnswerIncomingCall;
+  //     } else {
+  //       delete window.answerIncomingCall;
+  //     }
+
+  //     if (originalRejectIncomingCall) {
+  //       window.rejectIncomingCall = originalRejectIncomingCall;
+  //     } else {
+  //       delete window.rejectIncomingCall;
+  //     }
+  //   };
+  // }, [answerIncomingCall, rejectIncomingCall]);
 
   useEffect(() => {
     const sendRingingState = () => {
@@ -173,7 +199,6 @@ function Dashboard() {
     sendRingingState();
   }, [isIncomingRinging]);
 
- 
   useEffect(() => {
     setCampaignMissedCallsLength(computedMissedCallsLength);
   }, [computedMissedCallsLength, setCampaignMissedCallsLength]);
@@ -325,23 +350,19 @@ function Dashboard() {
       setLoading(true);
       try {
         // Step 1: Get formId from campaign
-        const res1 = await fetch(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
+        const res1 = await axios.get(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        // if (!res1.ok) throw new Error('Failed to fetch form config');
-        const data1 = await res1.json();
-        const formId = data1.agentWebForm?.formId;
+        const formId = res1.data.agentWebForm?.formId;
         // if (!formId) throw new Error('Form ID not found');
 
         // Step 2: Get full form config by formId
-        const res2 = await fetch(`${window.location.origin}/getDynamicFormData/${formId}`, {
+        const res2 = await axios.get(`${window.location.origin}/getDynamicFormData/${formId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        // if (!res2.ok) throw new Error('Failed to fetch full form');
-        const data2 = await res2.json();
-        setFormConfig(data2.result);
+        setFormConfig(res2.data.result);
       } catch (err) {
-        toast.error(err.message || 'Failed to load form.');
+        toast.error(err.response?.data?.message || err.message || 'Failed to load form.');
         setFormConfig(null);
       }
       setLoading(false);
@@ -379,6 +400,22 @@ function Dashboard() {
       console.error('Add/Modify contact error:', err);
     }
   };
+
+  // Show loader while loading
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="relative">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-muted rounded-full animate-spin"></div>
+          <div className="absolute top-0 left-0 w-16 h-16 sm:w-20 sm:h-20 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-primary animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Call Queue Alert */}

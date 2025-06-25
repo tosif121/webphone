@@ -251,9 +251,9 @@ export default function DraggableWebPhone() {
 
   return (
     <>
-      <audio ref={ringtoneRef} preload="auto">
+      {/* <audio ref={ringtoneRef} preload="auto">
         <source src="/sounds/ringtone.mp3" type="audio/mp3" />
-      </audio>
+      </audio> */}
 
       {/* Floating Toggle Button */}
       <div className="fixed bottom-2 sm:bottom-20 right-8 z-[51]">
