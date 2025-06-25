@@ -136,52 +136,71 @@ function Dashboard() {
     }
   }, []);
 
-  // useEffect(() => {
-  //   // Store references to the original functions before overwriting
-  //   const originalAnswerIncomingCall = window.answerIncomingCall;
-  //   const originalRejectIncomingCall = window.rejectIncomingCall;
+  useEffect(() => {
+    const originalAnswerIncomingCall = window.answerIncomingCall;
+    const originalRejectIncomingCall = window.rejectIncomingCall;
 
-  //   window.answerIncomingCall = function () {
-  //     toast.success('answerIncomingCall called from React Native');
-  //     if (answerIncomingCall && typeof answerIncomingCall === 'function') {
-  //       // Call the React component's answerIncomingCall function
-  //       answerIncomingCall();
-  //     } else if (originalAnswerIncomingCall && typeof originalAnswerIncomingCall === 'function') {
-  //       // Fallback to original window function if it exists
-  //       originalAnswerIncomingCall();
-  //     } else {
-  //       console.warn('answerIncomingCall function not available');
-  //     }
-  //   };
+    // Define handler called from React Native
+    window.onReactNativeMessage = (data) => {
+      try {
+        console.log('[Web] Received from React Native:', data);
+        if (data?.type === 'call_action') {
+          if (data.action === 'accept') {
+            window.answerIncomingCall?.();
+          } else if (data.action === 'decline') {
+            window.rejectIncomingCall?.();
+          }
+        }
+      } catch (err) {
+        console.error('[Web] Failed to process message:', err);
+      }
+    };
 
-  //   window.rejectIncomingCall = function () {
-  //     toast.success('rejectIncomingCall called from React Native');
-  //     if (rejectIncomingCall && typeof rejectIncomingCall === 'function') {
-  //       // Call the React component's rejectIncomingCall function
-  //       rejectIncomingCall();
-  //     } else if (originalRejectIncomingCall && typeof originalRejectIncomingCall === 'function') {
-  //       // Fallback to original window function if it exists
-  //       originalRejectIncomingCall();
-  //     } else {
-  //       console.warn('rejectIncomingCall function not available');
-  //     }
-  //   };
+    // Expose unified functions on window
+    window.answerIncomingCall = function () {
+      if (answerIncomingCall && typeof answerIncomingCall === 'function' && incomingSession) {
+        answerIncomingCall();
+      } else if (originalAnswerIncomingCall && typeof originalAnswerIncomingCall === 'function') {
+        originalAnswerIncomingCall();
+      }
+      window.ReactNativeWebView?.postMessage(
+        JSON.stringify({
+          type: 'call_status',
+          status: 'accepted',
+        })
+      );
+    };
 
-  //   return () => {
-  //     // Restore original functions or delete if they didn't exist
-  //     if (originalAnswerIncomingCall) {
-  //       window.answerIncomingCall = originalAnswerIncomingCall;
-  //     } else {
-  //       delete window.answerIncomingCall;
-  //     }
+    window.rejectIncomingCall = function () {
+      if (rejectIncomingCall && typeof rejectIncomingCall === 'function') {
+        rejectIncomingCall();
+      } else if (originalRejectIncomingCall && typeof originalRejectIncomingCall === 'function') {
+        originalRejectIncomingCall();
+      }
+      window.ReactNativeWebView?.postMessage(
+        JSON.stringify({
+          type: 'call_status',
+          status: 'declined',
+        })
+      );
+    };
 
-  //     if (originalRejectIncomingCall) {
-  //       window.rejectIncomingCall = originalRejectIncomingCall;
-  //     } else {
-  //       delete window.rejectIncomingCall;
-  //     }
-  //   };
-  // }, [answerIncomingCall, rejectIncomingCall]);
+    // Cleanup on unmount
+    return () => {
+      delete window.onReactNativeMessage;
+      if (originalAnswerIncomingCall) {
+        window.answerIncomingCall = originalAnswerIncomingCall;
+      } else {
+        delete window.answerIncomingCall;
+      }
+
+      if (originalRejectIncomingCall) {
+        window.rejectIncomingCall = originalRejectIncomingCall;
+      } else {
+        delete window.rejectIncomingCall;
+      }
+    };
+  }, [incomingSession]);
 
   useEffect(() => {
     const sendRingingState = () => {

@@ -780,7 +780,7 @@ const useJssip = (isMobile = false) => {
     if (incomingSession && incomingSession.status < 6) {
       incomingSession.terminate();
     }
-    checkUserReady();
+    // checkUserReady();
     setIncomingSession(null);
     setIsIncomingRinging(false);
     setStatus('start');

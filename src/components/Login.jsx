@@ -168,7 +168,7 @@ export default function Login() {
   const handleAutoLogin = async () => {
     const savedUsername = localStorage.getItem('savedUsername');
     const savedPassword = localStorage.getItem('savedPassword');
-    
+
     // Use the saved credentials for login
     await performLogin(savedUsername, savedPassword);
   };
@@ -179,7 +179,8 @@ export default function Login() {
     const loginPassword = passwordParam || password;
 
     if (!loginUsername || !loginPassword) {
-      if (!usernameParam) { // Only show validation errors for manual login
+      if (!usernameParam) {
+        // Only show validation errors for manual login
         validateForm();
       }
       setIsLoading(false);
@@ -239,7 +240,7 @@ export default function Login() {
       localStorage.setItem('token', JSON.stringify(response));
       localStorage.setItem('savedUsername', loginUsername);
       localStorage.setItem('savedPassword', loginPassword);
-      
+
       // Remove logout flag since user successfully logged in
       localStorage.removeItem('userLoggedOut');
 
@@ -338,8 +339,6 @@ export default function Login() {
 
   return (
     <>
-
-
       <Dialog open={subscriptionDialog.isOpen} onOpenChange={() => {}} modal={true}>
         <DialogContent
           className="sm:max-w-lg bg-card/95 [&>button]:hidden backdrop-blur-md border shadow-2xl z-50"
