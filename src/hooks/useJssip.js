@@ -193,8 +193,8 @@ const useJssip = (isMobile = false) => {
       if (response.status === 401 || !response.data.isUserLogin) {
         if (status === 'start' && !dispositionModal) {
           // Only logout if not in a call or modal
-          // localStorage.clear();
-          window.location.href = '/webphone/webphone';
+          localStorage.clear();
+          window.location.href = '/webphone/login';
           toast.error('Session expired. Please log in again.');
           if (session && session.status < 6) {
             session.terminate();
@@ -275,8 +275,8 @@ const useJssip = (isMobile = false) => {
         console.error('Error during connection check:', err);
         // Only logout on specific auth errors and not during call events
         if (err.response && err.response.status === 401 && status === 'start' && !dispositionModal) {
-          // localStorage.clear();
-          window.location.href = '/webphone/webphone';
+          localStorage.clear();
+          window.location.href = '/webphone/login
           toast.error('Session expired. Please log in again.');
 
           if (session && session.status < 6) {
