@@ -173,7 +173,7 @@ const Disposition = ({
             autoDialDisabled: false,
           };
 
-          const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody);
+          const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
 
           if (response.data.success) {
             toast.success('Auto disposition completed successfully');
@@ -384,7 +384,7 @@ const Disposition = ({
           }
         }
 
-        const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody);
+        const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
 
         if (response.data.success) {
           toast.success('Disposition submitted successfully');
