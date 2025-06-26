@@ -181,6 +181,23 @@ const useJssip = (isMobile = false) => {
 
       setIsConnectionLost(false);
 
+      // Parse token data once at the beginning
+      const tokenDataString = localStorage.getItem('token');
+      if (!tokenDataString) {
+        console.error('No token data found');
+        return false;
+      }
+
+      const parsedTokenData = JSON.parse(tokenDataString);
+      const token = parsedTokenData.token;
+
+      if (!parsedTokenData?.userData?.campaign) {
+        console.error('Campaign information missing in token data');
+        return false;
+      }
+
+      const campaign = parsedTokenData.userData.campaign;
+
       const response = await withTimeout(
         axios.post(
           `${window.location.origin}/userconnection`,
@@ -190,58 +207,28 @@ const useJssip = (isMobile = false) => {
         3000
       );
 
+      // Handle authentication failures
       if (response.status === 401 || !response.data.isUserLogin) {
         if (status === 'start' && !dispositionModal) {
-          // Only logout if not in a call or modal
-          localStorage.clear();
-          window.location.href = '/webphone/login';
-          toast.error('Session expired. Please log in again.');
-          if (session && session.status < 6) {
-            session.terminate();
-          }
-          stopRecording();
-          setIsConnectionLost(true);
+          await handleLogout(token, 'Session expired. Please log in again.');
           return true;
         }
         return false;
       }
 
       const data = response.data;
-      const tokenData = JSON.parse(localStorage.getItem('token'));
-
-      if (!tokenData) {
-        console.error('No token data found');
-        return false;
-      }
-
       setFollowUpDispoes(data.followUpDispoes);
 
-      if (!tokenData?.userData?.campaign) {
-        console.error('Campaign information missing in token data');
-        return false;
-      }
-
-      const campaign = tokenData.userData.campaign;
-
+      // Handle connection issues
       if (data.message !== 'ok connection for user') {
-        // Don't logout immediately during call events
         if (status === 'start' && !dispositionModal) {
-          // localStorage.clear();
-          window.location.href = '/webphone/webphone';
-
-          if (session && session.status < 6) {
-            session.terminate();
-          }
-
-          stopRecording();
-          toast.error('Connection lost. Please log in again.');
-          setIsConnectionLost(true);
+          await handleConnectionLost();
           return true;
         }
         return false;
       }
 
-      // Rest of your existing logic...
+      // Handle call queue
       if (data.currentCallqueue?.length > 0) {
         if (campaign === data.currentCallqueue[0].campaign) {
           setTimeoutArray([]);
@@ -257,38 +244,89 @@ const useJssip = (isMobile = false) => {
       setIsConnectionLost(false);
       return false;
     } catch (err) {
-      // Handle errors more gracefully
-      if (err.message === 'Timeout') {
-        console.error('Connection timed out');
-        // Don't show error during call events
-        if (status === 'start' && !dispositionModal) {
-          toast.error('Server appears to be unresponsive. Retrying...');
-        }
-        addTimeout('timeout');
-      } else if (err.message.includes('Network')) {
-        console.error('Network error:', err.message);
-        if (status === 'start' && !dispositionModal) {
-          toast.error('Network error. Please check your connection.');
-        }
-        addTimeout('network');
-      } else {
-        console.error('Error during connection check:', err);
-        // Only logout on specific auth errors and not during call events
-        if (err.response && err.response.status === 401 && status === 'start' && !dispositionModal) {
-          // localStorage.clear();
-          window.location.href = '/webphone/webphone';
-          toast.error('Session expired. Please log in again.');
-
-          if (session && session.status < 6) {
-            session.terminate();
-          }
-
-          stopRecording();
-        }
-      }
-      setIsConnectionLost(true);
-      return true;
+      return await handleConnectionError(err);
     }
+  };
+
+  // Helper function for logout process
+  const handleLogout = async (token, message) => {
+    try {
+      if (token) {
+        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+
+      localStorage.clear();
+      toast.success('Logged out successfully');
+
+      if (session && session.status < 6) {
+        session.terminate();
+      }
+      stopRecording();
+
+      window.location.href = '/webphone/login';
+    } catch (error) {
+      console.error('Error during logout:', error);
+      localStorage.clear();
+      window.location.href = '/webphone/login';
+    }
+
+    if (message) {
+      toast.error(message);
+    }
+    setIsConnectionLost(true);
+  };
+
+  // Helper function for connection lost scenarios
+  const handleConnectionLost = async () => {
+    window.location.href = '/webphone/webphone';
+
+    if (session && session.status < 6) {
+      session.terminate();
+    }
+
+    stopRecording();
+    toast.error('Connection lost. Please log in again.');
+    setIsConnectionLost(true);
+  };
+
+  // Helper function for error handling
+  const handleConnectionError = async (err) => {
+    console.error('Error during connection check:', err);
+
+    if (err.message === 'Timeout') {
+      console.error('Connection timed out');
+      if (status === 'start' && !dispositionModal) {
+        toast.error('Server appears to be unresponsive. Retrying...');
+      }
+      addTimeout('timeout');
+    } else if (err.message.includes('Network')) {
+      console.error('Network error:', err.message);
+      if (status === 'start' && !dispositionModal) {
+        toast.error('Network error. Please check your connection.');
+      }
+      addTimeout('network');
+    } else if (err.response?.status === 401 && status === 'start' && !dispositionModal) {
+      // Handle auth errors
+      window.location.href = '/webphone/webphone';
+      toast.error('Session expired. Please log in again.');
+
+      if (session && session.status < 6) {
+        session.terminate();
+      }
+      stopRecording();
+    } else {
+      // Generic error handling
+      if (status === 'start' && !dispositionModal) {
+        toast.error('Connection check failed. Please try again.');
+      }
+    }
+
+    setIsConnectionLost(true);
+    return true;
   };
 
   const checkUserReady = async () => {

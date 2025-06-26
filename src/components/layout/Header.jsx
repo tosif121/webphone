@@ -73,12 +73,10 @@ export default function Header() {
   const handleLogout = async () => {
     if (typeof window !== 'undefined') {
       try {
-        const authToken = token || localStorage.getItem('token');
-
-        if (authToken) {
+        if (token) {
           await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
             headers: {
-              Authorization: `Bearer ${authToken}`,
+              Authorization: `Bearer ${token}`,
             },
           });
         }
