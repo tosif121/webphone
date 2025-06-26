@@ -162,9 +162,6 @@ const Disposition = ({
       );
       setShouldShowModal(true);
     } else {
-      // No disposition options - trigger auto disposition immediately
-      console.log('No disposition options found, triggering auto disposition:', Date.now());
-
       const autoDispoFunc = async () => {
         try {
           const requestBody = {
@@ -271,7 +268,7 @@ const Disposition = ({
         return;
       }
     },
-    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully, setDispositionModal]
+    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully]
   );
 
   // Enhanced X button click handler
