@@ -76,7 +76,7 @@ export default function Header() {
         const authToken = token || localStorage.getItem('token');
 
         if (authToken) {
-          await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+          await axios.delete(`https://esamwad.iotcom.io/deleteFirebaseToken`, {
             headers: {
               Authorization: `Bearer ${authToken}`,
             },

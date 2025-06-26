@@ -129,7 +129,7 @@ const useJssip = (isMobile = false) => {
 
   const createConferenceCall = async () => {
     try {
-      const response = await fetch(`${window.location.origin}/reqConf/${username}`, {
+      const response = await fetch(`https://esamwad.iotcom.io/reqConf/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,7 +183,7 @@ const useJssip = (isMobile = false) => {
 
       const response = await withTimeout(
         axios.post(
-          `${window.location.origin}/userconnection`,
+          `https://esamwad.iotcom.io/userconnection`,
           { user: username },
           { headers: { 'Content-Type': 'application/json' } }
         ),
@@ -193,8 +193,8 @@ const useJssip = (isMobile = false) => {
       if (response.status === 401 || !response.data.isUserLogin) {
         if (status === 'start' && !dispositionModal) {
           // Only logout if not in a call or modal
-          localStorage.clear();
-          window.location.href = '/webphone/login';
+          // localStorage.clear();
+          window.location.href = '/webphone/webphone';
           toast.error('Session expired. Please log in again.');
           if (session && session.status < 6) {
             session.terminate();
@@ -275,8 +275,8 @@ const useJssip = (isMobile = false) => {
         console.error('Error during connection check:', err);
         // Only logout on specific auth errors and not during call events
         if (err.response && err.response.status === 401 && status === 'start' && !dispositionModal) {
-          localStorage.clear();
-          window.location.href = '/webphone/login
+          // localStorage.clear();
+          window.location.href = '/webphone/webphone';
           toast.error('Session expired. Please log in again.');
 
           if (session && session.status < 6) {
@@ -293,7 +293,7 @@ const useJssip = (isMobile = false) => {
 
   const checkUserReady = async () => {
     try {
-      const url = `${window.location.origin}/userready/${username}`;
+      const url = `https://esamwad.iotcom.io/userready/${username}`;
       const response = await axios.post(url, {}, { headers: { 'Content-Type': 'application/json' } });
       return response.data;
     } catch (error) {
@@ -425,7 +425,7 @@ const useJssip = (isMobile = false) => {
     if (!session) return;
 
     try {
-      const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
+      const response = await fetch(`https://esamwad.iotcom.io/reqUnHold/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -453,7 +453,7 @@ const useJssip = (isMobile = false) => {
 
     try {
       if (!isHeld) {
-        await fetch(`${window.location.origin}/reqHold/${username}`, {
+        await fetch(`https://esamwad.iotcom.io/reqHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -469,7 +469,7 @@ const useJssip = (isMobile = false) => {
 
         setIsHeld(true);
       } else {
-        await fetch(`${window.location.origin}/reqUnHold/${username}`, {
+        await fetch(`https://esamwad.iotcom.io/reqUnHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -706,7 +706,7 @@ const useJssip = (isMobile = false) => {
   const answercall = async (incomingNumber = null) => {
     try {
       const response = await axios.post(
-        `${window.location.origin}/useroncall/${username}`,
+        `https://esamwad.iotcom.io/useroncall/${username}`,
         {},
         {
           headers: {
@@ -1241,7 +1241,7 @@ const useJssip = (isMobile = false) => {
 
     axios
       .post(
-        `${window.location.origin}/dialnumber`,
+        `https://esamwad.iotcom.io/dialnumber`,
         { caller: username, receiver: targetNumber },
         {
           headers: {
@@ -1270,7 +1270,7 @@ const useJssip = (isMobile = false) => {
       if (isCallended) {
         try {
           await axios.post(
-            `${window.location.origin}/user/callended${username}`,
+            `https://esamwad.iotcom.io/user/callended${username}`,
             {},
             {
               headers: {

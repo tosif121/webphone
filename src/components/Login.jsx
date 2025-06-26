@@ -66,29 +66,18 @@ export default function Login() {
       // Check if we're in a mobile environment
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-      // On mobile, we need to show a more descriptive prompt
+      // Skip microphone check on mobile devices - just return true
       if (isMobile) {
-        const confirmed = window.confirm(
-          'This app requires microphone access for calling features. ' +
-            'Please allow microphone permissions when prompted.'
-        );
-
-        if (!confirmed) {
-          toast.error('Microphone access is required to use calling features.');
-          return false;
-        }
+        return true;
       }
 
+      // Only check microphone permissions on desktop
       // Check permissions if available
       if (navigator.permissions) {
         try {
           const result = await navigator.permissions.query({ name: 'microphone' });
           if (result.state === 'denied') {
-            toast.error(
-              isMobile
-                ? 'Microphone access was denied. Please enable it in your browser settings.'
-                : 'Microphone access denied. Please enable it in your browser settings.'
-            );
+            toast.error('Microphone access denied. Please enable it in your browser settings.');
             return false;
           }
         } catch (err) {
@@ -96,7 +85,7 @@ export default function Login() {
         }
       }
 
-      // Request access
+      // Request access only on desktop
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((track) => track.stop());
 
@@ -106,9 +95,7 @@ export default function Login() {
 
       let errorMessage = 'Microphone access denied or unavailable.';
       if (err.name === 'NotAllowedError') {
-        errorMessage = isMobile
-          ? 'Microphone permission was denied. Please check your browser settings.'
-          : 'Microphone permission was denied. Please allow microphone access.';
+        errorMessage = 'Microphone permission was denied. Please allow microphone access.';
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         errorMessage = 'No microphone device found.';
       } else if (err.name === 'NotReadableError') {
@@ -195,7 +182,7 @@ export default function Login() {
 
     try {
       const { data: response } = await axios.post(
-        `${window.location.origin}/userlogin//${loginUsername}`,
+        `https://esamwad.iotcom.io/userlogin//${loginUsername}`,
         { username: loginUsername, password: loginPassword },
         { headers: { 'Content-Type': 'application/json' } }
       );

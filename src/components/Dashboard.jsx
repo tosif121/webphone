@@ -256,7 +256,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -287,7 +287,7 @@ function Dashboard() {
 
   const fetchUserMissedCalls = async () => {
     try {
-      const response = await axios.post(`${window.location.origin}/usermissedCalls/${username}`);
+      const response = await axios.post(`https://esamwad.iotcom.io/usermissedCalls/${username}`);
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
@@ -304,7 +304,7 @@ function Dashboard() {
 
   const fetchAdminUser = async () => {
     try {
-      const response = await axios.get(`${window.location.origin}/users/${adminUser}`, {
+      const response = await axios.get(`https://esamwad.iotcom.io/users/${adminUser}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -369,14 +369,14 @@ function Dashboard() {
       setLoading(true);
       try {
         // Step 1: Get formId from campaign
-        const res1 = await axios.get(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
+        const res1 = await axios.get(`https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const formId = res1.data.agentWebForm?.formId;
         // if (!formId) throw new Error('Form ID not found');
 
         // Step 2: Get full form config by formId
-        const res2 = await axios.get(`${window.location.origin}/getDynamicFormData/${formId}`, {
+        const res2 = await axios.get(`https://esamwad.iotcom.io/getDynamicFormData/${formId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setFormConfig(res2.data.result);
@@ -403,7 +403,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
