@@ -23,6 +23,7 @@ import toast from 'react-hot-toast';
 import ThemeToggle from './ThemeToggle';
 import BreakDropdown from '../BreakDropdown';
 import HistoryContext from '@/context/HistoryContext';
+import axios from 'axios';
 
 export default function Header() {
   const pathname = usePathname();
@@ -38,7 +39,7 @@ export default function Header() {
     scheduleCallsLength,
   } = useContext(HistoryContext);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-
+  const [token, setToken] = useState('');
   const [username, setUsername] = useState('Guest');
   const [userId, setUserId] = useState('N/A');
   const [campaignName, setCampaignName] = useState('N/A');
@@ -46,21 +47,6 @@ export default function Header() {
   const userMenuRef = useRef(null);
 
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
-
-  const handleLogout = async () => {
-    if (typeof window !== 'undefined') {
-      // localStorage.setItem('userLoggedOut', 'true');
-
-      // localStorage.removeItem('token');
-      localStorage.clear();
-
-      toast.success('Logged out successfully');
-
-      setUserMenuOpen(false);
-
-      window.location.href = '/webphone/login';
-    }
-  };
 
   useEffect(() => {
     // Only runs on client
@@ -72,15 +58,45 @@ export default function Header() {
         setUserId(parsedData?.userData?.userid || 'N/A');
         setCampaignName(parsedData?.userData?.campaign || 'N/A');
         setUserRole(parsedData?.userData?.role || null);
+        setToken(parsedData.token);
       } catch (e) {
         // If parsing fails, fallback to default
         setUsername('Guest');
         setUserId('N/A');
         setCampaignName('N/A');
         setUserRole(null);
+        setToken('');
       }
     }
   }, []);
+
+  const handleLogout = async () => {
+    if (typeof window !== 'undefined') {
+      try {
+        const authToken = token || localStorage.getItem('token');
+
+        if (authToken) {
+          await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          });
+        }
+
+        localStorage.clear();
+        toast.success('Logged out successfully');
+        setUserMenuOpen(false);
+        window.location.href = '/webphone/login';
+      } catch (error) {
+        console.error('Error during logout:', error);
+
+        localStorage.clear();
+        toast.warning('Logged out (some cleanup operations failed)');
+        setUserMenuOpen(false);
+        window.location.href = '/webphone/login';
+      }
+    }
+  };
 
   // In your Header component, update the handleClickOutside function:
 

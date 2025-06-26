@@ -57,7 +57,7 @@ const useJssip = (isMobile = false) => {
 
   function notifyMe() {
     if (!('Notification' in window)) {
-      alert('This browser does not support desktop notifications');
+      toast.error('This browser does not support desktop notifications');
       return;
     }
 
@@ -193,8 +193,8 @@ const useJssip = (isMobile = false) => {
       if (response.status === 401 || !response.data.isUserLogin) {
         if (status === 'start' && !dispositionModal) {
           // Only logout if not in a call or modal
-          localStorage.clear();
-          window.location.href = '/webphone/login';
+          // localStorage.clear();
+          window.location.href = '/webphone/webphone';
           toast.error('Session expired. Please log in again.');
           if (session && session.status < 6) {
             session.terminate();
@@ -226,8 +226,8 @@ const useJssip = (isMobile = false) => {
       if (data.message !== 'ok connection for user') {
         // Don't logout immediately during call events
         if (status === 'start' && !dispositionModal) {
-          localStorage.clear();
-          window.location.href = '/webphone/login';
+          // localStorage.clear();
+          window.location.href = '/webphone/webphone';
 
           if (session && session.status < 6) {
             session.terminate();
@@ -275,8 +275,8 @@ const useJssip = (isMobile = false) => {
         console.error('Error during connection check:', err);
         // Only logout on specific auth errors and not during call events
         if (err.response && err.response.status === 401 && status === 'start' && !dispositionModal) {
-          localStorage.clear();
-          window.location.href = '/webphone/login';
+          // localStorage.clear();
+          window.location.href = '/webphone/webphone';
           toast.error('Session expired. Please log in again.');
 
           if (session && session.status < 6) {
@@ -315,7 +315,7 @@ const useJssip = (isMobile = false) => {
         },
       });
 
-      // window.location.href = '/webphone/login';
+      // window.location.href = '/webphone/webphone';
     };
 
     window.addEventListener('offline', handleOffline);
@@ -880,8 +880,8 @@ const useJssip = (isMobile = false) => {
           console.log('User is not live');
           toast.error('User is not live. Please login again.');
           // setTimeout(checkUserLive, 15000);
-          localStorage.clear();
-          window.location.href = '/webphone/login';
+          // localStorage.clear();
+          window.location.href = '/webphone/webphone';
           return prev;
         }
         // }
@@ -911,16 +911,16 @@ const useJssip = (isMobile = false) => {
           if (!event.wasClean) {
             console.error('WebSocket connection died unexpectedly');
             toast.error('Connection lost');
-            localStorage.clear();
-            window.location.href = '/webphone/login';
+            // localStorage.clear();
+            window.location.href = '/webphone/webphone';
           }
         };
 
         socket.onerror = function (error) {
           console.error('WebSocket error:', error);
           toast.error('Connection failed');
-          localStorage.clear();
-          window.location.href = '/webphone/login';
+          // localStorage.clear();
+          window.location.href = '/webphone/webphone';
         };
 
         var configuration = {
@@ -971,23 +971,23 @@ const useJssip = (isMobile = false) => {
         ua.on('registrationFailed', (data) => {
           console.error('Registration failed:', data);
           toast.error('User Phone not exits');
-          localStorage.clear();
-          // window.location.href = '/webphone/login';
+          // localStorage.clear();
+          // window.location.href = '/webphone/webphone';
         });
 
         ua.on('stopped', (e) => {
           console.error('stopped', e);
           // Add logout behavior for stopped event
           toast.error('Connection stopped');
-          localStorage.clear();
-          // window.location.href = '/webphone/login';
+          // localStorage.clear();
+          // window.location.href = '/webphone/webphone';
         });
 
         ua.on('disconnected', (e) => {
           console.error('UA disconnected', e);
           toast.error('Connection lost');
-          localStorage.clear();
-          // window.location.href = '/webphone/login';
+          // localStorage.clear();
+          // window.location.href = '/webphone/webphone';
         });
         ua.on('newRTCSession', function (e) {
           console.log('🔍 Session Direction:', e.session.direction);
@@ -1115,8 +1115,8 @@ const useJssip = (isMobile = false) => {
       } catch (error) {
         console.error('Error initializing JsSIP:', error);
         toast.error('You Are Logout');
-        localStorage.clear();
-        // window.location.href = '/webphone/login';
+        // localStorage.clear();
+        // window.location.href = '/webphone/webphone';
       }
     };
 
@@ -1179,8 +1179,8 @@ const useJssip = (isMobile = false) => {
         if (socketState === 3 || socketState === 2) {
           console.error('Socket connection lost');
           toast.error('Connection lost');
-          localStorage.clear();
-          // window.location.href = '/webphone/login';
+          // localStorage.clear();
+          // window.location.href = '/webphone/webphone';
         }
       }
     };
@@ -1259,8 +1259,8 @@ const useJssip = (isMobile = false) => {
         setStatus('start');
         setPhoneNumber('');
         dialingNumberRef.current = ''; // Clear ref on error
-        localStorage.clear();
-        window.location.href = '/webphone/login';
+        // localStorage.clear();
+        window.location.href = '/webphone/webphone';
       });
   };
 
