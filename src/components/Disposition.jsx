@@ -35,6 +35,8 @@ const Disposition = ({
   const [dispositionActions, setDispositionActions] = useState([]);
   const [hasSubmittedSuccessfully, setHasSubmittedSuccessfully] = useState(false);
   const [shouldShowModal, setShouldShowModal] = useState(false);
+  const [isAutoDispositionComplete, setIsAutoDispositionComplete] = useState(false);
+  const [isAutoDispositionInProgress, setIsAutoDispositionInProgress] = useState(false);
 
   // Changed to store Date objects for the Callback component
   const [followUpDate, setFollowUpDate] = useState(undefined);
@@ -150,6 +152,11 @@ const Disposition = ({
 
   // Main effect to handle disposition options and auto disposition
   useEffect(() => {
+    // Prevent running if already completed or in progress
+    if (isAutoDispositionComplete || isAutoDispositionInProgress) {
+      return;
+    }
+
     const dispoData = JSON.parse(localStorage.getItem('token'))?.userData?.dispostionOptions;
 
     if (dispoData?.length > 0) {
@@ -161,60 +168,90 @@ const Disposition = ({
         }))
       );
       setShouldShowModal(true);
+      setIsAutoDispositionComplete(true); // Mark as handled
     } else {
-      const autoDispoFunc = async () => {
-        try {
-          const requestBody = {
-            bridgeID,
-            Disposition: 'Auto Disposed',
-            autoDialDisabled: false,
-          };
-
-          const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
-
-          if (response.data.success) {
-            toast.success('Auto disposition completed successfully');
-            handleContact(); // Move to next contact
-            setDispositionModal(false); // Close modal
-            setPhoneNumber(''); // Clear phone number
-          } else {
-            toast.error(response.data.message || 'Auto disposition failed');
-            // If auto disposition fails, show default options as fallback
-            setDispositionActions([
-              { action: 'Busy', label: 'B - Busy' },
-              { action: 'Not Reachable', label: 'NR - Not Reachable' },
-              { action: 'Switched Off', label: 'SW - Switched Off' },
-              { action: 'Interested', label: 'INT - Interested' },
-              { action: 'Not Answered', label: 'N - Not Answered' },
-              { action: 'Test Call', label: 'TEST - Test Call' },
-              { action: 'Connected', label: 'CO - Connected' },
-              { action: 'Wrong Number', label: 'WN - Wrong Number' },
-              { action: 'Not Interested', label: 'NI - Not Interested' },
-            ]);
-            setShouldShowModal(true);
-          }
-        } catch (error) {
-          console.error('Auto disposition error:', error);
-          toast.error('An error occurred during auto disposition');
-          // If auto disposition fails, show default options as fallback
-          setDispositionActions([
-            { action: 'Busy', label: 'B - Busy' },
-            { action: 'Not Reachable', label: 'NR - Not Reachable' },
-            { action: 'Switched Off', label: 'SW - Switched Off' },
-            { action: 'Interested', label: 'INT - Interested' },
-            { action: 'Not Answered', label: 'N - Not Answered' },
-            { action: 'Test Call', label: 'TEST - Test Call' },
-            { action: 'Connected', label: 'CO - Connected' },
-            { action: 'Wrong Number', label: 'WN - Wrong Number' },
-            { action: 'Not Interested', label: 'NI - Not Interested' },
-          ]);
-          setShouldShowModal(true);
-        }
-      };
+      // No disposition options - trigger auto disposition immediately
+      console.log('No disposition options found, triggering auto disposition:', Date.now());
+      setIsAutoDispositionInProgress(true);
 
       autoDispoFunc();
     }
-  }, []);
+  }, []); // Only depend on essential props
+
+  const autoDispoFunc = async () => {
+    try {
+      const requestBody = {
+        bridgeID,
+        Disposition: 'Auto Disposed',
+        autoDialDisabled: false,
+      };
+
+      const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
+
+      if (response.data.success) {
+        toast.success('Auto disposition completed successfully');
+
+        // Set completion flag before calling other functions
+        setIsAutoDispositionComplete(true);
+        setIsAutoDispositionInProgress(false);
+
+        // Move to next contact only once
+        if (handleContact) {
+          handleContact();
+        }
+
+        // Close modal and clear phone number
+        setDispositionModal(false);
+        setPhoneNumber('');
+      } else {
+        toast.error(response.data.message || 'Auto disposition failed');
+        setIsAutoDispositionInProgress(false);
+
+        // If auto disposition fails, show default options as fallback
+        setDispositionActions([
+          { action: 'Busy', label: 'B - Busy' },
+          { action: 'Not Reachable', label: 'NR - Not Reachable' },
+          { action: 'Switched Off', label: 'SW - Switched Off' },
+          { action: 'Interested', label: 'INT - Interested' },
+          { action: 'Not Answered', label: 'N - Not Answered' },
+          { action: 'Test Call', label: 'TEST - Test Call' },
+          { action: 'Connected', label: 'CO - Connected' },
+          { action: 'Wrong Number', label: 'WN - Wrong Number' },
+          { action: 'Not Interested', label: 'NI - Not Interested' },
+        ]);
+        setShouldShowModal(true);
+      }
+    } catch (error) {
+      console.error('Auto disposition error:', error);
+      setIsAutoDispositionInProgress(false);
+
+      // Check if the error is a 400 status error
+      if (error.response?.status === 400) {
+        console.log('400 error received, not showing modal');
+        setIsAutoDispositionComplete(true);
+
+        // Don't show modal for 400 errors - just close everything
+        setDispositionModal(false);
+        setPhoneNumber('');
+        return;
+      }
+
+      toast.error('An error occurred during auto disposition');
+      // For non-400 errors, show default options as fallback
+      setDispositionActions([
+        { action: 'Busy', label: 'B - Busy' },
+        { action: 'Not Reachable', label: 'NR - Not Reachable' },
+        { action: 'Switched Off', label: 'SW - Switched Off' },
+        { action: 'Interested', label: 'INT - Interested' },
+        { action: 'Not Answered', label: 'N - Not Answered' },
+        { action: 'Test Call', label: 'TEST - Test Call' },
+        { action: 'Connected', label: 'CO - Connected' },
+        { action: 'Wrong Number', label: 'WN - Wrong Number' },
+        { action: 'Not Interested', label: 'NI - Not Interested' },
+      ]);
+      setShouldShowModal(true);
+    }
+  };
 
   const handleActionClick = useCallback((action, event) => {
     event.preventDefault();
@@ -268,7 +305,7 @@ const Disposition = ({
         return;
       }
     },
-    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully]
+    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully, setDispositionModal]
   );
 
   // Enhanced X button click handler
@@ -352,6 +389,11 @@ const Disposition = ({
         return;
       }
 
+      // Prevent multiple submissions
+      if (isSubmitting || hasSubmittedSuccessfully) {
+        return;
+      }
+
       setIsSubmitting(true);
 
       try {
@@ -386,14 +428,24 @@ const Disposition = ({
         if (response.data.success) {
           toast.success('Disposition submitted successfully');
           setHasSubmittedSuccessfully(true);
-          handleContact();
+
+          // Move to next contact only once and only if not already handled
+          if (handleContact && !isAutoDispositionComplete) {
+            handleContact();
+          }
+
           setDispositionModal(false);
           setPhoneNumber('');
         } else {
           toast.error(response.data.message || 'Submission failed');
         }
       } catch (error) {
-        toast.error(error.response?.data?.message || 'An unexpected error occurred');
+        // Check for 400 error in submitForm as well
+        if (error.response?.status === 400) {
+          toast.error('Bad request: Please check your input and try again');
+        } else {
+          toast.error(error.response?.data?.message || 'An unexpected error occurred');
+        }
         console.error('Disposition error:', error);
       } finally {
         setIsSubmitting(false);
@@ -410,6 +462,9 @@ const Disposition = ({
       handleContact,
       setDispositionModal,
       phoneNumber,
+      isSubmitting,
+      hasSubmittedSuccessfully,
+      isAutoDispositionComplete,
     ]
   );
 

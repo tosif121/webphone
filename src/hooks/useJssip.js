@@ -1189,7 +1189,7 @@ const useJssip = (isMobile = false) => {
         ]);
         pause();
         setStatus('start');
-        setDispositionModal(true);
+        setDispositionModal(false);
       });
     };
 
