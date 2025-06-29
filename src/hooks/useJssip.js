@@ -51,8 +51,8 @@ const useJssip = (isMobile = false) => {
   const [origin, setOrigin] = useState('esamwad.iotcom.io');
 
   useEffect(() => {
-    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-    setOrigin(originWithoutProtocol);
+    // const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    // setOrigin(originWithoutProtocol);
   }, []);
 
   function notifyMe() {
@@ -818,7 +818,7 @@ const useJssip = (isMobile = false) => {
     if (incomingSession && incomingSession.status < 6) {
       incomingSession.terminate();
     }
-    // checkUserReady();
+    checkUserReady();
     setIncomingSession(null);
     setIsIncomingRinging(false);
     setStatus('start');

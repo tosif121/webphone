@@ -16,7 +16,7 @@ const jostSans = Jost({
 export default function App({ Component, pageProps }) {
   const router = useRouter();
 
-  const publicPages = new Set(['/webphone/login', '/webphone/subscription-expired', '/404']);
+  const publicPages = new Set(['/webphone/login', '/webphone/subscription-expired', '/404', '/webphone/checkout']);
 
   const isPublicPage = publicPages.has(router.pathname);
 
