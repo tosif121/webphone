@@ -501,7 +501,7 @@ function Dashboard() {
       <div className="max-w-lg">
         {status !== 'start' && userCall ? (
           <>
-            {formConfig?.sections && formConfig.sections.length > 0 ? (
+            {Array.isArray(formConfig?.sections) && formConfig.sections.length > 0 ? (
               <DynamicForm {...{ formConfig, formState, setFormState, userCall }} />
             ) : (
               <UserCall userCall={userCall} username={username} formData={formData} setFormData={setFormData} />
@@ -509,7 +509,7 @@ function Dashboard() {
           </>
         ) : (
           <>
-            {formConfig?.sections && formConfig.sections.length > 0 ? (
+            {Array.isArray(formConfig?.sections) && formConfig.sections.length > 0 ? (
               <AutoDialDynamicForm
                 formConfig={formConfig}
                 setPhoneNumber={setPhoneNumber}
