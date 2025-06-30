@@ -475,7 +475,9 @@ function Dashboard() {
           bridgeID={bridgeID}
           setDispositionModal={setDispositionModal}
           userCall={userCall}
-          handleContact={handleSubmit}
+          handleContact={
+            Array.isArray(formConfig?.sections) && formConfig.sections.length > 0 ? handleSubmit : handleContact
+          }
           setFormData={setFormState}
           formData={formState}
           formConfig={formConfig}
