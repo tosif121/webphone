@@ -438,18 +438,22 @@ function Dashboard() {
   return (
     <>
       {/* Call Queue Alert */}
+
       {ringtone && ringtone.length > 0 && (
-        <div className="backdrop-blur-md bg-blue-50/90 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 rounded-xl shadow-lg shadow-blue-500/10 mb-6 p-4 mx-4">
-          <div className="flex items-center gap-3">
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-md animate-pulse">
-              <PhoneMissed className="text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Call Queue: ({ringtone.length})</p>
-              <marquee className="mt-1 text-xs font-medium truncate text-blue-600 dark:text-blue-300">
-                {ringtone.map((call) => call.Caller).join(', ')}
-              </marquee>
-            </div>
+        <div className="w-full bg-primary/10 border border-primary/20 px-3 py-1 flex items-center gap-3 text-xs mb-4 rounded-sm">
+          <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center animate-pulse">
+            <PhoneMissed className="w-3 h-3 text-primary-foreground" />
+          </div>
+          <span className="font-medium text-primary">Call Queue: ({ringtone.length})</span>
+          <div className="flex-1 min-w-0">
+            <marquee
+              behavior="scroll"
+              direction="left"
+              scrollamount="4"
+              className="truncate font-medium text-muted-foreground"
+            >
+              {ringtone.map((call) => call.Caller).join(', ')}
+            </marquee>
           </div>
         </div>
       )}
