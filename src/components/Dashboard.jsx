@@ -551,7 +551,7 @@ function Dashboard() {
       )}
 
       <div className="text-center md:text-start mb-6">
-        <h1 className="text-2xl font-bold text-primary mb-2">Agent Dashboard</h1>
+        <h1 className="text-2xl font-bold text-primary mb-2">Agent Panel</h1>
         <p className="text-sm text-muted-foreground">Real-time performance metrics and activity tracking</p>
       </div>
 
