@@ -9,12 +9,30 @@ import { JssipContext } from '@/context/JssipContext';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import DropCallsModal from './DropCallsModal';
-import { Bell, PhoneMissed, Activity } from 'lucide-react';
+import LeadCallsTable from './LeadCallsTable';
+import {
+  Bell,
+  PhoneMissed,
+  Activity,
+  PhoneForwarded,
+  ArrowUpRight,
+  Clock,
+  Users,
+  Phone,
+  Video,
+  BarChart3,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+} from 'lucide-react';
 import CallbackForm from './CallbackForm';
 import { useRouter } from 'next/router';
 import DynamicForm from './DynamicForm';
 import FollowUpCallsModal from './FollowUpCallsModal';
 import moment from 'moment';
+import { Button } from './ui/button';
+import BreakDropdown from './BreakDropdown';
+import { Card, CardContent } from './ui/card';
 
 function Dashboard() {
   const {
@@ -72,6 +90,7 @@ function Dashboard() {
     setCallAlert,
     scheduleCallsLength,
     setScheduleCallsLength,
+    selectedStatus,
   } = useContext(HistoryContext);
   const [usermissedCalls, setUsermissedCalls] = useState([]);
   const [callConference, setCallConference] = useState(false);
@@ -434,6 +453,33 @@ function Dashboard() {
       </div>
     );
   }
+  const completeCalls = [
+    { name: 'Aman Sharma', email: 'aman.sharma@example.com', startTime: '2025-07-01 09:00 AM', status: 'Success' },
+    { name: 'Priya Verma', email: 'priya.verma@example.com', startTime: '2025-07-01 09:30 AM', status: 'Success' },
+    { name: 'Ravi Kumar', email: 'ravi.kumar@example.com', startTime: '2025-07-01 10:00 AM', status: 'Failed' },
+    { name: 'Neha Singh', email: 'neha.singh@example.com', startTime: '2025-07-01 10:30 AM', status: 'Success' },
+    { name: 'Ankit Joshi', email: 'ankit.joshi@example.com', startTime: '2025-07-01 11:00 AM', status: 'Success' },
+    { name: 'Sneha Patil', email: 'sneha.patil@example.com', startTime: '2025-07-01 11:30 AM', status: 'Failed' },
+    { name: 'Rohit Mehta', email: 'rohit.mehta@example.com', startTime: '2025-07-01 12:00 PM', status: 'Success' },
+    { name: 'Divya Iyer', email: 'divya.iyer@example.com', startTime: '2025-07-01 12:30 PM', status: 'Success' },
+    { name: 'Vikram Thakur', email: 'vikram.thakur@example.com', startTime: '2025-07-01 01:00 PM', status: 'Failed' },
+    { name: 'Pooja Desai', email: 'pooja.desai@example.com', startTime: '2025-07-01 01:30 PM', status: 'Success' },
+    {
+      name: 'Karan Malhotra',
+      email: 'karan.malhotra@example.com',
+      startTime: '2025-07-01 02:00 PM',
+      status: 'Success',
+    },
+    { name: 'Meera Nair', email: 'meera.nair@example.com', startTime: '2025-07-01 02:30 PM', status: 'Success' },
+  ];
+
+  const pendingCalls = [
+    { name: 'Tanya Gupta', email: 'tanya.gupta@example.com', status: 'Pending' },
+    { name: 'Siddharth Jain', email: 'siddharth.jain@example.com', status: 'Pending' },
+    { name: 'Ishita Bose', email: 'ishita.bose@example.com', status: 'Pending' },
+  ];
+
+  const totalCalls = [...completeCalls, ...pendingCalls];
 
   return (
     <>
@@ -504,35 +550,88 @@ function Dashboard() {
         />
       )}
 
-      <div className="max-w-lg">
-        {status !== 'start' && userCall ? (
-          <>
-            {Array.isArray(formConfig?.sections) && formConfig.sections.length > 0 ? (
-              <DynamicForm {...{ formConfig, formState, setFormState, userCall }} />
-            ) : (
-              <UserCall userCall={userCall} username={username} formData={formData} setFormData={setFormData} />
-            )}
-          </>
-        ) : (
-          <>
-            {Array.isArray(formConfig?.sections) && formConfig.sections.length > 0 ? (
-              <AutoDialDynamicForm
-                formConfig={formConfig}
-                setPhoneNumber={setPhoneNumber}
-                dispositionModal={dispositionModal}
-                handleCall={handleCall}
-                phoneNumber={phoneNumber}
-              />
-            ) : (
-              <AutoDial
-                setPhoneNumber={setPhoneNumber}
-                dispositionModal={dispositionModal}
-                handleCall={handleCall}
-                phoneNumber={phoneNumber}
-              />
-            )}
-          </>
-        )}
+      <div className="text-center md:text-start mb-6">
+        <h1 className="text-2xl font-bold text-primary mb-2">Agent Dashboard</h1>
+        <p className="text-sm text-muted-foreground">Real-time performance metrics and activity tracking</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="overflow-hidden border-l-4 border-l-primary">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Complete Calls</p>
+                <h2 className="text-3xl font-bold mt-2">{completeCalls.length}</h2>
+              </div>
+              <div className="bg-primary/10 p-3 rounded-lg">
+                <Phone className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-l-4 border-l-primary">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Calls</p>
+                <h2 className="text-3xl font-bold mt-2">{totalCalls.length}</h2>
+              </div>
+              <div className="bg-primary/10 p-3 rounded-lg">
+                <Users className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-l-4 border-l-primary">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Pending Calls</p>
+                <h2 className="text-3xl font-bold mt-2">{pendingCalls.length}</h2>
+              </div>
+              <div className="bg-primary/10 p-3 rounded-lg">
+                <Clock className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="flex gap-6 mt-8 md:flex-row flex-col">
+        <div className="max-w-lg w-full">
+          {status !== 'start' && userCall ? (
+            <>
+              {Array.isArray(formConfig?.sections) && formConfig.sections.length > 0 ? (
+                <DynamicForm {...{ formConfig, formState, setFormState, userCall }} />
+              ) : (
+                <UserCall userCall={userCall} username={username} formData={formData} setFormData={setFormData} />
+              )}
+            </>
+          ) : (
+            <>
+              {Array.isArray(formConfig?.sections) && formConfig.sections.length > 0 ? (
+                <AutoDialDynamicForm
+                  formConfig={formConfig}
+                  setPhoneNumber={setPhoneNumber}
+                  dispositionModal={dispositionModal}
+                  handleCall={handleCall}
+                  phoneNumber={phoneNumber}
+                />
+              ) : (
+                <AutoDial
+                  setPhoneNumber={setPhoneNumber}
+                  dispositionModal={dispositionModal}
+                  handleCall={handleCall}
+                  phoneNumber={phoneNumber}
+                />
+              )}
+            </>
+          )}
+        </div>
+        <div className="w-full">
+          <LeadCallsTable callDetails={totalCalls} />
+        </div>
       </div>
     </>
   );

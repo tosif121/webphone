@@ -173,13 +173,11 @@ export default function AgentDashboard() {
   }
 
   return (
-    <Card className="backdrop-blur-sm bg-card/80 rounded-lg  mx-auto">
-      <CardContent className="space-y-8">
+    <>
+      <div className="space-y-8">
         <div className="text-center md:text-start">
-          <CardTitle className="text-2xl font-bold text-primary mb-2">Agent Dashboard</CardTitle>
-          <CardDescription className="text-sm text-muted-foreground">
-            Real-time performance metrics and activity tracking
-          </CardDescription>
+          <h1 className="text-2xl font-bold text-primary mb-2">Agent Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Real-time performance metrics and activity tracking</p>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -345,7 +343,7 @@ export default function AgentDashboard() {
             </div>
           </DialogContent>
         </Dialog>
-      </CardContent>
-    </Card>
+      </div>
+    </>
   );
 }
