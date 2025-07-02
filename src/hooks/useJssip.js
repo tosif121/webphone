@@ -1008,7 +1008,7 @@ const useJssip = (isMobile = false) => {
 
         ua.on('registrationFailed', (data) => {
           console.error('Registration failed:', data);
-          toast.error('User Phone not exits');
+          toast.error('Registration failed');
           // localStorage.clear();
           // window.location.href = '/webphone/webphone';
         });

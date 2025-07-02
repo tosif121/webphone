@@ -24,6 +24,8 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  NavigationOff,
+  Navigation,
 } from 'lucide-react';
 import CallbackForm from './CallbackForm';
 import { useRouter } from 'next/router';
@@ -96,6 +98,7 @@ function Dashboard() {
   const [callConference, setCallConference] = useState(false);
   const [adminUser, setAdminUser] = useState(null);
   const [userCampaign, setUserCampaign] = useState(null);
+  const [contactShow, setContactShow] = useState(false);
   const router = useRouter();
   const computedMissedCallsLength = useMemo(() => {
     return Object.values(usermissedCalls || {}).filter((call) => call?.campaign === userCampaign).length;
@@ -299,6 +302,12 @@ function Dashboard() {
   }, [status, username]);
 
   useEffect(() => {
+    if (status !== 'start' && userCall) {
+      setContactShow(true);
+    }
+  }, [status, userCall]);
+
+  useEffect(() => {
     if (selectedBreak != 'Break' && ringtone.length >= 0) {
       fetchUserMissedCalls();
     }
@@ -454,29 +463,96 @@ function Dashboard() {
     );
   }
   const completeCalls = [
-    { name: 'Aman Sharma', email: 'aman.sharma@example.com', startTime: '2025-07-01 09:00 AM', status: 'Success' },
-    { name: 'Priya Verma', email: 'priya.verma@example.com', startTime: '2025-07-01 09:30 AM', status: 'Success' },
-    { name: 'Ravi Kumar', email: 'ravi.kumar@example.com', startTime: '2025-07-01 10:00 AM', status: 'Failed' },
-    { name: 'Neha Singh', email: 'neha.singh@example.com', startTime: '2025-07-01 10:30 AM', status: 'Success' },
-    { name: 'Ankit Joshi', email: 'ankit.joshi@example.com', startTime: '2025-07-01 11:00 AM', status: 'Success' },
-    { name: 'Sneha Patil', email: 'sneha.patil@example.com', startTime: '2025-07-01 11:30 AM', status: 'Failed' },
-    { name: 'Rohit Mehta', email: 'rohit.mehta@example.com', startTime: '2025-07-01 12:00 PM', status: 'Success' },
-    { name: 'Divya Iyer', email: 'divya.iyer@example.com', startTime: '2025-07-01 12:30 PM', status: 'Success' },
-    { name: 'Vikram Thakur', email: 'vikram.thakur@example.com', startTime: '2025-07-01 01:00 PM', status: 'Failed' },
-    { name: 'Pooja Desai', email: 'pooja.desai@example.com', startTime: '2025-07-01 01:30 PM', status: 'Success' },
+    {
+      name: 'Aman Sharma',
+      email: 'aman.sharma@example.com',
+      phone: '9876543210',
+      startTime: '2025-07-01 09:00 AM',
+      status: 'Success',
+    },
+    {
+      name: 'Priya Verma',
+      email: 'priya.verma@example.com',
+      phone: '9123456780',
+      startTime: '2025-07-01 09:30 AM',
+      status: 'Success',
+    },
+    {
+      name: 'Ravi Kumar',
+      email: 'ravi.kumar@example.com',
+      phone: '9988776655',
+      startTime: '2025-07-01 10:00 AM',
+      status: 'Failed',
+    },
+    {
+      name: 'Neha Singh',
+      email: 'neha.singh@example.com',
+      phone: '9001122334',
+      startTime: '2025-07-01 10:30 AM',
+      status: 'Success',
+    },
+    {
+      name: 'Ankit Joshi',
+      email: 'ankit.joshi@example.com',
+      phone: '7878787878',
+      startTime: '2025-07-01 11:00 AM',
+      status: 'Success',
+    },
+    {
+      name: 'Sneha Patil',
+      email: 'sneha.patil@example.com',
+      phone: '9090909090',
+      startTime: '2025-07-01 11:30 AM',
+      status: 'Failed',
+    },
+    {
+      name: 'Rohit Mehta',
+      email: 'rohit.mehta@example.com',
+      phone: '9321654987',
+      startTime: '2025-07-01 12:00 PM',
+      status: 'Success',
+    },
+    {
+      name: 'Divya Iyer',
+      email: 'divya.iyer@example.com',
+      phone: '9012345678',
+      startTime: '2025-07-01 12:30 PM',
+      status: 'Success',
+    },
+    {
+      name: 'Vikram Thakur',
+      email: 'vikram.thakur@example.com',
+      phone: '9345678123',
+      startTime: '2025-07-01 01:00 PM',
+      status: 'Failed',
+    },
+    {
+      name: 'Pooja Desai',
+      email: 'pooja.desai@example.com',
+      phone: '9888877777',
+      startTime: '2025-07-01 01:30 PM',
+      status: 'Success',
+    },
     {
       name: 'Karan Malhotra',
       email: 'karan.malhotra@example.com',
+      phone: '9234567890',
       startTime: '2025-07-01 02:00 PM',
       status: 'Success',
     },
-    { name: 'Meera Nair', email: 'meera.nair@example.com', startTime: '2025-07-01 02:30 PM', status: 'Success' },
+    {
+      name: 'Meera Nair',
+      email: 'meera.nair@example.com',
+      phone: '9876012345',
+      startTime: '2025-07-01 02:30 PM',
+      status: 'Success',
+    },
   ];
 
   const pendingCalls = [
-    { name: 'Tanya Gupta', email: 'tanya.gupta@example.com', status: 'Pending' },
-    { name: 'Siddharth Jain', email: 'siddharth.jain@example.com', status: 'Pending' },
-    { name: 'Ishita Bose', email: 'ishita.bose@example.com', status: 'Pending' },
+    { name: 'Tanya Gupta', email: 'tanya.gupta@example.com', phone: '9812345670', status: 'Pending' },
+    { name: 'Siddharth Jain', email: 'siddharth.jain@example.com', phone: '9823456781', status: 'Pending' },
+    { name: 'Ishita Bose', email: 'ishita.bose@example.com', phone: '9834567892', status: 'Pending' },
   ];
 
   const totalCalls = [...completeCalls, ...pendingCalls];
@@ -502,6 +578,21 @@ function Dashboard() {
             </marquee>
           </div>
         </div>
+      )}
+      {status !== 'start' && userCall ? (
+        <div className="fixed bottom-2 right-8 z-[51]">
+          <Button
+            type="button"
+            size="lg"
+            className="rounded-full w-14 h-14"
+            onClick={() => setContactShow((prev) => !prev)}
+            aria-label={contactShow ? 'Hide contact form' : 'Show contact form'}
+          >
+            {contactShow ? <Navigation className="h-8 w-8" /> : <NavigationOff className="h-8 w-8" />}
+          </Button>
+        </div>
+      ) : (
+        ''
       )}
       {/* {info && (
         <Modal isOpen={info} onClose={() => setInfo(false)} title={`Users Not In Use (${adminUserData.length})`}>
@@ -599,38 +690,43 @@ function Dashboard() {
         </Card>
       </div>
       <div className="flex gap-6 mt-8 md:flex-row flex-col">
-        <div className="max-w-lg w-full">
-          {status !== 'start' && userCall ? (
-            <>
+        <div className="max-w-lg w-full relative">
+          {status !== 'start' && userCall && contactShow && (
+            <div className="absolute z-10 w-full">
               {Array.isArray(formConfig?.sections) && formConfig.sections.length > 0 ? (
-                <DynamicForm {...{ formConfig, formState, setFormState, userCall }} />
+                <DynamicForm
+                  formConfig={formConfig}
+                  formState={formState}
+                  setFormState={setFormState}
+                  userCall={userCall}
+                />
               ) : (
                 <UserCall userCall={userCall} username={username} formData={formData} setFormData={setFormData} />
               )}
-            </>
-          ) : (
-            <>
-              {Array.isArray(formConfig?.sections) && formConfig.sections.length > 0 ? (
-                <AutoDialDynamicForm
-                  formConfig={formConfig}
-                  setPhoneNumber={setPhoneNumber}
-                  dispositionModal={dispositionModal}
-                  handleCall={handleCall}
-                  phoneNumber={phoneNumber}
-                />
-              ) : (
-                <AutoDial
-                  setPhoneNumber={setPhoneNumber}
-                  dispositionModal={dispositionModal}
-                  handleCall={handleCall}
-                  phoneNumber={phoneNumber}
-                />
-              )}
-            </>
+            </div>
           )}
+
+          <>
+            {Array.isArray(formConfig?.sections) && formConfig.sections.length > 0 ? (
+              <AutoDialDynamicForm
+                formConfig={formConfig}
+                setPhoneNumber={setPhoneNumber}
+                dispositionModal={dispositionModal}
+                handleCall={handleCall}
+                phoneNumber={phoneNumber}
+              />
+            ) : (
+              <AutoDial
+                setPhoneNumber={setPhoneNumber}
+                dispositionModal={dispositionModal}
+                handleCall={handleCall}
+                phoneNumber={phoneNumber}
+              />
+            )}
+          </>
         </div>
         <div className="w-full">
-          <LeadCallsTable callDetails={totalCalls} />
+          <LeadCallsTable callDetails={totalCalls} handleCall={handleCall} />
         </div>
       </div>
     </>

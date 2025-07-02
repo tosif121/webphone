@@ -1,14 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import DataTable from './DataTable'; // Your reusable DataTable component
 import moment from 'moment';
 import maskPhoneNumber from '@/utils/maskPhoneNumber';
-import { Headphones, CheckCircle, XCircle, AlertCircle, ChevronDown } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
+import { ChevronDown, Phone } from 'lucide-react';
+import { Button } from './ui/button';
 
-export default function LeadCallsTable({ callDetails }) {
+export default function LeadCallsTable({ callDetails, handleCall }) {
   const [filter, setFilter] = useState('All');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = React.useRef(null);
+  const dropdownRef = useRef(null);
 
   const filterOptions = [
     { value: 'All', label: 'All Calls' },
@@ -19,7 +20,7 @@ export default function LeadCallsTable({ callDetails }) {
   ];
 
   // Close dropdown when clicking outside
-  React.useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
@@ -45,6 +46,7 @@ export default function LeadCallsTable({ callDetails }) {
         header: 'Email',
         cell: ({ row }) => <span className="text-gray-700 dark:text-gray-200">{row.original.email}</span>,
       },
+
       {
         accessorKey: 'startTime',
         header: 'Start Time',
@@ -59,12 +61,34 @@ export default function LeadCallsTable({ callDetails }) {
         header: 'Status',
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
-            {getStatusIcon(row.original.status)}
             <span className={getStatusBadge(row.original.status)}>{row.original.status}</span>
           </div>
         ),
       },
-      // Add more columns as needed
+
+      {
+        accessorKey: 'phone',
+        header: 'Mobile Number',
+        cell: ({ row }) => {
+          const phone = row.original.phone;
+          return (
+            <div className="flex items-center justify-between gap-3 me-5">
+              <span className="text-gray-800 dark:text-gray-100 select-all flex-1">{phone}</span>
+              <Button
+                size="icon"
+                className="w-8 h-8 rounded-full text-white shadow-sm bg-green-600 hover:bg-green-700 hover:shadow-md focus-visible:ring-green-500 transition-all duration-200 hover:scale-105 flex-shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCall(phone);
+                }}
+                title={`Call ${phone}`}
+              >
+                <Phone className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        },
+      },
     ],
     []
   );
@@ -87,19 +111,6 @@ export default function LeadCallsTable({ callDetails }) {
         return callDetails;
     }
   }, [callDetails, filter]);
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'Success':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'Failed':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'Pending':
-        return <AlertCircle className="h-4 w-4 text-yellow-500" />;
-      default:
-        return null;
-    }
-  };
 
   const getStatusBadge = (status) => {
     const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium';
