@@ -1,90 +1,147 @@
+// Add this utility at the top if not already imported
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import DataTable from './DataTable'; // Your reusable DataTable component
 import moment from 'moment';
-import maskPhoneNumber from '@/utils/maskPhoneNumber';
-import { Card, CardContent } from './ui/card';
 import { ChevronDown, Phone } from 'lucide-react';
+import DataTable from './DataTable';
+import maskPhoneNumber from '@/utils/maskPhoneNumber';
 import { Button } from './ui/button';
+import { Card, CardContent } from './ui/card';
+import DateRangePicker from './DateRangePicker';
 
-export default function LeadCallsTable({ callDetails, handleCall }) {
+// Map raw API lead data into normalized display data
+const mapLeadData = (rawData) => {
+  if (!Array.isArray(rawData)) rawData = [rawData];
+
+  return rawData.map((item) => {
+    const mapped = {
+      name: '',
+      email: '',
+      phone: '',
+      status: 'Pending',
+      uploadDate: item.uploadDate || null,
+      ...item,
+    };
+
+    Object.entries(item).forEach(([key, value]) => {
+      if (!value && value !== 0) return;
+      const v = String(value).trim();
+      const k = key.toLowerCase();
+
+      if (v.includes('@') && v.includes('.')) mapped.email = v;
+      else if (/^\d{10}$/.test(v)) mapped.phone = v;
+      else if (k.includes('name') && !k.includes('file') && !k.includes('user')) mapped.name = v;
+      else if (k.includes('date') || k.includes('time')) mapped.uploadDate = value;
+    });
+
+    switch (item.lastDialedStatus) {
+      case 1:
+      case 9:
+        mapped.status = 'Complete';
+        break;
+      case 2:
+        mapped.status = 'Failed';
+        break;
+      case 0:
+      default:
+        mapped.status = 'Pending';
+    }
+
+    return mapped;
+  });
+};
+
+export default function LeadCallsTable({ callDetails, handleCall, startDate, setStartDate, endDate, setEndDate }) {
   const [filter, setFilter] = useState('All');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const filterOptions = [
-    { value: 'All', label: 'All Calls' },
-    { value: 'Complete', label: 'Complete Calls' },
-    { value: 'Success', label: 'Successful Calls' },
-    { value: 'Failed', label: 'Failed Calls' },
-    { value: 'Pending', label: 'Pending Calls' },
-  ];
-
-  // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsDropdownOpen(false);
       }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Define columns for DataTable
+  const handleDateRangeChange = ([start, end]) => {
+    if (start && end) {
+      setStartDate(moment(start).format('YYYY-MM-DD'));
+      setEndDate(moment(end).format('YYYY-MM-DD'));
+    }
+  };
+
+  const mappedLeads = useMemo(() => mapLeadData(callDetails), [callDetails]);
+
+  const totalCalls = mappedLeads.length;
+  const completeCalls = mappedLeads.filter((l) => l.status === 'Complete').length;
+  const pendingCalls = mappedLeads.filter((l) => l.status === 'Pending').length;
+  const failedCalls = mappedLeads.filter((l) => l.status === 'Failed').length;
+
+  const filteredLeads = useMemo(() => {
+    switch (filter) {
+      case 'Complete':
+        return mappedLeads.filter((l) => l.status === 'Complete');
+      case 'Pending':
+        return mappedLeads.filter((l) => l.status === 'Pending');
+      case 'Failed':
+        return mappedLeads.filter((l) => l.status === 'Failed');
+      default:
+        return mappedLeads;
+    }
+  }, [mappedLeads, filter]);
+
   const columns = useMemo(
     () => [
       {
         accessorKey: 'name',
         header: 'Name',
-        cell: ({ row }) => <span className="font-medium text-gray-800 dark:text-gray-100">{row.original.name}</span>,
+        cell: ({ row }) => <span className="font-semibold">{row.original.name || 'N/A'}</span>,
       },
       {
         accessorKey: 'email',
         header: 'Email',
-        cell: ({ row }) => <span className="text-gray-700 dark:text-gray-200">{row.original.email}</span>,
+        cell: ({ row }) => <span>{row.original.email || 'N/A'}</span>,
       },
-
       {
-        accessorKey: 'startTime',
+        accessorKey: 'uploadDate',
         header: 'Start Time',
         cell: ({ row }) => (
-          <span className="text-gray-600 dark:text-gray-300">
-            {row.original.startTime ? moment(row.original.startTime).format('DD-MMM-YYYY HH:mm:ss A') : '-'}
-          </span>
+          <span>{row.original.uploadDate ? moment(row.original.uploadDate).format('DD MMM YYYY, hh:mm A') : '-'}</span>
         ),
       },
       {
         accessorKey: 'status',
         header: 'Status',
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <span className={getStatusBadge(row.original.status)}>{row.original.status}</span>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const status = row.original.status;
+          const badgeClass =
+            status === 'Complete'
+              ? 'bg-green-100 text-green-800'
+              : status === 'Failed'
+              ? 'bg-red-100 text-red-800'
+              : 'bg-yellow-100 text-yellow-800';
+          return <span className={`px-2 py-1 text-xs font-medium rounded ${badgeClass}`}>{status}</span>;
+        },
       },
-
       {
         accessorKey: 'phone',
-        header: 'Mobile Number',
+        header: 'Phone',
         cell: ({ row }) => {
           const phone = row.original.phone;
           return (
-            <div className="flex items-center justify-between gap-3 me-5">
-              <span className="text-gray-800 dark:text-gray-100 select-all flex-1">{phone}</span>
-              <Button
-                size="icon"
-                className="w-8 h-8 rounded-full text-white shadow-sm bg-green-600 hover:bg-green-700 hover:shadow-md focus-visible:ring-green-500 transition-all duration-200 hover:scale-105 flex-shrink-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCall(phone);
-                }}
-                title={`Call ${phone}`}
-              >
-                <Phone className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center gap-3">
+              <span>{phone || 'N/A'}</span>
+              {phone && (
+                <Button
+                  onClick={() => handleCall(phone)}
+                  size="icon"
+                  className="bg-green-600 text-white hover:bg-green-700 rounded-full w-8 h-8"
+                >
+                  <Phone size={16} />
+                </Button>
+              )}
             </div>
           );
         },
@@ -93,74 +150,71 @@ export default function LeadCallsTable({ callDetails, handleCall }) {
     []
   );
 
-  // Filter calls based on filter select
-  const filteredData = useMemo(() => {
-    if (!callDetails) return [];
-
-    switch (filter) {
-      case 'Complete':
-        return callDetails.filter((call) => call.status === 'Success' || call.status === 'Failed');
-      case 'Success':
-        return callDetails.filter((call) => call.status === 'Success');
-      case 'Failed':
-        return callDetails.filter((call) => call.status === 'Failed');
-      case 'Pending':
-        return callDetails.filter((call) => call.status === 'Pending');
-      case 'All':
-      default:
-        return callDetails;
-    }
-  }, [callDetails, filter]);
-
-  const getStatusBadge = (status) => {
-    const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium';
-    switch (status) {
-      case 'Success':
-        return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400`;
-      case 'Failed':
-        return `${baseClasses} bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400`;
-      case 'Pending':
-        return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400`;
-      default:
-        return baseClasses;
-    }
-  };
-
   return (
     <Card>
-      <CardContent className="w-full">
+      <CardContent>
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-semibold">Lead Calls Details</h3>
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2 px-4 py-2 border border-input bg-background rounded-md text-sm hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent min-w-[140px] justify-between"
-            >
-              <span>{filterOptions.find((option) => option.value === filter)?.label}</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-1 w-full bg-background border border-border rounded-md shadow-lg z-10">
-                {filterOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => {
-                      setFilter(option.value);
-                      setIsDropdownOpen(false);
-                    }}
-                    className={`w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground first:rounded-t-md last:rounded-b-md ${
-                      filter === option.value ? 'bg-primary text-primary-foreground' : 'text-foreground'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="flex items-center gap-4">
+            <div ref={dropdownRef} className="relative">
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="px-4 py-2 border rounded bg-background hover:bg-accent min-w-[140px] flex justify-between items-center"
+              >
+                {filter}
+                <ChevronDown className={`ml-2 w-4 h-4 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {isDropdownOpen && (
+                <div className="absolute z-10 bg-white border shadow w-full mt-1 rounded">
+                  {['All', 'Complete', 'Pending', 'Failed'].map((opt) => (
+                    <button
+                      key={opt}
+                      className={`block w-full px-4 py-2 text-left hover:bg-gray-100 ${
+                        filter === opt ? 'bg-gray-100 font-semibold' : ''
+                      }`}
+                      onClick={() => {
+                        setFilter(opt);
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <DateRangePicker
+              onDateChange={handleDateRangeChange}
+              initialStartDate={startDate}
+              initialEndDate={endDate}
+            />
           </div>
         </div>
-        <DataTable data={filteredData} columns={columns} searchPlaceholder="Search Lead Calls..." />
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <StatCard label="Total Calls" value={totalCalls} color="blue" />
+          <StatCard label="Complete Calls" value={completeCalls} color="green" />
+          <StatCard label="Pending Calls" value={pendingCalls} color="yellow" />
+          <StatCard label="Failed Calls" value={failedCalls} color="red" />
+        </div>
+
+        <DataTable data={filteredLeads} columns={columns} searchPlaceholder="Search leads..." />
       </CardContent>
     </Card>
+  );
+}
+
+function StatCard({ label, value, color }) {
+  const colors = {
+    blue: 'bg-blue-50 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
+    green: 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+    yellow: 'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300',
+    red: 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300',
+  };
+  return (
+    <div className={`p-4 rounded shadow-sm ${colors[color]}`}>
+      <div className="text-sm">{label}</div>
+      <div className="text-xl font-bold">{value}</div>
+    </div>
   );
 }

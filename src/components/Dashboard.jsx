@@ -99,6 +99,8 @@ function Dashboard() {
   const [adminUser, setAdminUser] = useState(null);
   const [userCampaign, setUserCampaign] = useState(null);
   const [contactShow, setContactShow] = useState(false);
+  const [leadsData, setLeadsData] = useState([]);
+
   const router = useRouter();
   const computedMissedCallsLength = useMemo(() => {
     return Object.values(usermissedCalls || {}).filter((call) => call?.campaign === userCampaign).length;
@@ -109,6 +111,13 @@ function Dashboard() {
   const [formState, setFormState] = useState({});
   const [formConfig, setFormConfig] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [startDate, setStartDate] = useState(moment().subtract(24, 'hours').format('YYYY-MM-DD'));
+  const [endDate, setEndDate] = useState(moment().format('YYYY-MM-DD'));
+  const [callStats, setCallStats] = useState({
+    completeCalls: 0,
+    pendingCalls: 0,
+    totalCalls: 0,
+  });
 
   useEffect(() => {
     const now = new Date();
@@ -391,6 +400,43 @@ function Dashboard() {
   }, []);
 
   useEffect(() => {
+    if ((userCampaign, username)) {
+      fetchLeadsWithDateRange();
+    }
+  }, [startDate, endDate, userCampaign, username, token]);
+
+  const fetchLeadsWithDateRange = async () => {
+    try {
+      const response = await axios.post(
+        '${window.location.origin}/leadswithdaterange',
+        {
+          startDate,
+          endDate,
+          campaignID: userCampaign,
+          user: username,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const leads = response.data.data || [];
+
+      //  Calculate stats
+      const completeCalls = leads.filter((lead) => lead.lastDialedStatus === 1 || lead.lastDialedStatus === 9).length;
+      const pendingCalls = leads.filter((lead) => lead.lastDialedStatus === 0).length;
+      const totalCalls = leads.length;
+
+      setLeadsData(leads);
+      setCallStats({ completeCalls, pendingCalls, totalCalls }); // Store in state
+    } catch (error) {
+      console.error('Error fetching leads:', error.response?.data || error.message);
+    }
+  };
+
+  useEffect(() => {
     if (!userCampaign || !token) return;
 
     async function loadForm() {
@@ -462,100 +508,6 @@ function Dashboard() {
       </div>
     );
   }
-  const completeCalls = [
-    {
-      name: 'Aman Sharma',
-      email: 'aman.sharma@example.com',
-      phone: '9876543210',
-      startTime: '2025-07-01 09:00 AM',
-      status: 'Success',
-    },
-    {
-      name: 'Priya Verma',
-      email: 'priya.verma@example.com',
-      phone: '9123456780',
-      startTime: '2025-07-01 09:30 AM',
-      status: 'Success',
-    },
-    {
-      name: 'Ravi Kumar',
-      email: 'ravi.kumar@example.com',
-      phone: '9988776655',
-      startTime: '2025-07-01 10:00 AM',
-      status: 'Failed',
-    },
-    {
-      name: 'Neha Singh',
-      email: 'neha.singh@example.com',
-      phone: '9001122334',
-      startTime: '2025-07-01 10:30 AM',
-      status: 'Success',
-    },
-    {
-      name: 'Ankit Joshi',
-      email: 'ankit.joshi@example.com',
-      phone: '7878787878',
-      startTime: '2025-07-01 11:00 AM',
-      status: 'Success',
-    },
-    {
-      name: 'Sneha Patil',
-      email: 'sneha.patil@example.com',
-      phone: '9090909090',
-      startTime: '2025-07-01 11:30 AM',
-      status: 'Failed',
-    },
-    {
-      name: 'Rohit Mehta',
-      email: 'rohit.mehta@example.com',
-      phone: '9321654987',
-      startTime: '2025-07-01 12:00 PM',
-      status: 'Success',
-    },
-    {
-      name: 'Divya Iyer',
-      email: 'divya.iyer@example.com',
-      phone: '9012345678',
-      startTime: '2025-07-01 12:30 PM',
-      status: 'Success',
-    },
-    {
-      name: 'Vikram Thakur',
-      email: 'vikram.thakur@example.com',
-      phone: '9345678123',
-      startTime: '2025-07-01 01:00 PM',
-      status: 'Failed',
-    },
-    {
-      name: 'Pooja Desai',
-      email: 'pooja.desai@example.com',
-      phone: '9888877777',
-      startTime: '2025-07-01 01:30 PM',
-      status: 'Success',
-    },
-    {
-      name: 'Karan Malhotra',
-      email: 'karan.malhotra@example.com',
-      phone: '9234567890',
-      startTime: '2025-07-01 02:00 PM',
-      status: 'Success',
-    },
-    {
-      name: 'Meera Nair',
-      email: 'meera.nair@example.com',
-      phone: '9876012345',
-      startTime: '2025-07-01 02:30 PM',
-      status: 'Success',
-    },
-  ];
-
-  const pendingCalls = [
-    { name: 'Tanya Gupta', email: 'tanya.gupta@example.com', phone: '9812345670', status: 'Pending' },
-    { name: 'Siddharth Jain', email: 'siddharth.jain@example.com', phone: '9823456781', status: 'Pending' },
-    { name: 'Ishita Bose', email: 'ishita.bose@example.com', phone: '9834567892', status: 'Pending' },
-  ];
-
-  const totalCalls = [...completeCalls, ...pendingCalls];
 
   return (
     <>
@@ -620,6 +572,7 @@ function Dashboard() {
           formConfig={formConfig}
           phoneNumber={phoneNumber}
           setPhoneNumber={setPhoneNumber}
+          fetchLeadsWithDateRange={fetchLeadsWithDateRange}
         />
       )}
 
@@ -652,7 +605,7 @@ function Dashboard() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Complete Calls</p>
-                <h2 className="text-3xl font-bold mt-2">{completeCalls.length}</h2>
+                <h2 className="text-3xl font-bold mt-2">{callStats.completeCalls}</h2>
               </div>
               <div className="bg-primary/10 p-3 rounded-lg">
                 <Phone className="h-6 w-6 text-primary" />
@@ -666,7 +619,7 @@ function Dashboard() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Calls</p>
-                <h2 className="text-3xl font-bold mt-2">{totalCalls.length}</h2>
+                <h2 className="text-3xl font-bold mt-2">{callStats.totalCalls}</h2>
               </div>
               <div className="bg-primary/10 p-3 rounded-lg">
                 <Users className="h-6 w-6 text-primary" />
@@ -680,7 +633,7 @@ function Dashboard() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Pending Calls</p>
-                <h2 className="text-3xl font-bold mt-2">{pendingCalls.length}</h2>
+                <h2 className="text-3xl font-bold mt-2">{callStats.pendingCalls}</h2>
               </div>
               <div className="bg-primary/10 p-3 rounded-lg">
                 <Clock className="h-6 w-6 text-primary" />
@@ -726,7 +679,15 @@ function Dashboard() {
           </>
         </div>
         <div className="w-full">
-          <LeadCallsTable callDetails={totalCalls} handleCall={handleCall} />
+          <LeadCallsTable
+            callDetails={leadsData}
+            handleCall={handleCall}
+            startDate={startDate}
+            setStartDate={setStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+            callStats={callStats}
+          />
         </div>
       </div>
     </>

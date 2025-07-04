@@ -49,15 +49,15 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate }) => 
 
   // Apply for today only
   const applyToday = () => {
-    // Get yesterday's date
-    const yesterday = moment().subtract(1, 'days');
-    const yesterdayStart = yesterday.startOf('day').toDate(); // Start of yesterday
-    const yesterdayEnd = yesterday.endOf('day').toDate(); // End of yesterday
+    // Get today's date
+    const today = moment();
+    const todayStart = today.startOf('day').toDate(); // Start of today
+    const todayEnd = today.endOf('day').toDate(); // End of today
 
-    setDateRange([yesterdayStart, yesterdayEnd]);
+    setDateRange([todayStart, todayEnd]);
 
     if (onDateChange) {
-      onDateChange([yesterdayStart, yesterdayEnd]);
+      onDateChange([todayStart, todayEnd]);
     }
 
     setIsOpen(false);

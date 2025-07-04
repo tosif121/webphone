@@ -26,6 +26,7 @@ const Disposition = ({
   formConfig,
   phoneNumber,
   setPhoneNumber,
+  fetchLeadsWithDateRange,
 }) => {
   const { username } = useContext(HistoryContext);
   const [selectedAction, setSelectedAction] = useState(null);
@@ -198,6 +199,7 @@ const Disposition = ({
         // Move to next contact only once
         if (handleContact) {
           handleContact();
+          fetchLeadsWithDateRange();
         }
 
         // Close modal and clear phone number
@@ -432,6 +434,7 @@ const Disposition = ({
           // Move to next contact only once and only if not already handled
           if (handleContact && !isAutoDispositionComplete) {
             handleContact();
+            fetchLeadsWithDateRange();
           }
 
           setDispositionModal(false);
