@@ -287,7 +287,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -324,7 +324,7 @@ function Dashboard() {
 
   const fetchUserMissedCalls = async () => {
     try {
-      const response = await axios.post(`${window.location.origin}/usermissedCalls/${username}`);
+      const response = await axios.post(`https://esamwad.iotcom.io/usermissedCalls/${username}`);
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
@@ -341,7 +341,7 @@ function Dashboard() {
 
   const fetchAdminUser = async () => {
     try {
-      const response = await axios.get(`${window.location.origin}/users/${adminUser}`, {
+      const response = await axios.get(`https://esamwad.iotcom.io/users/${adminUser}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -408,7 +408,7 @@ function Dashboard() {
   const fetchLeadsWithDateRange = async () => {
     try {
       const response = await axios.post(
-        '${window.location.origin}/leadswithdaterange',
+        'https://esamwad.iotcom.io/leadswithdaterange',
         {
           startDate,
           endDate,
@@ -443,14 +443,14 @@ function Dashboard() {
       setLoading(true);
       try {
         // Step 1: Get formId from campaign
-        const res1 = await axios.get(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
+        const res1 = await axios.get(`https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const formId = res1.data.agentWebForm?.formId;
         // if (!formId) throw new Error('Form ID not found');
 
         // Step 2: Get full form config by formId
-        const res2 = await axios.get(`${window.location.origin}/getDynamicFormData/${formId}`, {
+        const res2 = await axios.get(`https://esamwad.iotcom.io/getDynamicFormData/${formId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setFormConfig(res2.data.result);
@@ -477,7 +477,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -643,8 +643,8 @@ function Dashboard() {
         </Card>
       </div>
       <div className="flex gap-6 mt-8 md:flex-row flex-col">
-        <div className="max-w-lg w-full relative">
-          {status !== 'start' && userCall && contactShow && (
+        {status !== 'start' && userCall && contactShow && (
+          <div className="max-w-lg w-full relative">
             <div className="absolute z-10 w-full">
               {Array.isArray(formConfig?.sections) && formConfig.sections.length > 0 ? (
                 <DynamicForm
@@ -657,9 +657,10 @@ function Dashboard() {
                 <UserCall userCall={userCall} username={username} formData={formData} setFormData={setFormData} />
               )}
             </div>
-          )}
+          </div>
+        )}
 
-          <>
+        {/* <>
             {Array.isArray(formConfig?.sections) && formConfig.sections.length > 0 ? (
               <AutoDialDynamicForm
                 formConfig={formConfig}
@@ -676,8 +677,7 @@ function Dashboard() {
                 phoneNumber={phoneNumber}
               />
             )}
-          </>
-        </div>
+          </> */}
         <div className="w-full">
           <LeadCallsTable
             callDetails={leadsData}
@@ -686,7 +686,7 @@ function Dashboard() {
             setStartDate={setStartDate}
             endDate={endDate}
             setEndDate={setEndDate}
-            callStats={callStats}
+            formConfig={formConfig}
           />
         </div>
       </div>

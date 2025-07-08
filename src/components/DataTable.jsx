@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   flexRender,
   getCoreRowModel,
@@ -12,25 +12,31 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown, ChevronsUpDown, PanelRight } from 'lucide-react';
 
 const DataTable = ({
+  expandRow,
+  setExpand,
+  expand,
+  onRowExpand,
   data,
   columns,
   searchPlaceholder = 'Search...',
   pageSizeOptions = [5, 10, 20, 30, 40, 50],
   initialPageSize = 10,
   disableSorting = false,
+  renderSubComponent,
 }) => {
-  const [globalFilter, setGlobalFilter] = React.useState('');
-  const [sorting, setSorting] = React.useState([]);
-  const [rowSelection, setRowSelection] = React.useState({});
-  const [pagination, setPagination] = React.useState({
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [sorting, setSorting] = useState([]);
+  const [rowSelection, setRowSelection] = useState({});
+  const [expandedRow, setExpandedRow] = useState(null);
+  const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: initialPageSize,
   });
 
-  const processedColumns = React.useMemo(
+  const processedColumns = useMemo(
     () =>
       columns.map((column) => ({
         ...column,
@@ -57,9 +63,22 @@ const DataTable = ({
       pagination,
       rowSelection,
     },
-    enableRowSelection: true,
     enableSorting: !disableSorting,
   });
+
+  const handleRowExpand = (row) => {
+    const isExpanded = row.getIsExpanded();
+    row.toggleExpanded();
+
+    // If expandRow is true and setExpand is provided, update the expand state
+    if (expandRow && setExpand) {
+      setExpand(true);
+      // If onRowExpand callback is provided, call it with row data
+      if (onRowExpand && !isExpanded) {
+        onRowExpand(row.original);
+      }
+    }
+  };
 
   return (
     <div className="w-full">
@@ -124,17 +143,37 @@ const DataTable = ({
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="text-foreground">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
+                <React.Fragment key={row.id}>
+                  <TableRow className="group hover:bg-muted">
+                    {row.getVisibleCells().map((cell, cellIndex) => (
+                      <TableCell key={cell.id} className="text-foreground relative">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+
+                        {expandRow && cellIndex === 0 && (
+                          <div className="absolute top-2 left-2 sm:left-4 md:left-8 lg:left-12 xl:left-28 group-hover:block hidden z-10">
+                            <button
+                              className="inline-flex items-center border rounded text-xs py-1 px-2 hover:bg-primary-foreground bg-background shadow-sm"
+                              onClick={() => handleRowExpand(row)}
+                            >
+                              <PanelRight className="w-4 h-4 mr-1" />
+                              Expand
+                            </button>
+                          </div>
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+
+                  {row.getIsExpanded() && renderSubComponent ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length}>{renderSubComponent({ row })}</TableCell>
+                    </TableRow>
+                  ) : null}
+                </React.Fragment>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={processedColumns.length} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
                   No results found.
                 </TableCell>
               </TableRow>
@@ -180,7 +219,8 @@ const DataTable = ({
           </Button>
         </div>
         <div className="text-sm text-muted-foreground flex items-center gap-2">
-          Page {pagination.pageIndex + 1} of {table.getPageCount()} | {table.getFilteredRowModel().rows.length} total rows
+          Page {pagination.pageIndex + 1} of {table.getPageCount()} | {table.getFilteredRowModel().rows.length} total
+          rows
         </div>
       </div>
     </div>

@@ -23,7 +23,7 @@ function getInitialWebphoneState() {
     if (saved) return JSON.parse(saved);
   } catch {}
   return {
-    x: window.innerWidth / 2 - 192,
+    x: window.innerWidth - 350,
     y: 180,
     width: 330,
     height: 550,

@@ -1,11 +1,13 @@
-// Add this utility at the top if not already imported
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import moment from 'moment';
-import { ChevronDown, Phone } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Phone, Users, X, Calendar, Mail, User, History } from 'lucide-react';
 import DataTable from './DataTable';
 import maskPhoneNumber from '@/utils/maskPhoneNumber';
 import { Button } from './ui/button';
-import { Card, CardContent } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Badge } from './ui/badge';
+import { Separator } from './ui/separator';
 import DateRangePicker from './DateRangePicker';
 
 // Map raw API lead data into normalized display data
@@ -38,9 +40,6 @@ const mapLeadData = (rawData) => {
       case 9:
         mapped.status = 'Complete';
         break;
-      case 2:
-        mapped.status = 'Failed';
-        break;
       case 0:
       default:
         mapped.status = 'Pending';
@@ -50,9 +49,20 @@ const mapLeadData = (rawData) => {
   });
 };
 
-export default function LeadCallsTable({ callDetails, handleCall, startDate, setStartDate, endDate, setEndDate }) {
+export default function LeadCallsTable({
+  callDetails,
+  formConfig,
+  handleCall,
+  startDate,
+  setStartDate,
+  endDate,
+  setEndDate,
+}) {
   const [filter, setFilter] = useState('All');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [expand, setExpand] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [activeTab, setActiveTab] = useState('details');
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -74,23 +84,39 @@ export default function LeadCallsTable({ callDetails, handleCall, startDate, set
 
   const mappedLeads = useMemo(() => mapLeadData(callDetails), [callDetails]);
 
-  const totalCalls = mappedLeads.length;
-  const completeCalls = mappedLeads.filter((l) => l.status === 'Complete').length;
-  const pendingCalls = mappedLeads.filter((l) => l.status === 'Pending').length;
-  const failedCalls = mappedLeads.filter((l) => l.status === 'Failed').length;
+  // Group leads by phone number to handle duplicates
+  const groupedLeads = useMemo(() => {
+    const grouped = {};
+    mappedLeads.forEach((lead) => {
+      if (!lead.phone) return;
+
+      if (!grouped[lead.phone]) {
+        grouped[lead.phone] = {
+          ...lead,
+          history: [],
+        };
+      } else {
+        grouped[lead.phone].history.push(lead);
+      }
+    });
+
+    return Object.values(grouped);
+  }, [mappedLeads]);
+
+  const totalCalls = groupedLeads.length;
+  const completeCalls = groupedLeads.filter((l) => l.status === 'Complete').length;
+  const pendingCalls = groupedLeads.filter((l) => l.status === 'Pending').length;
 
   const filteredLeads = useMemo(() => {
     switch (filter) {
       case 'Complete':
-        return mappedLeads.filter((l) => l.status === 'Complete');
+        return groupedLeads.filter((l) => l.status === 'Complete');
       case 'Pending':
-        return mappedLeads.filter((l) => l.status === 'Pending');
-      case 'Failed':
-        return mappedLeads.filter((l) => l.status === 'Failed');
+        return groupedLeads.filter((l) => l.status === 'Pending');
       default:
-        return mappedLeads;
+        return groupedLeads;
     }
-  }, [mappedLeads, filter]);
+  }, [groupedLeads, filter]);
 
   const columns = useMemo(
     () => [
@@ -98,11 +124,6 @@ export default function LeadCallsTable({ callDetails, handleCall, startDate, set
         accessorKey: 'name',
         header: 'Name',
         cell: ({ row }) => <span className="font-semibold">{row.original.name || 'N/A'}</span>,
-      },
-      {
-        accessorKey: 'email',
-        header: 'Email',
-        cell: ({ row }) => <span>{row.original.email || 'N/A'}</span>,
       },
       {
         accessorKey: 'uploadDate',
@@ -116,13 +137,18 @@ export default function LeadCallsTable({ callDetails, handleCall, startDate, set
         header: 'Status',
         cell: ({ row }) => {
           const status = row.original.status;
-          const badgeClass =
-            status === 'Complete'
-              ? 'bg-green-100 text-green-800'
-              : status === 'Failed'
-              ? 'bg-red-100 text-red-800'
-              : 'bg-yellow-100 text-yellow-800';
-          return <span className={`px-2 py-1 text-xs font-medium rounded ${badgeClass}`}>{status}</span>;
+          return (
+            <Badge
+              variant={status === 'Complete' ? 'default' : 'secondary'}
+              className={
+                status === 'Complete'
+                  ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                  : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+              }
+            >
+              {status}
+            </Badge>
+          );
         },
       },
       {
@@ -132,12 +158,12 @@ export default function LeadCallsTable({ callDetails, handleCall, startDate, set
           const phone = row.original.phone;
           return (
             <div className="flex items-center gap-3">
-              <span>{phone || 'N/A'}</span>
+              <span className="font-mono">{phone || 'N/A'}</span>
               {phone && (
                 <Button
                   onClick={() => handleCall(phone)}
-                  size="icon"
-                  className="bg-green-600 text-white hover:bg-green-700 rounded-full w-8 h-8"
+                  size="sm"
+                  className="bg-green-600 text-white hover:bg-green-700 rounded-full h-8 w-8 p-0"
                 >
                   <Phone size={16} />
                 </Button>
@@ -147,74 +173,265 @@ export default function LeadCallsTable({ callDetails, handleCall, startDate, set
         },
       },
     ],
-    []
+    [handleCall]
   );
 
-  return (
-    <Card>
-      <CardContent>
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-semibold">Lead Calls Details</h3>
-          <div className="flex items-center gap-4">
-            <div ref={dropdownRef} className="relative">
-              <button
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="px-4 py-2 border rounded bg-background hover:bg-accent min-w-[140px] flex justify-between items-center"
-              >
-                {filter}
-                <ChevronDown className={`ml-2 w-4 h-4 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {isDropdownOpen && (
-                <div className="absolute z-10 bg-white border shadow w-full mt-1 rounded">
-                  {['All', 'Complete', 'Pending', 'Failed'].map((opt) => (
-                    <button
-                      key={opt}
-                      className={`block w-full px-4 py-2 text-left hover:bg-gray-100 ${
-                        filter === opt ? 'bg-gray-100 font-semibold' : ''
-                      }`}
-                      onClick={() => {
-                        setFilter(opt);
-                        setIsDropdownOpen(false);
-                      }}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              )}
+  const handleRowExpand = (rowData) => {
+    setSelectedRow(rowData);
+    setExpand(true);
+    setActiveTab('details');
+  };
+
+  const renderDetailsTab = () => {
+    if (!selectedRow) return null;
+
+    const detailFields = [];
+
+    // Use formConfig if available
+    if (Array.isArray(formConfig?.sections) && formConfig.sections.length > 0) {
+      formConfig.sections.forEach((section) => {
+        section.fields.forEach((field) => {
+          const fieldName = field.name;
+          const label = field.label || field.name;
+          const value = selectedRow[fieldName] ?? 'N/A';
+
+          detailFields.push({
+            label,
+            value: value?.toString().trim() || 'N/A',
+            key: fieldName,
+          });
+        });
+      });
+    } else {
+      // Default fields if no formConfig
+      detailFields.push(
+        { label: 'Name', value: selectedRow.name || 'N/A', key: 'name' },
+        { label: 'Email Address', value: selectedRow.email || 'N/A', key: 'email' },
+        { label: 'Phone', value: selectedRow.phone || 'N/A', key: 'phone' },
+        { label: 'Address 1', value: selectedRow.address1 || 'N/A', key: 'address1' },
+        { label: 'Address 2', value: selectedRow.address2 || 'N/A', key: 'address2' },
+        { label: 'City', value: selectedRow.city || 'N/A', key: 'city' },
+        { label: 'State', value: selectedRow.state || 'N/A', key: 'state' },
+        { label: 'Postal Code', value: selectedRow.postalCode || 'N/A', key: 'postalCode' },
+        { label: 'Country', value: selectedRow.country || 'N/A', key: 'country' }
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="grid gap-4">
+          {detailFields.map((field, index) => (
+            <div key={field.key} className="space-y-1">
+              <div className="flex justify-between items-start">
+                <span className="text-sm font-medium text-muted-foreground">{field.label}:</span>
+                <span className="text-sm text-right max-w-[200px] break-words">{field.value}</span>
+              </div>
+              {index < detailFields.length - 1 && <Separator />}
             </div>
-            <DateRangePicker
-              onDateChange={handleDateRangeChange}
-              initialStartDate={startDate}
-              initialEndDate={endDate}
-            />
+          ))}
+        </div>
+
+        <div className="pt-4 border-t">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-muted-foreground">Upload Date:</span>
+            <span className="text-sm">
+              {selectedRow.uploadDate ? moment(selectedRow.uploadDate).format('DD MMM YYYY, hh:mm A') : 'N/A'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">Status:</span>
+            <Badge
+              variant={selectedRow.status === 'Complete' ? 'default' : 'secondary'}
+              className={
+                selectedRow.status === 'Complete'
+                  ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                  : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+              }
+            >
+              {selectedRow.status}
+            </Badge>
           </div>
         </div>
+      </div>
+    );
+  };
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          <StatCard label="Total Calls" value={totalCalls} color="blue" />
-          <StatCard label="Complete Calls" value={completeCalls} color="green" />
-          <StatCard label="Pending Calls" value={pendingCalls} color="yellow" />
-          <StatCard label="Failed Calls" value={failedCalls} color="red" />
+  const renderHistoryTab = () => {
+    if (!selectedRow || !selectedRow.history || selectedRow.history.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <History size={48} className="mx-auto text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">No call history available</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 mb-4">
+          <History size={16} className="text-muted-foreground" />
+          <span className="text-sm font-medium">Call History ({selectedRow.history.length})</span>
         </div>
 
-        <DataTable data={filteredLeads} columns={columns} searchPlaceholder="Search leads..." />
-      </CardContent>
-    </Card>
-  );
-}
+        <div className="space-y-3 max-h-[32rem] overflow-y-auto">
+          {selectedRow.history.map((historyItem, index) => (
+            <Card key={index} className="border-l-4 border-l-primary/30">
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <User size={16} className="text-muted-foreground" />
+                      <span className="font-medium">{historyItem.name || 'N/A'}</span>
+                    </div>
+                    <Badge
+                      variant={historyItem.status === 'Complete' ? 'default' : 'secondary'}
+                      className={
+                        historyItem.status === 'Complete'
+                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                          : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                      }
+                    >
+                      {historyItem.status}
+                    </Badge>
+                  </div>
 
-function StatCard({ label, value, color }) {
-  const colors = {
-    blue: 'bg-blue-50 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
-    green: 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-300',
-    yellow: 'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300',
-    red: 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300',
+                  <div className="flex items-center gap-2">
+                    <Calendar size={16} className="text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {historyItem.uploadDate ? moment(historyItem.uploadDate).format('DD MMM YYYY, hh:mm A') : 'N/A'}
+                    </span>
+                  </div>
+
+                  {historyItem.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone size={16} className="text-muted-foreground" />
+                      <span className="text-sm font-mono">{historyItem.phone}</span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
   };
+
   return (
-    <div className={`p-4 rounded shadow-sm ${colors[color]}`}>
-      <div className="text-sm">{label}</div>
-      <div className="text-xl font-bold">{value}</div>
+    <div className="flex gap-5 transition-all duration-300 ease-in-out">
+      <Card className={`transition-all duration-300 ease-in-out ${expand ? 'w-2/3' : 'w-full'}`}>
+        <CardContent className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-semibold">Lead Calls Details</h3>
+            <div className="flex items-center gap-4">
+              <div ref={dropdownRef} className="relative">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="min-w-[140px] justify-between"
+                >
+                  {filter}
+                  <ChevronDown
+                    className={`ml-2 w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                  />
+                </Button>
+                {isDropdownOpen && (
+                  <div className="absolute z-10 bg-background border rounded-md shadow-md w-full mt-1">
+                    {['All', 'Complete', 'Pending'].map((opt) => (
+                      <button
+                        key={opt}
+                        className={`block w-full px-4 py-2 text-left hover:bg-accent rounded-md ${
+                          filter === opt ? 'bg-accent font-medium' : ''
+                        }`}
+                        onClick={() => {
+                          setFilter(opt);
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <DateRangePicker
+                onDateChange={handleDateRangeChange}
+                initialStartDate={startDate}
+                initialEndDate={endDate}
+              />
+            </div>
+          </div>
+
+          <DataTable
+            data={filteredLeads}
+            columns={columns}
+            searchPlaceholder="Search leads..."
+            expand={expand}
+            setExpand={setExpand}
+            expandRow={true}
+            onRowExpand={handleRowExpand}
+          />
+        </CardContent>
+      </Card>
+
+      {expand && selectedRow && (
+        <Card className="w-1/3 transition-all duration-300 ease-in-out">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center justify-between">
+              <span className="text-lg font-semibold">Lead Information</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setExpand(false)}
+                className="hover:bg-accent rounded-full h-8 w-8 p-0"
+              >
+                <X size={16} />
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="details" className="flex items-center gap-2">
+                  <User size={16} />
+                  Details
+                </TabsTrigger>
+                <TabsTrigger value="history" className="flex items-center gap-2">
+                  <History size={16} />
+                  History
+                  {selectedRow.history && selectedRow.history.length > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                    >
+                      {selectedRow.history.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="details" className="mt-4">
+                {renderDetailsTab()}
+              </TabsContent>
+
+              <TabsContent value="history" className="mt-4">
+                {renderHistoryTab()}
+              </TabsContent>
+            </Tabs>
+
+            <div className="pt-4 border-t">
+              <Button
+                onClick={() => handleCall(selectedRow.phone)}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                disabled={!selectedRow.phone}
+              >
+                <Phone size={16} className="mr-2" />
+                Call Now
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
