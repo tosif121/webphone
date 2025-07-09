@@ -274,7 +274,7 @@ export default function LeadCallsTable({
         </div>
 
         <div className="space-y-3 max-h-[32rem] overflow-y-auto">
-          {selectedRow.history.map((historyItem, index) => (
+        {selectedRow.history.map((historyItem, index) => (
             <Card key={index} className="border-l-4 border-l-primary/30">
               <CardContent className="p-4">
                 <div className="space-y-3">
