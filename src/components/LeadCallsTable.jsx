@@ -274,7 +274,7 @@ export default function LeadCallsTable({
         </div>
 
         <div className="space-y-3 max-h-[32rem] overflow-y-auto">
-        {selectedRow.history.map((historyItem, index) => (
+          {selectedRow.history.map((historyItem, index) => (
             <Card key={index} className="border-l-4 border-l-primary/30">
               <CardContent className="p-4">
                 <div className="space-y-3">
@@ -320,7 +320,7 @@ export default function LeadCallsTable({
   return (
     <div className="flex gap-5 transition-all duration-300 ease-in-out">
       <Card className={`transition-all duration-300 ease-in-out ${expand ? 'w-2/3' : 'w-full'}`}>
-        <CardContent className="p-6">
+        <CardContent>
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-xl font-semibold">Lead Calls Details</h3>
             <div className="flex items-center gap-4">
