@@ -408,7 +408,7 @@ function Dashboard() {
   const fetchLeadsWithDateRange = async () => {
     try {
       const response = await axios.post(
-        '${window.location.origin}/leadswithdaterange',
+        `${window.location.origin}/leadswithdaterange`,
         {
           startDate,
           endDate,
