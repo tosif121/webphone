@@ -1,6 +1,18 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import moment from 'moment';
-import { ChevronDown, ChevronRight, Clock, Phone, Users, X, Calendar, Mail, User, History } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Phone,
+  Users,
+  X,
+  Calendar,
+  Mail,
+  User,
+  History,
+  UserCog,
+} from 'lucide-react';
 import DataTable from './DataTable';
 import maskPhoneNumber from '@/utils/maskPhoneNumber';
 import { Button } from './ui/button';
@@ -9,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import DateRangePicker from './DateRangePicker';
+import axios from 'axios';
 
 // Map raw API lead data into normalized display data
 const mapLeadData = (rawData) => {
@@ -57,6 +70,7 @@ export default function LeadCallsTable({
   setStartDate,
   endDate,
   setEndDate,
+  username,
 }) {
   const [filter, setFilter] = useState('All');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -184,6 +198,22 @@ export default function LeadCallsTable({
 
   const renderDetailsTab = () => {
     if (!selectedRow) return null;
+
+    const dynamicFields = formConfig?.sections?.flatMap((section) => section.fields?.map((f) => f.name)) || [];
+
+    const hasMeaningfulData = dynamicFields.some((fieldName) => {
+      const value = selectedRow[fieldName];
+      return value !== undefined && value !== null && String(value).trim() !== '';
+    });
+
+    if (!hasMeaningfulData) {
+      return (
+        <div className="text-center py-8">
+          <User size={48} className="mx-auto text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">Lead Information not found for this number.</p>
+        </div>
+      );
+    }
 
     const detailFields = [];
 
@@ -374,7 +404,7 @@ export default function LeadCallsTable({
         </CardContent>
       </Card>
 
-      {expand && selectedRow && (
+      {expand && (
         <Card className="w-1/3 transition-all duration-300 ease-in-out">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between">
@@ -390,45 +420,42 @@ export default function LeadCallsTable({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="details" className="flex items-center gap-2">
-                  <User size={16} />
-                  Details
-                </TabsTrigger>
-                <TabsTrigger value="history" className="flex items-center gap-2">
-                  <History size={16} />
-                  History
-                  {selectedRow.history && selectedRow.history.length > 0 && (
-                    <Badge
-                      variant="secondary"
-                      className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                    >
-                      {selectedRow.history.length}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              </TabsList>
+            {!selectedRow || !selectedRow.phone ? (
+              <div className="text-center py-8">
+                <User size={48} className="mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Information not found for this number.</p>
+              </div>
+            ) : (
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="details" className="flex items-center gap-2">
+                    <UserCog size={16} />
+                    Leads Details
+                  </TabsTrigger>
 
-              <TabsContent value="details" className="mt-4">
-                {renderDetailsTab()}
-              </TabsContent>
+                  <TabsTrigger value="history" className="flex items-center gap-2">
+                    <History size={16} />
+                    History
+                    {selectedRow.history && selectedRow.history.length > 0 && (
+                      <Badge
+                        variant="secondary"
+                        className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                      >
+                        {selectedRow.history.length}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="history" className="mt-4">
-                {renderHistoryTab()}
-              </TabsContent>
-            </Tabs>
+                <TabsContent value="details" className="mt-4">
+                  {renderDetailsTab()}
+                </TabsContent>
 
-            <div className="pt-4 border-t">
-              <Button
-                onClick={() => handleCall(selectedRow.phone)}
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
-                disabled={!selectedRow.phone}
-              >
-                <Phone size={16} className="mr-2" />
-                Call Now
-              </Button>
-            </div>
+                <TabsContent value="history" className="mt-4">
+                  {renderHistoryTab()}
+                </TabsContent>
+              </Tabs>
+            )}
           </CardContent>
         </Card>
       )}
