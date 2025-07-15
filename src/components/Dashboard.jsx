@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import DropCallsModal from './DropCallsModal';
 import LeadCallsTable from './LeadCallsTable';
+
 import {
   Bell,
   PhoneMissed,
@@ -287,7 +288,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -324,7 +325,7 @@ function Dashboard() {
 
   const fetchUserMissedCalls = async () => {
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/usermissedCalls/${username}`);
+      const response = await axios.post(`${window.location.origin}/usermissedCalls/${username}`);
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
@@ -341,7 +342,7 @@ function Dashboard() {
 
   const fetchAdminUser = async () => {
     try {
-      const response = await axios.get(`https://esamwad.iotcom.io/users/${adminUser}`, {
+      const response = await axios.get(`${window.location.origin}/users/${adminUser}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -408,7 +409,7 @@ function Dashboard() {
   const fetchLeadsWithDateRange = async () => {
     try {
       const response = await axios.post(
-        `https://esamwad.iotcom.io/leadswithdaterange`,
+        `${window.location.origin}/leadswithdaterange`,
         {
           startDate,
           endDate,
@@ -443,20 +444,26 @@ function Dashboard() {
       setLoading(true);
       try {
         // Step 1: Get formId from campaign
-        const res1 = await axios.get(`https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`, {
+        const res1 = await axios.get(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const formId = res1.data.agentWebForm?.formId;
-        // if (!formId) throw new Error('Form ID not found');
 
         // Step 2: Get full form config by formId
-        const res2 = await axios.get(`https://esamwad.iotcom.io/getDynamicFormData/${formId}`, {
+        const res2 = await axios.get(`${window.location.origin}/getDynamicFormData/${formId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setFormConfig(res2.data.result);
       } catch (err) {
-        toast.error(err.response?.data?.message || err.message || 'Failed to load form.');
-        setFormConfig(null);
+        if (err.response?.status === 401) {
+          localStorage.clear();
+          toast.error('Session expired. Please log in again.');
+          // Optional: redirect to login
+          window.location.href = 'webphone/login'; // adjust based on your routing
+        } else {
+          toast.error(err.response?.data?.message || err.message || 'Failed to load form.');
+          setFormConfig(null);
+        }
       }
       setLoading(false);
     }
@@ -477,7 +484,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -575,7 +582,6 @@ function Dashboard() {
           fetchLeadsWithDateRange={fetchLeadsWithDateRange}
         />
       )}
-
       {dropCalls && (
         <DropCallsModal
           usermissedCalls={usermissedCalls}
@@ -584,7 +590,6 @@ function Dashboard() {
           username={username}
         />
       )}
-
       {callAlert && (
         <FollowUpCallsModal
           followUpDispoes={followUpDispoes}
@@ -593,12 +598,10 @@ function Dashboard() {
           username={username}
         />
       )}
-
       <div className="text-center md:text-start mb-6">
         <h1 className="text-2xl font-bold text-primary mb-2">Agent Panel</h1>
         <p className="text-sm text-muted-foreground">Real-time performance metrics and activity tracking</p>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="overflow-hidden border-l-4 border-l-primary">
           <CardContent className="p-6">

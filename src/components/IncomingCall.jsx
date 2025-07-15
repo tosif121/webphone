@@ -3,6 +3,7 @@ import { Phone, PhoneOff, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import WebRTCStats from './WebRTCStats';
 
 export default function IncomingCall({
   incomingNumber,
@@ -11,6 +12,7 @@ export default function IncomingCall({
   isIncomingRinging,
   answerIncomingCall,
   rejectIncomingCall,
+  session,
 }) {
   const [pulseKey, setPulseKey] = useState(0);
 
@@ -60,6 +62,7 @@ export default function IncomingCall({
 
   return (
     <div className="h-full flex flex-col">
+      {session && session.connection && <WebRTCStats peerConnection={session.connection} />}
       {/* Header */}
       <div className="text-center pt-8 pb-4">
         <Badge

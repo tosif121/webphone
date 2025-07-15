@@ -178,7 +178,7 @@ export default function DraggableWebPhone() {
       {/* Incoming Call - Only show on mobile when ringing */}
       {isMobile && isIncomingRinging && (
         <IncomingCall
-          {...{ incomingNumber, incomingSession, isIncomingRinging, answerIncomingCall, rejectIncomingCall }}
+          {...{ incomingNumber, incomingSession, isIncomingRinging, answerIncomingCall, rejectIncomingCall, session }}
         />
       )}
 
