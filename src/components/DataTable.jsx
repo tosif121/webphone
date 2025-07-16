@@ -47,7 +47,7 @@ const DataTable = ({
   );
 
   const table = useReactTable({
-    data,
+    data: data || [],
     columns: processedColumns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -141,7 +141,8 @@ const DataTable = ({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.length ? (
+            {/* Safely check if rows exist before accessing length */}
+            {table.getRowModel() && table.getRowModel().rows && table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
                 <React.Fragment key={row.id}>
                   <TableRow className="group hover:bg-muted">

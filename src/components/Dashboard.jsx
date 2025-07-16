@@ -27,6 +27,7 @@ import {
   AlertCircle,
   NavigationOff,
   Navigation,
+  PhoneIncoming,
 } from 'lucide-react';
 import CallbackForm from './CallbackForm';
 import { useRouter } from 'next/router';
@@ -101,6 +102,7 @@ function Dashboard() {
   const [userCampaign, setUserCampaign] = useState(null);
   const [contactShow, setContactShow] = useState(false);
   const [leadsData, setLeadsData] = useState([]);
+  const [apiCallData, setApiCallData] = useState([]);
 
   const router = useRouter();
   const computedMissedCallsLength = useMemo(() => {
@@ -114,9 +116,16 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(moment().subtract(24, 'hours').format('YYYY-MM-DD'));
   const [endDate, setEndDate] = useState(moment().format('YYYY-MM-DD'));
-  const [callStats, setCallStats] = useState({
+  const [activeMainTab, setActiveMainTab] = useState('allLeads');
+  const [leadStats, setLeadStats] = useState({
     completeCalls: 0,
     pendingCalls: 0,
+    totalCalls: 0,
+  });
+
+  const [callStats, setCallStats] = useState({
+    incomingCalls: 0,
+    outgoingCalls: 0,
     totalCalls: 0,
   });
 
@@ -288,7 +297,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -325,7 +334,7 @@ function Dashboard() {
 
   const fetchUserMissedCalls = async () => {
     try {
-      const response = await axios.post(`${window.location.origin}/usermissedCalls/${username}`);
+      const response = await axios.post(`https://esamwad.iotcom.io/usermissedCalls/${username}`);
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
@@ -342,15 +351,12 @@ function Dashboard() {
 
   const fetchAdminUser = async () => {
     try {
-      const response = await axios.get(`${window.location.origin}/users/${adminUser}`, {
+      const response = await axios.get(`https://esamwad.iotcom.io/users/${adminUser}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-
-      const filteredData = response.data.result?.filter((item) => item.Status === 'NOT_INUSE' && item.user !== userId);
-
-      setAdminUserData(filteredData || []);
+      const filteredData = response.data.result?.filter((item) => item.Status === 'NOT_INUSE');
     } catch (error) {
       toast.error('Failed to fetch admin user.');
       console.error('Error fetching admin user:', error);
@@ -395,21 +401,21 @@ function Dashboard() {
         router.push('/webphone');
       }
     } catch (error) {
-      // Invalid JSON, treat as no token
       router.push('/webphone/login');
     }
   }, []);
 
   useEffect(() => {
-    if ((userCampaign, username)) {
+    if (userCampaign && username && token) {
       fetchLeadsWithDateRange();
+      fetchCallDataByAgent();
     }
   }, [startDate, endDate, userCampaign, username, token]);
 
   const fetchLeadsWithDateRange = async () => {
     try {
       const response = await axios.post(
-        `${window.location.origin}/leadswithdaterange`,
+        `https://esamwad.iotcom.io/leadswithdaterange`,
         {
           startDate,
           endDate,
@@ -425,15 +431,52 @@ function Dashboard() {
 
       const leads = response.data.data || [];
 
-      //  Calculate stats
       const completeCalls = leads.filter((lead) => lead.lastDialedStatus === 1 || lead.lastDialedStatus === 9).length;
       const pendingCalls = leads.filter((lead) => lead.lastDialedStatus === 0).length;
       const totalCalls = leads.length;
 
       setLeadsData(leads);
-      setCallStats({ completeCalls, pendingCalls, totalCalls }); // Store in state
+      setLeadStats({ completeCalls, pendingCalls, totalCalls });
     } catch (error) {
       console.error('Error fetching leads:', error.response?.data || error.message);
+    }
+  };
+
+  const fetchCallDataByAgent = async () => {
+    setLoading(true);
+    try {
+      const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
+      const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
+
+      const response = await axios.post(
+        `https://esamwad.iotcom.io/callDataByAgent`,
+        {
+          startDate: formattedStartDate,
+          endDate: formattedEndDate,
+          agentName: username,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const calls = response.data.result || [];
+      setApiCallData(calls);
+
+      const incoming = calls.filter((call) => call.Type?.toLowerCase() === 'incoming').length;
+      const outgoing = calls.filter((call) => call.Type?.toLowerCase() !== 'incoming').length;
+      const total = calls.length;
+
+      setCallStats({ incomingCalls: incoming, outgoingCalls: outgoing, totalCalls: total });
+    } catch (error) {
+      console.error('Error fetching API data for Call Info tab:', error);
+      setApiCallData([]);
+      setCallStats({ incomingCalls: 0, outgoingCalls: 0, totalCalls: 0 });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -444,13 +487,13 @@ function Dashboard() {
       setLoading(true);
       try {
         // Step 1: Get formId from campaign
-        const res1 = await axios.get(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
+        const res1 = await axios.get(`https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const formId = res1.data.agentWebForm?.formId;
 
         // Step 2: Get full form config by formId
-        const res2 = await axios.get(`${window.location.origin}/getDynamicFormData/${formId}`, {
+        const res2 = await axios.get(`https://esamwad.iotcom.io/getDynamicFormData/${formId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setFormConfig(res2.data.result);
@@ -484,7 +527,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -603,48 +646,97 @@ function Dashboard() {
         <p className="text-sm text-muted-foreground">Real-time performance metrics and activity tracking</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="overflow-hidden border-l-4 border-l-primary">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Complete Calls</p>
-                <h2 className="text-3xl font-bold mt-2">{callStats.completeCalls}</h2>
-              </div>
-              <div className="bg-primary/10 p-3 rounded-lg">
-                <Phone className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {(activeMainTab === 'allLeads' && (
+          <>
+            <Card className="overflow-hidden border-l-4 border-l-primary">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Complete Leads</p>
+                    <h2 className="text-3xl font-bold mt-2">{leadStats.completeCalls}</h2>
+                  </div>
+                  <div className="bg-primary/10 p-3 rounded-lg">
+                    <CheckCircle className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="overflow-hidden border-l-4 border-l-primary">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Calls</p>
-                <h2 className="text-3xl font-bold mt-2">{callStats.totalCalls}</h2>
-              </div>
-              <div className="bg-primary/10 p-3 rounded-lg">
-                <Users className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="overflow-hidden border-l-4 border-l-primary">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
+                    <h2 className="text-3xl font-bold mt-2">{leadStats.totalCalls}</h2>
+                  </div>
+                  <div className="bg-primary/10 p-3 rounded-lg">
+                    <Users className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="overflow-hidden border-l-4 border-l-primary">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Pending Calls</p>
-                <h2 className="text-3xl font-bold mt-2">{callStats.pendingCalls}</h2>
-              </div>
-              <div className="bg-primary/10 p-3 rounded-lg">
-                <Clock className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="overflow-hidden border-l-4 border-l-primary">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Pending Leads</p>
+                    <h2 className="text-3xl font-bold mt-2">{leadStats.pendingCalls}</h2>
+                  </div>
+                  <div className="bg-primary/10 p-3 rounded-lg">
+                    <AlertCircle className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )) || (
+          <>
+            <Card className="overflow-hidden border-l-4 border-l-primary">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Calls</p>
+                    <h2 className="text-3xl font-bold mt-2">{callStats.totalCalls}</h2>
+                  </div>
+                  <div className="bg-primary/10 p-3 rounded-lg">
+                    <Phone className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden border-l-4 border-l-primary">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Incoming Calls</p>
+                    <h2 className="text-3xl font-bold mt-2">{callStats.incomingCalls}</h2>
+                  </div>
+                  <div className="bg-primary/10 p-3 rounded-lg">
+                    <PhoneIncoming className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden border-l-4 border-l-primary">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Outgoing Calls</p>
+                    <h2 className="text-3xl font-bold mt-2">{callStats.outgoingCalls}</h2>
+                  </div>
+                  <div className="bg-primary/10 p-3 rounded-lg">
+                    <PhoneForwarded className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
+
       <div className="flex gap-6 mt-8 md:flex-row flex-col">
         {status !== 'start' && userCall && contactShow && (
           <div className="max-w-lg w-full relative">
@@ -663,27 +755,10 @@ function Dashboard() {
           </div>
         )}
 
-        {/* <>
-            {Array.isArray(formConfig?.sections) && formConfig.sections.length > 0 ? (
-              <AutoDialDynamicForm
-                formConfig={formConfig}
-                setPhoneNumber={setPhoneNumber}
-                dispositionModal={dispositionModal}
-                handleCall={handleCall}
-                phoneNumber={phoneNumber}
-              />
-            ) : (
-              <AutoDial
-                setPhoneNumber={setPhoneNumber}
-                dispositionModal={dispositionModal}
-                handleCall={handleCall}
-                phoneNumber={phoneNumber}
-              />
-            )}
-          </> */}
         <div className="w-full">
           <LeadCallsTable
             callDetails={leadsData}
+            apiCallData={apiCallData}
             handleCall={handleCall}
             startDate={startDate}
             setStartDate={setStartDate}
@@ -691,6 +766,9 @@ function Dashboard() {
             setEndDate={setEndDate}
             formConfig={formConfig}
             username={username}
+            token={token}
+            activeMainTab={activeMainTab}
+            setActiveMainTab={setActiveMainTab}
           />
         </div>
       </div>

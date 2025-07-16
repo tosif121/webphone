@@ -16,7 +16,7 @@ function getInitialWebphoneState() {
       x: 200,
       y: 180,
       width: 330,
-      height: 550,
+      height: 600,
     };
   try {
     const saved = localStorage.getItem('webphone-position');
@@ -26,7 +26,7 @@ function getInitialWebphoneState() {
     x: window.innerWidth - 350,
     y: 180,
     width: 330,
-    height: 550,
+    height: 600,
   };
 }
 
