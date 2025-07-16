@@ -116,7 +116,7 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(moment().subtract(24, 'hours').format('YYYY-MM-DD'));
   const [endDate, setEndDate] = useState(moment().format('YYYY-MM-DD'));
-  const [activeMainTab, setActiveMainTab] = useState('allLeads');
+  const [activeMainTab, setActiveMainTab] = useState('allLeads'); // Default to 'allLeads'
   const [leadStats, setLeadStats] = useState({
     completeCalls: 0,
     pendingCalls: 0,
@@ -297,7 +297,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -334,7 +334,7 @@ function Dashboard() {
 
   const fetchUserMissedCalls = async () => {
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/usermissedCalls/${username}`);
+      const response = await axios.post(`${window.location.origin}/usermissedCalls/${username}`);
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
@@ -351,7 +351,7 @@ function Dashboard() {
 
   const fetchAdminUser = async () => {
     try {
-      const response = await axios.get(`https://esamwad.iotcom.io/users/${adminUser}`, {
+      const response = await axios.get(`${window.location.origin}/users/${adminUser}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -406,16 +406,20 @@ function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (userCampaign && username && token) {
+    if (!userCampaign || !username || !token) return;
+
+    if (activeMainTab === 'allLeads') {
       fetchLeadsWithDateRange();
+    } else if (activeMainTab === 'callInfo') {
       fetchCallDataByAgent();
     }
-  }, [startDate, endDate, userCampaign, username, token]);
+  }, [startDate, endDate, userCampaign, username, token, activeMainTab]);
 
   const fetchLeadsWithDateRange = async () => {
+    setLoading(true);
     try {
       const response = await axios.post(
-        `https://esamwad.iotcom.io/leadswithdaterange`,
+        `${window.location.origin}/leadswithdaterange`,
         {
           startDate,
           endDate,
@@ -439,6 +443,10 @@ function Dashboard() {
       setLeadStats({ completeCalls, pendingCalls, totalCalls });
     } catch (error) {
       console.error('Error fetching leads:', error.response?.data || error.message);
+      setLeadsData([]);
+      setLeadStats({ completeCalls: 0, pendingCalls: 0, totalCalls: 0 });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -449,7 +457,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/callDataByAgent`,
+        `${window.location.origin}/callDataByAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -486,14 +494,12 @@ function Dashboard() {
     async function loadForm() {
       setLoading(true);
       try {
-        // Step 1: Get formId from campaign
-        const res1 = await axios.get(`https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`, {
+        const res1 = await axios.get(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const formId = res1.data.agentWebForm?.formId;
 
-        // Step 2: Get full form config by formId
-        const res2 = await axios.get(`https://esamwad.iotcom.io/getDynamicFormData/${formId}`, {
+        const res2 = await axios.get(`${window.location.origin}/getDynamicFormData/${formId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setFormConfig(res2.data.result);
@@ -501,8 +507,7 @@ function Dashboard() {
         if (err.response?.status === 401) {
           localStorage.clear();
           toast.error('Session expired. Please log in again.');
-          // Optional: redirect to login
-          window.location.href = 'webphone/login'; // adjust based on your routing
+          window.location.href = 'webphone/login';
         } else {
           toast.error(err.response?.data?.message || err.message || 'Failed to load form.');
           setFormConfig(null);
@@ -527,7 +532,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

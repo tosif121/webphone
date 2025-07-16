@@ -585,7 +585,7 @@ export default function LeadCallsTable({
 
   return (
     <div className="flex gap-5 transition-all duration-300 ease-in-out">
-      <Card className={`transition-all duration-300 ease-in-out ${expand ? 'w-2/3' : 'w-full'}`}>
+      <Card className={`transition-all duration-300 ease-in-out h-max ${expand ? 'w-2/3' : 'w-full'}`}>
         <CardContent>
           <Tabs
             value={activeMainTab}
@@ -716,7 +716,7 @@ export default function LeadCallsTable({
       </Card>
 
       {expand && (
-        <Card className="w-1/3 transition-all duration-300 ease-in-out">
+        <Card className="w-1/3 transition-all h-max duration-300 ease-in-out">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between">
               <span className="text-lg font-semibold">
