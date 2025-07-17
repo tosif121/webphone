@@ -28,7 +28,7 @@ import toast from 'react-hot-toast';
 import useFormatPhoneNumber from '../hooks/useFormatPhoneNumber';
 import HistoryContext from '@/context/HistoryContext';
 
-// Icon mapping based on label or type
+
 const iconMap = {
   name: User,
   firstname: User,
@@ -102,7 +102,6 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
     }
   }, [dispositionModal]);
 
-  // Fixed function signature - now accepts leadData parameter
   function populateFormFromLead(leadData) {
     const filledState = {};
     const leadKeys = Object.keys(leadData || {});
@@ -112,10 +111,8 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
         const fieldName = field.name;
         const lowerFieldName = fieldName.toLowerCase();
 
-        // Try direct match
         let matchedKey = leadKeys.find((key) => key.toLowerCase() === lowerFieldName);
 
-        // Try partial match if no direct match
         if (!matchedKey) {
           matchedKey = leadKeys.find((key) => key.toLowerCase().includes(lowerFieldName));
         }
@@ -124,11 +121,9 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
       }
     }
 
-    // Update the form state with populated data
     setFormState(filledState);
   }
 
-  // Updated handleDial function
   const handleDial = async () => {
     const payload = {
       user: username,
