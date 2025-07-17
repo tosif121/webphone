@@ -78,6 +78,7 @@ export default function LeadCallsTable({
   }, []);
 
   useEffect(() => {
+    // This correctly resets the panel when the main tab changes
     setExpand(false);
     setSelectedRow(null);
   }, [activeMainTab]);
@@ -584,7 +585,70 @@ export default function LeadCallsTable({
   };
 
   return (
+    // The main container for both panels
     <div className="flex gap-5 transition-all duration-300 ease-in-out">
+      {/* Expanded panel (now comes first for left-side slide) */}
+      <Card
+        className={`h-max transition-all duration-300 ease-in-out ${
+          expand ? 'w-1/3 opacity-100 translate-x-0' : 'w-0 opacity-0 -translate-x-full overflow-hidden'
+        }`}
+      >
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between">
+            <span className="text-lg font-semibold">
+              {selectedRow?._isApiCallData ? 'Call Information' : 'Lead Information'}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setExpand(false);
+                setSelectedRow(null);
+              }}
+              className="hover:bg-accent rounded-full h-8 w-8 p-0"
+            >
+              <X size={16} />
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!selectedRow ? (
+            <div className="text-center py-8">
+              <User size={48} className="mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Select an entry to view details.</p>
+            </div>
+          ) : (
+            <Tabs value={activeSidebarTab} onValueChange={setActiveSidebarTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="details" className="flex items-center gap-2">
+                  {selectedRow?._isApiCallData ? <Info size={16} /> : <UserCog size={16} />}
+                  {selectedRow?._isApiCallData ? 'Call Details' : 'Leads Details'}
+                </TabsTrigger>
+                <TabsTrigger value="history" className="flex items-center gap-2">
+                  <History size={16} />
+                  History
+                  {selectedRow?.history?.length > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                    >
+                      {selectedRow.history.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="details" className="mt-4">
+                {renderDetailsTab()}
+              </TabsContent>
+              <TabsContent value="history" className="mt-4">
+                {renderHistoryTab()}
+              </TabsContent>
+            </Tabs>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Main content table (adjusts width based on panel visibility) */}
       <Card className={`transition-all duration-300 ease-in-out h-max ${expand ? 'w-2/3' : 'w-full'}`}>
         <CardContent>
           <Tabs
@@ -714,64 +778,6 @@ export default function LeadCallsTable({
           </Tabs>
         </CardContent>
       </Card>
-
-      {expand && (
-        <Card className="w-1/3 transition-all h-max duration-300 ease-in-out">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between">
-              <span className="text-lg font-semibold">
-                {selectedRow?._isApiCallData ? 'Call Information' : 'Lead Information'}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setExpand(false);
-                  setSelectedRow(null);
-                }}
-                className="hover:bg-accent rounded-full h-8 w-8 p-0"
-              >
-                <X size={16} />
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!selectedRow ? (
-              <div className="text-center py-8">
-                <User size={48} className="mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Select an entry to view details.</p>
-              </div>
-            ) : (
-              <Tabs value={activeSidebarTab} onValueChange={setActiveSidebarTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="details" className="flex items-center gap-2">
-                    {selectedRow?._isApiCallData ? <Info size={16} /> : <UserCog size={16} />}
-                    {selectedRow?._isApiCallData ? 'Call Details' : 'Leads Details'}
-                  </TabsTrigger>
-                  {selectedRow.history && selectedRow.history.length > 0 && (
-                    <TabsTrigger value="history" className="flex items-center gap-2">
-                      <History size={16} />
-                      History
-                      <Badge
-                        variant="secondary"
-                        className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                      >
-                        {selectedRow.history.length}
-                      </Badge>
-                    </TabsTrigger>
-                  )}
-                </TabsList>
-                <TabsContent value="details" className="mt-4">
-                  {renderDetailsTab()}
-                </TabsContent>
-                <TabsContent value="history" className="mt-4">
-                  {renderHistoryTab()}
-                </TabsContent>
-              </Tabs>
-            )}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

@@ -16,7 +16,7 @@ function getInitialWebphoneState() {
       x: 200,
       y: 180,
       width: 330,
-      height: 600,
+      height: 550,
     };
   try {
     const saved = localStorage.getItem('webphone-position');
@@ -26,7 +26,7 @@ function getInitialWebphoneState() {
     x: window.innerWidth - 350,
     y: 180,
     width: 330,
-    height: 600,
+    height: 550,
   };
 }
 
@@ -301,7 +301,7 @@ export default function DraggableWebPhone() {
                 bottomLeft: true,
                 topLeft: true,
               }}
-              className="backdrop-blur-md z-0 md:z-[50] bg-card/80 rounded-2xl border border-border shadow-xl transition-all overflow-hidden"
+              className="backdrop-blur-md z-0 md:z-[50] !fixed bg-card/80 rounded-2xl border border-border shadow-xl transition-all overflow-hidden"
             >
               {renderPhoneContent()}
             </Rnd>

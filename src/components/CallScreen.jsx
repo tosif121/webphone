@@ -195,7 +195,7 @@ const CallScreen = ({
         )}
 
         {/* End Call Button */}
-        <div className="flex justify-center pt-4">
+        <div className="flex justify-center">
           <button
             className="text-white cursor-pointer w-14 h-14 flex items-center justify-center rounded-full bg-destructive shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 rotate-[133deg] focus:outline-none focus:ring-2 focus:ring-destructive group"
             onClick={() => {
@@ -210,7 +210,7 @@ const CallScreen = ({
         </div>
 
         {/* Audio Device Selector */}
-        <div className="pt-4">
+        <div>
           <select
             id="audio-device"
             value={selectedDeviceId}
