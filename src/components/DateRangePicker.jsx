@@ -10,6 +10,7 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate }) => 
   const [isOpen, setIsOpen] = useState(false);
   const [dateRange, setDateRange] = useState([null, null]);
   const [startDate, endDate] = dateRange;
+  const [monthsShown, setMonthsShown] = useState(2);
 
   // Initialize with provided dates or defaults - only run once on mount
   useEffect(() => {
@@ -46,6 +47,17 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate }) => 
 
     setIsOpen(false);
   };
+
+  useEffect(() => {
+    const updateMonths = () => {
+      setMonthsShown(window.innerWidth < 640 ? 1 : 2);
+    };
+
+    updateMonths(); // initial check
+
+    window.addEventListener('resize', updateMonths);
+    return () => window.removeEventListener('resize', updateMonths);
+  }, []);
 
   // Apply for today only
   const applyToday = () => {
@@ -130,7 +142,7 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate }) => 
               endDate={endDate}
               onChange={handleDateRangeChange}
               inline
-              monthsShown={window.innerWidth < 640 ? 1 : 2}
+              monthsShown={monthsShown}
               showPreviousMonths
               calendarClassName="!bg-card !border-0 !text-foreground"
               dayClassName={() => 'hover:bg-accent hover:text-accent-foreground'}

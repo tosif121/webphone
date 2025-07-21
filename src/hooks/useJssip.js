@@ -6,7 +6,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const useJssip = (isMobile = false) => {
-  const { setHistory, username, password } = useContext(HistoryContext);
+  const { setHistory, username, password, setSelectedBreak, selectedBreak } = useContext(HistoryContext);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [conferenceNumber, setConferenceNumber] = useState('');
   const [ua, setUa] = useState(null);
@@ -1248,62 +1248,112 @@ const useJssip = (isMobile = false) => {
     };
   }, [username, password]);
 
-  const handleCall = (formattedNumber) => {
+  const removeBreak = async () => {
+    try {
+      await axios.post(`${window.location.origin}/user/removebreakuser:${username}`);
+      setSelectedBreak('Break');
+      localStorage.removeItem('selectedBreak');
+      toast.success('Break removed successfully');
+      return true;
+    } catch (error) {
+      console.error('Error removing break:', error);
+      toast.error('Error removing break');
+      return false;
+    }
+  };
+
+  const validatePhoneNumber = (number) => {
+    if (!number) return false;
+    const cleaned = number.replace(/\D/g, '');
+    return cleaned.length >= 10 && cleaned.length <= 12;
+  };
+
+  const handleCall = async (formattedNumber) => {
+    // Early returns for invalid states
     if (isConnectionLost) {
+      toast.error('Connection lost. Please check your internet connection.');
       return;
     }
 
     const targetNumber = phoneNumber || formattedNumber;
 
-    if (!targetNumber || targetNumber.length < 10 || targetNumber.length > 12) {
-      toast.error('Phone number must be 10 digit');
+    if (!validatePhoneNumber(targetNumber)) {
+      toast.error('Phone number must be 10-12 digits');
       return;
     }
 
-    console.log('🚀 Starting OUTGOING call to:', targetNumber);
+    try {
+      // Handle break removal if needed
+      if (selectedBreak !== 'Break') {
+        const breakRemoved = await removeBreak();
+        if (!breakRemoved) {
+          return; // Stop if break removal failed
+        }
+      }
 
-    // Store in ref immediately (synchronous)
-    dialingNumberRef.current = targetNumber.replace(/\D/g, ''); // Remove spaces/formatting
+      console.log('🚀 Starting OUTGOING call to:', targetNumber);
 
-    // Also set state (asynchronous)
-    setPhoneNumber(targetNumber);
+      // Clean and store the number
+      const cleanedNumber = targetNumber.replace(/\D/g, '');
+      dialingNumberRef.current = cleanedNumber;
+      setPhoneNumber(targetNumber);
 
-    setHistory((prev) => [
-      ...prev,
-      {
+      // Add to call history
+      const callRecord = {
         startTime: new Date(),
         phoneNumber: targetNumber,
         type: 'outgoing',
-      },
-    ]);
+      };
+      setHistory((prev) => [...prev, callRecord]);
 
-    localStorage.setItem('dialing', true);
+      // Set dialing state
+      try {
+        localStorage.setItem('dialing', 'true');
+      } catch (storageError) {
+        console.warn('Failed to set localStorage:', storageError);
+        // Continue anyway, localStorage isn't critical for the call
+      }
 
-    axios
-      .post(
-        `${window.location.origin}/dialnumber`,
-        { caller: username, receiver: targetNumber },
+      // Make the API call
+      const response = await axios.post(
+        '${window.location.origin}/dialnumber',
+        {
+          caller: username,
+          receiver: targetNumber,
+        },
         {
           headers: {
             'Content-Type': 'application/json',
-            'X-User-ID': `${username}`,
+            'X-User-ID': username,
           },
+          timeout: 10000, // 10 second timeout
         }
-      )
-      .then(() => {
-        console.log('✅ Backend dial API success');
-      })
-      .catch((error) => {
-        console.error('❌ Backend dial API failed:', error);
-        toast.error('Failed to initiate the call');
-        setStatus('start');
-        setPhoneNumber('');
-        dialingNumberRef.current = ''; // Clear ref on error
-        // localStorage.clear();
-        window.location.href = '/webphone/webphone';
-      });
-  };
+      );
+    } catch (error) {
+      console.error('❌ Call initiation failed:', error);
 
+      // Reset state on error
+      setStatus('start');
+      setPhoneNumber('');
+      dialingNumberRef.current = '';
+
+      // Handle different types of errors
+      if (error.code === 'ECONNABORTED') {
+        toast.error('Call request timed out. Please try again.');
+      } else if (error.response?.status === 400) {
+        toast.error('Invalid phone number or user not found');
+      } else if (error.response?.status >= 500) {
+        toast.error('Server error. Please try again later.');
+      } else {
+        toast.error('Failed to initiate the call. Please try again.');
+      }
+
+      // Only redirect on critical errors, not all errors
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        window.location.href = '/webphone/webphone';
+      }
+    }
+  };
   useEffect(() => {
     const callApi = async () => {
       console.log('calling user/callednde api:', Date.now());

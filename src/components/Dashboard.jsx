@@ -553,20 +553,6 @@ function Dashboard() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="relative">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-muted rounded-full animate-spin"></div>
-          <div className="absolute top-0 left-0 w-16 h-16 sm:w-20 sm:h-20 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-primary animate-pulse" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       {ringtone && ringtone.length > 0 && (
@@ -624,101 +610,103 @@ function Dashboard() {
         <h1 className="text-2xl font-bold text-primary mb-2">Agent Panel</h1>
         <p className="text-sm text-muted-foreground">Real-time performance metrics and activity tracking</p>
       </div>
-      {status === 'start' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {activeMainTab === 'allLeads' ? (
-            <>
-              <Card className="overflow-hidden border-l-4 border-l-primary">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Complete Leads</p>
-                      <h2 className="text-3xl font-bold mt-2">{leadStats.completeCalls}</h2>
-                    </div>
-                    <div className="bg-primary/10 p-3 rounded-lg">
-                      <CheckCircle className="h-6 w-6 text-primary" />
-                    </div>
+      <div
+        className={`grid grid-cols-1 md:grid-cols-3 gap-6 transition-all duration-500 ease-in-out ${
+          status !== 'start' ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
+        }`}
+      >
+        {activeMainTab === 'allLeads' ? (
+          <>
+            <Card className="overflow-hidden border-l-4 border-l-primary">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Complete Leads</p>
+                    <h2 className="text-3xl font-bold mt-2">{leadStats.completeCalls}</h2>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="bg-primary/10 p-3 rounded-lg">
+                    <CheckCircle className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-              <Card className="overflow-hidden border-l-4 border-l-primary">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
-                      <h2 className="text-3xl font-bold mt-2">{leadStats.totalCalls}</h2>
-                    </div>
-                    <div className="bg-primary/10 p-3 rounded-lg">
-                      <Users className="h-6 w-6 text-primary" />
-                    </div>
+            <Card className="overflow-hidden border-l-4 border-l-primary">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
+                    <h2 className="text-3xl font-bold mt-2">{leadStats.totalCalls}</h2>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="bg-primary/10 p-3 rounded-lg">
+                    <Users className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-              <Card className="overflow-hidden border-l-4 border-l-primary">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Pending Leads</p>
-                      <h2 className="text-3xl font-bold mt-2">{leadStats.pendingCalls}</h2>
-                    </div>
-                    <div className="bg-primary/10 p-3 rounded-lg">
-                      <AlertCircle className="h-6 w-6 text-primary" />
-                    </div>
+            <Card className="overflow-hidden border-l-4 border-l-primary">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Pending Leads</p>
+                    <h2 className="text-3xl font-bold mt-2">{leadStats.pendingCalls}</h2>
                   </div>
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <>
-              <Card className="overflow-hidden border-l-4 border-l-primary">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total Calls</p>
-                      <h2 className="text-3xl font-bold mt-2">{callStats.totalCalls}</h2>
-                    </div>
-                    <div className="bg-primary/10 p-3 rounded-lg">
-                      <Phone className="h-6 w-6 text-primary" />
-                    </div>
+                  <div className="bg-primary/10 p-3 rounded-lg">
+                    <AlertCircle className="h-6 w-6 text-primary" />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <>
+            <Card className="overflow-hidden border-l-4 border-l-primary">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Calls</p>
+                    <h2 className="text-3xl font-bold mt-2">{callStats.totalCalls}</h2>
+                  </div>
+                  <div className="bg-primary/10 p-3 rounded-lg">
+                    <Phone className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-              <Card className="overflow-hidden border-l-4 border-l-primary">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Incoming Calls</p>
-                      <h2 className="text-3xl font-bold mt-2">{callStats.incomingCalls}</h2>
-                    </div>
-                    <div className="bg-primary/10 p-3 rounded-lg">
-                      <PhoneIncoming className="h-6 w-6 text-primary" />
-                    </div>
+            <Card className="overflow-hidden border-l-4 border-l-primary">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Incoming Calls</p>
+                    <h2 className="text-3xl font-bold mt-2">{callStats.incomingCalls}</h2>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="overflow-hidden border-l-4 border-l-primary">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Outgoing Calls</p>
-                      <h2 className="text-3xl font-bold mt-2">{callStats.outgoingCalls}</h2>
-                    </div>
-                    <div className="bg-primary/10 p-3 rounded-lg">
-                      <PhoneForwarded className="h-6 w-6 text-primary" />
-                    </div>
+                  <div className="bg-primary/10 p-3 rounded-lg">
+                    <PhoneIncoming className="h-6 w-6 text-primary" />
                   </div>
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </div>
-      )}
+                </div>
+              </CardContent>
+            </Card>
 
-      <div className="flex gap-6 mt-8 md:flex-row flex-col">
+            <Card className="overflow-hidden border-l-4 border-l-primary">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Outgoing Calls</p>
+                    <h2 className="text-3xl font-bold mt-2">{callStats.outgoingCalls}</h2>
+                  </div>
+                  <div className="bg-primary/10 p-3 rounded-lg">
+                    <PhoneForwarded className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
+
+      {/* <div className="flex gap-6 mt-8 md:flex-row flex-col">
         {status !== 'start' && userCall ? (
           <div className="w-full">
             <LeadAndCallInfoPanel
@@ -755,6 +743,52 @@ function Dashboard() {
             />
           </div>
         )}
+      </div> */}
+
+    
+      <div className="flex gap-6 mt-8 md:flex-row flex-col relative">
+        <div
+          className={`w-full transition-opacity duration-400 ${
+            status !== 'start' && userCall ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
+          }`}
+        >
+          <LeadAndCallInfoPanel
+            userCall={userCall}
+            formConfig={formConfig}
+            handleCall={handleCall}
+            apiCallData={apiCallData}
+            mappedLeads={mapLeadData(leadsData)}
+            setFormData={setFormState}
+            formData={formState}
+            handleSubmit={handleSubmit}
+            handleContact={handleContact}
+            filterStartDate={startDate}
+            setFilterStartDate={setStartDate}
+            filterEndDate={endDate}
+            setFilterEndDate={setEndDate}
+          />
+        </div>
+
+        <div
+          className={`w-full transition-opacity duration-400 ${
+            !(status !== 'start' && userCall) ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
+          }`}
+        >
+          <LeadCallsTable
+            callDetails={leadsData}
+            apiCallData={apiCallData}
+            handleCall={handleCall}
+            startDate={startDate}
+            setStartDate={setStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+            formConfig={formConfig}
+            username={username}
+            token={token}
+            activeMainTab={activeMainTab}
+            setActiveMainTab={setActiveMainTab}
+          />{' '}
+        </div>
       </div>
     </>
   );
