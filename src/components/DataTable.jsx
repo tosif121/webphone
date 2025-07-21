@@ -30,7 +30,7 @@ const DataTable = ({
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState([]);
   const [rowSelection, setRowSelection] = useState({});
-  const [expandedRow, setExpandedRow] = useState(null);
+  const [expandedRowId, setExpandedRowId] = useState(null);
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: initialPageSize,
@@ -67,15 +67,26 @@ const DataTable = ({
   });
 
   const handleRowExpand = (row) => {
-    const isExpanded = row.getIsExpanded();
-    row.toggleExpanded();
+    const isCurrentlyExpanded = row.id === expandedRowId;
 
-    // If expandRow is true and setExpand is provided, update the expand state
-    if (expandRow && setExpand) {
-      setExpand(true);
-      // If onRowExpand callback is provided, call it with row data
-      if (onRowExpand && !isExpanded) {
-        onRowExpand(row.original);
+    if (isCurrentlyExpanded) {
+      row.toggleExpanded(false);
+      setExpandedRowId(null);
+      if (expandRow && setExpand) {
+        setExpand(false);
+      }
+    } else {
+      if (expandedRowId) {
+        table.getRow(expandedRowId)?.toggleExpanded(false);
+      }
+      row.toggleExpanded(true);
+      setExpandedRowId(row.id);
+
+      if (expandRow && setExpand) {
+        setExpand(true);
+        if (onRowExpand) {
+          onRowExpand(row.original);
+        }
       }
     }
   };
@@ -141,11 +152,12 @@ const DataTable = ({
             ))}
           </TableHeader>
           <TableBody>
-            {/* Safely check if rows exist before accessing length */}
             {table.getRowModel() && table.getRowModel().rows && table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
                 <React.Fragment key={row.id}>
-                  <TableRow className="group hover:bg-muted">
+                  <TableRow
+                    className={`group ${row.id === expandedRowId ? 'bg-accent hover:bg-muted' : 'hover:bg-muted'}`}
+                  >
                     {row.getVisibleCells().map((cell, cellIndex) => (
                       <TableCell key={cell.id} className="text-foreground relative">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -157,7 +169,7 @@ const DataTable = ({
                               onClick={() => handleRowExpand(row)}
                             >
                               <PanelRight className="w-4 h-4 mr-1" />
-                              Expand
+                              {row.id === expandedRowId ? 'Collapse' : 'Expand'}
                             </button>
                           </div>
                         )}

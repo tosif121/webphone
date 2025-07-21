@@ -585,9 +585,7 @@ export default function LeadCallsTable({
   };
 
   return (
-    // The main container for both panels
-    <div className="flex gap-5 transition-all duration-300 ease-in-out">
-      {/* Expanded panel (now comes first for left-side slide) */}
+    <div className="flex transition-all duration-300 ease-in-out">
       <Card
         className={`h-max transition-all duration-300 ease-in-out ${
           expand ? 'w-1/3 opacity-100 translate-x-0' : 'w-0 opacity-0 -translate-x-full overflow-hidden'
@@ -648,8 +646,7 @@ export default function LeadCallsTable({
         </CardContent>
       </Card>
 
-      {/* Main content table (adjusts width based on panel visibility) */}
-      <Card className={`transition-all duration-300 ease-in-out h-max ${expand ? 'w-2/3' : 'w-full'}`}>
+      <Card className={`transition-all duration-500 ease-in-out h-max ${expand ? 'w-2/3 ms-5' : 'w-full'}`}>
         <CardContent>
           <Tabs
             value={activeMainTab}

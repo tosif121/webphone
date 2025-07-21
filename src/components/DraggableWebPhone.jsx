@@ -301,7 +301,7 @@ export default function DraggableWebPhone() {
                 bottomLeft: true,
                 topLeft: true,
               }}
-              className="backdrop-blur-md z-0 md:z-[50] !fixed bg-card/80 rounded-2xl border border-border shadow-xl transition-all overflow-hidden"
+              className="![transform:translate(0px,0px)] !top-[25%] !left-auto !right-6 backdrop-blur-md z-0 md:z-[50] !fixed bg-card/80 rounded-xl md:rounded-2xl border border-border shadow-xl transition-all duration-300 overflow-hidden hover:shadow-2xl"
             >
               {renderPhoneContent()}
             </Rnd>

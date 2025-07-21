@@ -259,7 +259,10 @@ const useJssip = (isMobile = false) => {
         });
       }
 
-      localStorage.clear();
+      localStorage.removeItem('token');
+      localStorage.removeItem('savedUsername');
+      localStorage.removeItem('savedPassword');
+
       toast.success('Logged out successfully');
 
       if (session && session.status < 6) {
@@ -270,7 +273,10 @@ const useJssip = (isMobile = false) => {
       window.location.href = '/webphone/login';
     } catch (error) {
       console.error('Error during logout:', error);
-      localStorage.clear();
+      localStorage.removeItem('token');
+      localStorage.removeItem('savedUsername');
+      localStorage.removeItem('savedPassword');
+
       window.location.href = '/webphone/login';
     }
 

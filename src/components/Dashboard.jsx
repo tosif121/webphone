@@ -1,7 +1,7 @@
+// Dashboard.jsx
 import HistoryContext from '@/context/HistoryContext';
-import useJssip from '@/hooks/useJssip';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import UserCall from './UserCall';
+import LeadAndCallInfoPanel from './LeadAndCallInfoPanel';
 import AutoDial from './AutoDial';
 import AutoDialDynamicForm from './AutoDialDynamicForm';
 import Disposition from './Disposition';
@@ -31,7 +31,6 @@ import {
 } from 'lucide-react';
 import CallbackForm from './CallbackForm';
 import { useRouter } from 'next/router';
-import DynamicForm from './DynamicForm';
 import FollowUpCallsModal from './FollowUpCallsModal';
 import moment from 'moment';
 import { Button } from './ui/button';
@@ -100,7 +99,6 @@ function Dashboard() {
   const [callConference, setCallConference] = useState(false);
   const [adminUser, setAdminUser] = useState(null);
   const [userCampaign, setUserCampaign] = useState(null);
-  const [contactShow, setContactShow] = useState(false);
   const [leadsData, setLeadsData] = useState([]);
   const [apiCallData, setApiCallData] = useState([]);
 
@@ -114,9 +112,11 @@ function Dashboard() {
   const [formState, setFormState] = useState({});
   const [formConfig, setFormConfig] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [startDate, setStartDate] = useState(moment().subtract(24, 'hours').format('YYYY-MM-DD'));
-  const [endDate, setEndDate] = useState(moment().format('YYYY-MM-DD'));
-  const [activeMainTab, setActiveMainTab] = useState('allLeads'); // Default to 'allLeads'
+
+  const [startDate, setStartDate] = useState(moment().subtract(7, 'days').startOf('day').toDate());
+  const [endDate, setEndDate] = useState(moment().endOf('day').toDate());
+
+  const [activeMainTab, setActiveMainTab] = useState('allLeads');
   const [leadStats, setLeadStats] = useState({
     completeCalls: 0,
     pendingCalls: 0,
@@ -154,10 +154,16 @@ function Dashboard() {
   useEffect(() => {
     const tokenData = localStorage.getItem('token');
     if (tokenData) {
-      const parsedData = JSON.parse(tokenData);
-      setUserCampaign(parsedData?.userData?.campaign);
-      setAdminUser(parsedData?.userData?.adminuser);
-      setToken(parsedData.token);
+      try {
+        const parsedData = JSON.parse(tokenData);
+        setUserCampaign(parsedData?.userData?.campaign);
+        setAdminUser(parsedData?.userData?.adminuser);
+        setToken(parsedData.token);
+      } catch (e) {
+        console.error('Invalid token JSON in localStorage:', e);
+        localStorage.removeItem('token');
+        router.push('/webphone/login');
+      }
     }
   }, []);
 
@@ -173,15 +179,14 @@ function Dashboard() {
         );
       }
     } catch (e) {
-      console.error('Invalid token JSON in localStorage:', e);
+      console.error('Error sending token to React Native:', e);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     const originalAnswerIncomingCall = window.answerIncomingCall;
     const originalRejectIncomingCall = window.rejectIncomingCall;
 
-    // Define handler called from React Native
     window.onReactNativeMessage = (data) => {
       try {
         console.log('[Web] Received from React Native:', data);
@@ -197,7 +202,6 @@ function Dashboard() {
       }
     };
 
-    // Expose unified functions on window
     window.answerIncomingCall = function () {
       if (answerIncomingCall && typeof answerIncomingCall === 'function' && incomingSession) {
         answerIncomingCall();
@@ -226,7 +230,6 @@ function Dashboard() {
       );
     };
 
-    // Cleanup on unmount
     return () => {
       delete window.onReactNativeMessage;
       if (originalAnswerIncomingCall) {
@@ -241,7 +244,7 @@ function Dashboard() {
         delete window.rejectIncomingCall;
       }
     };
-  }, [incomingSession]);
+  }, [incomingSession, answerIncomingCall, rejectIncomingCall]);
 
   useEffect(() => {
     const sendRingingState = () => {
@@ -263,36 +266,22 @@ function Dashboard() {
     setCampaignMissedCallsLength(computedMissedCallsLength);
   }, [computedMissedCallsLength, setCampaignMissedCallsLength]);
 
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    number: '',
-    alternateNumber: '',
-    address: '',
-    city: '',
-    state: '',
-    postalCode: '',
-    district: '',
-    comment: '',
-  });
-
   const handleContact = async () => {
     const payload = {
       user: username,
       isFresh: userCall?.isFresh,
       data: {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        emailId: formData.email,
-        contactNumber: formData.number,
-        alternateNumber: formData.alternateNumber,
-        comment: formData.comment,
-        Contactaddress: formData.address,
-        ContactDistrict: formData.district,
-        ContactCity: formData.city,
-        ContactState: formData.state,
-        ContactPincode: formData.postalCode,
+        firstName: formState.firstName,
+        lastName: formState.lastName,
+        emailId: formState.email,
+        contactNumber: formState.number,
+        alternateNumber: formState.alternateNumber,
+        comment: formState.comment,
+        Contactaddress: formState.address,
+        ContactDistrict: formState.district,
+        ContactCity: formState.city,
+        ContactState: formState.state,
+        ContactPincode: formState.postalCode,
       },
     };
 
@@ -319,12 +308,6 @@ function Dashboard() {
       fetchUserMissedCalls();
     }
   }, [status, username]);
-
-  useEffect(() => {
-    if (status !== 'start' && userCall) {
-      setContactShow(true);
-    }
-  }, [status, userCall]);
 
   useEffect(() => {
     if (selectedBreak != 'Break' && ringtone.length >= 0) {
@@ -370,59 +353,41 @@ function Dashboard() {
   }, [info]);
 
   useEffect(() => {
-    if (userCall) {
-      setFormData({
-        firstName: userCall.firstName || '',
-        lastName: userCall.lastName || '',
-        number: userCall.contactNumber || '',
-        alternateNumber: userCall.alternateNumber || '',
-        address: userCall.Contactaddress || '',
-        state: userCall.ContactState || '',
-        district: userCall.ContactDistrict || '',
-        city: userCall.ContactCity || '',
-        postalCode: userCall.ContactPincode || '',
-        email: userCall.emailId || '',
-        comment: userCall.comment || '',
-      });
-    }
-  }, [userCall]);
-
-  useEffect(() => {
     setCampaignMissedCallsLength(campaignMissedCallsLength);
   }, [campaignMissedCallsLength]);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const storedToken = localStorage.getItem('token');
     try {
-      const parsedToken = JSON.parse(token);
+      const parsedToken = JSON.parse(storedToken);
       if (!parsedToken) {
         router.push('/webphone/login');
-      } else {
-        router.push('/webphone');
       }
     } catch (error) {
       router.push('/webphone/login');
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
-    if (!userCampaign || !username || !token) return;
+    if (!userCampaign || !username || !token || !startDate || !endDate) return;
 
-    if (activeMainTab === 'allLeads') {
-      fetchLeadsWithDateRange();
-    } else if (activeMainTab === 'callInfo') {
-      fetchCallDataByAgent();
-    }
-  }, [startDate, endDate, userCampaign, username, token, activeMainTab]);
+    // Call both APIs whenever startDate, endDate, userCampaign, username, or token changes.
+    // The activeMainTab will then determine which data to display.
+    fetchLeadsWithDateRange();
+    fetchCallDataByAgent();
+  }, [startDate, endDate, userCampaign, username, token]); // Removed activeMainTab from dependencies
 
   const fetchLeadsWithDateRange = async () => {
     setLoading(true);
     try {
+      const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
+      const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
+
       const response = await axios.post(
         `${window.location.origin}/leadswithdaterange`,
         {
-          startDate,
-          endDate,
+          startDate: formattedStartDate,
+          endDate: formattedEndDate,
           campaignID: userCampaign,
           user: username,
         },
@@ -505,7 +470,10 @@ function Dashboard() {
         setFormConfig(res2.data.result);
       } catch (err) {
         if (err.response?.status === 401) {
-          localStorage.clear();
+          localStorage.removeItem('token');
+          localStorage.removeItem('savedUsername');
+          localStorage.removeItem('savedPassword');
+
           toast.error('Session expired. Please log in again.');
           window.location.href = 'webphone/login';
         } else {
@@ -549,7 +517,44 @@ function Dashboard() {
     }
   };
 
-  // Show loader while loading
+  const mapLeadData = (rawData) => {
+    if (!Array.isArray(rawData)) rawData = [rawData];
+
+    return rawData.map((item) => {
+      const mapped = {
+        name: '',
+        email: '',
+        phone: '',
+        status: 'Pending',
+        uploadDate: item.uploadDate || null,
+        ...item,
+      };
+
+      Object.entries(item).forEach(([key, value]) => {
+        if (!value && value !== 0) return;
+        const v = String(value).trim();
+        const k = key.toLowerCase();
+
+        if (v.includes('@') && v.includes('.')) mapped.email = v;
+        else if (/^\d{10}$/.test(v)) mapped.phone = v;
+        else if (k.includes('name') && !k.includes('file') && !k.includes('user')) mapped.name = v;
+        else if (k.includes('date') || k.includes('time')) mapped.uploadDate = value;
+      });
+
+      switch (item.lastDialedStatus) {
+        case 1:
+        case 9:
+          mapped.status = 'Complete';
+          break;
+        case 0:
+        default:
+          mapped.status = 'Pending';
+      }
+
+      return mapped;
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -566,8 +571,6 @@ function Dashboard() {
 
   return (
     <>
-      {/* Call Queue Alert */}
-
       {ringtone && ringtone.length > 0 && (
         <div className="w-full bg-primary/10 border border-primary/20 px-3 py-1 flex items-center gap-3 text-xs mb-4 rounded-sm">
           <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center animate-pulse">
@@ -586,34 +589,7 @@ function Dashboard() {
           </div>
         </div>
       )}
-      {status !== 'start' && userCall ? (
-        <div className="fixed bottom-2 right-8 z-[51]">
-          <Button
-            type="button"
-            size="lg"
-            className="rounded-full w-14 h-14"
-            onClick={() => setContactShow((prev) => !prev)}
-            aria-label={contactShow ? 'Hide contact form' : 'Show contact form'}
-          >
-            {contactShow ? <Navigation className="h-8 w-8" /> : <NavigationOff className="h-8 w-8" />}
-          </Button>
-        </div>
-      ) : (
-        ''
-      )}
-      {/* {info && (
-        <Modal isOpen={info} onClose={() => setInfo(false)} title={`Users Not In Use (${adminUserData.length})`}>
-          <InterModal
-            adminUserData={adminUserData}
-            handleCall={handleCall}
-            handleCalls={handleCalls}
-            setPhoneNumber={setPhoneNumber}
-            setInfo={setInfo}
-            status={status}
-            setConferenceNumber={setConferenceNumber}
-          />
-        </Modal>
-      )} */}
+
       {dispositionModal && (
         <Disposition
           bridgeID={bridgeID}
@@ -650,132 +626,137 @@ function Dashboard() {
         <h1 className="text-2xl font-bold text-primary mb-2">Agent Panel</h1>
         <p className="text-sm text-muted-foreground">Real-time performance metrics and activity tracking</p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {(activeMainTab === 'allLeads' && (
-          <>
-            <Card className="overflow-hidden border-l-4 border-l-primary">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Complete Leads</p>
-                    <h2 className="text-3xl font-bold mt-2">{leadStats.completeCalls}</h2>
+      {status === 'start' && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {activeMainTab === 'allLeads' ? (
+            <>
+              <Card className="overflow-hidden border-l-4 border-l-primary">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Complete Leads</p>
+                      <h2 className="text-3xl font-bold mt-2">{leadStats.completeCalls}</h2>
+                    </div>
+                    <div className="bg-primary/10 p-3 rounded-lg">
+                      <CheckCircle className="h-6 w-6 text-primary" />
+                    </div>
                   </div>
-                  <div className="bg-primary/10 p-3 rounded-lg">
-                    <CheckCircle className="h-6 w-6 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="overflow-hidden border-l-4 border-l-primary">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
-                    <h2 className="text-3xl font-bold mt-2">{leadStats.totalCalls}</h2>
+              <Card className="overflow-hidden border-l-4 border-l-primary">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
+                      <h2 className="text-3xl font-bold mt-2">{leadStats.totalCalls}</h2>
+                    </div>
+                    <div className="bg-primary/10 p-3 rounded-lg">
+                      <Users className="h-6 w-6 text-primary" />
+                    </div>
                   </div>
-                  <div className="bg-primary/10 p-3 rounded-lg">
-                    <Users className="h-6 w-6 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="overflow-hidden border-l-4 border-l-primary">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Pending Leads</p>
-                    <h2 className="text-3xl font-bold mt-2">{leadStats.pendingCalls}</h2>
+              <Card className="overflow-hidden border-l-4 border-l-primary">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Pending Leads</p>
+                      <h2 className="text-3xl font-bold mt-2">{leadStats.pendingCalls}</h2>
+                    </div>
+                    <div className="bg-primary/10 p-3 rounded-lg">
+                      <AlertCircle className="h-6 w-6 text-primary" />
+                    </div>
                   </div>
-                  <div className="bg-primary/10 p-3 rounded-lg">
-                    <AlertCircle className="h-6 w-6 text-primary" />
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <>
+              <Card className="overflow-hidden border-l-4 border-l-primary">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Calls</p>
+                      <h2 className="text-3xl font-bold mt-2">{callStats.totalCalls}</h2>
+                    </div>
+                    <div className="bg-primary/10 p-3 rounded-lg">
+                      <Phone className="h-6 w-6 text-primary" />
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )) || (
-          <>
-            <Card className="overflow-hidden border-l-4 border-l-primary">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Calls</p>
-                    <h2 className="text-3xl font-bold mt-2">{callStats.totalCalls}</h2>
-                  </div>
-                  <div className="bg-primary/10 p-3 rounded-lg">
-                    <Phone className="h-6 w-6 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="overflow-hidden border-l-4 border-l-primary">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Incoming Calls</p>
-                    <h2 className="text-3xl font-bold mt-2">{callStats.incomingCalls}</h2>
+              <Card className="overflow-hidden border-l-4 border-l-primary">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Incoming Calls</p>
+                      <h2 className="text-3xl font-bold mt-2">{callStats.incomingCalls}</h2>
+                    </div>
+                    <div className="bg-primary/10 p-3 rounded-lg">
+                      <PhoneIncoming className="h-6 w-6 text-primary" />
+                    </div>
                   </div>
-                  <div className="bg-primary/10 p-3 rounded-lg">
-                    <PhoneIncoming className="h-6 w-6 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="overflow-hidden border-l-4 border-l-primary">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Outgoing Calls</p>
-                    <h2 className="text-3xl font-bold mt-2">{callStats.outgoingCalls}</h2>
+              <Card className="overflow-hidden border-l-4 border-l-primary">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Outgoing Calls</p>
+                      <h2 className="text-3xl font-bold mt-2">{callStats.outgoingCalls}</h2>
+                    </div>
+                    <div className="bg-primary/10 p-3 rounded-lg">
+                      <PhoneForwarded className="h-6 w-6 text-primary" />
+                    </div>
                   </div>
-                  <div className="bg-primary/10 p-3 rounded-lg">
-                    <PhoneForwarded className="h-6 w-6 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-6 mt-8 md:flex-row flex-col">
-        {status !== 'start' && userCall && contactShow && (
-          <div className="max-w-lg w-full relative">
-            <div className="absolute z-10 w-full">
-              {Array.isArray(formConfig?.sections) && formConfig.sections.length > 0 ? (
-                <DynamicForm
-                  formConfig={formConfig}
-                  formState={formState}
-                  setFormState={setFormState}
-                  userCall={userCall}
-                />
-              ) : (
-                <UserCall userCall={userCall} username={username} formData={formData} setFormData={setFormData} />
-              )}
-            </div>
+        {status !== 'start' && userCall ? (
+          <div className="w-full">
+            <LeadAndCallInfoPanel
+              userCall={userCall}
+              formConfig={formConfig}
+              handleCall={handleCall}
+              apiCallData={apiCallData}
+              mappedLeads={mapLeadData(leadsData)}
+              setFormData={setFormState}
+              formData={formState}
+              handleSubmit={handleSubmit}
+              handleContact={handleContact}
+              filterStartDate={startDate}
+              setFilterStartDate={setStartDate}
+              filterEndDate={endDate}
+              setFilterEndDate={setEndDate}
+            />
+          </div>
+        ) : (
+          <div className="w-full">
+            <LeadCallsTable
+              callDetails={leadsData}
+              apiCallData={apiCallData}
+              handleCall={handleCall}
+              startDate={startDate}
+              setStartDate={setStartDate}
+              endDate={endDate}
+              setEndDate={setEndDate}
+              formConfig={formConfig}
+              username={username}
+              token={token}
+              activeMainTab={activeMainTab}
+              setActiveMainTab={setActiveMainTab}
+            />
           </div>
         )}
-
-        <div className="w-full">
-          <LeadCallsTable
-            callDetails={leadsData}
-            apiCallData={apiCallData}
-            handleCall={handleCall}
-            startDate={startDate}
-            setStartDate={setStartDate}
-            endDate={endDate}
-            setEndDate={setEndDate}
-            formConfig={formConfig}
-            username={username}
-            token={token}
-            activeMainTab={activeMainTab}
-            setActiveMainTab={setActiveMainTab}
-          />
-        </div>
       </div>
     </>
   );

@@ -81,14 +81,20 @@ export default function Header() {
           });
         }
 
-        localStorage.clear();
+        localStorage.removeItem('token');
+        localStorage.removeItem('savedUsername');
+        localStorage.removeItem('savedPassword');
+
         toast.success('Logged out successfully');
         setUserMenuOpen(false);
         window.location.href = '/webphone/login';
       } catch (error) {
         console.error('Error during logout:', error);
 
-        localStorage.clear();
+        localStorage.removeItem('token');
+        localStorage.removeItem('savedUsername');
+        localStorage.removeItem('savedPassword');
+
         toast.warning('Logged out (some cleanup operations failed)');
         setUserMenuOpen(false);
         window.location.href = '/webphone/login';

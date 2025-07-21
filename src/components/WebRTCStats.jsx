@@ -54,7 +54,6 @@ export default function WebRTCStats({ peerConnection }) {
 
   // Overall signal strength is the lowest of the three
   const signalStrength = Math.min(latencyLevel, jitterLevel, packetLossLevel);
-  console.log(signalStrength, 'signalStrength', latency, jitter, packetLoss);
   const now = new Date();
   const time = now.toLocaleTimeString('en-US', {
     hour: '2-digit',
@@ -62,11 +61,31 @@ export default function WebRTCStats({ peerConnection }) {
     hour12: true,
   });
 
+  // Create tooltip content with actual values
+  const getTooltipContent = () => {
+    return (
+      <div>
+        <div>
+          <strong>L:</strong>
+          <span className="ms-1">{latency !== null ? `${latency}ms` : 'N/A'}</span>
+        </div>
+        <div>
+          <strong>J:</strong>
+          <span className="ms-1">{jitter !== null ? `${jitter}ms` : 'N/A'}</span>
+        </div>
+        <div>
+          <strong>PL:</strong>
+          <span className="ms-1">{packetLoss !== null ? `${packetLoss}%` : 'N/A'}</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex justify-between items-center w-full px-4 my-4">
       <div> {time}</div>
 
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center relative group">
         <div className="flex items-end h-4 gap-1">
           {[...Array(4)].map((_, index) => (
             <div
@@ -78,6 +97,16 @@ export default function WebRTCStats({ peerConnection }) {
               aria-label={`Signal bar ${index + 1} of 4 ${index < signalStrength ? 'active' : 'inactive'}`}
             />
           ))}
+        </div>
+
+        {/* Tooltip */}
+        <div
+          className="absolute mb-2 left-1/12 transform -translate-x-1/2
+                        bg-gray-800 text-white text-xs rounded px-2 py-1
+                        opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none
+                        min-w-max z-10"
+        >
+          {getTooltipContent()}
         </div>
       </div>
     </div>
