@@ -470,9 +470,7 @@ function Dashboard() {
         setFormConfig(res2.data.result);
       } catch (err) {
         if (err.response?.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('savedUsername');
-          localStorage.removeItem('savedPassword');
+          localStorage.clear();
 
           toast.error('Session expired. Please log in again.');
           window.location.href = 'webphone/login';

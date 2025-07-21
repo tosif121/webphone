@@ -81,9 +81,7 @@ export default function Header() {
           });
         }
 
-        localStorage.removeItem('token');
-        localStorage.removeItem('savedUsername');
-        localStorage.removeItem('savedPassword');
+        localStorage.clear();
 
         toast.success('Logged out successfully');
         setUserMenuOpen(false);
@@ -91,9 +89,7 @@ export default function Header() {
       } catch (error) {
         console.error('Error during logout:', error);
 
-        localStorage.removeItem('token');
-        localStorage.removeItem('savedUsername');
-        localStorage.removeItem('savedPassword');
+        localStorage.clear();
 
         toast.warning('Logged out (some cleanup operations failed)');
         setUserMenuOpen(false);

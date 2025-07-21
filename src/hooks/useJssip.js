@@ -259,9 +259,7 @@ const useJssip = (isMobile = false) => {
         });
       }
 
-      localStorage.removeItem('token');
-      localStorage.removeItem('savedUsername');
-      localStorage.removeItem('savedPassword');
+      localStorage.clear();
 
       toast.success('Logged out successfully');
 
@@ -273,9 +271,7 @@ const useJssip = (isMobile = false) => {
       window.location.href = '/webphone/login';
     } catch (error) {
       console.error('Error during logout:', error);
-      localStorage.removeItem('token');
-      localStorage.removeItem('savedUsername');
-      localStorage.removeItem('savedPassword');
+      localStorage.clear();
 
       window.location.href = '/webphone/login';
     }
