@@ -612,7 +612,7 @@ function Dashboard() {
       </div>
       <div
         className={`grid grid-cols-1 md:grid-cols-3 gap-6 transition-all duration-500 ease-in-out ${
-          status !== 'start' ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
+          status !== 'start' ? 'opacity-0 pointer-events-none absolute inset-0' : 'opacity-100'
         }`}
       >
         {activeMainTab === 'allLeads' ? (
@@ -706,46 +706,6 @@ function Dashboard() {
         )}
       </div>
 
-      {/* <div className="flex gap-6 mt-8 md:flex-row flex-col">
-        {status !== 'start' && userCall ? (
-          <div className="w-full">
-            <LeadAndCallInfoPanel
-              userCall={userCall}
-              formConfig={formConfig}
-              handleCall={handleCall}
-              apiCallData={apiCallData}
-              mappedLeads={mapLeadData(leadsData)}
-              setFormData={setFormState}
-              formData={formState}
-              handleSubmit={handleSubmit}
-              handleContact={handleContact}
-              filterStartDate={startDate}
-              setFilterStartDate={setStartDate}
-              filterEndDate={endDate}
-              setFilterEndDate={setEndDate}
-            />
-          </div>
-        ) : (
-          <div className="w-full">
-            <LeadCallsTable
-              callDetails={leadsData}
-              apiCallData={apiCallData}
-              handleCall={handleCall}
-              startDate={startDate}
-              setStartDate={setStartDate}
-              endDate={endDate}
-              setEndDate={setEndDate}
-              formConfig={formConfig}
-              username={username}
-              token={token}
-              activeMainTab={activeMainTab}
-              setActiveMainTab={setActiveMainTab}
-            />
-          </div>
-        )}
-      </div> */}
-
-    
       <div className="flex gap-6 mt-8 md:flex-row flex-col relative">
         <div
           className={`w-full transition-opacity duration-400 ${
