@@ -51,8 +51,8 @@ const useJssip = (isMobile = false) => {
   const [origin, setOrigin] = useState('esamwad.iotcom.io');
 
   useEffect(() => {
-    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-    setOrigin(originWithoutProtocol);
+    // const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    // setOrigin(originWithoutProtocol);
   }, []);
 
   function notifyMe() {
@@ -1316,7 +1316,7 @@ const useJssip = (isMobile = false) => {
 
       // Make the API call
       const response = await axios.post(
-        '${window.location.origin}/dialnumber',
+        `${window.location.origin}/dialnumber`,
         {
           caller: username,
           receiver: targetNumber,

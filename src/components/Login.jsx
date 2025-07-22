@@ -328,7 +328,7 @@ export default function Login() {
     <>
       <Dialog open={subscriptionDialog.isOpen} onOpenChange={() => {}} modal={true}>
         <DialogContent
-          className="sm:max-w-lg bg-card/95 [&>button]:hidden backdrop-blur-md border shadow-2xl z-50"
+          className="w-[95%] max-w-lg md:max-w-xl lg:max-w-2xl bg-card/95 [&>button]:hidden backdrop-blur-md border shadow-2xl z-50 mx-auto my-auto p-4 sm:p-6 md:p-8 overflow-y-auto max-h-[90vh]"
           onEscapeKeyDown={(e) => e.preventDefault()}
           onPointerDownOutside={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
@@ -343,10 +343,10 @@ export default function Login() {
                 )}
               </div>
             </div>
-            <DialogTitle className="text-2xl font-bold text-foreground text-center">
+            <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground text-center">
               {subscriptionDialog.type === 'expiring' ? 'Subscription Expiring Soon' : 'Subscription Expired'}
             </DialogTitle>
-            <DialogDescription className="text-base mt-2 text-muted-foreground text-center">
+            <DialogDescription className="text-sm sm:text-base mt-2 text-muted-foreground text-center">
               {subscriptionDialog.type === 'expiring'
                 ? `Your subscription expires in ${subscriptionDialog.daysExpired} day${
                     subscriptionDialog.daysExpired !== 1 ? 's' : ''
@@ -429,29 +429,29 @@ export default function Login() {
         )}
       </Dialog>
 
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8 sm:py-12">
         {/* Subtle background pattern */}
         <div className="absolute inset-0 bg-muted/20 md:block hidden">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/10 rounded-full blur-3xl"></div>
         </div>
 
-        <Card className="w-full max-w-md shadow-lg border backdrop-blur-sm bg-card/95 relative z-10">
+        <Card className="w-full max-w-md shadow-lg border backdrop-blur-sm bg-card/95 relative z-10 mx-auto">
           {/* Decorative elements */}
           <div className="absolute md:block hidden top-0 right-0 w-32 h-32 -mr-16 -mt-16 bg-accent/20 rounded-full blur-2xl"></div>
           <div className="absolute bottom-0 left-0 w-32 h-32 -ml-16 -mb-16 bg-primary/10 rounded-full blur-2xl"></div>
 
-          <CardHeader className="space-y-1 pb-6 pt-10">
+          <CardHeader className="space-y-1 pb-6 pt-6 sm:pt-10">
             <div className="flex items-center justify-center mb-6">
               <div className="h-16 w-16 rounded-full bg-primary flex items-center justify-center shadow-lg">
                 <PhoneCall className="h-8 w-8 text-primary-foreground" />
               </div>
             </div>
-            <CardTitle className="text-3xl font-bold text-center text-foreground">SAMWAD</CardTitle>
-            <CardDescription className="text-center text-base mt-2">Sign in to your account</CardDescription>
+            <CardTitle className="text-2xl sm:text-3xl font-bold text-center text-foreground">SAMWAD</CardTitle>
+            <CardDescription className="text-sm sm:text-base text-center mt-2">Sign in to your account</CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-8 px-8 pb-10">
+          <CardContent className="space-y-8 px-6 pb-8 sm:px-8 sm:pb-10">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-3">
                 <Label htmlFor="username" className="text-sm font-medium pl-1">
