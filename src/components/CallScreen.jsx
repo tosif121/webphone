@@ -98,7 +98,14 @@ const CallScreen = ({
           </div>
         </div>
         <div className="text-center mb-2">
-          <div className="text-xl font-bold text-foreground truncate px-4">{mainNumber}</div>
+          <marquee
+            behavior="scroll"
+            direction="left"
+            scrollamount="4"
+            className="truncate font-medium text-muted-foreground"
+          >
+            {mainNumber}
+          </marquee>
           <div className="flex items-center justify-center gap-2 mt-1">
             {isRunning ? (
               <>

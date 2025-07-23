@@ -747,7 +747,7 @@ function Dashboard() {
             token={token}
             activeMainTab={activeMainTab}
             setActiveMainTab={setActiveMainTab}
-          />{' '}
+          />
         </div>
       </div>
     </>

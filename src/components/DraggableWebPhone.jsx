@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useRef } from 'react';
+import { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { Rnd } from 'react-rnd';
 import { Phone, PhoneCall, PhoneOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,23 +11,39 @@ import { JssipContext } from '@/context/JssipContext';
 import IncomingCall from './IncomingCall';
 
 function getInitialWebphoneState() {
-  if (typeof window === 'undefined')
+  if (typeof window === 'undefined') {
     return {
       x: 200,
       y: 180,
       width: 330,
-      height: 550,
+      height: 600,
     };
+  }
+
+  const windowWidth = window.innerWidth;
+  const windowHeight = window.innerHeight;
+
+  // Default state, scaled slightly for screen size
+  const defaultState = {
+    x: Math.max(0, windowWidth - 350),
+    y: 180,
+    width: Math.min(330, windowWidth * 0.3), // Scale width to 30% of screen for larger desktops
+    height: Math.min(550, windowHeight * 0.7), // Scale height to 70% of screen
+  };
+
   try {
     const saved = localStorage.getItem('webphone-position');
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Clamp loaded position to current window bounds
+      return {
+        ...parsed,
+        x: Math.max(0, Math.min(parsed.x, windowWidth - (parsed.width || defaultState.width))),
+        y: Math.max(0, Math.min(parsed.y, windowHeight - (parsed.height || defaultState.height))),
+      };
+    }
   } catch {}
-  return {
-    x: window.innerWidth - 350,
-    y: 180,
-    width: 330,
-    height: 550,
-  };
+  return defaultState;
 }
 
 export default function DraggableWebPhone() {
@@ -70,23 +86,32 @@ export default function DraggableWebPhone() {
     ringtoneRef,
     playRingtone,
     stopRingtone,
-    isMobile,
+    isMobile, // Assuming this is provided; if not, see useEffect below
   } = useContext(JssipContext);
 
   const [webphoneState, setWebphoneState] = useState(getInitialWebphoneState);
   const [audioSrc, setAudioSrc] = useState('');
-
-  // Always start with false to match server-side rendering
-  const [phoneShow, setPhoneShow] = useState(false);
-
-  // Track if component has hydrated
+  const [phoneShow, setPhoneShow] = useState(false); // Always start with false for SSR
   const [isHydrated, setIsHydrated] = useState(false);
-
   const [seeLogs, setSeeLogs] = useState(false);
   const [callConference, setCallConference] = useState(false);
 
+  // If isMobile isn't provided in context, detect it responsively
+  const [localIsMobile, setLocalIsMobile] = useState(false);
+  const effectiveIsMobile = isMobile ?? localIsMobile;
+
+  // Detect mobile based on screen size
   useEffect(() => {
-    if (isMobile && phoneShow) {
+    const mediaQuery = window.matchMedia('(max-width: 640px)');
+    setLocalIsMobile(mediaQuery.matches);
+
+    const handleResize = () => setLocalIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleResize);
+    return () => mediaQuery.removeEventListener('change', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (effectiveIsMobile && phoneShow) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -94,13 +119,11 @@ export default function DraggableWebPhone() {
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [isMobile, phoneShow]);
+  }, [effectiveIsMobile, phoneShow]);
 
   // Handle hydration and localStorage sync
   useEffect(() => {
     setIsHydrated(true);
-
-    // Load phoneShow state from localStorage after hydration
     try {
       const saved = localStorage.getItem('phoneShow');
       if (saved) {
@@ -111,7 +134,7 @@ export default function DraggableWebPhone() {
     }
   }, []);
 
-  // Save phoneShow to localStorage when it changes (but only after hydration)
+  // Save phoneShow to localStorage when it changes (after hydration)
   useEffect(() => {
     if (isHydrated) {
       try {
@@ -134,14 +157,43 @@ export default function DraggableWebPhone() {
     }
   }, [status]);
 
+  // Save webphoneState to localStorage
   useEffect(() => {
-    if (webphoneState && !isMobile) {
+    if (webphoneState && !effectiveIsMobile && isHydrated) {
       localStorage.setItem('webphone-position', JSON.stringify(webphoneState));
     }
-  }, [webphoneState, isMobile]);
+  }, [webphoneState, effectiveIsMobile, isHydrated]);
+
+  // Handle window resize: Clamp position to new bounds
+  useEffect(() => {
+    if (effectiveIsMobile || !isHydrated) return;
+
+    const handleResize = () => {
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      setWebphoneState((prev) => ({
+        ...prev,
+        x: Math.max(0, Math.min(prev.x, windowWidth - prev.width)),
+        y: Math.max(0, Math.min(prev.y, windowHeight - prev.height)),
+        // Optional: Scale size slightly on resize for better fit
+        width: Math.min(prev.width, windowWidth * 0.4),
+        height: Math.min(prev.height, windowHeight * 0.8),
+      }));
+    };
+
+    // Debounce for performance
+    let timeout;
+    const debouncedResize = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(handleResize, 200);
+    };
+
+    window.addEventListener('resize', debouncedResize);
+    return () => window.removeEventListener('resize', debouncedResize);
+  }, [effectiveIsMobile, isHydrated]);
 
   const handleDragStop = (e, d) => {
-    if (!isMobile) {
+    if (!effectiveIsMobile) {
       setWebphoneState((prev) => ({
         ...prev,
         x: d.x,
@@ -151,7 +203,7 @@ export default function DraggableWebPhone() {
   };
 
   const handleResizeStop = (e, direction, ref, delta, position) => {
-    if (!isMobile) {
+    if (!effectiveIsMobile) {
       setWebphoneState({
         x: position.x,
         y: position.y,
@@ -172,21 +224,21 @@ export default function DraggableWebPhone() {
     }
   }, [status]);
 
-  // Render the phone content
+  // Render the phone content (unchanged)
   const renderPhoneContent = () => (
-    <div className={isMobile ? 'w-full h-full' : 'webphone-drag-handle w-full h-full'}>
+    <div className={effectiveIsMobile ? 'w-full h-full' : 'webphone-drag-handle w-full h-full'}>
       {/* Incoming Call - Only show on mobile when ringing */}
-      {isMobile && isIncomingRinging && (
+      {effectiveIsMobile && isIncomingRinging && (
         <IncomingCall
           {...{ incomingNumber, incomingSession, isIncomingRinging, answerIncomingCall, rejectIncomingCall, session }}
         />
       )}
 
       {/* History Screen - Don't show during incoming calls on mobile */}
-      {!(isMobile && isIncomingRinging) && seeLogs && <HistoryScreen setSeeLogs={setSeeLogs} />}
+      {!(effectiveIsMobile && isIncomingRinging) && seeLogs && <HistoryScreen setSeeLogs={setSeeLogs} />}
 
       {/* Home Screen - Don't show during incoming calls on mobile */}
-      {!(isMobile && isIncomingRinging) && !seeLogs && status === 'start' && (
+      {!(effectiveIsMobile && isIncomingRinging) && !seeLogs && status === 'start' && (
         <Home
           phoneNumber={phoneNumber}
           setPhoneNumber={setPhoneNumber}
@@ -198,7 +250,7 @@ export default function DraggableWebPhone() {
       )}
 
       {/* Active Call Screens - Don't show during incoming calls on mobile */}
-      {!(isMobile && isIncomingRinging) &&
+      {!(effectiveIsMobile && isIncomingRinging) &&
         !seeLogs &&
         (status === 'calling' || status === 'ringing' || status === 'conference') &&
         (callConference ? (
@@ -235,7 +287,7 @@ export default function DraggableWebPhone() {
         ))}
 
       {/* Fallback - Don't show during incoming calls on mobile */}
-      {!(isMobile && isIncomingRinging) &&
+      {!(effectiveIsMobile && isIncomingRinging) &&
         !seeLogs &&
         !['start', 'calling', 'ringing', 'conference'].includes(status) && (
           <div className="flex flex-col items-center justify-center h-full text-center py-16">
@@ -255,14 +307,14 @@ export default function DraggableWebPhone() {
         <source src="/sounds/ringtone.mp3" type="audio/mp3" />
       </audio> */}
 
-      {/* Floating Toggle Button */}
-      <div className="fixed bottom-2 sm:bottom-20 right-8 z-[51]">
+      {/* Floating Toggle Button - Responsive positioning */}
+      <div className="fixed bottom-2 sm:bottom-20 right-4 sm:right-8 z-[51]">
         <Button
           type="button"
           size="lg"
-          className="rounded-full w-14 h-14"
+          className="rounded-full w-14 h-14 hover:scale-105 transition-transform"
           onClick={() => setPhoneShow((prev) => !prev)}
-          aria-label={phoneShow ? 'Hide phone' : 'Show phone'}
+          aria-label={phoneShow ? 'Hide phone interface' : 'Show phone interface'}
         >
           {!phoneShow ? <PhoneOff className="h-8 w-8" /> : <Phone className="h-8 w-8" />}
         </Button>
@@ -271,7 +323,7 @@ export default function DraggableWebPhone() {
       {/* Phone Interface */}
       {!dispositionModal && phoneShow && (
         <>
-          {isMobile ? (
+          {effectiveIsMobile ? (
             // Mobile: Fixed overlay covering full screen
             <div className="fixed inset-0 z-[50] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
               <div className="relative w-full max-w-2xl h-[550px] bg-card rounded-2xl border border-border shadow-xl overflow-hidden">
@@ -285,10 +337,10 @@ export default function DraggableWebPhone() {
               size={{ width: webphoneState.width, height: webphoneState.height }}
               onDragStop={handleDragStop}
               onResizeStop={handleResizeStop}
-              minWidth={280}
+              minWidth={260} // Slightly smaller for small desktops
               minHeight={340}
-              maxWidth={700}
-              maxHeight={900}
+              maxWidth={Math.min(700, window.innerWidth * 0.5)} // Dynamic max based on screen
+              maxHeight={Math.min(900, window.innerHeight * 0.9)}
               bounds="window"
               dragHandleClassName="webphone-drag-handle"
               enableResizing={{
