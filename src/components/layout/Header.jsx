@@ -160,14 +160,14 @@ export default function Header() {
       name: 'Agent Dashboard',
       icon: <LayoutDashboard className="w-4 h-4" />,
     },
+    // {
+    //   href: '/webphone/profile',
+    //   name: 'Your Profile',
+    //   icon: <User className="w-4 h-4" />,
+    // },
     {
-      href: '/webphone/profile',
-      name: 'Your Profile',
-      icon: <User className="w-4 h-4" />,
-    },
-    {
-      href: '/webphone/settings',
-      name: 'Settings',
+      href: 'https://samwad.iotcom.io/webphone/login',
+      name: 'Stable Version',
       icon: <Settings className="w-4 h-4" />,
     },
   ];
@@ -299,7 +299,7 @@ export default function Header() {
                       Agent Dashboard
                     </Link>
                   )}
-
+                  {/* 
                   <Link
                     href="/webphone/profile"
                     onClick={() => setUserMenuOpen(false)}
@@ -307,15 +307,15 @@ export default function Header() {
                   >
                     <User className="w-4 h-4 text-muted-foreground" />
                     Your Profile
-                  </Link>
+                  </Link> */}
 
                   <Link
-                    href="/webphone/settings"
+                    href="https://samwad.iotcom.io/webphone/login"
                     onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                   >
                     <Settings className="w-4 h-4 text-muted-foreground" />
-                    Settings
+                    Stable Version
                   </Link>
                 </div>
 

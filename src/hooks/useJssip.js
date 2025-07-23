@@ -1277,10 +1277,10 @@ const useJssip = (isMobile = false) => {
 
     const targetNumber = phoneNumber || formattedNumber;
 
-    if (!validatePhoneNumber(targetNumber)) {
-      toast.error('Phone number must be 10-12 digits');
-      return;
-    }
+    // if (!validatePhoneNumber(targetNumber)) {
+    //   toast.error('Phone number must be 10-12 digits');
+    //   return;
+    // }
 
     try {
       // Handle break removal if needed
