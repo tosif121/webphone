@@ -9,9 +9,9 @@ export default function Index() {
     const parsedToken = token ? JSON.parse(token) : null;
 
     if (parsedToken) {
-      router.replace('/webphone');
+      router.replace('webphone/v1');
     } else {
-      router.replace('/webphone/login');
+      router.replace('/webphone/v1/login');
     }
   }, []);
 

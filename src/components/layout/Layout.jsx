@@ -17,7 +17,7 @@ export default function Layout({ children }) {
         </main>
         <Footer />
       </div>
-      {router.pathname != '/webphone/agent-dashboard' && <DraggableWebPhone />}
+      {router.pathname != '/webphone/v1/agent-dashboard' && <DraggableWebPhone />}
     </div>
   );
 }

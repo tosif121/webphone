@@ -85,7 +85,7 @@ export default function Header() {
 
         toast.success('Logged out successfully');
         setUserMenuOpen(false);
-        window.location.href = '/webphone/login';
+        window.location.href = '/webphone/v1/login';
       } catch (error) {
         console.error('Error during logout:', error);
 
@@ -93,7 +93,7 @@ export default function Header() {
 
         toast.warning('Logged out (some cleanup operations failed)');
         setUserMenuOpen(false);
-        window.location.href = '/webphone/login';
+        window.location.href = '/webphone/v1/login';
       }
     }
   };
@@ -151,12 +151,12 @@ export default function Header() {
 
   const navLinks = [
     {
-      href: '/webphone',
+      href: 'webphone/v1',
       name: 'Agent Panel',
       icon: <Phone className="w-4 h-4" />,
     },
     {
-      href: '/webphone/agent-dashboard',
+      href: '/webphone/v1/agent-dashboard',
       name: 'Agent Dashboard',
       icon: <LayoutDashboard className="w-4 h-4" />,
     },
@@ -187,7 +187,7 @@ export default function Header() {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-4">
-          {pathname !== '/webphone/agent-dashboard' && (
+          {pathname !== '/webphone/v1/agent-dashboard' && (
             <>
               <nav className="flex gap-2">
                 <Button
@@ -280,7 +280,7 @@ export default function Header() {
 
                 {/* Navigation Links */}
                 <div className="py-2">
-                  {pathname !== '/webphone' ? (
+                  {pathname !== 'webphone/v1' ? (
                     <Link
                       href="/webphone"
                       onClick={() => setUserMenuOpen(false)}
@@ -433,7 +433,7 @@ export default function Header() {
               </div>
 
               {/* Missed Calls & BreakDropdown */}
-              {pathname !== '/webphone/agent-dashboard' && (
+              {pathname !== '/webphone/v1/agent-dashboard' && (
                 <div className="space-y-3">
                   <button
                     onClick={() => {

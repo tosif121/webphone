@@ -7,7 +7,7 @@ function NotFound() {
 
   useEffect(() => {
     setMounted(true);
-    router.push('/webphone');
+    router.push('webphone/v1');
   }, [router]);
 
   // Don't render anything until mounted (prevents hydration mismatch)

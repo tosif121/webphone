@@ -245,7 +245,7 @@ export default function Login() {
         toast.error(toastMessage);
         toast.success('Login successfully');
         setIsLoading(false);
-        await router.push('/webphone');
+        await router.push('webphone/v1');
       } else if (differenceInDays < 3) {
         setSubscriptionDialog({
           isOpen: true,
@@ -258,11 +258,11 @@ export default function Login() {
         toast.error('Your subscription is about to expire. Please renew soon!');
         toast.success('Login successfully');
         setIsLoading(false);
-        await router.push('/webphone');
+        await router.push('webphone/v1');
       } else {
         toast.success('Login successfully');
         setIsLoading(false);
-        await router.push('/webphone');
+        await router.push('webphone/v1');
       }
     } catch (error) {
       // Axios error handling
@@ -300,7 +300,7 @@ export default function Login() {
       try {
         const parsedToken = JSON.parse(token);
         if (parsedToken) {
-          router.push('/webphone');
+          router.push('webphone/v1');
           return;
         }
       } catch (error) {

@@ -268,12 +268,12 @@ const useJssip = (isMobile = false) => {
       }
       stopRecording();
 
-      window.location.href = '/webphone/login';
+      window.location.href = '/webphone/v1/login';
     } catch (error) {
       console.error('Error during logout:', error);
       localStorage.clear();
 
-      window.location.href = '/webphone/login';
+      window.location.href = '/webphone/v1/login';
     }
 
     if (message) {
@@ -284,7 +284,7 @@ const useJssip = (isMobile = false) => {
 
   // Helper function for connection lost scenarios
   const handleConnectionLost = async () => {
-    window.location.href = '/webphone/webphone';
+    window.location.href = '/webphone/v1';
 
     if (session && session.status < 6) {
       session.terminate();
@@ -313,7 +313,7 @@ const useJssip = (isMobile = false) => {
       addTimeout('network');
     } else if (err.response?.status === 401 && status === 'start' && !dispositionModal) {
       // Handle auth errors
-      window.location.href = '/webphone/webphone';
+      window.location.href = '/webphone/v1';
       toast.error('Session expired. Please log in again.');
 
       if (session && session.status < 6) {
@@ -355,7 +355,7 @@ const useJssip = (isMobile = false) => {
         },
       });
 
-      // window.location.href = '/webphone/webphone';
+      // window.location.href = '/webphone/v1';
     };
 
     window.addEventListener('offline', handleOffline);
@@ -921,7 +921,7 @@ const useJssip = (isMobile = false) => {
           toast.error('User is not live. Please login again.');
           // setTimeout(checkUserLive, 15000);
           // localStorage.clear();
-          window.location.href = '/webphone/webphone';
+          window.location.href = '/webphone/v1';
           return prev;
         }
         // }
@@ -952,7 +952,7 @@ const useJssip = (isMobile = false) => {
             console.error('WebSocket connection died unexpectedly');
             toast.error('Connection lost');
             // localStorage.clear();
-            window.location.href = '/webphone/webphone';
+            window.location.href = '/webphone/v1';
           }
         };
 
@@ -960,7 +960,7 @@ const useJssip = (isMobile = false) => {
           console.error('WebSocket error:', error);
           toast.error('Connection failed');
           // localStorage.clear();
-          window.location.href = '/webphone/webphone';
+          window.location.href = '/webphone/v1';
         };
 
         var configuration = {
@@ -1012,7 +1012,7 @@ const useJssip = (isMobile = false) => {
           console.error('Registration failed:', data);
           toast.error('Registration failed');
           // localStorage.clear();
-          // window.location.href = '/webphone/webphone';
+          // window.location.href = '/webphone/v1';
         });
 
         ua.on('stopped', (e) => {
@@ -1020,14 +1020,14 @@ const useJssip = (isMobile = false) => {
           // Add logout behavior for stopped event
           toast.error('Connection stopped');
           // localStorage.clear();
-          // window.location.href = '/webphone/webphone';
+          // window.location.href = '/webphone/v1';
         });
 
         ua.on('disconnected', (e) => {
           console.error('UA disconnected', e);
           toast.error('Connection lost');
           // localStorage.clear();
-          // window.location.href = '/webphone/webphone';
+          // window.location.href = '/webphone/v1';
         });
         ua.on('newRTCSession', function (e) {
           console.log('🔍 Session Direction:', e.session.direction);
@@ -1156,7 +1156,7 @@ const useJssip = (isMobile = false) => {
         console.error('Error initializing JsSIP:', error);
         toast.error('You Are Logout');
         // localStorage.clear();
-        // window.location.href = '/webphone/webphone';
+        // window.location.href = '/webphone/v1';
       }
     };
 
@@ -1220,7 +1220,7 @@ const useJssip = (isMobile = false) => {
           console.error('Socket connection lost');
           toast.error('Connection lost');
           // localStorage.clear();
-          // window.location.href = '/webphone/webphone';
+          // window.location.href = '/webphone/v1';
         }
       }
     };
@@ -1350,7 +1350,7 @@ const useJssip = (isMobile = false) => {
 
       // Only redirect on critical errors, not all errors
       if (error.response?.status === 401 || error.response?.status === 403) {
-        window.location.href = '/webphone/webphone';
+        window.location.href = '/webphone/v1';
       }
     }
   };
