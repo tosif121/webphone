@@ -86,6 +86,9 @@ export default function DraggableWebPhone() {
     ringtoneRef,
     playRingtone,
     stopRingtone,
+    conferenceCalls,
+    callConference,
+    setCallConference,
     isMobile, // Assuming this is provided; if not, see useEffect below
   } = useContext(JssipContext);
 
@@ -94,7 +97,6 @@ export default function DraggableWebPhone() {
   const [phoneShow, setPhoneShow] = useState(false); // Always start with false for SSR
   const [isHydrated, setIsHydrated] = useState(false);
   const [seeLogs, setSeeLogs] = useState(false);
-  const [callConference, setCallConference] = useState(false);
 
   // If isMobile isn't provided in context, detect it responsively
   const [localIsMobile, setLocalIsMobile] = useState(false);
@@ -214,6 +216,7 @@ export default function DraggableWebPhone() {
   };
 
   function handleCalls() {
+    console.log("first")
     createConferenceCall();
     setCallConference(false);
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef, useContext, use } from 'react';
 import HistoryContext from '../context/HistoryContext';
 import { useStopwatch } from 'react-timer-hook';
 import JsSIP from 'jssip';
@@ -34,6 +34,8 @@ const useJssip = (isMobile = false) => {
   const [incomingNumber, setIncomingNumber] = useState('');
   const [isIncomingRinging, setIsIncomingRinging] = useState(false);
   const [followUpDispoes, setFollowUpDispoes] = useState([]);
+  const [conferenceCalls, setConferenceCalls] = useState([]);
+  const [callConference, setCallConference] = useState(false);
   const offlineToastIdRef = useRef(null);
   const agentSocketRef = useRef(null);
   const customerSocketRef = useRef(null);
@@ -228,6 +230,7 @@ const useJssip = (isMobile = false) => {
         return false;
       }
 
+      setConferenceCalls(data.conferenceCalls || []);
       // Handle call queue
       if (data.currentCallqueue?.length > 0) {
         if (campaign === data.currentCallqueue[0].campaign) {
@@ -248,6 +251,25 @@ const useJssip = (isMobile = false) => {
     }
   };
 
+  useEffect(() => {
+    let timeout;
+
+    if (conferenceCalls && conferenceStatus && (status === 'conference' || status === 'ringing')) {
+      timeout = setTimeout(() => {
+        if (conferenceCalls.length === 0) {
+          setStatus('calling');
+          setCallConference(false);
+          setConferenceNumber('');
+          setConferenceStatus(false);
+          reqUnHold?.();
+        }
+      }, 3000);
+    }
+
+    return () => clearTimeout(timeout);
+  }, [conferenceCalls, status, callConference, conferenceStatus]);
+
+  // console.log(conferenceStatus, conferenceCalls, status, callConference, 'conferenceCalls length');
   // Helper function for logout process
   const handleLogout = async (token, message) => {
     try {
@@ -1418,6 +1440,9 @@ const useJssip = (isMobile = false) => {
     ringtoneRef,
     playRingtone,
     stopRingtone,
+    conferenceCalls,
+    callConference,
+    setCallConference,
   ];
 };
 

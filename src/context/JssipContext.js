@@ -56,6 +56,9 @@ export function JssipProvider({ children }) {
     ringtoneRef,
     playRingtone,
     stopRingtone,
+    conferenceCalls,
+    callConference,
+    setCallConference,
   ] = useJssip(isMobile);
 
   return (
@@ -99,6 +102,9 @@ export function JssipProvider({ children }) {
         ringtoneRef,
         playRingtone,
         stopRingtone,
+        conferenceCalls,
+        callConference,
+        setCallConference,
         isMobile,
       }}
     >

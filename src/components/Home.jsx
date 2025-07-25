@@ -5,7 +5,14 @@ import { Delete, History, Phone } from 'lucide-react';
 import useFormatPhoneNumber from '../hooks/useFormatPhoneNumber';
 import { Button } from './ui/button';
 
-const Home = ({ phoneNumber, setPhoneNumber, handleCall, setSeeLogs, timeoutArray, isConnectionLost }) => {
+const Home = ({
+  phoneNumber,
+  setPhoneNumber,
+  handleCall,
+  setSeeLogs,
+  timeoutArray,
+  isConnectionLost,
+}) => {
   const [isHovered, setIsHovered] = useState(false);
   const formatPhoneNumber = useFormatPhoneNumber();
 
