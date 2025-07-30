@@ -216,7 +216,6 @@ export default function DraggableWebPhone() {
   };
 
   function handleCalls() {
-    console.log("first")
     createConferenceCall();
     setCallConference(false);
   }
@@ -324,7 +323,7 @@ export default function DraggableWebPhone() {
       </div>
 
       {/* Phone Interface */}
-      {!dispositionModal && phoneShow && (
+      {(!dispositionModal && phoneShow && (
         <>
           {effectiveIsMobile ? (
             // Mobile: Fixed overlay covering full screen
@@ -362,7 +361,8 @@ export default function DraggableWebPhone() {
             </Rnd>
           )}
         </>
-      )}
+      )) ||
+        ''}
       <audio ref={audioRef} autoPlay hidden />
     </>
   );
