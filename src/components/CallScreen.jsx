@@ -84,7 +84,7 @@ const CallScreen = ({
     }
     if (conferenceNumber) return maybeMask(conferenceNumber);
     if (phoneNumber) return maybeMask(phoneNumber);
-    return maybeMask(userCall?.contactNumber) || '+1 (555) 123-4567';
+    return maybeMask(userCall?.contactNumber) || '';
   })();
 
   return (

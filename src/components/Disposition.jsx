@@ -27,6 +27,8 @@ const Disposition = ({
   phoneNumber,
   setPhoneNumber,
   fetchLeadsWithDateRange,
+  callType,
+  setCallType,
 }) => {
   const { username } = useContext(HistoryContext);
   const [selectedAction, setSelectedAction] = useState(null);
@@ -38,6 +40,7 @@ const Disposition = ({
   const [shouldShowModal, setShouldShowModal] = useState(false);
   const [isAutoDispositionComplete, setIsAutoDispositionComplete] = useState(false);
   const [isAutoDispositionInProgress, setIsAutoDispositionInProgress] = useState(false);
+  const [campaignName, setCampaignName] = useState('N/A');
 
   // Changed to store Date objects for the Callback component
   const [followUpDate, setFollowUpDate] = useState(undefined);
@@ -48,105 +51,118 @@ const Disposition = ({
   const [isCallbackDialogOpen, setCallbackDialogOpen] = useState(false);
   const [callbackIncomplete, setCallbackIncomplete] = useState(false);
 
+  useEffect(() => {
+    const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (tokenData) {
+      try {
+        const parsedData = JSON.parse(tokenData);
+        setCampaignName(parsedData?.userData?.campaign || 'N/A');
+      } catch (e) {
+        setCampaignName('N/A');
+      }
+    }
+  }, []);
+
   const getStylesForAction = (action, isSelected) => {
     const actionStyles = {
       'Test Call': {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#A21CAF', color: '#FFFFFF', borderColor: '#A21CAF' } // Purple
-          : { backgroundColor: 'transparent', color: '#A21CAF', borderColor: '#A21CAF' },
+        className: isSelected
+          ? 'bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700 dark:hover:bg-purple-900/30'
+          : 'text-purple-700 border-purple-200 hover:bg-purple-50 dark:text-purple-400 dark:border-purple-800 dark:hover:bg-purple-900/10',
       },
       Answered: {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#0EA5E9', color: '#FFFFFF', borderColor: '#0EA5E9' } // Cyan
-          : { backgroundColor: 'transparent', color: '#0EA5E9', borderColor: '#0EA5E9' },
+        className: isSelected
+          ? 'bg-sky-100 text-sky-800 border-sky-300 hover:bg-sky-200 dark:bg-sky-900/20 dark:text-sky-300 dark:border-sky-700 dark:hover:bg-sky-900/30'
+          : 'text-sky-700 border-sky-200 hover:bg-sky-50 dark:text-sky-400 dark:border-sky-800 dark:hover:bg-sky-900/10',
       },
       Busy: {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#2563EB', color: '#FFFFFF', borderColor: '#2563EB' } // Blue
-          : { backgroundColor: 'transparent', color: '#2563EB', borderColor: '#2563EB' },
+        className: isSelected
+          ? 'bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-900/30'
+          : 'text-blue-700 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/10',
       },
       'Not Reachable': {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#F43F5E', color: '#FFFFFF', borderColor: '#F43F5E' } // Pink/Red
-          : { backgroundColor: 'transparent', color: '#F43F5E', borderColor: '#F43F5E' },
+        className: isSelected
+          ? 'bg-rose-100 text-rose-800 border-rose-300 hover:bg-rose-200 dark:bg-rose-900/20 dark:text-rose-300 dark:border-rose-700 dark:hover:bg-rose-900/30'
+          : 'text-rose-700 border-rose-200 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-800 dark:hover:bg-rose-900/10',
       },
       'No Answerr': {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#EAB308', color: '#FFFFFF', borderColor: '#EAB308' } // Yellow
-          : { backgroundColor: 'transparent', color: '#EAB308', borderColor: '#EAB308' },
+        className: isSelected
+          ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-900/30'
+          : 'text-amber-700 border-amber-200 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-900/10',
       },
       'Voicemail Left': {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#6366F1', color: '#FFFFFF', borderColor: '#6366F1' } // Indigo
-          : { backgroundColor: 'transparent', color: '#6366F1', borderColor: '#6366F1' },
+        className: isSelected
+          ? 'bg-indigo-100 text-indigo-800 border-indigo-300 hover:bg-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-700 dark:hover:bg-indigo-900/30'
+          : 'text-indigo-700 border-indigo-200 hover:bg-indigo-50 dark:text-indigo-400 dark:border-indigo-800 dark:hover:bg-indigo-900/10',
       },
       'Switched Off': {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#F59E42', color: '#FFFFFF', borderColor: '#F59E42' } // Orange
-          : { backgroundColor: 'transparent', color: '#F59E42', borderColor: '#F59E42' },
+        className: isSelected
+          ? 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-700 dark:hover:bg-orange-900/30'
+          : 'text-orange-700 border-orange-200 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-800 dark:hover:bg-orange-900/10',
       },
       'Callback Scheduled': {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#14B8A6', color: '#FFFFFF', borderColor: '#14B8A6' } // Teal
-          : { backgroundColor: 'transparent', color: '#14B8A6', borderColor: '#14B8A6' },
+        className: isSelected
+          ? 'bg-teal-100 text-teal-800 border-teal-300 hover:bg-teal-200 dark:bg-teal-900/20 dark:text-teal-300 dark:border-teal-700 dark:hover:bg-teal-900/30'
+          : 'text-teal-700 border-teal-200 hover:bg-teal-50 dark:text-teal-400 dark:border-teal-800 dark:hover:bg-teal-900/10',
       },
       'Wrong Number': {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#a8211f', color: '#FFFFFF', borderColor: '#a8211f' } // Light Red
-          : { backgroundColor: 'transparent', color: '#a8211f', borderColor: '#a8211f' },
+        className: isSelected
+          ? 'bg-red-100 text-red-800 border-red-300 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700 dark:hover:bg-red-900/30'
+          : 'text-red-700 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/10',
       },
       'Do Not Call': {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#bc6c25', color: '#FFFFFF', borderColor: '#bc6c25' } // Deep Purple
-          : { backgroundColor: 'transparent', color: '#bc6c25', borderColor: '#bc6c25' },
+        className: isSelected
+          ? 'bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700 dark:hover:bg-yellow-900/30'
+          : 'text-yellow-700 border-yellow-200 hover:bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:hover:bg-yellow-900/10',
       },
       Disconnected: {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#dd4920', color: '#FFFFFF', borderColor: '#dd4920' } // Amber
-          : { backgroundColor: 'transparent', color: '#dd4920', borderColor: '#dd4920' },
+        className: isSelected
+          ? 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200 dark:bg-gray-800/20 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-800/30'
+          : 'text-gray-700 border-gray-200 hover:bg-gray-50 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-800/10',
       },
       Interested: {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#22C55E', color: '#FFFFFF', borderColor: '#22C55E' } // Green
-          : { backgroundColor: 'transparent', color: '#22C55E', borderColor: '#22C55E' },
+        className: isSelected
+          ? 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-700 dark:hover:bg-emerald-900/30'
+          : 'text-emerald-700 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-900/10',
       },
       'Not Answered': {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#EAB308', color: '#FFFFFF', borderColor: '#EAB308' } // Yellow
-          : { backgroundColor: 'transparent', color: '#EAB308', borderColor: '#EAB308' },
+        className: isSelected
+          ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-900/30'
+          : 'text-amber-700 border-amber-200 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-900/10',
       },
       Connected: {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#0EA5E9', color: '#FFFFFF', borderColor: '#0EA5E9' } // Cyan
-          : { backgroundColor: 'transparent', color: '#0EA5E9', borderColor: '#0EA5E9' },
+        className: isSelected
+          ? 'bg-sky-100 text-sky-800 border-sky-300 hover:bg-sky-200 dark:bg-sky-900/20 dark:text-sky-300 dark:border-sky-700 dark:hover:bg-sky-900/30'
+          : 'text-sky-700 border-sky-200 hover:bg-sky-50 dark:text-sky-400 dark:border-sky-800 dark:hover:bg-sky-900/10',
       },
       'Not Interested': {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#F43F5E', color: '#FFFFFF', borderColor: '#F43F5E' } // Pink/Red
-          : { backgroundColor: 'transparent', color: '#F43F5E', borderColor: '#F43F5E' },
+        className: isSelected
+          ? 'bg-rose-100 text-rose-800 border-rose-300 hover:bg-rose-200 dark:bg-rose-900/20 dark:text-rose-300 dark:border-rose-700 dark:hover:bg-rose-900/30'
+          : 'text-rose-700 border-rose-200 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-800 dark:hover:bg-rose-900/10',
       },
     };
+
     return (
       actionStyles[action] || {
         variant: 'outline',
-        style: isSelected
-          ? { backgroundColor: '#64748B', color: '#FFFFFF', borderColor: '#64748B' }
-          : { backgroundColor: 'transparent', color: '#64748B', borderColor: '#64748B' },
+        className: isSelected
+          ? 'bg-slate-100 text-slate-800 border-slate-300 hover:bg-slate-200 dark:bg-slate-800/20 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-800/30'
+          : 'text-slate-700 border-slate-200 hover:bg-slate-50 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-slate-800/10',
       }
     );
   };
@@ -205,6 +221,7 @@ const Disposition = ({
         // Close modal and clear phone number
         setDispositionModal(false);
         setPhoneNumber('');
+        setCallType('');
       } else {
         toast.error(response.data.message || 'Auto disposition failed');
         setIsAutoDispositionInProgress(false);
@@ -235,6 +252,7 @@ const Disposition = ({
         // Don't show modal for 400 errors - just close everything
         setDispositionModal(false);
         setPhoneNumber('');
+        setCallType('');
         return;
       }
 
@@ -439,6 +457,7 @@ const Disposition = ({
 
           setDispositionModal(false);
           setPhoneNumber('');
+          setCallType('');
         } else {
           toast.error(response.data.message || 'Submission failed');
         }
@@ -564,6 +583,34 @@ const Disposition = ({
                 <DialogTitle className="text-xl font-bold text-foreground">Select Disposition</DialogTitle>
                 <p className="text-sm text-muted-foreground">Choose the appropriate outcome for this call</p>
               </div>
+              <div className="flex flex-col sm:flex-row gap-4 items-start justify-between">
+                {/* Call Type */}
+                <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-4 py-3 shadow-sm backdrop-blur-sm min-w-[180px]">
+                  <div className="flex flex-col">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Type</span>
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-100">
+                      {callType === 'outgoing' ? 'Outgoing Call' : 'Incoming Call'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Phone Number */}
+                <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-4 py-3 shadow-sm backdrop-blur-sm min-w-[180px]">
+                  <div className="flex flex-col">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Number</span>
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-100">{phoneNumber}</span>
+                  </div>
+                </div>
+
+                {/* Campaign */}
+                <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-4 py-3 shadow-sm backdrop-blur-sm min-w-[180px]">
+                  <div className="flex flex-col">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Campaign</span>
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-100">{campaignName}</span>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {dispositionActions.map((item) => {
                   const isSelected = selectedAction === item.action;
@@ -571,8 +618,8 @@ const Disposition = ({
                   return (
                     <Button
                       key={`${item.action}-${item.label}`}
-                      style={styles.style}
-                      className="h-auto py-3 px-4 whitespace-normal text-xs sm:text-sm font-medium transition-all duration-200 border-2"
+                      variant={styles.variant}
+                      className={`h-auto py-3 px-4 whitespace-normal text-xs sm:text-sm font-medium transition-all duration-200 ${styles.className}`}
                       onClick={(event) => handleActionClick(item.action, event)}
                       disabled={isSubmitting || hasSubmittedSuccessfully}
                       type="button"

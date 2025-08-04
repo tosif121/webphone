@@ -89,6 +89,8 @@ export default function DraggableWebPhone() {
     conferenceCalls,
     callConference,
     setCallConference,
+    callType,
+    setCallType,
     isMobile, // Assuming this is provided; if not, see useEffect below
   } = useContext(JssipContext);
 

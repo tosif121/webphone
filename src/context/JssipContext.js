@@ -59,6 +59,8 @@ export function JssipProvider({ children }) {
     conferenceCalls,
     callConference,
     setCallConference,
+    callType,
+    setCallType,
   ] = useJssip(isMobile);
 
   return (
@@ -105,6 +107,8 @@ export function JssipProvider({ children }) {
         conferenceCalls,
         callConference,
         setCallConference,
+        callType,
+        setCallType,
         isMobile,
       }}
     >

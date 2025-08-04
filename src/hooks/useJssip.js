@@ -36,6 +36,7 @@ const useJssip = (isMobile = false) => {
   const [followUpDispoes, setFollowUpDispoes] = useState([]);
   const [conferenceCalls, setConferenceCalls] = useState([]);
   const [callConference, setCallConference] = useState(false);
+  const [callType, setCallType] = useState('');
   const offlineToastIdRef = useRef(null);
   const agentSocketRef = useRef(null);
   const customerSocketRef = useRef(null);
@@ -815,6 +816,7 @@ const useJssip = (isMobile = false) => {
         setIncomingSession(null);
         setIsIncomingRinging(false);
         setStatus('calling');
+        setCallType('incoming');
         reset();
 
         // Set up audio stream
@@ -846,7 +848,7 @@ const useJssip = (isMobile = false) => {
     setIncomingSession(null);
     setIsIncomingRinging(false);
     setStatus('start');
-
+    setCallType('');
     // Update history as rejected
     setHistory((prev) => [
       ...prev.slice(0, -1),
@@ -1090,7 +1092,6 @@ const useJssip = (isMobile = false) => {
         ua.on('newRTCSession', function (e) {
           console.log('🔍 Session Direction:', e.session.direction);
           console.log('🔍 Is Mobile:', isMobile);
-
           if (e.session.direction === 'incoming') {
             const remoteNumber = e.session.remote_identity.uri.user;
             const isActuallyOutgoing = dialingNumberRef.current && remoteNumber === dialingNumberRef.current;
@@ -1355,6 +1356,7 @@ const useJssip = (isMobile = false) => {
       const cleanedNumber = targetNumber.replace(/\D/g, '');
       dialingNumberRef.current = cleanedNumber;
       setPhoneNumber(targetNumber);
+      setCallType('outgoing');
 
       // Add to call history
       const callRecord = {
@@ -1394,6 +1396,7 @@ const useJssip = (isMobile = false) => {
       setStatus('start');
       setPhoneNumber('');
       dialingNumberRef.current = '';
+      setCallType('');
 
       // Handle different types of errors
       if (error.code === 'ECONNABORTED') {
@@ -1479,6 +1482,8 @@ const useJssip = (isMobile = false) => {
     conferenceCalls,
     callConference,
     setCallConference,
+    callType,
+    setCallType,
   ];
 };
 

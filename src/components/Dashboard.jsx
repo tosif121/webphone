@@ -80,6 +80,8 @@ function Dashboard() {
     conferenceCalls,
     callConference,
     setCallConference,
+    callType,
+    setCallType,
   } = useContext(JssipContext);
 
   const {
@@ -582,9 +584,11 @@ function Dashboard() {
           setFormData={setFormState}
           formData={formState}
           formConfig={formConfig}
-          phoneNumber={phoneNumber}
           setPhoneNumber={setPhoneNumber}
           fetchLeadsWithDateRange={fetchLeadsWithDateRange}
+          callType={callType}
+          setCallType={setCallType}
+          phoneNumber={userCall?.contactNumber}
         />
       )}
       {dropCalls && (
