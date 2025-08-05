@@ -58,6 +58,30 @@ const useJssip = (isMobile = false) => {
     setOrigin(originWithoutProtocol);
   }, []);
 
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      const hasActiveCall =
+        session ||
+        incomingSession ||
+        status === 'calling' ||
+        status === 'conference' ||
+        isIncomingRinging ||
+        isRecording;
+
+      if (hasActiveCall) {
+        const message = 'You have an active call. Refreshing or closing will end the call. Are you sure?';
+        event.returnValue = message;
+        return message;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [session, incomingSession, status, isIncomingRinging, isRecording]);
+
   function notifyMe() {
     if (!('Notification' in window)) {
       toast.error('This browser does not support desktop notifications');
