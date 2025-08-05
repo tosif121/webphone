@@ -56,7 +56,7 @@ const Disposition = ({
     if (tokenData) {
       try {
         const parsedData = JSON.parse(tokenData);
-        setCampaignName(parsedData?.userData?.campaign || 'N/A');
+        setCampaignName(parsedData?.userData?.campaignName || 'N/A');
       } catch (e) {
         setCampaignName('N/A');
       }
@@ -203,7 +203,7 @@ const Disposition = ({
         autoDialDisabled: false,
       };
 
-      const response = await axios.post(`https://samwad.iotcom.io/user/disposition${username}`, requestBody);
+      const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
 
       if (response.data.success) {
         toast.success('Auto disposition completed successfully');
@@ -443,7 +443,7 @@ const Disposition = ({
           }
         }
 
-        const response = await axios.post(`https://samwad.iotcom.io/user/disposition${username}`, requestBody);
+        const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
 
         if (response.data.success) {
           toast.success('Disposition submitted successfully');
@@ -606,7 +606,7 @@ const Disposition = ({
                 <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-4 py-3 shadow-sm backdrop-blur-sm min-w-[180px]">
                   <div className="flex flex-col">
                     <span className="text-xs text-slate-500 dark:text-slate-400">Campaign</span>
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-100">{campaignName}</span>
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-100 capitalize">{campaignName}</span>
                   </div>
                 </div>
               </div>

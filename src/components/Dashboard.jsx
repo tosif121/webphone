@@ -290,7 +290,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`https://samwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -321,7 +321,7 @@ function Dashboard() {
 
   const fetchUserMissedCalls = async () => {
     try {
-      const response = await axios.post(`https://samwad.iotcom.io/usermissedCalls/${username}`);
+      const response = await axios.post(`${window.location.origin}/usermissedCalls/${username}`);
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
@@ -333,7 +333,7 @@ function Dashboard() {
 
   const fetchAdminUser = async () => {
     try {
-      const response = await axios.get(`https://samwad.iotcom.io/users/${adminUser}`, {
+      const response = await axios.get(`${window.location.origin}/users/${adminUser}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -383,7 +383,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://samwad.iotcom.io/leadswithdaterange`,
+        `${window.location.origin}/leadswithdaterange`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -421,7 +421,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://samwad.iotcom.io/callDataByAgent`,
+        `${window.location.origin}/callDataByAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -458,12 +458,12 @@ function Dashboard() {
     async function loadForm() {
       setLoading(true);
       try {
-        const res1 = await axios.get(`https://samwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`, {
+        const res1 = await axios.get(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const formId = res1.data.agentWebForm?.formId;
 
-        const res2 = await axios.get(`https://samwad.iotcom.io/getDynamicFormData/${formId}`, {
+        const res2 = await axios.get(`${window.location.origin}/getDynamicFormData/${formId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setFormConfig(res2.data.result);
@@ -497,7 +497,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`https://samwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

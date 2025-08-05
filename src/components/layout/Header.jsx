@@ -56,7 +56,7 @@ export default function Header() {
         const parsedData = JSON.parse(tokenData);
         setUsername(parsedData?.userData?.username || 'Guest');
         setUserId(parsedData?.userData?.userid || 'N/A');
-        setCampaignName(parsedData?.userData?.campaign || 'N/A');
+        setCampaignName(parsedData?.userData?.campaignName || 'N/A');
         setUserRole(parsedData?.userData?.role || null);
         setToken(parsedData.token);
       } catch (e) {
@@ -74,7 +74,7 @@ export default function Header() {
     if (typeof window !== 'undefined') {
       try {
         if (token) {
-          await axios.delete(`https://samwad.iotcom.io/deleteFirebaseToken`, {
+          await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -166,7 +166,7 @@ export default function Header() {
     //   icon: <User className="w-4 h-4" />,
     // },
     {
-      href: 'https://samwad.iotcom.io/webphone/login',
+      href: '${window.location.origin}/webphone/login',
       name: 'Stable Version',
       icon: <Settings className="w-4 h-4" />,
     },
@@ -274,7 +274,7 @@ export default function Header() {
                       <Rocket className="w-4 h-4" />
                       Campaign
                     </div>
-                    <span className="text-sm font-medium text-foreground truncate max-w-[180px]">{campaignName}</span>
+                    <span className="text-sm font-medium text-foreground truncate max-w-[180px] capitalize">{campaignName}</span>
                   </div>
                 </div>
 
@@ -310,7 +310,7 @@ export default function Header() {
                   </Link> */}
 
                   <Link
-                    href="https://samwad.iotcom.io/webphone/login"
+                    href="${window.location.origin}/webphone/login"
                     onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                   >
@@ -429,7 +429,7 @@ export default function Header() {
                   <Rocket className="w-4 h-4" />
                   Campaign
                 </div>
-                <span className="text-sm font-medium text-foreground truncate max-w-[140px]">{campaignName}</span>
+                <span className="text-sm font-medium text-foreground truncate max-w-[140px] capitalize">{campaignName}</span>
               </div>
 
               {/* Missed Calls & BreakDropdown */}

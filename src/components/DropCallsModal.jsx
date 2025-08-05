@@ -10,7 +10,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
 
   const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const parsedData = tokenData ? JSON.parse(tokenData) : null;
-  const userCampaign = parsedData?.userData?.campaign;
+  const userCampaign = parsedData?.userData?.campaignName;
 
   const groupedCalls = useMemo(() => {
     const filteredCalls = Object.values(usermissedCalls || {}).filter((call) => call?.campaign === userCampaign);
@@ -46,7 +46,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
     async (caller) => {
       try {
         const sanitizedCaller = removeCountryCode(caller);
-        const response = await axios.post(`https://samwad.iotcom.io/dialmissedcall`, {
+        const response = await axios.post(`${window.location.origin}/dialmissedcall`, {
           caller: username,
           receiver: sanitizedCaller,
         });

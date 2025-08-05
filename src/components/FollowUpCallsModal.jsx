@@ -15,9 +15,6 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
   const [upcomingCalls, setUpcomingCalls] = useState([]);
   const [completeCalls, setCompleteCalls] = useState([]);
   const [loadingCaller, setLoadingCaller] = useState(null);
-  const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  const parsedData = tokenData ? JSON.parse(tokenData) : null;
-  const userCampaign = parsedData?.userData?.campaign;
 
   useEffect(() => {
     const now = new Date();
@@ -47,7 +44,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
       try {
         const cleanPhoneNumber = caller?.replace(/\s+/g, '') || '';
 
-        const response = await axios.post(`https://samwad.iotcom.io/dialmissedcall`, {
+        const response = await axios.post(`${window.location.origin}/dialmissedcall`, {
           caller: username,
           receiver: cleanPhoneNumber,
         });
@@ -57,7 +54,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
         toast.error('Request failed. Please try again.');
       }
     },
-    [username, userCampaign]
+    [username]
   );
 
   return (
