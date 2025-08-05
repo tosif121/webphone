@@ -55,7 +55,7 @@ const CallScreen = ({
 
   const handleTransfer = async () => {
     try {
-      await axios.post(`${window.location.origin}/reqTransfer/${username}`, {});
+      await axios.post(`https://samwad.iotcom.io/reqTransfer/${username}`, {});
       toast.success('Request successful!');
     } catch (error) {
       toast.error('Request failed. Please try again.');

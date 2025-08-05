@@ -95,7 +95,7 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
 
   const removeBreak = async () => {
     try {
-      await axios.post(`${window.location.origin}/user/removebreakuser:${username}`);
+      await axios.post(`https://samwad.iotcom.io/user/removebreakuser:${username}`);
       setSelectedBreak('Break');
       localStorage.removeItem('selectedBreak'); // Clear from localStorage
       toast.success('Break removed successfully');
@@ -114,13 +114,13 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
     try {
       if (dispoWithBreak && breakType !== 'Break') {
         await axios.post(
-          `${window.location.origin}/user/disposition${username}`,
+          `https://samwad.iotcom.io/user/disposition${username}`,
           { bridgeID, Disposition: `dispoWithBreak` },
           { headers: { 'Content-Type': 'application/json' } }
         );
       }
 
-      await axios.post(`${window.location.origin}/user/breakuser:${username}`, { breakType });
+      await axios.post(`https://samwad.iotcom.io/user/breakuser:${username}`, { breakType });
       setSelectedBreak(breakType);
       localStorage.setItem('selectedBreak', breakType); // Save to localStorage
       toast.success('Break applied successfully');

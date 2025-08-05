@@ -51,11 +51,11 @@ const useJssip = (isMobile = false) => {
     autoStart: false,
   });
 
-  const [origin, setOrigin] = useState('esamwad.iotcom.io');
+  const [origin, setOrigin] = useState('samwad.iotcom.io');
 
   useEffect(() => {
-    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-    setOrigin(originWithoutProtocol);
+    // const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    // setOrigin(originWithoutProtocol);
   }, []);
 
   function notifyMe() {
@@ -132,7 +132,7 @@ const useJssip = (isMobile = false) => {
 
   const createConferenceCall = async () => {
     try {
-      const response = await fetch(`${window.location.origin}/reqConf/${username}`, {
+      const response = await fetch(`https://samwad.iotcom.io/reqConf/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -203,7 +203,7 @@ const useJssip = (isMobile = false) => {
 
       const response = await withTimeout(
         axios.post(
-          `${window.location.origin}/userconnection`,
+          `https://samwad.iotcom.io/userconnection`,
           { user: username },
           { headers: { 'Content-Type': 'application/json' } }
         ),
@@ -275,7 +275,7 @@ const useJssip = (isMobile = false) => {
   const handleLogout = async (token, message) => {
     try {
       if (token) {
-        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+        await axios.delete(`https://samwad.iotcom.io/deleteFirebaseToken`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -356,7 +356,7 @@ const useJssip = (isMobile = false) => {
 
   const checkUserReady = async () => {
     try {
-      const url = `${window.location.origin}/userready/${username}`;
+      const url = `https://samwad.iotcom.io/userready/${username}`;
       const response = await axios.post(url, {}, { headers: { 'Content-Type': 'application/json' } });
       return response.data;
     } catch (error) {
@@ -488,7 +488,7 @@ const useJssip = (isMobile = false) => {
     if (!session) return;
 
     try {
-      const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
+      const response = await fetch(`https://samwad.iotcom.io/reqUnHold/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -516,7 +516,7 @@ const useJssip = (isMobile = false) => {
 
     try {
       if (!isHeld) {
-        await fetch(`${window.location.origin}/reqHold/${username}`, {
+        await fetch(`https://samwad.iotcom.io/reqHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -532,7 +532,7 @@ const useJssip = (isMobile = false) => {
 
         setIsHeld(true);
       } else {
-        await fetch(`${window.location.origin}/reqUnHold/${username}`, {
+        await fetch(`https://samwad.iotcom.io/reqUnHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -769,7 +769,7 @@ const useJssip = (isMobile = false) => {
   const answercall = async (incomingNumber = null) => {
     try {
       const response = await axios.post(
-        `${window.location.origin}/useroncall/${username}`,
+        `https://samwad.iotcom.io/useroncall/${username}`,
         {},
         {
           headers: {
@@ -1011,7 +1011,7 @@ const useJssip = (isMobile = false) => {
               // console.log(
               //   `[Re-apply Break] Attempting to re-apply break to backend: ${storedBreak} for user: ${username}`
               // );
-              const response = await axios.post(`${window.location.origin}/user/breakuser:${username}`, {
+              const response = await axios.post(`https://samwad.iotcom.io/user/breakuser:${username}`, {
                 breakType: storedBreak,
               });
               if (response.status === 200) {
@@ -1309,7 +1309,7 @@ const useJssip = (isMobile = false) => {
 
   const removeBreak = async () => {
     try {
-      await axios.post(`${window.location.origin}/user/removebreakuser:${username}`);
+      await axios.post(`https://samwad.iotcom.io/user/removebreakuser:${username}`);
       setSelectedBreak('Break');
       localStorage.removeItem('selectedBreak');
       toast.success('Break removed successfully');
@@ -1376,7 +1376,7 @@ const useJssip = (isMobile = false) => {
 
       // Make the API call
       const response = await axios.post(
-        `${window.location.origin}/dialnumber`,
+        `https://samwad.iotcom.io/dialnumber`,
         {
           caller: username,
           receiver: targetNumber,
@@ -1421,7 +1421,7 @@ const useJssip = (isMobile = false) => {
       if (isCallended) {
         try {
           await axios.post(
-            `${window.location.origin}/user/callended${username}`,
+            `https://samwad.iotcom.io/user/callended${username}`,
             {},
             {
               headers: {

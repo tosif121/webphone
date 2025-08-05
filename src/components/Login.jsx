@@ -182,7 +182,7 @@ export default function Login() {
 
     try {
       const { data: response } = await axios.post(
-        `${window.location.origin}/userlogin/${loginUsername}`,
+        `https://samwad.iotcom.io/userlogin/${loginUsername}`,
         { username: loginUsername, password: loginPassword },
         { headers: { 'Content-Type': 'application/json' } }
       );
