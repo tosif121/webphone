@@ -33,7 +33,7 @@ const iconMap = {
   phone: Phone,
   mobile: Phone,
   contact: Phone,
-  number: Hash,
+  number: Hash, // Using Hash for generic number, Phone for contact numbers
   address: MapPin,
   state: MapPinned,
   district: Building,
@@ -90,6 +90,10 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
           filledState[fieldName] = matchedKey !== undefined ? userCall[matchedKey] ?? '' : '';
         });
       });
+      // Explicitly set the mobile number from userCall into the formState
+      // This ensures 'number' is always present in formState for submission.
+      filledState.number = userCall?.contactNumber || ''; 
+
       setFormState(filledState);
     }
   }, [userCall, formConfig]);
@@ -117,6 +121,20 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
       </CardHeader>
 
       <CardContent>
+        {/* Fixed Input Box for Mobile Number */}
+        <div className="mb-4 relative">
+          {getFieldIcon({ label: 'phone' })} {/* Using 'phone' label for the icon */}
+          <Input
+            name="number" // Key for this field in formState
+            type="tel" // Use 'tel' type for phone numbers
+            placeholder="Mobile Number"
+            value={userCall?.contactNumber || ''} // Display userCall.contactNumber
+            disabled // Make it disabled
+            className="pl-10 bg-muted/50 cursor-not-allowed" // Add styling for disabled state
+            aria-label="Mobile Number"
+          />
+        </div>
+
         <form className="space-y-8 sm:h-auto h-[500px] overflow-y-auto">
           {formConfig.sections?.map((section) => (
             <div key={section.id} className="mb-6">
