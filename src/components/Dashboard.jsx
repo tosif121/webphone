@@ -492,6 +492,7 @@ function Dashboard() {
       isFresh: userCall?.isFresh,
       data: {
         ...formState,
+        contactNumber: userCall?.contactNumber || '',
         formId: formConfig.formId,
       },
     };

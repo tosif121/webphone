@@ -90,10 +90,6 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
           filledState[fieldName] = matchedKey !== undefined ? userCall[matchedKey] ?? '' : '';
         });
       });
-      // Explicitly set the mobile number from userCall into the formState
-      // This ensures 'number' is always present in formState for submission.
-      filledState.number = userCall?.contactNumber || ''; 
-
       setFormState(filledState);
     }
   }, [userCall, formConfig]);
@@ -128,7 +124,7 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
             name="number" // Key for this field in formState
             type="tel" // Use 'tel' type for phone numbers
             placeholder="Mobile Number"
-            value={userCall?.contactNumber || ''} // Display userCall.contactNumber
+            value={userCall.contactNumber} // Display userCall.contactNumber
             disabled // Make it disabled
             className="pl-10 bg-muted/50 cursor-not-allowed" // Add styling for disabled state
             aria-label="Mobile Number"
