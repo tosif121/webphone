@@ -10,7 +10,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
 
   const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const parsedData = tokenData ? JSON.parse(tokenData) : null;
-  const userCampaign = parsedData?.userData?.campaignName;
+  const userCampaign = parsedData?.userData?.campaign;
 
   const groupedCalls = useMemo(() => {
     const filteredCalls = Object.values(usermissedCalls || {}).filter((call) => call?.campaign === userCampaign);
@@ -96,7 +96,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
                   <Clock className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="mb-2 text-lg font-semibold text-foreground">All caught up!</h3>
-                <p className="text-muted-foreground">No missed calls for {userCampaign}</p>
+                <p className="text-muted-foreground">Missed calls not found </p>
               </div>
             ) : (
               <div className="space-y-3">
