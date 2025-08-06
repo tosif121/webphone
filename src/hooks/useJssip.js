@@ -51,7 +51,7 @@ const useJssip = (isMobile = false) => {
     autoStart: false,
   });
 
-  const [origin, setOrigin] = useState('samwad.iotcom.io');
+  const [origin, setOrigin] = useState('esamwad.iotcom.io');
 
   useEffect(() => {
     const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
@@ -61,17 +61,11 @@ const useJssip = (isMobile = false) => {
   useEffect(() => {
     const handleBeforeUnload = (event) => {
       const hasActiveCall =
-        session ||
-        incomingSession ||
-        status === 'calling' ||
-        status === 'conference' ||
-        isIncomingRinging ||
-        isRecording;
+        dispositionModal || incomingSession || status === 'calling' || status === 'conference' || isIncomingRinging;
 
       if (hasActiveCall) {
-        const message = 'You have an active call. Refreshing or closing will end the call. Are you sure?';
-        event.returnValue = message;
-        return message;
+        event.preventDefault();
+        event.returnValue = '';
       }
     };
 
@@ -80,7 +74,7 @@ const useJssip = (isMobile = false) => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [session, incomingSession, status, isIncomingRinging, isRecording]);
+  }, [dispositionModal, incomingSession, status, isIncomingRinging]);
 
   function notifyMe() {
     if (!('Notification' in window)) {
