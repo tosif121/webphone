@@ -3,7 +3,7 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription } from './ui/
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 
-const UserCall = ({ formData, setFormData, userCallDialog }) => {
+const UserCall = ({ formData, setFormData, userCallDialog, userCall }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -42,16 +42,16 @@ const UserCall = ({ formData, setFormData, userCallDialog }) => {
               aria-label="Last Name"
             />
           </div>
-          {/* Mobile Number */}
+          {/* Mobile Number - Now fixed and disabled */}
           <div className="relative">
             <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
-              name="number"
-              type="text"
+              name="number" // Keep the name as 'number' for consistent data structure
+              type="tel" // Use type="tel" for phone numbers
               placeholder="Mobile Number"
-              value={formData.number}
-              onChange={handleChange}
-              className="pl-10 border-border"
+              value={userCall?.contactNumber || ''} // Display the contact number from userCall prop
+              disabled // Make the input field disabled
+              className="pl-10 border-border bg-muted/50 cursor-not-allowed" // Add styling for disabled state
               aria-label="Mobile Number"
             />
           </div>
