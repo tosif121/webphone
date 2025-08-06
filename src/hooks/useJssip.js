@@ -939,44 +939,43 @@ const useJssip = (isMobile = false) => {
   //     isMounted = false; //Cleanup to prevent memory leaks
   //   };
   // }, [])
+
   useEffect(() => {
     let isMounted = true; // Prevent state updates after unmount
 
     function checkUserLive() {
       if (!isMounted) return;
 
-      // ✅ Read latest state inside setTimeout
       setMessageDifference((prev) => {
-        // if (prev.length < 12) {
-        // console.log('running recursion function for checking time :');
-        // console.log('messageDifference length :', prev);
         const lastElement = prev[prev.length - 1];
-        // console.log('last element :', lastElement);
         const timeOfLastElement = lastElement?.messageTime;
         const currentTime = Date.now();
-        // console.log('current time :', currentTime);
         const difference = currentTime - timeOfLastElement;
         // console.log('difference in messageDifference time check : ', difference);
 
         if (difference > 14000) {
           console.log('User is not live');
+
+          // This is the core change: clear localStorage and redirect
           toast.error('User is not live. Please login again.');
-          // setTimeout(checkUserLive, 15000);
-          // localStorage.clear();
-          window.location.href = '/webphone/v1';
+          localStorage.clear();
+          window.location.href = '/webphone/v1/login';
+          toast.error(
+            'Keep Alive message not received from server live. Please check network connection and login again.'
+          );
           return prev;
         }
-        // }
 
-        setTimeout(checkUserLive, 15000); // Recursively call every 5 seconds
+        // Removed the unnecessary reconnection logic here as per the user's new instruction
+        setTimeout(checkUserLive, 15000);
         return prev;
       });
     }
 
-    checkUserLive(); // Start the recursive function
+    checkUserLive();
 
     return () => {
-      isMounted = false; // Cleanup to prevent memory leaks
+      isMounted = false;
     };
   }, []);
 
@@ -1052,7 +1051,7 @@ const useJssip = (isMobile = false) => {
               setSelectedBreak('Break');
             }
           } else {
-            console.log('[Re-apply Break] No valid break found in localStorage to re-apply.');
+            // console.log('[Re-apply Break] No valid break found in localStorage to re-apply.');
           }
         });
 

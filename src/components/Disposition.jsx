@@ -213,10 +213,9 @@ const Disposition = ({
         setIsAutoDispositionInProgress(false);
 
         // Move to next contact only once
-        if (handleContact) {
-          handleContact();
-          fetchLeadsWithDateRange();
-        }
+
+        handleContact();
+        fetchLeadsWithDateRange();
 
         // Close modal and clear phone number
         setDispositionModal(false);
@@ -409,7 +408,6 @@ const Disposition = ({
         return;
       }
 
-      // Prevent multiple submissions
       if (isSubmitting || hasSubmittedSuccessfully) {
         return;
       }
@@ -425,7 +423,6 @@ const Disposition = ({
 
         if (selectedAction === 'Callback Scheduled') {
           if (callbackData) {
-            // Use the formatted data from Callback component
             requestBody.followUpDisposition = {
               date: callbackData.date,
               time: callbackData.time,
@@ -433,7 +430,6 @@ const Disposition = ({
               phoneNumber: phoneNumber,
             };
           } else {
-            // Fallback to existing state (shouldn't happen with new flow)
             requestBody.followUpDisposition = {
               date: followUpDate,
               time: followUpTime,
@@ -449,8 +445,10 @@ const Disposition = ({
           toast.success('Disposition submitted successfully');
           setHasSubmittedSuccessfully(true);
 
-          // Move to next contact only once and only if not already handled
-          if (handleContact && !isAutoDispositionComplete) {
+          // --- THIS IS THE KEY CHANGE ---
+          // Remove the '!isAutoDispositionComplete' from this condition.
+          // Now, handleContact() will always be called if disposition is successful.
+          if (handleContact) {
             handleContact();
             fetchLeadsWithDateRange();
           }
@@ -462,7 +460,6 @@ const Disposition = ({
           toast.error(response.data.message || 'Submission failed');
         }
       } catch (error) {
-        // Check for 400 error in submitForm as well
         if (error.response?.status === 400) {
           toast.error('Bad request: Please check your input and try again');
         } else {
@@ -481,12 +478,14 @@ const Disposition = ({
       followUpDate,
       followUpTime,
       followUpDetails,
-      handleContact,
+      handleContact, // Ensure handleContact is in dependencies
       setDispositionModal,
       phoneNumber,
       isSubmitting,
       hasSubmittedSuccessfully,
-      isAutoDispositionComplete,
+      // isAutoDispositionComplete, // This can be removed from dependencies if not used elsewhere in this useCallback
+      fetchLeadsWithDateRange, // Ensure fetchLeadsWithDateRange is in dependencies
+      setCallType, // Ensure setCallType is in dependencies
     ]
   );
 
@@ -606,7 +605,9 @@ const Disposition = ({
                 <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-4 py-3 shadow-sm backdrop-blur-sm min-w-[180px]">
                   <div className="flex flex-col">
                     <span className="text-xs text-slate-500 dark:text-slate-400">Campaign</span>
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-100 capitalize">{campaignName}</span>
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-100 capitalize">
+                      {campaignName}
+                    </span>
                   </div>
                 </div>
               </div>
