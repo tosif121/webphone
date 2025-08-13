@@ -119,6 +119,7 @@ function Dashboard() {
 
   const [startDate, setStartDate] = useState(moment().subtract(7, 'days').startOf('day').toDate());
   const [endDate, setEndDate] = useState(moment().endOf('day').toDate());
+  const [formId, setFormId] = useState(null);
 
   const [activeMainTab, setActiveMainTab] = useState('allLeads');
   const [leadStats, setLeadStats] = useState({
@@ -370,12 +371,9 @@ function Dashboard() {
 
   useEffect(() => {
     if (!userCampaign || !username || !token || !startDate || !endDate) return;
-
-    // Call both APIs whenever startDate, endDate, userCampaign, username, or token changes.
-    // The activeMainTab will then determine which data to display.
     fetchLeadsWithDateRange();
     fetchCallDataByAgent();
-  }, [startDate, endDate, userCampaign, username, token]); // Removed activeMainTab from dependencies
+  }, [startDate, endDate, userCampaign, username, token]);
 
   const fetchLeadsWithDateRange = async () => {
     setLoading(true);
@@ -452,38 +450,58 @@ function Dashboard() {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     if (!userCampaign || !token) return;
 
-    async function loadForm() {
-      setLoading(true);
+    async function fetchFormList() {
       try {
-        const res1 = await axios.get(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
+        setLoading(true);
+
+        const res = await axios.get(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const formId = res1.data.agentWebForm?.formId;
 
-        const res2 = await axios.get(`${window.location.origin}/getDynamicFormData/${formId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setFormConfig(res2.data.result);
-      } catch (err) {
-        if (err.response?.status === 401) {
-          localStorage.clear();
+        const forms = res.data.agentWebForm || [];
 
-          toast.error('Session expired. Please log in again.');
-          window.location.href = 'webphone/login';
+        let targetType = callType === 'outgoing' ? 'outgoing' : 'incoming';
+        let matchingForm = forms.find((form) => form.formType?.toLowerCase() === targetType);
+
+        if (matchingForm) {
+          setFormId(matchingForm.formId);
         } else {
-          toast.error(err.response?.data?.message || err.message || 'Failed to load form.');
-          setFormConfig(null);
+          toast.error(`No ${targetType} form found.`);
         }
+      } catch (err) {
+        console.error('❌ Error fetching form list:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
 
-    loadForm();
-  }, [userCampaign, token]);
+    fetchFormList();
+  }, [userCampaign, token, callType]);
+
+  useEffect(() => {
+    if (!formId || !token || status === 'start') return;
+
+    async function fetchFormDetails() {
+      try {
+        setLoading(true);
+
+        const res = await axios.get(`${window.location.origin}/getDynamicFormData/${formId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setFormConfig(res.data.result);
+      } catch (err) {
+        console.error('Error fetching form details:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchFormDetails();
+  }, [formId, token, status]);
 
   const handleSubmit = async () => {
     if (!formConfig) return;
