@@ -74,7 +74,7 @@ export default function Header() {
     if (typeof window !== 'undefined') {
       try {
         if (token) {
-          await axios.delete(`https://esamwad.iotcom.io/deleteFirebaseToken`, {
+          await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -166,7 +166,7 @@ export default function Header() {
     //   icon: <User className="w-4 h-4" />,
     // },
     {
-      href: 'https://esamwad.iotcom.io/webphone/login',
+      href: '${window.location.origin}/webphone/login',
       name: 'Stable Version',
       icon: <Settings className="w-4 h-4" />,
     },
@@ -310,7 +310,7 @@ export default function Header() {
                   </Link> */}
 
                   <Link
-                    href="https://esamwad.iotcom.io/webphone/login"
+                    href="${window.location.origin}/webphone/login"
                     onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                   >
