@@ -25,6 +25,7 @@ export default function LeadAndCallInfoPanel({
   setFilterStartDate,
   filterEndDate,
   setFilterEndDate,
+  status,
 }) {
   const [activeTab, setActiveTab] = useState('contact');
   const [localFormData, setLocalFormData] = useState({});
@@ -128,6 +129,7 @@ export default function LeadAndCallInfoPanel({
           setFormState={setLocalFormData}
           userCall={userCall}
           userCallDialog={true}
+          status={status}
         />
       );
     } else {

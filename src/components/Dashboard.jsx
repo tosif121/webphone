@@ -292,7 +292,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -323,7 +323,7 @@ function Dashboard() {
 
   const fetchUserMissedCalls = async () => {
     try {
-      const response = await axios.post(`${window.location.origin}/usermissedCalls/${username}`);
+      const response = await axios.post(`https://esamwad.iotcom.io/usermissedCalls/${username}`);
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
@@ -335,7 +335,7 @@ function Dashboard() {
 
   const fetchAdminUser = async () => {
     try {
-      const response = await axios.get(`${window.location.origin}/users/${adminUser}`, {
+      const response = await axios.get(`https://esamwad.iotcom.io/users/${adminUser}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -382,7 +382,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/leadswithdaterange`,
+        `https://esamwad.iotcom.io/leadswithdaterange`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -420,7 +420,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/callDataByAgent`,
+        `https://esamwad.iotcom.io/callDataByAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -457,7 +457,7 @@ function Dashboard() {
       try {
         setLoading(true);
 
-        const res = await axios.get(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
+        const res = await axios.get(`https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -488,7 +488,7 @@ function Dashboard() {
       try {
         setLoading(true);
 
-        const res = await axios.get(`${window.location.origin}/getDynamicFormData/${formId}`, {
+        const res = await axios.get(`https://esamwad.iotcom.io/getDynamicFormData/${formId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -518,7 +518,7 @@ function Dashboard() {
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -749,6 +749,7 @@ function Dashboard() {
             setFilterStartDate={setStartDate}
             filterEndDate={endDate}
             setFilterEndDate={setEndDate}
+            status={status}
           />
         </div>
 

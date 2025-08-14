@@ -15,15 +15,18 @@ import {
   FileText,
   List,
   CheckSquare,
+  ArrowLeft,
+  ArrowRight,
+  Star,
 } from 'lucide-react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import toast from 'react-hot-toast';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
-// Icon mapping based on label or type
 const iconMap = {
   name: User,
   firstname: User,
@@ -33,7 +36,7 @@ const iconMap = {
   phone: Phone,
   mobile: Phone,
   contact: Phone,
-  number: Hash, // Using Hash for generic number, Phone for contact numbers
+  number: Hash,
   address: MapPin,
   state: MapPinned,
   district: Building,
@@ -62,21 +65,153 @@ function getFieldIcon(field) {
   return <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />;
 }
 
-export default function DynamicForm({ formConfig, formState, userCallDialog, setFormState, userCall }) {
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormState((prev) => ({
+const RatingField = ({ value, onChange, question, required }) => {
+  const [hover, setHover] = useState(0);
+  return (
+    <div className="space-y-2 col-span-2">
+      <Label className="text-base font-medium">
+        {question}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </Label>
+      <div className="flex space-x-1">
+        {[...Array(5)].map((_, index) => {
+          const ratingValue = index + 1;
+          return (
+            <button
+              key={index}
+              type="button"
+              className={`transition-colors ${
+                ratingValue <= (hover || value)
+                  ? 'text-yellow-400 hover:text-yellow-500'
+                  : 'text-gray-300 hover:text-gray-400'
+              }`}
+              onClick={() => onChange(ratingValue)}
+              onMouseEnter={() => setHover(ratingValue)}
+              onMouseLeave={() => setHover(0)}
+            >
+              <Star className="w-6 h-6 fill-current" />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default function DynamicForm({ formConfig, formState, userCallDialog, setFormState, userCall, status }) {
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const [sectionStates, setSectionStates] = useState({});
+  const [visitedSections, setVisitedSections] = useState([]);
+  const [isFormComplete, setIsFormComplete] = useState(false);
+  const sortedSections = formConfig?.sections ? [...formConfig.sections].sort((a, b) => a.id - b.id) : [];
+  const currentSection = sortedSections[currentSectionIndex];
+
+  const handleChange = (fieldName, value) => {
+    setFormState((prev) => ({ ...prev, [fieldName]: value }));
+    setSectionStates((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [currentSectionIndex]: { ...prev[currentSectionIndex], [fieldName]: value },
     }));
+    if (currentSection?.isDynamicSection) {
+      const field = currentSection.fields.find((f) => f.name === fieldName);
+      if (field && field.type === 'select') {
+        const selectedOption = field.options.find((opt) => opt.value === value);
+        if (selectedOption && selectedOption.nextSection) {
+          const nextSectionId = selectedOption.nextSection;
+          if (!nextSectionId || nextSectionId.trim() === '') {
+            setIsFormComplete(true);
+            return;
+          }
+          const normalizedId = isNaN(nextSectionId) ? nextSectionId : parseInt(nextSectionId, 10).toString();
+          if (normalizedId === 'end' || normalizedId === 'submit') {
+            setIsFormComplete(true);
+            return;
+          }
+          const nextIndex = sortedSections.findIndex((sec) => sec.id.toString() === normalizedId);
+          if (nextIndex !== -1 && !visitedSections.includes(nextIndex)) {
+            setCurrentSectionIndex(nextIndex);
+            setVisitedSections((prev) => [...prev, nextIndex]);
+          } else {
+            setIsFormComplete(true);
+          }
+        }
+      }
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    handleChange(name, type === 'checkbox' ? checked : value);
   };
 
   const handleSelectChange = (name, value) => {
-    setFormState((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    handleChange(name, value);
   };
+
+  const isSectionValid = () => {
+    if (!currentSection) return true;
+    return currentSection.fields.every((field) => {
+      if (field.required) {
+        const value = formState[field.name];
+        return value !== undefined && value !== '' && value !== null;
+      }
+      return true;
+    });
+  };
+
+  const handleNext = () => {
+    if (!isSectionValid()) {
+      return;
+    }
+    setVisitedSections((prev) => [...prev, currentSectionIndex]);
+    if (currentSection?.nextSection === 'next') {
+      if (currentSectionIndex < sortedSections.length - 1) {
+        const nextIndex = currentSectionIndex + 1;
+        if (!visitedSections.includes(nextIndex)) {
+          setCurrentSectionIndex(nextIndex);
+        } else {
+          setIsFormComplete(true);
+        }
+      } else {
+        setIsFormComplete(true);
+      }
+    } else if (!currentSection?.nextSection || currentSection?.nextSection.trim() === '') {
+      setIsFormComplete(true);
+    } else if (currentSection?.nextSection === 'end' || currentSection?.nextSection === 'submit') {
+      setIsFormComplete(true);
+    } else {
+      const nextIndex = sortedSections.findIndex((sec) => sec.id.toString() === currentSection.nextSection.toString());
+      if (nextIndex !== -1 && !visitedSections.includes(nextIndex) && nextIndex !== currentSectionIndex) {
+        setCurrentSectionIndex(nextIndex);
+      } else {
+        setIsFormComplete(true);
+      }
+    }
+  };
+
+  const handleBack = () => {
+    if (currentSectionIndex > 0) {
+      const previousIndex = currentSectionIndex - 1;
+      if (currentSection) {
+        const clearedState = { ...formState };
+        currentSection.fields.forEach((field) => {
+          delete clearedState[field.name];
+        });
+        const updatedSectionStates = { ...sectionStates };
+        delete updatedSectionStates[currentSectionIndex];
+        setSectionStates(updatedSectionStates);
+        const previousSectionState = updatedSectionStates[previousIndex] || {};
+        setFormState({ ...clearedState, ...previousSectionState });
+      }
+      setCurrentSectionIndex(previousIndex);
+    }
+  };
+
+  const isLastSection =
+    isFormComplete ||
+    currentSectionIndex === sortedSections.length - 1 ||
+    currentSection?.nextSection === 'end' ||
+    currentSection?.nextSection === 'submit';
 
   useEffect(() => {
     if (userCall && formConfig?.sections) {
@@ -94,6 +229,47 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
     }
   }, [userCall, formConfig]);
 
+  useEffect(() => {
+    if (status === 'start') {
+      setCurrentSectionIndex(0);
+      setFormState({});
+      setSectionStates({});
+      setVisitedSections([]);
+      setIsFormComplete(false);
+    }
+  }, [status]);
+
+  useEffect(() => {
+    let count = 1;
+    let idx = 0;
+    const visitedForCalc = new Set([0]);
+    while (true) {
+      const section = sortedSections[idx];
+      if (!section) break;
+      if (section.nextSection === 'end' || section.nextSection === 'submit' || !section.nextSection?.trim()) break;
+      let nextIndex;
+      if (section.nextSection === 'next') {
+        nextIndex = idx + 1;
+      } else {
+        nextIndex = sortedSections.findIndex((sec) => sec.id.toString() === section.nextSection.toString());
+      }
+      if (nextIndex === -1 || visitedForCalc.has(nextIndex)) break;
+      visitedForCalc.add(nextIndex);
+      count++;
+      idx = nextIndex;
+    }
+  }, [formConfig]);
+
+  if (!formConfig?.sections || sortedSections.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-gray-600">No form configuration available.</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card
       className={`${
@@ -103,145 +279,272 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
       }`}
     >
       <CardHeader className="pb-2">
-        <div className="flex items-center">
-          <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center shadow-md">
-            <User className="text-primary-foreground" size={18} aria-hidden="true" />
-          </div>
-          <div className="ml-3">
-            <CardTitle className="text-xl text-primary">{formConfig.formTitle}</CardTitle>
-            <CardDescription>
-              {formConfig.sections?.length > 1 ? 'Fill out the form sections below' : 'Fill out the form below'}
-            </CardDescription>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center shadow-md">
+              <User className="text-primary-foreground" size={18} aria-hidden="true" />
+            </div>
+            <div className="ml-3">
+              <CardTitle className="text-xl text-primary">
+                {formConfig.formTitle?.charAt(0).toUpperCase() + formConfig.formTitle?.slice(1) || 'Form'}
+              </CardTitle>
+            </div>
           </div>
         </div>
       </CardHeader>
-
       <CardContent>
-        {/* Fixed Input Box for Mobile Number */}
-        <div className="mb-4 relative">
-          {getFieldIcon({ label: 'phone' })} {/* Using 'phone' label for the icon */}
-          <Input
-            name="number" // Key for this field in formState
-            type="tel" // Use 'tel' type for phone numbers
-            placeholder="Mobile Number"
-            value={userCall.contactNumber} // Display userCall.contactNumber
-            disabled // Make it disabled
-            className="pl-10 bg-muted/50 cursor-not-allowed" // Add styling for disabled state
-            aria-label="Mobile Number"
-          />
+        <div className="mb-4 w-max">
+          <Label className="text-sm font-medium pl-1 mb-1 block">Contact Number</Label>
+          <div className="relative">
+            {getFieldIcon({ label: 'phone' })}
+            <Input
+              name="number"
+              type="tel"
+              placeholder="Mobile Number"
+              value={userCall.contactNumber}
+              disabled
+              className="pl-10 bg-muted/50 cursor-not-allowed"
+            />
+          </div>
         </div>
-
-        <form className="space-y-8 sm:h-auto h-[500px] overflow-y-auto">
-          {formConfig.sections?.map((section) => (
-            <div key={section.id} className="mb-6">
-              {formConfig.sections.length > 1 && (
-                <h3 className="text-lg font-medium text-primary mb-4 flex items-center gap-2">
-                  <List className="w-5 h-5 text-muted-foreground" />
-                  {section.title}
-                </h3>
-              )}
+        <div className="space-y-6 mb-6">
+          {currentSection && (
+            <div>
+              <h3 className="text-lg font-medium text-primary mb-4 flex items-center gap-2">
+                <List className="w-5 h-5 text-muted-foreground" />
+                {currentSection.title?.charAt(0).toUpperCase() + currentSection.title?.slice(1) || 'Section'}
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {section.fields.map((field, idx) => {
-                  // Textarea
+                {currentSection.fields.map((field, idx) => {
                   if (field.type === 'textarea') {
+                    const capitalizedLabel =
+                      (field.label || field.question || '')?.charAt(0).toUpperCase() +
+                      (field.label || field.question || '')?.slice(1);
                     return (
                       <div className="relative col-span-2" key={idx}>
-                        {getFieldIcon(field)}
-                        <Textarea
-                          name={field.name}
-                          placeholder={field.label}
-                          required={field.required}
-                          value={formState[field.name] || ''}
-                          onChange={handleChange}
-                          className="pl-10 min-h-20 resize-none"
-                          aria-label={field.label}
-                        />
+                        <Label
+                          htmlFor={field.name}
+                          className={`mb-2 block ${
+                            field.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ''
+                          }`}
+                        >
+                          {capitalizedLabel}
+                        </Label>
+                        <div className="relative">
+                          {getFieldIcon(field)}
+                          <Textarea
+                            id={field.name}
+                            name={field.name}
+                            placeholder={capitalizedLabel}
+                            required={field.required}
+                            value={formState[field.name] || ''}
+                            onChange={handleInputChange}
+                            className="pl-10 min-h-20 resize-none"
+                            aria-label={capitalizedLabel}
+                          />
+                        </div>
                       </div>
                     );
                   }
-                  // Select
                   if (field.type === 'select' && field.options?.length) {
+                    const capitalizedLabel =
+                      (field.label || field.question || '')?.charAt(0).toUpperCase() +
+                      (field.label || field.question || '')?.slice(1);
                     return (
                       <div className="relative" key={idx}>
-                        {getFieldIcon(field)}
-                        <Select
-                          value={formState[field.name] || ''}
-                          onValueChange={(value) => handleSelectChange(field.name, value)}
+                        <Label
+                          htmlFor={field.name}
+                          className={`mb-2 block ${
+                            field.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ''
+                          }`}
                         >
-                          <SelectTrigger className="pl-10">
-                            <SelectValue placeholder={field.label} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {field.options.map((option, i) => (
-                              <SelectItem key={i} value={option.value || option}>
-                                {option.label || option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          {capitalizedLabel}
+                        </Label>
+                        <div className="relative">
+                          {getFieldIcon(field)}
+                          <Select
+                            value={formState[field.name] || ''}
+                            onValueChange={(value) => handleSelectChange(field.name, value)}
+                          >
+                            <SelectTrigger className="pl-10" id={field.name}>
+                              <SelectValue placeholder={`Select ${capitalizedLabel.toLowerCase()}`} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {field.options.map((option, i) => (
+                                <SelectItem key={i} value={option.value || option}>
+                                  {(option.label || option)?.charAt(0).toUpperCase() +
+                                    (option.label || option)?.slice(1)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     );
                   }
-                  // Checkbox
-                  if (field.type === 'checkbox') {
+                  if (field.type === 'multiple-options' && field.options?.length) {
+                    const capitalizedLabel =
+                      (field.question || field.label || '')?.charAt(0).toUpperCase() +
+                      (field.question || field.label || '')?.slice(1);
                     return (
-                      <label className="flex items-center gap-2" key={idx}>
-                        <input
-                          type="checkbox"
-                          name={field.name}
-                          checked={!!formState[field.name]}
-                          onChange={handleChange}
-                          className="accent-primary"
-                        />
-                        {field.label}
-                        {field.required && <span className="text-destructive ml-1">*</span>}
-                      </label>
+                      <div className="space-y-3 col-span-2" key={idx}>
+                        <Label
+                          className={`text-base font-medium ${
+                            field.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ''
+                          }`}
+                        >
+                          {capitalizedLabel}
+                        </Label>
+                        <div className="relative">
+                          <div className="space-y-2">
+                            {field.options.map((option, optionIndex) => (
+                              <div key={optionIndex} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`${field.name}-${optionIndex}`}
+                                  checked={formState[field.name]?.includes(option.value || option) || false}
+                                  onCheckedChange={(checked) => {
+                                    const currentValues = formState[field.name] || [];
+                                    const newValues = checked
+                                      ? [...currentValues, option.value || option]
+                                      : currentValues.filter((v) => v !== (option.value || option));
+                                    handleChange(field.name, newValues);
+                                  }}
+                                />
+                                <Label
+                                  htmlFor={`${field.name}-${optionIndex}`}
+                                  className="text-sm font-normal cursor-pointer"
+                                >
+                                  {(option.label || option)?.charAt(0).toUpperCase() +
+                                    (option.label || option)?.slice(1)}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     );
                   }
-                  // Radio
-                  if (field.type === 'radio' && field.options?.length) {
+                  if (field.type === 'checkbox') {
+                    const capitalizedLabel =
+                      (field.question || field.label || '')?.charAt(0).toUpperCase() +
+                      (field.question || field.label || '')?.slice(1);
                     return (
-                      <div className="flex flex-col gap-2" key={idx}>
-                        <span className="font-medium">{field.label}</span>
-                        <div className="flex gap-4">
+                      <div className="flex items-center gap-2 col-span-2" key={idx}>
+                        <Checkbox
+                          id={field.name}
+                          checked={!!formState[field.name]}
+                          onCheckedChange={(checked) => handleChange(field.name, checked)}
+                        />
+                        <Label
+                          htmlFor={field.name}
+                          className={`cursor-pointer ${
+                            field.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ''
+                          }`}
+                        >
+                          {capitalizedLabel}
+                        </Label>
+                      </div>
+                    );
+                  }
+                  if (field.type === 'radio' && field.options?.length) {
+                    const capitalizedLabel =
+                      (field.question || field.label || '')?.charAt(0).toUpperCase() +
+                      (field.question || field.label || '')?.slice(1);
+                    return (
+                      <div className="flex flex-col gap-2 col-span-2" key={idx}>
+                        <Label
+                          className={`font-medium ${
+                            field.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ''
+                          }`}
+                        >
+                          {capitalizedLabel}
+                        </Label>
+                        <div className="flex gap-4 flex-wrap">
                           {field.options.map((option, i) => (
-                            <label className="flex items-center gap-2" key={i}>
+                            <label className="flex items-center gap-2 cursor-pointer" key={i}>
                               <input
                                 type="radio"
                                 name={field.name}
                                 value={option.value || option}
                                 checked={formState[field.name] === (option.value || option)}
-                                onChange={handleChange}
+                                onChange={handleInputChange}
                                 className="accent-primary"
                               />
-                              {option.label || option}
+                              <span className="select-none">
+                                {(option.label || option)?.charAt(0).toUpperCase() + (option.label || option)?.slice(1)}
+                              </span>
                             </label>
                           ))}
                         </div>
                       </div>
                     );
                   }
-                  // Default: text, number, email, etc.
+                  if (field.type === 'rating') {
+                    const capitalizedLabel =
+                      (field.question || field.label || '')?.charAt(0).toUpperCase() +
+                      (field.question || field.label || '')?.slice(1);
+                    return (
+                      <RatingField
+                        key={idx}
+                        question={capitalizedLabel}
+                        required={field.required}
+                        value={formState[field.name] || 0}
+                        onChange={(newValue) => handleChange(field.name, newValue)}
+                      />
+                    );
+                  }
+                  const capitalizedLabel =
+                    (field.label || field.question || '')?.charAt(0).toUpperCase() +
+                    (field.label || field.question || '')?.slice(1);
                   return (
                     <div className="relative" key={idx}>
-                      {getFieldIcon(field)}
-                      <Input
-                        name={field.name}
-                        type={field.type || 'text'}
-                        placeholder={field.label}
-                        required={field.required}
-                        value={formState[field.name] || ''}
-                        onChange={handleChange}
-                        className="pl-10"
-                        aria-label={field.label}
-                      />
+                      <Label
+                        htmlFor={field.name}
+                        className={`mb-2 block ${
+                          field.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ''
+                        }`}
+                      >
+                        {capitalizedLabel}
+                      </Label>
+                      <div className="relative">
+                        {getFieldIcon(field)}
+                        <Input
+                          id={field.name}
+                          name={field.name}
+                          type={field.type || 'text'}
+                          placeholder={capitalizedLabel}
+                          required={field.required}
+                          value={formState[field.name] || ''}
+                          onChange={handleInputChange}
+                          className="pl-10"
+                          aria-label={capitalizedLabel}
+                        />
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
-          ))}
-        </form>
+          )}
+        </div>
+        <div className="flex justify-between items-center mt-6">
+          <div>
+            {currentSectionIndex > 0 && (
+              <Button variant="outline" onClick={handleBack} className="flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </Button>
+            )}
+          </div>
+          <div>
+            {!isLastSection && (
+              <Button onClick={handleNext} className="flex items-center gap-2" disabled={!isSectionValid()}>
+                Next
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
