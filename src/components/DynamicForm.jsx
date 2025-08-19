@@ -232,7 +232,6 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
   useEffect(() => {
     if (status === 'start') {
       setCurrentSectionIndex(0);
-      setFormState({});
       setSectionStates({});
       setVisitedSections([]);
       setIsFormComplete(false);
