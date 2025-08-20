@@ -188,18 +188,6 @@ const useJssip = (isMobile = false) => {
 
   const connectioncheck = async () => {
     try {
-      // Don't run connection check during call events or disposition modal
-      if (isIncomingRinging || status === 'calling' || status === 'conference' || dispositionModal) {
-        return false;
-      }
-
-      // Add a delay after call events before checking connection
-      const now = Date.now();
-      const lastCallEvent = localStorage.getItem('lastCallEvent');
-      if (lastCallEvent && now - parseInt(lastCallEvent) < 5000) {
-        return false; // Wait 5 seconds after call events
-      }
-
       setIsConnectionLost(false);
 
       // Parse token data once at the beginning
@@ -1058,19 +1046,9 @@ const useJssip = (isMobile = false) => {
         ua.on('newMessage', (e) => {
           const message = e.request.body;
           console.log('message event:', message);
-          // const messageTime = parseInt(message?.split(",")[1]?.trim(), 10); // Use parseInt with base 10
-          // console.log(`
-          //   ${messageTime}
-          //   ${Date.now()}
-          //   ==============================`
-          // );
-
-          // // console.log('Message time:', messageTime, "current time:", Date.now());
-          // const difference = Date.now() - messageTime;
           const objectToPush = {
             messageTime: Date.now(),
           };
-          // // console.log('Difference:', difference);
 
           setMessageDifference((prev) => {
             const updatedDifferences = [...prev, objectToPush]; // Add new difference
