@@ -151,7 +151,7 @@ export default function Header() {
 
   const navLinks = [
     {
-      href: 'webphone/v1',
+      href: '/webphone/v1',
       name: 'Agent Panel',
       icon: <Phone className="w-4 h-4" />,
     },
@@ -160,13 +160,9 @@ export default function Header() {
       name: 'Agent Dashboard',
       icon: <LayoutDashboard className="w-4 h-4" />,
     },
-    // {
-    //   href: '/webphone/profile',
-    //   name: 'Your Profile',
-    //   icon: <User className="w-4 h-4" />,
-    // },
+
     {
-      href: '${window.location.origin}/webphone/login',
+      href: `${window.location.origin}/webphone/login`,
       name: 'Stable Version',
       icon: <Settings className="w-4 h-4" />,
     },
@@ -274,49 +270,31 @@ export default function Header() {
                       <Rocket className="w-4 h-4" />
                       Campaign
                     </div>
-                    <span className="text-sm font-medium text-foreground truncate max-w-[180px] capitalize">{campaignName}</span>
+                    <span className="text-sm font-medium text-foreground truncate max-w-[180px] capitalize">
+                      {campaignName}
+                    </span>
                   </div>
                 </div>
 
                 {/* Navigation Links */}
                 <div className="py-2">
-                  {pathname !== 'webphone/v1' ? (
-                    <Link
-                      href="/webphone"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
-                    >
-                      <Phone className="w-4 h-4 text-muted-foreground" />
-                      Agent Panel
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/webphone/agent-dashboard"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
-                    >
-                      <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
-                      Agent Dashboard
-                    </Link>
-                  )}
-                  {/* 
-                  <Link
-                    href="/webphone/profile"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
-                  >
-                    <User className="w-4 h-4 text-muted-foreground" />
-                    Your Profile
-                  </Link> */}
-
-                  <Link
-                    href="${window.location.origin}/webphone/login"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
-                  >
-                    <Settings className="w-4 h-4 text-muted-foreground" />
-                    Stable Version
-                  </Link>
+                  {navLinks.map((link) => {
+                    const isActive = pathname === link.href;
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setUserMenuOpen(false)}
+                        className={cn(
+                          'flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
+                          isActive ? 'bg-accent text-accent-foreground' : 'text-foreground hover:bg-accent'
+                        )}
+                      >
+                        {link.icon}
+                        {link.name}
+                      </Link>
+                    );
+                  })}
                 </div>
 
                 {/* Theme Toggle */}
@@ -429,7 +407,9 @@ export default function Header() {
                   <Rocket className="w-4 h-4" />
                   Campaign
                 </div>
-                <span className="text-sm font-medium text-foreground truncate max-w-[140px] capitalize">{campaignName}</span>
+                <span className="text-sm font-medium text-foreground truncate max-w-[140px] capitalize">
+                  {campaignName}
+                </span>
               </div>
 
               {/* Missed Calls & BreakDropdown */}

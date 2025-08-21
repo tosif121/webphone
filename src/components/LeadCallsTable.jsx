@@ -659,7 +659,7 @@ export default function LeadCallsTable({
             }}
             className="w-full"
           >
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center md:mb-6 flex-wrap md:gap-0 gap-5">
               <TabsList className="grid grid-cols-2 w-fit">
                 <TabsTrigger value="allLeads" className="flex items-center gap-2">
                   <LayoutGrid size={16} />
