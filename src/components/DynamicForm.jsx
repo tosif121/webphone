@@ -300,7 +300,7 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
               name="number"
               type="tel"
               placeholder="Mobile Number"
-              value={userCall.contactNumber}
+              value={userCall?.contactNumber || ''}
               disabled
               className="pl-10 bg-muted/50 cursor-not-allowed"
             />
@@ -526,7 +526,7 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
             </div>
           )}
         </div>
-        <div className="flex justify-between items-center mt-6">
+        <div className="flex justify-between items-center my-6">
           <div>
             {currentSectionIndex > 0 && (
               <Button variant="outline" onClick={handleBack} className="flex items-center gap-2">

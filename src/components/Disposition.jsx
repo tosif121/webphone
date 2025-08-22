@@ -408,6 +408,12 @@ const Disposition = ({
         return;
       }
 
+      // Validate the entire form
+      if (!isFormValid()) {
+        toast.error('Please fill all required fields to proceed.');
+        return;
+      }
+
       if (isSubmitting || hasSubmittedSuccessfully) {
         return;
       }
@@ -445,9 +451,6 @@ const Disposition = ({
           toast.success('Disposition submitted successfully');
           setHasSubmittedSuccessfully(true);
 
-          // --- THIS IS THE KEY CHANGE ---
-          // Remove the '!isAutoDispositionComplete' from this condition.
-          // Now, handleContact() will always be called if disposition is successful.
           if (handleContact) {
             handleContact();
             fetchLeadsWithDateRange();
@@ -478,14 +481,15 @@ const Disposition = ({
       followUpDate,
       followUpTime,
       followUpDetails,
-      handleContact, // Ensure handleContact is in dependencies
+      handleContact,
       setDispositionModal,
       phoneNumber,
       isSubmitting,
       hasSubmittedSuccessfully,
-      // isAutoDispositionComplete, // This can be removed from dependencies if not used elsewhere in this useCallback
-      fetchLeadsWithDateRange, // Ensure fetchLeadsWithDateRange is in dependencies
-      setCallType, // Ensure setCallType is in dependencies
+      fetchLeadsWithDateRange,
+      setCallType,
+      formConfig,
+      formData,
     ]
   );
 
@@ -536,6 +540,24 @@ const Disposition = ({
   if (!shouldShowModal) {
     return null;
   }
+
+  const isFormValid = () => {
+    if (!formConfig?.sections || formConfig.sections.length === 0) {
+      return true; // No form, no validation
+    }
+
+    for (const section of formConfig.sections) {
+      for (const field of section.fields) {
+        if (field.required) {
+          const value = formData[field.name];
+          if (value === undefined || value === '' || value === null || (Array.isArray(value) && value.length === 0)) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  };
 
   return (
     <>
