@@ -1217,7 +1217,7 @@ const useJssip = (isMobile = false) => {
         setUa(ua);
       } catch (error) {
         console.error('Error initializing JsSIP:', error);
-        toast.error('You Are Logout');
+        // toast.error('You Are Logout');
         // localStorage.clear();
         // window.location.href = '/webphone/v1';
       }
