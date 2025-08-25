@@ -162,7 +162,7 @@ export default function Header() {
     },
 
     {
-      href: 'https://esamwad.iotcom.io/webphone/login',
+      href: '${window.location.origin}/webphone/login',
       name: 'Stable Version',
       icon: <Settings className="w-4 h-4" />,
     },

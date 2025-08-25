@@ -288,6 +288,10 @@ const useJssip = (isMobile = false) => {
         });
       }
 
+      // Show alert with reason before clearing and redirecting
+      const alertMessage = message || 'You are being logged out. Please re-login to continue.';
+      window.alert(alertMessage);
+
       localStorage.clear();
 
       toast.success('Logged out successfully');
@@ -300,6 +304,10 @@ const useJssip = (isMobile = false) => {
       window.location.href = '/webphone/v1/login';
     } catch (error) {
       console.error('Error during logout:', error);
+
+      // Show alert in error case too
+      window.alert('An error occurred during logout. Please re-login.');
+
       localStorage.clear();
 
       window.location.href = '/webphone/v1/login';
@@ -929,7 +937,7 @@ const useJssip = (isMobile = false) => {
   // }, [])
 
   useEffect(() => {
-    let isMounted = true; // Prevent state updates after unmount
+    let isMounted = true;
 
     function checkUserLive() {
       if (!isMounted) return;
@@ -939,22 +947,23 @@ const useJssip = (isMobile = false) => {
         const timeOfLastElement = lastElement?.messageTime;
         const currentTime = Date.now();
         const difference = currentTime - timeOfLastElement;
-        // console.log('difference in messageDifference time check : ', difference);
 
         if (difference > 14000) {
           console.log('User is not live');
 
-          // This is the core change: clear localStorage and redirect
-          toast.error('User is not live. Please login again.');
-          localStorage.clear();
+          // Show alert with reason
+          window.alert('Session timed out due to inactivity or no keep-alive response from server. Please re-login.');
+
+          localStorage.clear(); // Clear after alert
           window.location.href = '/webphone/v1/login';
+
+          toast.error('User is not live. Please login again.');
           toast.error(
             'Keep Alive message not received from server live. Please check network connection and login again.'
           );
           return prev;
         }
 
-        // Removed the unnecessary reconnection logic here as per the user's new instruction
         setTimeout(checkUserLive, 15000);
         return prev;
       });
