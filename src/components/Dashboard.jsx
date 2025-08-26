@@ -1,9 +1,6 @@
-// Dashboard.jsx
 import HistoryContext from '@/context/HistoryContext';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import LeadAndCallInfoPanel from './LeadAndCallInfoPanel';
-import AutoDial from './AutoDial';
-import AutoDialDynamicForm from './AutoDialDynamicForm';
 import Disposition from './Disposition';
 import { JssipContext } from '@/context/JssipContext';
 import toast from 'react-hot-toast';
@@ -82,6 +79,7 @@ function Dashboard() {
     setCallConference,
     callType,
     setCallType,
+    connectionStatus,
   } = useContext(JssipContext);
 
   const {
@@ -133,6 +131,8 @@ function Dashboard() {
     outgoingCalls: 0,
     totalCalls: 0,
   });
+
+  const [formSubmitted, setFormSubmitted] = useState(false);
 
   useEffect(() => {
     const now = new Date();
@@ -270,44 +270,6 @@ function Dashboard() {
   useEffect(() => {
     setCampaignMissedCallsLength(computedMissedCallsLength);
   }, [computedMissedCallsLength, setCampaignMissedCallsLength]);
-
-  const handleContact = async () => {
-    const payload = {
-      user: username,
-      isFresh: userCall?.isFresh,
-      data: {
-        firstName: formState.firstName,
-        lastName: formState.lastName,
-        emailId: formState.email,
-        contactNumber: formState.number,
-        alternateNumber: formState.alternateNumber,
-        comment: formState.comment,
-        Contactaddress: formState.address,
-        ContactDistrict: formState.district,
-        ContactCity: formState.city,
-        ContactState: formState.state,
-        ContactPincode: formState.postalCode,
-        agentName: username,
-      },
-    };
-
-    try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.data?.success) {
-        toast.success(response.data.message || 'Contact saved successfully.');
-      } else {
-        toast.error(response.data.message || 'Failed to save contact.');
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error occurred.');
-      console.error('Add/Modify contact error:', err);
-    }
-  };
 
   useEffect(() => {
     if (status == 'start' && username) {
@@ -450,6 +412,7 @@ function Dashboard() {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     if (!userCampaign || !token) return;
 
@@ -503,7 +466,50 @@ function Dashboard() {
     fetchFormDetails();
   }, [formId, token, status]);
 
-  const handleSubmit = async () => {
+  const handleContact = async (e) => {
+    e.preventDefault();
+    const payload = {
+      user: username,
+      isFresh: userCall?.isFresh,
+      data: {
+        firstName: formState.firstName,
+        lastName: formState.lastName,
+        emailId: formState.email,
+        contactNumber: formState.number,
+        alternateNumber: formState.alternateNumber,
+        comment: formState.comment,
+        Contactaddress: formState.address,
+        ContactDistrict: formState.district,
+        ContactCity: formState.city,
+        ContactState: formState.state,
+        ContactPincode: formState.postalCode,
+        agentName: username,
+      },
+    };
+
+    try {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.data?.success) {
+        toast.success(response.data.message || 'Contact saved successfully.');
+        setFormSubmitted(true);
+
+        // setDispositionModal(true);
+      } else {
+        toast.error(response.data.message || 'Failed to save contact.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error occurred.');
+      console.error('Add/Modify contact error:', err);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     if (!formConfig) return;
 
     const payload = {
@@ -526,6 +532,8 @@ function Dashboard() {
 
       if (response.data?.success) {
         toast.success(response.data.message || 'Contact saved successfully.');
+        setFormSubmitted(true);
+        // setDispositionModal(true);
       } else {
         toast.error(response.data.message || 'Failed to save contact.');
       }
@@ -594,14 +602,11 @@ function Dashboard() {
         </div>
       )}
 
-      {dispositionModal && (
+      {formSubmitted && connectionStatus === 'Disposition' && (
         <Disposition
           bridgeID={bridgeID}
           setDispositionModal={setDispositionModal}
           userCall={userCall}
-          handleContact={
-            Array.isArray(formConfig?.sections) && formConfig.sections.length > 0 ? handleSubmit : handleContact
-          }
           setFormData={setFormState}
           formData={formState}
           formConfig={formConfig}
@@ -610,8 +615,10 @@ function Dashboard() {
           callType={callType}
           setCallType={setCallType}
           phoneNumber={userCall?.contactNumber}
+          setFormSubmitted={setFormSubmitted}
         />
       )}
+      {console.log(formSubmitted, connectionStatus, '>>>>>>>>>>')}
       {dropCalls && (
         <DropCallsModal
           usermissedCalls={usermissedCalls}
@@ -732,7 +739,7 @@ function Dashboard() {
       <div className="flex gap-6 mt-8 md:flex-row flex-col relative">
         <div
           className={`w-full transition-opacity duration-400 ${
-            status !== 'start' && userCall ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
+            connectionStatus !== 'NOT_INUSE' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
           }`}
         >
           <LeadAndCallInfoPanel
@@ -750,12 +757,13 @@ function Dashboard() {
             filterEndDate={endDate}
             setFilterEndDate={setEndDate}
             status={status}
+            formSubmitted={formSubmitted}
           />
         </div>
 
         <div
           className={`w-full transition-opacity duration-400 ${
-            !(status !== 'start' && userCall) ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
+            connectionStatus === 'NOT_INUSE' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
           }`}
         >
           <LeadCallsTable

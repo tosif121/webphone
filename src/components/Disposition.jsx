@@ -20,7 +20,6 @@ import moment from 'moment';
 const Disposition = ({
   bridgeID,
   setDispositionModal,
-  handleContact,
   setFormData,
   formData,
   formConfig,
@@ -29,6 +28,7 @@ const Disposition = ({
   fetchLeadsWithDateRange,
   callType,
   setCallType,
+  setFormSubmitted,
 }) => {
   const { username } = useContext(HistoryContext);
   const [selectedAction, setSelectedAction] = useState(null);
@@ -166,16 +166,25 @@ const Disposition = ({
       }
     );
   };
-
-  // Main effect to handle disposition options and auto disposition
   useEffect(() => {
     // Prevent running if already completed or in progress
     if (isAutoDispositionComplete || isAutoDispositionInProgress) {
       return;
     }
 
-    const dispoData = JSON.parse(localStorage.getItem('token'))?.userData?.dispostionOptions;
+    const tokenData = JSON.parse(localStorage.getItem('token'))?.userData;
+    const dispositionFlag = tokenData?.disposition;
+    const dispoData = tokenData?.dispostionOptions;
 
+    // Prioritize disposition flag
+    if (dispositionFlag === false) {
+      console.log('Disposition flag is false, triggering auto disposition:', Date.now());
+      setIsAutoDispositionInProgress(true);
+      autoDispoFunc();
+      return;
+    }
+
+    // If flag is true or undefined, check options
     if (dispoData?.length > 0) {
       // Has disposition options - show modal
       setDispositionActions(
@@ -185,15 +194,13 @@ const Disposition = ({
         }))
       );
       setShouldShowModal(true);
-      setIsAutoDispositionComplete(true); // Mark as handled
+      setIsAutoDispositionComplete(true);
     } else {
-      // No disposition options - trigger auto disposition immediately
       console.log('No disposition options found, triggering auto disposition:', Date.now());
       setIsAutoDispositionInProgress(true);
-
       autoDispoFunc();
     }
-  }, []); // Only depend on essential props
+  }, []);
 
   const autoDispoFunc = async () => {
     try {
@@ -214,11 +221,10 @@ const Disposition = ({
 
         // Move to next contact only once
 
-        handleContact();
         fetchLeadsWithDateRange();
 
         // Close modal and clear phone number
-        setDispositionModal(false);
+        setFormSubmitted(false);
         setPhoneNumber('');
         setCallType('');
       } else {
@@ -249,7 +255,7 @@ const Disposition = ({
         setIsAutoDispositionComplete(true);
 
         // Don't show modal for 400 errors - just close everything
-        setDispositionModal(false);
+        setFormSubmitted(false);
         setPhoneNumber('');
         setCallType('');
         return;
@@ -297,7 +303,7 @@ const Disposition = ({
       if (!open) {
         // Allow closing if successfully submitted
         if (hasSubmittedSuccessfully) {
-          setDispositionModal(false);
+          setFormSubmitted(false);
           return;
         }
 
@@ -335,7 +341,7 @@ const Disposition = ({
 
       // Allow closing if successfully submitted
       if (hasSubmittedSuccessfully) {
-        setDispositionModal(false);
+        setFormSubmitted(false);
         return;
       }
 
@@ -372,7 +378,7 @@ const Disposition = ({
 
         // Allow closing if successfully submitted
         if (hasSubmittedSuccessfully) {
-          setDispositionModal(false);
+          setFormSubmitted(false);
           return;
         }
 
@@ -409,10 +415,10 @@ const Disposition = ({
       }
 
       // Validate the entire form
-      if (!isFormValid()) {
-        toast.error('Please fill all required fields to proceed.');
-        return;
-      }
+      // if (!isFormValid()) {
+      //   toast.error('Please fill all required fields to proceed.');
+      //   return;
+      // }
 
       if (isSubmitting || hasSubmittedSuccessfully) {
         return;
@@ -451,12 +457,9 @@ const Disposition = ({
           toast.success('Disposition submitted successfully');
           setHasSubmittedSuccessfully(true);
 
-          if (handleContact) {
-            handleContact();
-            fetchLeadsWithDateRange();
-          }
+          fetchLeadsWithDateRange();
 
-          setDispositionModal(false);
+          setFormSubmitted(false);
           setPhoneNumber('');
           setCallType('');
         } else {
@@ -481,7 +484,6 @@ const Disposition = ({
       followUpDate,
       followUpTime,
       followUpDetails,
-      handleContact,
       setDispositionModal,
       phoneNumber,
       isSubmitting,
@@ -541,23 +543,23 @@ const Disposition = ({
     return null;
   }
 
-  const isFormValid = () => {
-    if (!formConfig?.sections || formConfig.sections.length === 0) {
-      return true; // No form, no validation
-    }
+  // const isFormValid = () => {
+  //   if (!formConfig?.sections || formConfig.sections.length === 0) {
+  //     return true; // No form, no validation
+  //   }
 
-    for (const section of formConfig.sections) {
-      for (const field of section.fields) {
-        if (field.required) {
-          const value = formData[field.name];
-          if (value === undefined || value === '' || value === null || (Array.isArray(value) && value.length === 0)) {
-            return false;
-          }
-        }
-      }
-    }
-    return true;
-  };
+  //   for (const section of formConfig.sections) {
+  //     for (const field of section.fields) {
+  //       if (field.required) {
+  //         const value = formData[field.name];
+  //         if (value === undefined || value === '' || value === null || (Array.isArray(value) && value.length === 0)) {
+  //           return false;
+  //         }
+  //       }
+  //     }
+  //   }
+  //   return true;
+  // };
 
   return (
     <>
@@ -658,13 +660,13 @@ const Disposition = ({
                     <BreakDropdown bridgeID={bridgeID} dispoWithBreak={true} />
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <Button
+                    {/* <Button
                       variant="outline"
                       onClick={() => setUserCallOpen(true)}
                       disabled={isSubmitting || hasSubmittedSuccessfully}
                     >
                       View Contact Form
-                    </Button>
+                    </Button> */}
                     <Button
                       onClick={() => submitForm()}
                       disabled={isSubmitting || !selectedAction || hasSubmittedSuccessfully}

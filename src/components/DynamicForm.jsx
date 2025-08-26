@@ -98,11 +98,22 @@ const RatingField = ({ value, onChange, question, required }) => {
   );
 };
 
-export default function DynamicForm({ formConfig, formState, userCallDialog, setFormState, userCall, status }) {
+export default function DynamicForm({
+  formConfig,
+  formState,
+  userCallDialog,
+  setFormState,
+  userCall,
+  status,
+  handleContact,
+  formSubmitted,
+}) {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [sectionStates, setSectionStates] = useState({});
   const [visitedSections, setVisitedSections] = useState([]);
   const [isFormComplete, setIsFormComplete] = useState(false);
+  const [navigationPath, setNavigationPath] = useState([0]);
+
   const sortedSections = formConfig?.sections ? [...formConfig.sections].sort((a, b) => a.id - b.id) : [];
   const currentSection = sortedSections[currentSectionIndex];
 
@@ -112,6 +123,7 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
       ...prev,
       [currentSectionIndex]: { ...prev[currentSectionIndex], [fieldName]: value },
     }));
+
     if (currentSection?.isDynamicSection) {
       const field = currentSection.fields.find((f) => f.name === fieldName);
       if (field && field.type === 'select') {
@@ -130,6 +142,7 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
           const nextIndex = sortedSections.findIndex((sec) => sec.id.toString() === normalizedId);
           if (nextIndex !== -1 && !visitedSections.includes(nextIndex)) {
             setCurrentSectionIndex(nextIndex);
+            setNavigationPath((prev) => [...prev, nextIndex]);
             setVisitedSections((prev) => [...prev, nextIndex]);
           } else {
             setIsFormComplete(true);
@@ -169,6 +182,7 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
         const nextIndex = currentSectionIndex + 1;
         if (!visitedSections.includes(nextIndex)) {
           setCurrentSectionIndex(nextIndex);
+          setNavigationPath((prev) => [...prev, nextIndex]);
         } else {
           setIsFormComplete(true);
         }
@@ -183,6 +197,7 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
       const nextIndex = sortedSections.findIndex((sec) => sec.id.toString() === currentSection.nextSection.toString());
       if (nextIndex !== -1 && !visitedSections.includes(nextIndex) && nextIndex !== currentSectionIndex) {
         setCurrentSectionIndex(nextIndex);
+        setNavigationPath((prev) => [...prev, nextIndex]);
       } else {
         setIsFormComplete(true);
       }
@@ -190,8 +205,11 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
   };
 
   const handleBack = () => {
-    if (currentSectionIndex > 0) {
-      const previousIndex = currentSectionIndex - 1;
+    if (navigationPath.length > 1) {
+      const newPath = [...navigationPath];
+      newPath.pop();
+      const previousIndex = newPath[newPath.length - 1];
+
       if (currentSection) {
         const clearedState = { ...formState };
         currentSection.fields.forEach((field) => {
@@ -203,7 +221,10 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
         const previousSectionState = updatedSectionStates[previousIndex] || {};
         setFormState({ ...clearedState, ...previousSectionState });
       }
+
       setCurrentSectionIndex(previousIndex);
+      setNavigationPath(newPath);
+      setIsFormComplete(false);
     }
   };
 
@@ -235,29 +256,17 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
       setSectionStates({});
       setVisitedSections([]);
       setIsFormComplete(false);
+      setNavigationPath([0]);
     }
   }, [status]);
 
-  useEffect(() => {
-    let count = 1;
-    let idx = 0;
-    const visitedForCalc = new Set([0]);
-    while (true) {
-      const section = sortedSections[idx];
-      if (!section) break;
-      if (section.nextSection === 'end' || section.nextSection === 'submit' || !section.nextSection?.trim()) break;
-      let nextIndex;
-      if (section.nextSection === 'next') {
-        nextIndex = idx + 1;
-      } else {
-        nextIndex = sortedSections.findIndex((sec) => sec.id.toString() === section.nextSection.toString());
-      }
-      if (nextIndex === -1 || visitedForCalc.has(nextIndex)) break;
-      visitedForCalc.add(nextIndex);
-      count++;
-      idx = nextIndex;
-    }
-  }, [formConfig]);
+  // Add debugging
+  console.log('DynamicForm render:', {
+    formConfig: !!formConfig,
+    sections: formConfig?.sections?.length,
+    currentSection: !!currentSection,
+    sortedSections: sortedSections.length,
+  });
 
   if (!formConfig?.sections || sortedSections.length === 0) {
     return (
@@ -528,7 +537,7 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
         </div>
         <div className="flex justify-between items-center my-6">
           <div>
-            {currentSectionIndex > 0 && (
+            {navigationPath.length > 1 && (
               <Button variant="outline" onClick={handleBack} className="flex items-center gap-2">
                 <ArrowLeft className="w-4 h-4" />
                 Back
@@ -536,7 +545,11 @@ export default function DynamicForm({ formConfig, formState, userCallDialog, set
             )}
           </div>
           <div>
-            {!isLastSection && (
+            {isLastSection ? (
+              <Button onClick={handleContact} disabled={formSubmitted}>
+                Submit
+              </Button>
+            ) : (
               <Button onClick={handleNext} className="flex items-center gap-2" disabled={!isSectionValid()}>
                 Next
                 <ArrowRight className="w-4 h-4" />

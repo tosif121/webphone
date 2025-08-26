@@ -2,8 +2,9 @@ import { User, Mail, Phone, MapPin, Home, Building, MapPinned, Building2, MailOp
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from './ui/card';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
+import { Button } from './ui/button';
 
-const UserCall = ({ formData, setFormData, userCallDialog, userCall }) => {
+const UserCall = ({ formData, setFormData, userCallDialog, userCall, handleSubmit, formSubmitted }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -14,7 +15,7 @@ const UserCall = ({ formData, setFormData, userCallDialog, userCall }) => {
 
   function userCallorm() {
     return (
-      <form className="space-y-6">
+      <form className="space-y-6" onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* First Name */}
           <div className="relative">
@@ -158,6 +159,11 @@ const UserCall = ({ formData, setFormData, userCallDialog, userCall }) => {
             className="pl-10 min-h-20 resize-none border-border"
             aria-label="Comment"
           />
+        </div>
+        <div className="flex justify-end mt-6">
+          <Button type="submit" disabled={formSubmitted}>
+            Save Contact
+          </Button>
         </div>
       </form>
     );

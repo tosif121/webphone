@@ -26,6 +26,7 @@ export default function LeadAndCallInfoPanel({
   filterEndDate,
   setFilterEndDate,
   status,
+  formSubmitted,
 }) {
   const [activeTab, setActiveTab] = useState('contact');
   const [localFormData, setLocalFormData] = useState({});
@@ -130,11 +131,20 @@ export default function LeadAndCallInfoPanel({
           userCall={userCall}
           userCallDialog={true}
           status={status}
+          formSubmitted={formSubmitted}
+          handleContact={handleContact}
         />
       );
     } else {
       return (
-        <UserCall formData={localFormData} setFormData={setLocalFormData} userCall={userCall} userCallDialog={true} />
+        <UserCall
+          formData={localFormData}
+          handleSubmit={handleSubmit}
+          setFormData={setLocalFormData}
+          userCall={userCall}
+          userCallDialog={true}
+          formSubmitted={formSubmitted}
+        />
       );
     }
   };
@@ -526,11 +536,11 @@ export default function LeadAndCallInfoPanel({
                 <TabsTrigger value="contact" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
                   <UserCog size={16} /> <span className="hidden sm:inline">Contact</span>
                 </TabsTrigger>
-                <TabsTrigger value="lead" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                  <User size={16} /> <span className="hidden sm:inline">Lead Info</span>
-                </TabsTrigger>
                 <TabsTrigger value="callInfo" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
                   <Clock size={16} /> <span className="hidden sm:inline">Call Info</span>
+                </TabsTrigger>
+                <TabsTrigger value="lead" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                  <User size={16} /> <span className="hidden sm:inline">Lead Info</span>
                 </TabsTrigger>
                 <TabsTrigger value="history" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
                   <History size={16} /> <span className="hidden sm:inline">History</span>
