@@ -1,4 +1,3 @@
-// LeadAndCallInfoPanel.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import moment from 'moment';
 import { User, Info, Phone, History, UserCog, Clock } from 'lucide-react';
@@ -7,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Button } from './ui/button';
+import { AlertDialog, AlertDialogContent } from './ui/alert-dialog';
 import DynamicForm from './DynamicForm';
 import UserCall from './UserCall';
 import DateRangePicker from './DateRangePicker';
@@ -27,26 +27,31 @@ export default function LeadAndCallInfoPanel({
   setFilterEndDate,
   status,
   formSubmitted,
+  conferenceStatus,
+  connectionStatus,
 }) {
   const [activeTab, setActiveTab] = useState('contact');
   const [localFormData, setLocalFormData] = useState({});
+  const [persistentFormData, setPersistentFormData] = useState({});
+  const [lastUserCall, setLastUserCall] = useState(null);
 
+  // Initialize form data when userCall changes (new call)
   useEffect(() => {
-    if (userCall) {
+    if (userCall && (!lastUserCall || lastUserCall.contactNumber !== userCall.contactNumber)) {
+      const initialFormData = {};
+
       if (formConfig && formConfig.sections && formConfig.sections.length > 0) {
-        const filledState = {};
         formConfig.sections.forEach((section) => {
           section.fields.forEach((field) => {
             const fieldName = field.name;
             const lowerFieldName = fieldName.toLowerCase();
             const userCallKeys = Object.keys(userCall);
             const matchedKey = userCallKeys.find((key) => key.toLowerCase() === lowerFieldName);
-            filledState[fieldName] = matchedKey !== undefined ? userCall[matchedKey] ?? '' : '';
+            initialFormData[fieldName] = matchedKey !== undefined ? userCall[matchedKey] ?? '' : '';
           });
         });
-        setLocalFormData(filledState);
       } else {
-        setLocalFormData({
+        Object.assign(initialFormData, {
           firstName: userCall.firstName || '',
           lastName: userCall.lastName || '',
           number: userCall.contactNumber || '',
@@ -60,14 +65,40 @@ export default function LeadAndCallInfoPanel({
           comment: userCall.comment || '',
         });
       }
+
+      setLocalFormData(initialFormData);
+      setPersistentFormData(initialFormData);
+      setLastUserCall(userCall);
     }
   }, [userCall, formConfig]);
 
+  // Keep persistent data in sync with local changes
   useEffect(() => {
-    if (setFormData) {
+    if (Object.keys(localFormData).length > 0) {
+      setPersistentFormData(localFormData);
+    }
+  }, [localFormData]);
+
+  // Sync with parent form data
+  useEffect(() => {
+    if (setFormData && Object.keys(localFormData).length > 0) {
       setFormData(localFormData);
     }
   }, [localFormData, setFormData]);
+
+  // When dialog opens (connectionStatus becomes 'Disposition'), restore persistent data
+  useEffect(() => {
+    if (connectionStatus === 'Disposition' && Object.keys(persistentFormData).length > 0) {
+      setLocalFormData(persistentFormData);
+    }
+  }, [connectionStatus, persistentFormData]);
+
+  useEffect(() => {
+    if (formSubmitted) {
+      setPersistentFormData({});
+      setLocalFormData({});
+    }
+  }, [formSubmitted]);
 
   const filteredMappedLeadsForPanel = useMemo(() => {
     if (!mappedLeads || !filterStartDate || !filterEndDate || !userCall) return [];
@@ -515,6 +546,75 @@ export default function LeadAndCallInfoPanel({
       </div>
     );
   };
+
+  if (connectionStatus === 'Disposition') {
+    return (
+      <AlertDialog open={true}>
+        <AlertDialogContent className="p-0 m-0 !max-w-6xl overflow-auto">
+          <Card className="w-full h-full border-0 shadow-none">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center justify-between">
+                <span className="text-lg font-semibold">Active Call Information</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!userCall && !lastUserCall ? (
+                <div className="text-center py-8">
+                  <Phone size={48} className="mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No call data available for disposition.</p>
+                </div>
+              ) : (
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                    <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:grid-cols-4 flex-grow">
+                      <TabsTrigger value="contact" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                        <UserCog size={16} /> <span className="hidden sm:inline">Contact</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="callInfo" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                        <Clock size={16} /> <span className="hidden sm:inline">Call Info</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="lead" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                        <User size={16} /> <span className="hidden sm:inline">Lead Info</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="history" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                        <History size={16} /> <span className="hidden sm:inline">History</span>
+                      </TabsTrigger>
+                    </TabsList>
+                    <div className="w-full sm:w-auto flex justify-end">
+                      <DateRangePicker
+                        key={`panel-date-picker-${moment(filterStartDate).format('YYYY-MM-DD')}-${moment(
+                          filterEndDate
+                        ).format('YYYY-MM-DD')}`}
+                        onDateChange={([start, end]) => {
+                          setFilterStartDate(start);
+                          setFilterEndDate(end);
+                        }}
+                        initialStartDate={filterStartDate}
+                        initialEndDate={filterEndDate}
+                      />
+                    </div>
+                  </div>
+
+                  <TabsContent value="contact" className="mt-4">
+                    {renderContactTab()}
+                  </TabsContent>
+                  <TabsContent value="lead" className="mt-4">
+                    {renderLeadTab()}
+                  </TabsContent>
+                  <TabsContent value="callInfo" className="mt-4">
+                    {renderCallInfoTab()}
+                  </TabsContent>
+                  <TabsContent value="history" className="mt-4">
+                    {renderHistoryTab()}
+                  </TabsContent>
+                </Tabs>
+              )}
+            </CardContent>
+          </Card>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  }
 
   return (
     <Card className="w-full max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-6xl h-max">

@@ -100,13 +100,16 @@ const RatingField = ({ value, onChange, question, required }) => {
 
 export default function DynamicForm({
   formConfig,
-  formState,
+  formState, // Keep for backward compatibility but use localFormData
+  setFormState, // Keep for backward compatibility but use setLocalFormData
   userCallDialog,
-  setFormState,
   userCall,
   status,
   handleContact,
   formSubmitted,
+  // NEW PROPS for localFormData
+  localFormData,
+  setLocalFormData,
 }) {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [sectionStates, setSectionStates] = useState({});
@@ -114,11 +117,15 @@ export default function DynamicForm({
   const [isFormComplete, setIsFormComplete] = useState(false);
   const [navigationPath, setNavigationPath] = useState([0]);
 
+  // Use localFormData if provided, otherwise fallback to formState
+  const currentFormData = localFormData || formState || {};
+  const setCurrentFormData = setLocalFormData || setFormState || (() => {});
+
   const sortedSections = formConfig?.sections ? [...formConfig.sections].sort((a, b) => a.id - b.id) : [];
   const currentSection = sortedSections[currentSectionIndex];
 
   const handleChange = (fieldName, value) => {
-    setFormState((prev) => ({ ...prev, [fieldName]: value }));
+    setCurrentFormData((prev) => ({ ...prev, [fieldName]: value }));
     setSectionStates((prev) => ({
       ...prev,
       [currentSectionIndex]: { ...prev[currentSectionIndex], [fieldName]: value },
@@ -165,7 +172,7 @@ export default function DynamicForm({
     if (!currentSection) return true;
     return currentSection.fields.every((field) => {
       if (field.required) {
-        const value = formState[field.name];
+        const value = currentFormData[field.name];
         return value !== undefined && value !== '' && value !== null;
       }
       return true;
@@ -211,7 +218,7 @@ export default function DynamicForm({
       const previousIndex = newPath[newPath.length - 1];
 
       if (currentSection) {
-        const clearedState = { ...formState };
+        const clearedState = { ...currentFormData };
         currentSection.fields.forEach((field) => {
           delete clearedState[field.name];
         });
@@ -219,7 +226,7 @@ export default function DynamicForm({
         delete updatedSectionStates[currentSectionIndex];
         setSectionStates(updatedSectionStates);
         const previousSectionState = updatedSectionStates[previousIndex] || {};
-        setFormState({ ...clearedState, ...previousSectionState });
+        setCurrentFormData({ ...clearedState, ...previousSectionState });
       }
 
       setCurrentSectionIndex(previousIndex);
@@ -234,8 +241,9 @@ export default function DynamicForm({
     currentSection?.nextSection === 'end' ||
     currentSection?.nextSection === 'submit';
 
+  // Initialize form data from userCall - only use this effect if not using localFormData from parent
   useEffect(() => {
-    if (userCall && formConfig?.sections) {
+    if (userCall && formConfig?.sections && !localFormData) {
       const filledState = {};
       formConfig.sections.forEach((section) => {
         section.fields.forEach((field) => {
@@ -246,9 +254,9 @@ export default function DynamicForm({
           filledState[fieldName] = matchedKey !== undefined ? userCall[matchedKey] ?? '' : '';
         });
       });
-      setFormState(filledState);
+      setCurrentFormData(filledState);
     }
-  }, [userCall, formConfig]);
+  }, [userCall, formConfig, localFormData]);
 
   useEffect(() => {
     if (status === 'start') {
@@ -259,14 +267,6 @@ export default function DynamicForm({
       setNavigationPath([0]);
     }
   }, [status]);
-
-  // Add debugging
-  console.log('DynamicForm render:', {
-    formConfig: !!formConfig,
-    sections: formConfig?.sections?.length,
-    currentSection: !!currentSection,
-    sortedSections: sortedSections.length,
-  });
 
   if (!formConfig?.sections || sortedSections.length === 0) {
     return (
@@ -345,7 +345,7 @@ export default function DynamicForm({
                             name={field.name}
                             placeholder={capitalizedLabel}
                             required={field.required}
-                            value={formState[field.name] || ''}
+                            value={currentFormData[field.name] || ''}
                             onChange={handleInputChange}
                             className="pl-10 min-h-20 resize-none"
                             aria-label={capitalizedLabel}
@@ -371,7 +371,7 @@ export default function DynamicForm({
                         <div className="relative">
                           {getFieldIcon(field)}
                           <Select
-                            value={formState[field.name] || ''}
+                            value={currentFormData[field.name] || ''}
                             onValueChange={(value) => handleSelectChange(field.name, value)}
                           >
                             <SelectTrigger className="pl-10" id={field.name}>
@@ -409,9 +409,9 @@ export default function DynamicForm({
                               <div key={optionIndex} className="flex items-center space-x-2">
                                 <Checkbox
                                   id={`${field.name}-${optionIndex}`}
-                                  checked={formState[field.name]?.includes(option.value || option) || false}
+                                  checked={currentFormData[field.name]?.includes(option.value || option) || false}
                                   onCheckedChange={(checked) => {
-                                    const currentValues = formState[field.name] || [];
+                                    const currentValues = currentFormData[field.name] || [];
                                     const newValues = checked
                                       ? [...currentValues, option.value || option]
                                       : currentValues.filter((v) => v !== (option.value || option));
@@ -440,7 +440,7 @@ export default function DynamicForm({
                       <div className="flex items-center gap-2 col-span-2" key={idx}>
                         <Checkbox
                           id={field.name}
-                          checked={!!formState[field.name]}
+                          checked={!!currentFormData[field.name]}
                           onCheckedChange={(checked) => handleChange(field.name, checked)}
                         />
                         <Label
@@ -474,7 +474,7 @@ export default function DynamicForm({
                                 type="radio"
                                 name={field.name}
                                 value={option.value || option}
-                                checked={formState[field.name] === (option.value || option)}
+                                checked={currentFormData[field.name] === (option.value || option)}
                                 onChange={handleInputChange}
                                 className="accent-primary"
                               />
@@ -496,7 +496,7 @@ export default function DynamicForm({
                         key={idx}
                         question={capitalizedLabel}
                         required={field.required}
-                        value={formState[field.name] || 0}
+                        value={currentFormData[field.name] || 0}
                         onChange={(newValue) => handleChange(field.name, newValue)}
                       />
                     );
@@ -522,7 +522,7 @@ export default function DynamicForm({
                           type={field.type || 'text'}
                           placeholder={capitalizedLabel}
                           required={field.required}
-                          value={formState[field.name] || ''}
+                          value={currentFormData[field.name] || ''}
                           onChange={handleInputChange}
                           className="pl-10"
                           aria-label={capitalizedLabel}

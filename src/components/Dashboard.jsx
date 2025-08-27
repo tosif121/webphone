@@ -33,6 +33,7 @@ import moment from 'moment';
 import { Button } from './ui/button';
 import BreakDropdown from './BreakDropdown';
 import { Card, CardContent } from './ui/card';
+import SessionTimeoutModal from './SessionTimeoutModal';
 
 function Dashboard() {
   const {
@@ -80,6 +81,10 @@ function Dashboard() {
     callType,
     setCallType,
     connectionStatus,
+    showTimeoutModal,
+    setShowTimeoutModal,
+    handleLoginSuccess,
+    closeTimeoutModal,
   } = useContext(JssipContext);
 
   const {
@@ -618,7 +623,7 @@ function Dashboard() {
           setFormSubmitted={setFormSubmitted}
         />
       )}
-      {console.log(formSubmitted, connectionStatus, '>>>>>>>>>>')}
+      <SessionTimeoutModal isOpen={showTimeoutModal} onClose={closeTimeoutModal} onLoginSuccess={handleLoginSuccess} />
       {dropCalls && (
         <DropCallsModal
           usermissedCalls={usermissedCalls}
@@ -642,7 +647,9 @@ function Dashboard() {
       <div className="relative">
         <div
           className={`grid grid-cols-1 md:grid-cols-3 gap-6 transition-all duration-400 ease-in-out ${
-            status !== 'start' ? 'opacity-0 pointer-events-none absolute inset-0' : 'opacity-100'
+            connectionStatus === 'Disposition' || status !== 'start'
+              ? 'opacity-0 pointer-events-none absolute inset-0'
+              : 'opacity-100'
           }`}
         >
           {activeMainTab === 'allLeads' ? (
@@ -758,6 +765,7 @@ function Dashboard() {
             setFilterEndDate={setEndDate}
             status={status}
             formSubmitted={formSubmitted}
+            connectionStatus={connectionStatus}
           />
         </div>
 

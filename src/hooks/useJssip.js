@@ -29,7 +29,7 @@ const useJssip = (isMobile = false) => {
   const [isCallended, setIsCallended] = useState(false);
   const [messageDifference, setMessageDifference] = useState([]);
   const [avergaeMessageTimePerMinute, setAvergaeMessageTimePerMinute] = useState([]);
-  // const [isDialbuttonClicked, setIsDialbuttonClicked] = useState(false);
+  const [showTimeoutModal, setShowTimeoutModal] = useState(false);
   const [callHandled, setCallHandled] = useState(false);
   const [incomingSession, setIncomingSession] = useState(null);
   const [incomingNumber, setIncomingNumber] = useState('');
@@ -62,7 +62,11 @@ const useJssip = (isMobile = false) => {
   useEffect(() => {
     const handleBeforeUnload = (event) => {
       const hasActiveCall =
-        dispositionModal || incomingSession || status === 'calling' || status === 'conference' || isIncomingRinging;
+        connectionStatus === 'Disposition' ||
+        incomingSession ||
+        status === 'calling' ||
+        status === 'conference' ||
+        isIncomingRinging;
 
       if (hasActiveCall) {
         event.preventDefault();
@@ -75,7 +79,7 @@ const useJssip = (isMobile = false) => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [dispositionModal, incomingSession, status, isIncomingRinging]);
+  }, [connectionStatus, incomingSession, status, isIncomingRinging]);
 
   function notifyMe() {
     if (!('Notification' in window)) {
@@ -148,6 +152,20 @@ const useJssip = (isMobile = false) => {
     // };
     return notification;
   }
+
+  const handleLoginSuccess = () => {
+    setShowTimeoutModal(false);
+    toast.success('Re-login successful');
+    // Refresh page or fetch fresh user data
+    window.location.reload();
+  };
+
+  const closeTimeoutModal = () => {
+    setShowTimeoutModal(false);
+    // Clear session and redirect to login page
+    localStorage.clear();
+    window.location.href = '/webphone/v1/login';
+  };
 
   const createConferenceCall = async () => {
     try {
@@ -277,8 +295,6 @@ const useJssip = (isMobile = false) => {
     return () => clearTimeout(timeout);
   }, [conferenceCalls, status, callConference, conferenceStatus]);
 
-  // console.log(conferenceStatus, conferenceCalls, status, callConference, 'conferenceCalls length');
-  // Helper function for logout process
   const handleLogout = async (token, message) => {
     try {
       if (token) {
@@ -289,29 +305,20 @@ const useJssip = (isMobile = false) => {
         });
       }
 
-      // Show alert with reason before clearing and redirecting
-      const alertMessage = message || 'You are being logged out. Please re-login to continue.';
-      window.alert(alertMessage);
-
-      localStorage.clear();
-
-      toast.success('Logged out successfully');
+      // REPLACED window.alert with existing timeout modal state
+      setShowTimeoutModal(true);
 
       if (session && session.status < 6) {
         session.terminate();
       }
       stopRecording();
 
-      window.location.href = '/webphone/v1/login';
+      // Don't redirect here - let the modal handle it
     } catch (error) {
       console.error('Error during logout:', error);
 
-      // Show alert in error case too
-      window.alert('An error occurred during logout. Please re-login.');
-
-      localStorage.clear();
-
-      window.location.href = '/webphone/v1/login';
+      // REPLACED window.alert with existing timeout modal state
+      setShowTimeoutModal(true);
     }
 
     if (message) {
@@ -322,7 +329,8 @@ const useJssip = (isMobile = false) => {
 
   // Helper function for connection lost scenarios
   const handleConnectionLost = async () => {
-    window.location.href = '/webphone/v1';
+    // REPLACED window.alert with existing timeout modal state
+    setShowTimeoutModal(true);
 
     if (session && session.status < 6) {
       session.terminate();
@@ -937,6 +945,7 @@ const useJssip = (isMobile = false) => {
   //   };
   // }, [])
 
+  // FIND THIS SECTION AND UPDATE IT:
   useEffect(() => {
     let isMounted = true;
 
@@ -952,16 +961,18 @@ const useJssip = (isMobile = false) => {
         if (difference > 14000) {
           console.log('User is not live');
 
-          // Show alert with reason
-          window.alert('Session timed out due to inactivity or no keep-alive response from server. Please re-login.');
+          // REPLACE THIS LINE:
+          // window.alert('Session timed out due to inactivity or no keep-alive response from server. Please re-login.');
 
-          localStorage.clear(); // Clear after alert
-          window.location.href = '/webphone/v1/login';
+          // WITH THIS:
+          setShowTimeoutModal(true);
 
-          toast.error('User is not live. Please login again.');
-          toast.error(
-            'Keep Alive message not received from server live. Please check network connection and login again.'
-          );
+          // REMOVE THESE LINES (they'll be handled by modal):
+          // localStorage.clear();
+          // window.location.href = '/webphone/v1/login';
+          // toast.error('User is not live. Please login again.');
+          // toast.error('Keep Alive message not received from server live. Please check network connection and login again.');
+
           return prev;
         }
 
@@ -1490,6 +1501,10 @@ const useJssip = (isMobile = false) => {
     callType,
     setCallType,
     connectionStatus,
+    showTimeoutModal,
+    setShowTimeoutModal,
+    handleLoginSuccess,
+    closeTimeoutModal,
   ];
 };
 

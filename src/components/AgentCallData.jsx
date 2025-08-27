@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useContext } from 'react';
 import axios from 'axios';
 import moment from 'moment';
 import { Download, FileText, Headphones, Loader2 } from 'lucide-react';
@@ -7,6 +7,7 @@ import DataTable from './DataTable';
 import DateRangePicker from './DateRangePicker';
 import toast from 'react-hot-toast';
 import maskPhoneNumber from '@/utils/maskPhoneNumber';
+import HistoryContext from '../context/HistoryContext';
 
 export default function AgentCallData() {
   const [callDetails, setCallDetails] = useState([]);
@@ -17,6 +18,7 @@ export default function AgentCallData() {
   const [currentBridgeId, setCurrentBridgeId] = useState('');
   const [isAudioPlayerOpen, setIsAudioPlayerOpen] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const { username } = useContext(HistoryContext);
 
   useEffect(() => {
     if (startDate && endDate) fetchCallData();
@@ -63,6 +65,12 @@ export default function AgentCallData() {
     }
   };
 
+  // Filter call details by agent matching username
+  const filteredCallDetails = useMemo(() => {
+    if (!username) return callDetails;
+    return callDetails.filter((call) => call.agent === username);
+  }, [callDetails, username]);
+
   // Handle date range change from DateRangePicker
   const handleDateRangeChange = (dates) => {
     const [start, end] = dates;
@@ -73,7 +81,7 @@ export default function AgentCallData() {
   };
 
   const handleDownloadCSV = () => {
-    if (callDetails.length === 0) {
+    if (filteredCallDetails.length === 0) {
       toast.error('No data available to download.');
       return;
     }
@@ -95,7 +103,7 @@ export default function AgentCallData() {
       'Type',
       'Disposition',
     ];
-    const csvRows = callDetails.map((row) => [
+    const csvRows = filteredCallDetails.map((row) => [
       escapeCsvField(row.Caller),
       escapeCsvField(row.campaign),
       escapeCsvField(moment(row.startTime).format('DD-MMM-YYYY HH:mm:ss A')),
@@ -131,7 +139,7 @@ export default function AgentCallData() {
 
   const handleDownloadPDF = async () => {
     try {
-      if (callDetails.length === 0) {
+      if (filteredCallDetails.length === 0) {
         toast.error('No data available to download.');
         return;
       }
@@ -273,11 +281,10 @@ export default function AgentCallData() {
             <div class="date-range">
               <p>From: ${startDate} To: ${endDate}</p>
             </div>
-            <div class="table-label">Basic Call Information</div>
-            ${generateFirstTable(callDetails)}
+            ${generateFirstTable(filteredCallDetails)}
             <div class="table-divider"></div>
             <div class="table-label">Call Details</div>
-            ${generateSecondTable(callDetails)}
+            ${generateSecondTable(filteredCallDetails)}
             <div class="footer">
               <p>Generated on: ${moment().format('DD-MMM-YYYY HH:mm:ss A')}</p>
             </div>
@@ -457,7 +464,7 @@ export default function AgentCallData() {
           <Loader2 className="animate-spin w-8 h-8 mx-auto text-blue-500" />
         </div>
       ) : (
-        <DataTable data={callDetails} columns={columns} searchPlaceholder="Search Calls Logs..." />
+        <DataTable data={filteredCallDetails} columns={columns} searchPlaceholder="Search Calls Logs..." />
       )}
     </div>
   );

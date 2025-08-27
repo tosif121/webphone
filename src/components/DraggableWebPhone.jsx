@@ -54,6 +54,11 @@ export default function DraggableWebPhone() {
     setCallConference,
     callType,
     setCallType,
+    connectionStatus,
+    showTimeoutModal,
+    setShowTimeoutModal,
+    handleLoginSuccess,
+    closeTimeoutModal,
     isMobile,
   } = useContext(JssipContext);
 
@@ -203,34 +208,40 @@ export default function DraggableWebPhone() {
 
   return (
     <>
-      <div className="fixed bottom-2 right-4 sm:right-8 z-[51]">
-        <Button
-          type="button"
-          size="lg"
-          className="rounded-full w-14 h-14 hover:scale-105 transition-transform"
-          onClick={() => setPhoneShow((prev) => !prev)}
-          aria-label={phoneShow ? 'Hide phone interface' : 'Show phone interface'}
-        >
-          {!phoneShow ? <PhoneOff className="h-8 w-8" /> : <Phone className="h-8 w-8" />}
-        </Button>
-      </div>
-
-      {(!dispositionModal && phoneShow && (
+      {(connectionStatus !== 'Disposition' && (
         <>
-          {effectiveIsMobile ? (
-            <div className="fixed inset-0 z-[50] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="relative w-full max-w-2xl h-[550px] bg-card rounded-2xl border border-border shadow-xl overflow-hidden">
-                {renderPhoneContent()}
-              </div>
-            </div>
-          ) : (
-            <div className="backdrop-blur-md bottom-18 end-10 fixed w-[330px] h-[550px] z-0 md:z-[50] bg-card/80 rounded-2xl border border-border shadow-xl transition-all overflow-hidden">
-              {renderPhoneContent()}
-            </div>
-          )}
+          <div className="fixed bottom-2 right-4 sm:right-8 z-[51]">
+            <Button
+              type="button"
+              size="lg"
+              className="rounded-full w-14 h-14 hover:scale-105 transition-transform"
+              onClick={() => setPhoneShow((prev) => !prev)}
+              aria-label={phoneShow ? 'Hide phone interface' : 'Show phone interface'}
+            >
+              {!phoneShow ? <PhoneOff className="h-8 w-8" /> : <Phone className="h-8 w-8" />}
+            </Button>
+          </div>
+
+          {(!dispositionModal && phoneShow && (
+            <>
+              {effectiveIsMobile ? (
+                <div className="fixed inset-0 z-[50] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                  <div className="relative w-full max-w-2xl h-[550px] bg-card rounded-2xl border border-border shadow-xl overflow-hidden">
+                    {renderPhoneContent()}
+                  </div>
+                </div>
+              ) : (
+                <div className="backdrop-blur-md bottom-18 end-10 fixed w-[330px] h-[550px] z-0 md:z-[50] bg-card/80 rounded-2xl border border-border shadow-xl transition-all overflow-hidden">
+                  {renderPhoneContent()}
+                </div>
+              )}
+            </>
+          )) ||
+            ''}
         </>
       )) ||
         ''}
+
       <audio ref={audioRef} autoPlay hidden />
     </>
   );

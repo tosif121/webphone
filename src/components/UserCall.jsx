@@ -4,10 +4,24 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 
-const UserCall = ({ formData, setFormData, userCallDialog, userCall, handleSubmit, formSubmitted }) => {
+const UserCall = ({ 
+  formData, 
+  setFormData, 
+  userCallDialog, 
+  userCall, 
+  handleSubmit, 
+  formSubmitted,
+  // NEW PROPS for local form data
+  localFormData,
+  setLocalFormData
+}) => {
+  // Use localFormData if provided, otherwise fallback to formData
+  const currentFormData = localFormData || formData || {};
+  const setCurrentFormData = setLocalFormData || setFormData || (() => {});
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setCurrentFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -24,7 +38,7 @@ const UserCall = ({ formData, setFormData, userCallDialog, userCall, handleSubmi
               name="firstName"
               type="text"
               placeholder="First Name"
-              value={formData.firstName}
+              value={currentFormData.firstName || ''}
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="First Name"
@@ -37,7 +51,7 @@ const UserCall = ({ formData, setFormData, userCallDialog, userCall, handleSubmi
               name="lastName"
               type="text"
               placeholder="Last Name"
-              value={formData.lastName}
+              value={currentFormData.lastName || ''}
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="Last Name"
@@ -47,12 +61,12 @@ const UserCall = ({ formData, setFormData, userCallDialog, userCall, handleSubmi
           <div className="relative">
             <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
-              name="number" // Keep the name as 'number' for consistent data structure
-              type="tel" // Use type="tel" for phone numbers
+              name="number"
+              type="tel"
               placeholder="Mobile Number"
-              value={userCall?.contactNumber || ''} // Display the contact number from userCall prop
-              disabled // Make the input field disabled
-              className="pl-10 border-border bg-muted/50 cursor-not-allowed" // Add styling for disabled state
+              value={userCall?.contactNumber || ''}
+              disabled
+              className="pl-10 border-border bg-muted/50 cursor-not-allowed"
               aria-label="Mobile Number"
             />
           </div>
@@ -63,7 +77,7 @@ const UserCall = ({ formData, setFormData, userCallDialog, userCall, handleSubmi
               name="alternateNumber"
               type="text"
               placeholder="Alternate Number"
-              value={formData.alternateNumber}
+              value={currentFormData.alternateNumber || ''}
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="Alternate Number"
@@ -76,7 +90,7 @@ const UserCall = ({ formData, setFormData, userCallDialog, userCall, handleSubmi
               name="address"
               type="text"
               placeholder="Address"
-              value={formData.address}
+              value={currentFormData.address || ''}
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="Address"
@@ -89,7 +103,7 @@ const UserCall = ({ formData, setFormData, userCallDialog, userCall, handleSubmi
               name="state"
               type="text"
               placeholder="State"
-              value={formData.state}
+              value={currentFormData.state || ''}
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="State"
@@ -102,7 +116,7 @@ const UserCall = ({ formData, setFormData, userCallDialog, userCall, handleSubmi
               name="district"
               type="text"
               placeholder="District"
-              value={formData.district}
+              value={currentFormData.district || ''}
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="District"
@@ -115,7 +129,7 @@ const UserCall = ({ formData, setFormData, userCallDialog, userCall, handleSubmi
               name="city"
               type="text"
               placeholder="City"
-              value={formData.city}
+              value={currentFormData.city || ''}
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="City"
@@ -128,7 +142,7 @@ const UserCall = ({ formData, setFormData, userCallDialog, userCall, handleSubmi
               name="postalCode"
               type="text"
               placeholder="Postal Code"
-              value={formData.postalCode}
+              value={currentFormData.postalCode || ''}
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="Postal Code"
@@ -141,7 +155,7 @@ const UserCall = ({ formData, setFormData, userCallDialog, userCall, handleSubmi
               name="email"
               type="email"
               placeholder="Email"
-              value={formData.email}
+              value={currentFormData.email || ''}
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="Email"
@@ -154,7 +168,7 @@ const UserCall = ({ formData, setFormData, userCallDialog, userCall, handleSubmi
           <Textarea
             name="comment"
             placeholder="Enter your comment here!"
-            value={formData.comment}
+            value={currentFormData.comment || ''}
             onChange={handleChange}
             className="pl-10 min-h-20 resize-none border-border"
             aria-label="Comment"
