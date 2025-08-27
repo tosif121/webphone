@@ -193,15 +193,14 @@ export default function LeadAndCallInfoPanel({
           userCallDialog={true}
           status={status}
           formSubmitted={formSubmitted}
-          handleContact={handleContactWithCurrentData}
-          onSubmit={handleSubmitWithCurrentData}
+          handleSubmit={handleSubmitWithCurrentData}
         />
       );
     } else {
       return (
         <UserCall
           formData={localFormData}
-          handleSubmit={handleSubmitWithCurrentData}
+          handleSubmit={handleContactWithCurrentData}
           setFormData={updateLocalFormData}
           userCall={userCall}
           userCallDialog={true}

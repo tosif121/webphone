@@ -106,7 +106,7 @@ export default function DynamicForm({
   userCallDialog,
   userCall,
   status,
-  handleContact,
+  handleSubmit,
   formSubmitted,
   localFormData,
   setLocalFormData,
@@ -489,7 +489,7 @@ export default function DynamicForm({
           </div>
           <div>
             {isLastSection ? (
-              <Button onClick={handleContact} disabled={formSubmitted || !isSectionValid()}>
+              <Button onClick={handleSubmit} disabled={formSubmitted || !isSectionValid()}>
                 Submit
               </Button>
             ) : (
