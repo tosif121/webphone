@@ -199,7 +199,6 @@ function Dashboard() {
 
     window.onReactNativeMessage = (data) => {
       try {
-        console.log('[Web] Received from React Native:', data);
         if (data?.type === 'call_action') {
           if (data.action === 'accept') {
             window.answerIncomingCall?.();
@@ -259,7 +258,6 @@ function Dashboard() {
   useEffect(() => {
     const sendRingingState = () => {
       if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-        console.log('Sending isIncomingRinging to React Native:', isIncomingRinging);
         window.ReactNativeWebView.postMessage(
           JSON.stringify({
             type: 'isIncomingRinging',
@@ -471,23 +469,22 @@ function Dashboard() {
     fetchFormDetails();
   }, [formId, token, status]);
 
-  const handleContact = async (e) => {
-    e.preventDefault();
+  const handleContact = async (formDataToSubmit) => {
     const payload = {
       user: username,
       isFresh: userCall?.isFresh,
       data: {
-        firstName: formState.firstName,
-        lastName: formState.lastName,
-        emailId: formState.email,
-        contactNumber: formState.number,
-        alternateNumber: formState.alternateNumber,
-        comment: formState.comment,
-        Contactaddress: formState.address,
-        ContactDistrict: formState.district,
-        ContactCity: formState.city,
-        ContactState: formState.state,
-        ContactPincode: formState.postalCode,
+        firstName: formDataToSubmit.firstName || '',
+        lastName: formDataToSubmit.lastName || '',
+        emailId: formDataToSubmit.email || '',
+        contactNumber: formDataToSubmit.number || userCall?.contactNumber || '',
+        alternateNumber: formDataToSubmit.alternateNumber || '',
+        comment: formDataToSubmit.comment || '',
+        Contactaddress: formDataToSubmit.address || '',
+        ContactDistrict: formDataToSubmit.district || '',
+        ContactCity: formDataToSubmit.city || '',
+        ContactState: formDataToSubmit.state || '',
+        ContactPincode: formDataToSubmit.postalCode || '',
         agentName: username,
       },
     };
@@ -502,8 +499,10 @@ function Dashboard() {
       if (response.data?.success) {
         toast.success(response.data.message || 'Contact saved successfully.');
         setFormSubmitted(true);
-
-        // setDispositionModal(true);
+        // Clear form after successful submission
+        setTimeout(() => {
+          setFormState({});
+        }, 100);
       } else {
         toast.error(response.data.message || 'Failed to save contact.');
       }
@@ -513,15 +512,17 @@ function Dashboard() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formConfig) return;
+  const handleSubmit = async (formDataToSubmit) => {
+    if (!formConfig) {
+      toast.error('Form configuration not loaded');
+      return;
+    }
 
     const payload = {
       user: username,
       isFresh: userCall?.isFresh,
       data: {
-        ...formState,
+        ...formDataToSubmit,
         contactNumber: userCall?.contactNumber || '',
         agentName: username,
         formId: formConfig.formId,
@@ -538,7 +539,10 @@ function Dashboard() {
       if (response.data?.success) {
         toast.success(response.data.message || 'Contact saved successfully.');
         setFormSubmitted(true);
-        // setDispositionModal(true);
+        // Clear form after successful submission
+        setTimeout(() => {
+          setFormState({});
+        }, 100);
       } else {
         toast.error(response.data.message || 'Failed to save contact.');
       }
@@ -646,7 +650,7 @@ function Dashboard() {
       </div>
       <div className="relative">
         <div
-          className={`grid grid-cols-1 md:grid-cols-3 gap-6 transition-all duration-400 ease-in-out ${
+          className={`grid grid-cols-1 md:grid-cols-3 gap-6 transition-all duration-100 ease-in-out ${
             connectionStatus === 'Disposition' || status !== 'start'
               ? 'opacity-0 pointer-events-none absolute inset-0'
               : 'opacity-100'
@@ -745,7 +749,7 @@ function Dashboard() {
       </div>
       <div className="flex gap-6 mt-8 md:flex-row flex-col relative">
         <div
-          className={`w-full transition-opacity duration-400 ${
+          className={`w-full transition-opacity duration-100 ${
             connectionStatus !== 'NOT_INUSE' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
           }`}
         >
@@ -770,7 +774,7 @@ function Dashboard() {
         </div>
 
         <div
-          className={`w-full transition-opacity duration-400 ${
+          className={`w-full transition-opacity duration-100 ${
             connectionStatus === 'NOT_INUSE' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
           }`}
         >

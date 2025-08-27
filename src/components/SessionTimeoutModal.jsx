@@ -126,7 +126,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess }) => {
           </Button>
           <Button onClick={handleReLogin} disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLoading ? 'Logging in...' : 'Re-login'}
+            {isLoading ? 'Re-login...' : 'Re-Connect'}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

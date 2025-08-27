@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import moment from 'moment';
 import { User, Info, Phone, History, UserCog, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -27,20 +27,19 @@ export default function LeadAndCallInfoPanel({
   setFilterEndDate,
   status,
   formSubmitted,
-  conferenceStatus,
   connectionStatus,
 }) {
   const [activeTab, setActiveTab] = useState('contact');
   const [localFormData, setLocalFormData] = useState({});
-  const [persistentFormData, setPersistentFormData] = useState({});
   const [lastUserCall, setLastUserCall] = useState(null);
 
-  // Initialize form data when userCall changes (new call)
+  // Initialize form data when userCall changes
   useEffect(() => {
     if (userCall && (!lastUserCall || lastUserCall.contactNumber !== userCall.contactNumber)) {
       const initialFormData = {};
 
       if (formConfig && formConfig.sections && formConfig.sections.length > 0) {
+        // Dynamic form initialization
         formConfig.sections.forEach((section) => {
           section.fields.forEach((field) => {
             const fieldName = field.name;
@@ -51,6 +50,7 @@ export default function LeadAndCallInfoPanel({
           });
         });
       } else {
+        // Static form initialization
         Object.assign(initialFormData, {
           firstName: userCall.firstName || '',
           lastName: userCall.lastName || '',
@@ -67,39 +67,65 @@ export default function LeadAndCallInfoPanel({
       }
 
       setLocalFormData(initialFormData);
-      setPersistentFormData(initialFormData);
       setLastUserCall(userCall);
-    }
-  }, [userCall, formConfig]);
 
-  // Keep persistent data in sync with local changes
-  useEffect(() => {
-    if (Object.keys(localFormData).length > 0) {
-      setPersistentFormData(localFormData);
+      // Sync with parent for backward compatibility
+      if (setFormData) {
+        setFormData(initialFormData);
+      }
     }
-  }, [localFormData]);
+  }, [userCall, formConfig, setFormData]);
 
-  // Sync with parent form data
-  useEffect(() => {
-    if (setFormData && Object.keys(localFormData).length > 0) {
-      setFormData(localFormData);
-    }
-  }, [localFormData, setFormData]);
-
-  // When dialog opens (connectionStatus becomes 'Disposition'), restore persistent data
-  useEffect(() => {
-    if (connectionStatus === 'Disposition' && Object.keys(persistentFormData).length > 0) {
-      setLocalFormData(persistentFormData);
-    }
-  }, [connectionStatus, persistentFormData]);
-
+  // Clear form data when submission is successful
   useEffect(() => {
     if (formSubmitted) {
-      setPersistentFormData({});
       setLocalFormData({});
+      if (setFormData) {
+        setFormData({});
+      }
     }
-  }, [formSubmitted]);
+  }, [formSubmitted, setFormData]);
 
+  // Update local form data handler with sync
+  const updateLocalFormData = useCallback(
+    (newData) => {
+      setLocalFormData((prev) => {
+        const updated = typeof newData === 'function' ? newData(prev) : { ...prev, ...newData };
+
+        // Sync with parent for backward compatibility
+        if (setFormData) {
+          setFormData(updated);
+        }
+        return updated;
+      });
+    },
+    [setFormData]
+  );
+
+  // Optimized submit handlers that pass current data directly
+  const handleSubmitWithCurrentData = useCallback(
+    async (e) => {
+      e?.preventDefault();
+
+      if (!formConfig) {
+        console.error('❌ Form config not available');
+        return;
+      }
+
+      await handleSubmit(localFormData);
+    },
+    [handleSubmit, localFormData, formConfig]
+  );
+
+  const handleContactWithCurrentData = useCallback(
+    async (e) => {
+      e?.preventDefault();
+      await handleContact(localFormData);
+    },
+    [handleContact, localFormData]
+  );
+
+  // Filter mapped leads for the current contact
   const filteredMappedLeadsForPanel = useMemo(() => {
     if (!mappedLeads || !filterStartDate || !filterEndDate || !userCall) return [];
 
@@ -117,6 +143,7 @@ export default function LeadAndCallInfoPanel({
     });
   }, [mappedLeads, filterStartDate, filterEndDate, userCall]);
 
+  // Get current lead (most recent)
   const currentLead = useMemo(() => {
     if (!filteredMappedLeadsForPanel || filteredMappedLeadsForPanel.length === 0) return null;
 
@@ -126,6 +153,7 @@ export default function LeadAndCallInfoPanel({
     return sortedLeads[0];
   }, [filteredMappedLeadsForPanel]);
 
+  // Filter API call data for the current contact
   const filteredApiCallDataForPanel = useMemo(() => {
     if (!apiCallData || !filterStartDate || !filterEndDate || !userCall) return [];
 
@@ -141,6 +169,7 @@ export default function LeadAndCallInfoPanel({
     });
   }, [apiCallData, filterStartDate, filterEndDate, userCall]);
 
+  // Get current API call record (most recent)
   const currentApiCallRecord = useMemo(() => {
     if (!filteredApiCallDataForPanel || filteredApiCallDataForPanel.length === 0) return null;
 
@@ -150,6 +179,7 @@ export default function LeadAndCallInfoPanel({
     return sortedCalls[0];
   }, [filteredApiCallDataForPanel]);
 
+  // Render contact form tab
   const renderContactTab = () => {
     if (!userCall) return null;
 
@@ -158,20 +188,21 @@ export default function LeadAndCallInfoPanel({
         <DynamicForm
           formConfig={formConfig}
           formState={localFormData}
-          setFormState={setLocalFormData}
+          setFormState={updateLocalFormData}
           userCall={userCall}
           userCallDialog={true}
           status={status}
           formSubmitted={formSubmitted}
-          handleContact={handleContact}
+          handleContact={handleContactWithCurrentData}
+          onSubmit={handleSubmitWithCurrentData}
         />
       );
     } else {
       return (
         <UserCall
           formData={localFormData}
-          handleSubmit={handleSubmit}
-          setFormData={setLocalFormData}
+          handleSubmit={handleSubmitWithCurrentData}
+          setFormData={updateLocalFormData}
           userCall={userCall}
           userCallDialog={true}
           formSubmitted={formSubmitted}
@@ -180,6 +211,7 @@ export default function LeadAndCallInfoPanel({
     }
   };
 
+  // Render lead information tab
   const renderLeadTab = () => {
     if (!currentLead) {
       return (
@@ -271,6 +303,7 @@ export default function LeadAndCallInfoPanel({
     );
   };
 
+  // Render call information tab
   const renderCallInfoTab = () => {
     if (!currentApiCallRecord) {
       return (
@@ -363,14 +396,16 @@ export default function LeadAndCallInfoPanel({
     );
   };
 
+  // Render history tab
   const renderHistoryTab = () => {
     const normalizedContactNumber = String(userCall?.contactNumber || '').replace(/^\+91/, '');
-
     const historyItems = [];
 
+    // Collect lead history
     const filteredLeadHistoryItems = mappedLeads.filter(
       (lead) => String(lead.phone || '').replace(/^\+91/, '') === normalizedContactNumber
     );
+
     if (filteredLeadHistoryItems && filteredLeadHistoryItems.length > 0) {
       filteredLeadHistoryItems.forEach((lead) => {
         if (lead.history && lead.history.length > 0) {
@@ -384,6 +419,7 @@ export default function LeadAndCallInfoPanel({
           });
         }
       });
+
       const mainLeadDate = moment(currentLead?.uploadDate);
       if (
         currentLead &&
@@ -395,6 +431,7 @@ export default function LeadAndCallInfoPanel({
       }
     }
 
+    // Collect API call history
     if (apiCallData && apiCallData.length > 0) {
       apiCallData.forEach((call) => {
         const mainCallDate = moment(call.startTime);
@@ -409,6 +446,7 @@ export default function LeadAndCallInfoPanel({
             historyItems.push({ ...call, _isApiHistory: true });
           }
         }
+
         if (call.history && call.history.length > 0) {
           call.history.forEach((item) => {
             const itemDate = moment(item.startTime);
@@ -422,6 +460,7 @@ export default function LeadAndCallInfoPanel({
       });
     }
 
+    // Remove duplicates and sort
     const uniqueHistory = [];
     const seen = new Set();
     historyItems.forEach((item) => {
@@ -530,6 +569,7 @@ export default function LeadAndCallInfoPanel({
                           </span>
                         </div>
                       )}
+
                       {historyItem.Disposition && (
                         <div className="flex items-center gap-2">
                           <Info size={16} className="text-muted-foreground" />
@@ -547,6 +587,7 @@ export default function LeadAndCallInfoPanel({
     );
   };
 
+  // Disposition modal view
   if (connectionStatus === 'Disposition') {
     return (
       <AlertDialog open={true}>
@@ -616,6 +657,7 @@ export default function LeadAndCallInfoPanel({
     );
   }
 
+  // Normal panel view
   return (
     <Card className="w-full max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-6xl h-max">
       <CardHeader className="pb-3">

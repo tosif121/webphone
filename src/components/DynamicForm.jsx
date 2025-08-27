@@ -26,6 +26,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import toast from 'react-hot-toast'; // Assuming you have toast for notifications
 
 const iconMap = {
   name: User,
@@ -100,24 +101,21 @@ const RatingField = ({ value, onChange, question, required }) => {
 
 export default function DynamicForm({
   formConfig,
-  formState, // Keep for backward compatibility but use localFormData
-  setFormState, // Keep for backward compatibility but use setLocalFormData
+  formState,
+  setFormState,
   userCallDialog,
   userCall,
   status,
   handleContact,
   formSubmitted,
-  // NEW PROPS for localFormData
   localFormData,
   setLocalFormData,
 }) {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-  const [sectionStates, setSectionStates] = useState({});
   const [visitedSections, setVisitedSections] = useState([]);
   const [isFormComplete, setIsFormComplete] = useState(false);
   const [navigationPath, setNavigationPath] = useState([0]);
 
-  // Use localFormData if provided, otherwise fallback to formState
   const currentFormData = localFormData || formState || {};
   const setCurrentFormData = setLocalFormData || setFormState || (() => {});
 
@@ -126,32 +124,45 @@ export default function DynamicForm({
 
   const handleChange = (fieldName, value) => {
     setCurrentFormData((prev) => ({ ...prev, [fieldName]: value }));
-    setSectionStates((prev) => ({
-      ...prev,
-      [currentSectionIndex]: { ...prev[currentSectionIndex], [fieldName]: value },
-    }));
 
+    // Dynamic auto-navigation for select fields in a dynamic section
     if (currentSection?.isDynamicSection) {
       const field = currentSection.fields.find((f) => f.name === fieldName);
+
       if (field && field.type === 'select') {
-        const selectedOption = field.options.find((opt) => opt.value === value);
-        if (selectedOption && selectedOption.nextSection) {
+        const selectedOption = field.options?.find((opt) => opt.value === value);
+
+        if (selectedOption) {
           const nextSectionId = selectedOption.nextSection;
-          if (!nextSectionId || nextSectionId.trim() === '') {
+
+          // Case 1: nextSection is empty/blank, meaning end of form path.
+          if (!nextSectionId || String(nextSectionId).trim() === '') {
+            console.warn('Empty nextSection detected for option; proceeding to form end.');
             setIsFormComplete(true);
             return;
           }
-          const normalizedId = isNaN(nextSectionId) ? nextSectionId : parseInt(nextSectionId, 10).toString();
+
+          // Normalize the ID for comparison (e.g., 'end', 'submit', or a section ID)
+          const normalizedId = String(nextSectionId).toLowerCase();
+
+          // Case 2: nextSection explicitly points to the end.
           if (normalizedId === 'end' || normalizedId === 'submit') {
             setIsFormComplete(true);
             return;
           }
-          const nextIndex = sortedSections.findIndex((sec) => sec.id.toString() === normalizedId);
+
+          // Case 3: nextSection points to another section.
+          const nextIndex = sortedSections.findIndex((sec) => String(sec.id) === normalizedId);
+
+          // Check if the target section is valid and not already visited to prevent loops.
           if (nextIndex !== -1 && !visitedSections.includes(nextIndex)) {
+            setVisitedSections((prev) => [...prev, currentSectionIndex]);
             setCurrentSectionIndex(nextIndex);
             setNavigationPath((prev) => [...prev, nextIndex]);
-            setVisitedSections((prev) => [...prev, nextIndex]);
           } else {
+            console.warn(
+              `Navigation to section ID "${normalizedId}" skipped: invalid, visited, or loop detected. Proceeding to form end.`
+            );
             setIsFormComplete(true);
           }
         }
@@ -173,6 +184,7 @@ export default function DynamicForm({
     return currentSection.fields.every((field) => {
       if (field.required) {
         const value = currentFormData[field.name];
+        if (Array.isArray(value)) return value.length > 0;
         return value !== undefined && value !== '' && value !== null;
       }
       return true;
@@ -181,31 +193,31 @@ export default function DynamicForm({
 
   const handleNext = () => {
     if (!isSectionValid()) {
+      toast.error('Please fill all required fields.');
       return;
     }
+
     setVisitedSections((prev) => [...prev, currentSectionIndex]);
-    if (currentSection?.nextSection === 'next') {
-      if (currentSectionIndex < sortedSections.length - 1) {
-        const nextIndex = currentSectionIndex + 1;
-        if (!visitedSections.includes(nextIndex)) {
-          setCurrentSectionIndex(nextIndex);
-          setNavigationPath((prev) => [...prev, nextIndex]);
-        } else {
-          setIsFormComplete(true);
-        }
+
+    const nextNavigation = currentSection?.nextSection;
+
+    if (nextNavigation === 'next') {
+      const nextIndex = currentSectionIndex + 1;
+      if (nextIndex < sortedSections.length && !visitedSections.includes(nextIndex)) {
+        setCurrentSectionIndex(nextIndex);
+        setNavigationPath((prev) => [...prev, nextIndex]);
       } else {
         setIsFormComplete(true);
       }
-    } else if (!currentSection?.nextSection || currentSection?.nextSection.trim() === '') {
-      setIsFormComplete(true);
-    } else if (currentSection?.nextSection === 'end' || currentSection?.nextSection === 'submit') {
+    } else if (nextNavigation === 'end' || nextNavigation === 'submit' || !nextNavigation) {
       setIsFormComplete(true);
     } else {
-      const nextIndex = sortedSections.findIndex((sec) => sec.id.toString() === currentSection.nextSection.toString());
+      const nextIndex = sortedSections.findIndex((sec) => String(sec.id) === String(nextNavigation));
       if (nextIndex !== -1 && !visitedSections.includes(nextIndex) && nextIndex !== currentSectionIndex) {
         setCurrentSectionIndex(nextIndex);
         setNavigationPath((prev) => [...prev, nextIndex]);
       } else {
+        toast.error('Invalid or looping navigation detected. Proceeding to submit.');
         setIsFormComplete(true);
       }
     }
@@ -217,62 +229,56 @@ export default function DynamicForm({
       newPath.pop();
       const previousIndex = newPath[newPath.length - 1];
 
-      if (currentSection) {
-        const clearedState = { ...currentFormData };
-        currentSection.fields.forEach((field) => {
-          delete clearedState[field.name];
-        });
-        const updatedSectionStates = { ...sectionStates };
-        delete updatedSectionStates[currentSectionIndex];
-        setSectionStates(updatedSectionStates);
-        const previousSectionState = updatedSectionStates[previousIndex] || {};
-        setCurrentFormData({ ...clearedState, ...previousSectionState });
-      }
+      // Clear the data of the section we are leaving
+      const clearedState = { ...currentFormData };
+      currentSection.fields.forEach((field) => {
+        delete clearedState[field.name];
+      });
+      setCurrentFormData(clearedState);
 
       setCurrentSectionIndex(previousIndex);
       setNavigationPath(newPath);
-      setIsFormComplete(false);
+      setIsFormComplete(false); // We are no longer at the end
     }
   };
 
   const isLastSection =
     isFormComplete ||
-    currentSectionIndex === sortedSections.length - 1 ||
+    (!currentSection?.nextSection && currentSectionIndex === sortedSections.length - 1) ||
     currentSection?.nextSection === 'end' ||
     currentSection?.nextSection === 'submit';
 
-  // Initialize form data from userCall - only use this effect if not using localFormData from parent
+  // Effect to initialize form data from userCall object
   useEffect(() => {
     if (userCall && formConfig?.sections && !localFormData) {
-      const filledState = {};
+      const initialData = {};
       formConfig.sections.forEach((section) => {
         section.fields.forEach((field) => {
-          const fieldName = field.name;
-          const lowerFieldName = fieldName.toLowerCase();
-          const userCallKeys = Object.keys(userCall);
-          const matchedKey = userCallKeys.find((key) => key.toLowerCase() === lowerFieldName);
-          filledState[fieldName] = matchedKey !== undefined ? userCall[matchedKey] ?? '' : '';
+          const keyMatch = Object.keys(userCall).find((key) => key.toLowerCase() === field.name.toLowerCase());
+          if (keyMatch) {
+            initialData[field.name] = userCall[keyMatch];
+          }
         });
       });
-      setCurrentFormData(filledState);
+      setCurrentFormData(initialData);
     }
   }, [userCall, formConfig, localFormData]);
 
+  // Effect to reset form state when status changes
   useEffect(() => {
     if (status === 'start') {
       setCurrentSectionIndex(0);
-      setSectionStates({});
       setVisitedSections([]);
       setIsFormComplete(false);
       setNavigationPath([0]);
     }
   }, [status]);
 
-  if (!formConfig?.sections || sortedSections.length === 0) {
+  if (!currentSection) {
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="text-gray-600">No form configuration available.</div>
+          <div className="text-center text-muted-foreground">Form configuration not available or invalid state.</div>
         </CardContent>
       </Card>
     );
@@ -287,254 +293,191 @@ export default function DynamicForm({
       }`}
     >
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center shadow-md">
-              <User className="text-primary-foreground" size={18} aria-hidden="true" />
-            </div>
-            <div className="ml-3">
-              <CardTitle className="text-xl text-primary">
-                {formConfig.formTitle?.charAt(0).toUpperCase() + formConfig.formTitle?.slice(1) || 'Form'}
-              </CardTitle>
-            </div>
-          </div>
-        </div>
+        <CardTitle className="text-xl text-primary">{formConfig.formTitle || 'Form'}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="mb-4 w-max">
-          <Label className="text-sm font-medium pl-1 mb-1 block">Contact Number</Label>
+        {/* Contact Number field can be here or moved into a section if needed */}
+        <div className="mb-4">
+          <Label htmlFor="contactNumber" className="text-sm font-medium pl-1 mb-1 block">
+            Contact Number
+          </Label>
           <div className="relative">
             {getFieldIcon({ label: 'phone' })}
             <Input
-              name="number"
+              id="contactNumber"
+              name="contactNumber"
               type="tel"
-              placeholder="Mobile Number"
               value={userCall?.contactNumber || ''}
               disabled
               className="pl-10 bg-muted/50 cursor-not-allowed"
             />
           </div>
         </div>
+
         <div className="space-y-6 mb-6">
-          {currentSection && (
-            <div>
-              <h3 className="text-lg font-medium text-primary mb-4 flex items-center gap-2">
-                <List className="w-5 h-5 text-muted-foreground" />
-                {currentSection.title?.charAt(0).toUpperCase() + currentSection.title?.slice(1) || 'Section'}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {currentSection.fields.map((field, idx) => {
-                  if (field.type === 'textarea') {
-                    const capitalizedLabel =
-                      (field.label || field.question || '')?.charAt(0).toUpperCase() +
-                      (field.label || field.question || '')?.slice(1);
-                    return (
-                      <div className="relative col-span-2" key={idx}>
-                        <Label
-                          htmlFor={field.name}
-                          className={`mb-2 block ${
-                            field.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ''
-                          }`}
-                        >
-                          {capitalizedLabel}
-                        </Label>
-                        <div className="relative">
-                          {getFieldIcon(field)}
-                          <Textarea
-                            id={field.name}
-                            name={field.name}
-                            placeholder={capitalizedLabel}
-                            required={field.required}
-                            value={currentFormData[field.name] || ''}
-                            onChange={handleInputChange}
-                            className="pl-10 min-h-20 resize-none"
-                            aria-label={capitalizedLabel}
-                          />
-                        </div>
-                      </div>
-                    );
-                  }
-                  if (field.type === 'select' && field.options?.length) {
-                    const capitalizedLabel =
-                      (field.label || field.question || '')?.charAt(0).toUpperCase() +
-                      (field.label || field.question || '')?.slice(1);
-                    return (
-                      <div className="relative" key={idx}>
-                        <Label
-                          htmlFor={field.name}
-                          className={`mb-2 block ${
-                            field.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ''
-                          }`}
-                        >
-                          {capitalizedLabel}
-                        </Label>
-                        <div className="relative">
-                          {getFieldIcon(field)}
-                          <Select
-                            value={currentFormData[field.name] || ''}
-                            onValueChange={(value) => handleSelectChange(field.name, value)}
-                          >
-                            <SelectTrigger className="pl-10" id={field.name}>
-                              <SelectValue placeholder={`Select ${capitalizedLabel.toLowerCase()}`} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {field.options.map((option, i) => (
-                                <SelectItem key={i} value={option.value || option}>
-                                  {(option.label || option)?.charAt(0).toUpperCase() +
-                                    (option.label || option)?.slice(1)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    );
-                  }
-                  if (field.type === 'multiple-options' && field.options?.length) {
-                    const capitalizedLabel =
-                      (field.question || field.label || '')?.charAt(0).toUpperCase() +
-                      (field.question || field.label || '')?.slice(1);
-                    return (
-                      <div className="space-y-3 col-span-2" key={idx}>
-                        <Label
-                          className={`text-base font-medium ${
-                            field.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ''
-                          }`}
-                        >
-                          {capitalizedLabel}
-                        </Label>
-                        <div className="relative">
-                          <div className="space-y-2">
-                            {field.options.map((option, optionIndex) => (
-                              <div key={optionIndex} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`${field.name}-${optionIndex}`}
-                                  checked={currentFormData[field.name]?.includes(option.value || option) || false}
-                                  onCheckedChange={(checked) => {
-                                    const currentValues = currentFormData[field.name] || [];
-                                    const newValues = checked
-                                      ? [...currentValues, option.value || option]
-                                      : currentValues.filter((v) => v !== (option.value || option));
-                                    handleChange(field.name, newValues);
-                                  }}
-                                />
-                                <Label
-                                  htmlFor={`${field.name}-${optionIndex}`}
-                                  className="text-sm font-normal cursor-pointer"
-                                >
-                                  {(option.label || option)?.charAt(0).toUpperCase() +
-                                    (option.label || option)?.slice(1)}
-                                </Label>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-                  if (field.type === 'checkbox') {
-                    const capitalizedLabel =
-                      (field.question || field.label || '')?.charAt(0).toUpperCase() +
-                      (field.question || field.label || '')?.slice(1);
-                    return (
-                      <div className="flex items-center gap-2 col-span-2" key={idx}>
-                        <Checkbox
-                          id={field.name}
-                          checked={!!currentFormData[field.name]}
-                          onCheckedChange={(checked) => handleChange(field.name, checked)}
-                        />
-                        <Label
-                          htmlFor={field.name}
-                          className={`cursor-pointer ${
-                            field.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ''
-                          }`}
-                        >
-                          {capitalizedLabel}
-                        </Label>
-                      </div>
-                    );
-                  }
-                  if (field.type === 'radio' && field.options?.length) {
-                    const capitalizedLabel =
-                      (field.question || field.label || '')?.charAt(0).toUpperCase() +
-                      (field.question || field.label || '')?.slice(1);
-                    return (
-                      <div className="flex flex-col gap-2 col-span-2" key={idx}>
-                        <Label
-                          className={`font-medium ${
-                            field.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ''
-                          }`}
-                        >
-                          {capitalizedLabel}
-                        </Label>
-                        <div className="flex gap-4 flex-wrap">
-                          {field.options.map((option, i) => (
-                            <label className="flex items-center gap-2 cursor-pointer" key={i}>
-                              <input
-                                type="radio"
-                                name={field.name}
-                                value={option.value || option}
-                                checked={currentFormData[field.name] === (option.value || option)}
-                                onChange={handleInputChange}
-                                className="accent-primary"
-                              />
-                              <span className="select-none">
-                                {(option.label || option)?.charAt(0).toUpperCase() + (option.label || option)?.slice(1)}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }
-                  if (field.type === 'rating') {
-                    const capitalizedLabel =
-                      (field.question || field.label || '')?.charAt(0).toUpperCase() +
-                      (field.question || field.label || '')?.slice(1);
-                    return (
-                      <RatingField
-                        key={idx}
-                        question={capitalizedLabel}
+          <h3 className="text-lg font-medium text-primary mb-4 flex items-center gap-2">
+            <List className="w-5 h-5 text-muted-foreground" />
+            {currentSection.title || `Section ${currentSection.id}`}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {currentSection.fields.map((field, idx) => {
+              const fieldId = `${field.name}-${idx}`;
+              const fieldLabel = field.question || field.label || 'Field';
+
+              if (field.type === 'textarea') {
+                return (
+                  <div className="relative col-span-2" key={fieldId}>
+                    <Label
+                      htmlFor={fieldId}
+                      className={`mb-2 block ${
+                        field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
+                      }`}
+                    >
+                      {fieldLabel}
+                    </Label>
+                    <div className="relative">
+                      {getFieldIcon(field)}
+                      <Textarea
+                        id={fieldId}
+                        name={field.name}
+                        placeholder={fieldLabel}
                         required={field.required}
-                        value={currentFormData[field.name] || 0}
-                        onChange={(newValue) => handleChange(field.name, newValue)}
+                        value={currentFormData[field.name] || ''}
+                        onChange={handleInputChange}
+                        className="pl-10"
                       />
-                    );
-                  }
-                  const capitalizedLabel =
-                    (field.label || field.question || '')?.charAt(0).toUpperCase() +
-                    (field.label || field.question || '')?.slice(1);
-                  return (
-                    <div className="relative" key={idx}>
-                      <Label
-                        htmlFor={field.name}
-                        className={`mb-2 block ${
-                          field.required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ''
-                        }`}
-                      >
-                        {capitalizedLabel}
-                      </Label>
-                      <div className="relative">
-                        {getFieldIcon(field)}
-                        <Input
-                          id={field.name}
-                          name={field.name}
-                          type={field.type || 'text'}
-                          placeholder={capitalizedLabel}
-                          required={field.required}
-                          value={currentFormData[field.name] || ''}
-                          onChange={handleInputChange}
-                          className="pl-10"
-                          aria-label={capitalizedLabel}
-                        />
-                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+                  </div>
+                );
+              }
+              if (field.type === 'select') {
+                return (
+                  <div className="relative" key={fieldId}>
+                    <Label
+                      htmlFor={fieldId}
+                      className={`mb-2 block ${
+                        field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
+                      }`}
+                    >
+                      {fieldLabel}
+                    </Label>
+                    <div className="relative">
+                      {getFieldIcon(field)}
+                      <Select
+                        value={currentFormData[field.name] || ''}
+                        onValueChange={(value) => handleSelectChange(field.name, value)}
+                      >
+                        <SelectTrigger className="pl-10" id={fieldId}>
+                          <SelectValue placeholder={`Select an option`} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {field.options?.map((option, i) => (
+                            <SelectItem key={i} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                );
+              }
+              if (field.type === 'multiple-options') {
+                return (
+                  <div className="space-y-3 col-span-2" key={fieldId}>
+                    <Label
+                      className={`text-base font-medium ${
+                        field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
+                      }`}
+                    >
+                      {fieldLabel}
+                    </Label>
+                    <div className="space-y-2">
+                      {field.options?.map((option, optionIndex) => (
+                        <div key={optionIndex} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`${field.name}-${optionIndex}`}
+                            checked={currentFormData[field.name]?.includes(option.value) || false}
+                            onCheckedChange={(checked) => {
+                              const currentValues = currentFormData[field.name] || [];
+                              const newValues = checked
+                                ? [...currentValues, option.value]
+                                : currentValues.filter((v) => v !== option.value);
+                              handleChange(field.name, newValues);
+                            }}
+                          />
+                          <Label
+                            htmlFor={`${field.name}-${optionIndex}`}
+                            className="text-sm font-normal cursor-pointer"
+                          >
+                            {option.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              if (field.type === 'checkbox') {
+                return (
+                  <div className="flex items-center gap-2 col-span-2" key={fieldId}>
+                    <Checkbox
+                      id={field.name}
+                      checked={!!currentFormData[field.name]}
+                      onCheckedChange={(checked) => handleChange(field.name, checked)}
+                    />
+                    <Label
+                      htmlFor={field.name}
+                      className={`cursor-pointer ${
+                        field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
+                      }`}
+                    >
+                      {fieldLabel}
+                    </Label>
+                  </div>
+                );
+              }
+              if (field.type === 'rating') {
+                return (
+                  <RatingField
+                    key={fieldId}
+                    question={fieldLabel}
+                    required={field.required}
+                    value={currentFormData[field.name] || 0}
+                    onChange={(newValue) => handleChange(field.name, newValue)}
+                  />
+                );
+              }
+              // Default input field (text, number, date, etc.)
+              return (
+                <div className="relative" key={fieldId}>
+                  <Label
+                    htmlFor={fieldId}
+                    className={`mb-2 block ${
+                      field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
+                    }`}
+                  >
+                    {fieldLabel}
+                  </Label>
+                  <div className="relative">
+                    {getFieldIcon(field)}
+                    <Input
+                      id={fieldId}
+                      name={field.name}
+                      type={field.type || 'text'}
+                      placeholder={fieldLabel}
+                      required={field.required}
+                      value={currentFormData[field.name] || ''}
+                      onChange={handleInputChange}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
+
         <div className="flex justify-between items-center my-6">
           <div>
             {navigationPath.length > 1 && (
@@ -546,7 +489,7 @@ export default function DynamicForm({
           </div>
           <div>
             {isLastSection ? (
-              <Button onClick={handleContact} disabled={formSubmitted}>
+              <Button onClick={handleContact} disabled={formSubmitted || !isSectionValid()}>
                 Submit
               </Button>
             ) : (
