@@ -588,7 +588,7 @@ export default function LeadAndCallInfoPanel({
   };
 
   // Disposition modal view
-  if (!formSubmitted && dispositionModal) {
+  if (dispositionModal) {
     return (
       <AlertDialog open={true}>
         <AlertDialogContent className="p-0 m-0 !max-w-6xl overflow-auto">
