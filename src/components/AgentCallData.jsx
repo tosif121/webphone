@@ -130,11 +130,43 @@ export default function AgentCallData() {
     URL.revokeObjectURL(url);
   };
 
-  const handlePlayAudio = (bridgeID) => {
-    const audioSource = `${window.location.origin}/recording/recording${bridgeID}.wav`;
-    setCurrentAudioUrl(audioSource);
-    setCurrentBridgeId(bridgeID);
-    setIsAudioPlayerOpen(true);
+  const handlePlayAudio = async (bridgeID) => {
+    if (!bridgeID) return;
+
+    const toastId = toast.loading('Loading recording...');
+
+    try {
+      const tokenDetails = getTokenDetails();
+      if (!tokenDetails?.token) {
+        toast.error('Authentication token not found.', { id: toastId });
+        return;
+      }
+
+      const response = await axios.get(`${window.location.origin}/recording/recording${bridgeID}.wav`, {
+        headers: {
+          Authorization: `Bearer ${tokenDetails.token}`,
+        },
+        responseType: 'blob',
+      });
+
+      // 2. Create a temporary, local URL from the downloaded binary data (blob)
+      const audioBlob = new Blob([response.data], { type: 'audio/wav' });
+      const localAudioUrl = URL.createObjectURL(audioBlob);
+
+      setCurrentAudioUrl(localAudioUrl);
+      setCurrentBridgeId(bridgeID);
+      setIsAudioPlayerOpen(true);
+      toast.success('Recording loaded.', { id: toastId });
+    } catch (error) {
+      console.error('Error fetching audio:', error);
+      if (error.response?.status === 403 || error.response?.status === 401) {
+        toast.error('Authentication failed for recording.', { id: toastId });
+      } else if (error.response?.status === 404) {
+        toast.error('Recording not found.', { id: toastId });
+      } else {
+        toast.error('Could not load recording.', { id: toastId });
+      }
+    }
   };
 
   const handleDownloadPDF = async () => {
