@@ -611,7 +611,7 @@ function Dashboard() {
         </div>
       )}
 
-      {formSubmitted && connectionStatus === 'Disposition' && (
+      {formSubmitted && dispositionModal && (
         <Disposition
           bridgeID={bridgeID}
           setDispositionModal={setDispositionModal}
@@ -624,7 +624,6 @@ function Dashboard() {
           callType={callType}
           setCallType={setCallType}
           phoneNumber={userCall?.contactNumber}
-          setFormSubmitted={setFormSubmitted}
         />
       )}
       <SessionTimeoutModal isOpen={showTimeoutModal} onClose={closeTimeoutModal} onLoginSuccess={handleLoginSuccess} />
@@ -650,10 +649,8 @@ function Dashboard() {
       </div>
       <div className="relative">
         <div
-          className={`grid grid-cols-1 md:grid-cols-3 gap-6 transition-all duration-100 ease-in-out ${
-            connectionStatus === 'Disposition' || status !== 'start'
-              ? 'opacity-0 pointer-events-none absolute inset-0'
-              : 'opacity-100'
+          className={`grid grid-cols-1 md:grid-cols-3 gap-6 transition-all duration-400 ease-in-out ${
+            status !== 'start' ? 'opacity-0 pointer-events-none absolute inset-0' : 'opacity-100'
           }`}
         >
           {activeMainTab === 'allLeads' ? (
@@ -749,8 +746,8 @@ function Dashboard() {
       </div>
       <div className="flex gap-6 mt-8 md:flex-row flex-col relative">
         <div
-          className={`w-full transition-opacity duration-100 ${
-            connectionStatus !== 'NOT_INUSE' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
+          className={`w-full transition-opacity duration-400 ${
+            status !== 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
           }`}
         >
           <LeadAndCallInfoPanel
@@ -770,12 +767,13 @@ function Dashboard() {
             status={status}
             formSubmitted={formSubmitted}
             connectionStatus={connectionStatus}
+            dispositionModal={dispositionModal}
           />
         </div>
 
         <div
-          className={`w-full transition-opacity duration-100 ${
-            connectionStatus === 'NOT_INUSE' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
+          className={`w-full transition-opacity duration-400 ${
+            status === 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
           }`}
         >
           <LeadCallsTable

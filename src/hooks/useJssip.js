@@ -878,7 +878,7 @@ const useJssip = (isMobile = false) => {
       { ...prev[prev.length - 1], status: 'Rejected', end: new Date().getTime() },
     ]);
 
-    // setDispositionModal(false);
+    setDispositionModal(false);
   };
 
   useEffect(() => {
@@ -1150,7 +1150,7 @@ const useJssip = (isMobile = false) => {
                     ...prev.slice(0, -1),
                     { ...prev[prev.length - 1], status: 'Missed', end: new Date().getTime() },
                   ]);
-                  // setDispositionModal(callHandledRef.current);
+                  setDispositionModal(callHandledRef.current);
                   setCallHandled(false);
                   callHandledRef.current = false;
                 });
@@ -1165,7 +1165,7 @@ const useJssip = (isMobile = false) => {
                     ...prev.slice(0, -1),
                     { ...prev[prev.length - 1], status: 'Failed', end: new Date().getTime() },
                   ]);
-                  // setDispositionModal(callHandledRef.current);
+                  setDispositionModal(callHandledRef.current);
                   setCallHandled(false);
                   callHandledRef.current = false;
                 });
@@ -1256,7 +1256,7 @@ const useJssip = (isMobile = false) => {
         setStatus('start');
         setIsCallended(true);
         setConferenceNumber('');
-        // setDispositionModal(true);
+        setDispositionModal(true);
       });
 
       session.once('failed', () => {
@@ -1446,7 +1446,7 @@ const useJssip = (isMobile = false) => {
             }
           );
           setIsCallended(false);
-          // setDispositionModal(true);
+          setDispositionModal(true);
         } catch (error) {
           console.error('Error calling callendedd API:', error);
         }

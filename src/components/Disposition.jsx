@@ -28,7 +28,6 @@ const Disposition = ({
   fetchLeadsWithDateRange,
   callType,
   setCallType,
-  setFormSubmitted,
 }) => {
   const { username } = useContext(HistoryContext);
   const [selectedAction, setSelectedAction] = useState(null);
@@ -224,7 +223,7 @@ const Disposition = ({
         fetchLeadsWithDateRange();
 
         // Close modal and clear phone number
-        setFormSubmitted(false);
+        setDispositionModal(false);
         setPhoneNumber('');
         setCallType('');
       } else {
@@ -255,7 +254,7 @@ const Disposition = ({
         setIsAutoDispositionComplete(true);
 
         // Don't show modal for 400 errors - just close everything
-        setFormSubmitted(false);
+        setDispositionModal(false);
         setPhoneNumber('');
         setCallType('');
         return;
@@ -303,7 +302,7 @@ const Disposition = ({
       if (!open) {
         // Allow closing if successfully submitted
         if (hasSubmittedSuccessfully) {
-          setFormSubmitted(false);
+          setDispositionModal(false);
           return;
         }
 
@@ -341,7 +340,7 @@ const Disposition = ({
 
       // Allow closing if successfully submitted
       if (hasSubmittedSuccessfully) {
-        setFormSubmitted(false);
+        setDispositionModal(false);
         return;
       }
 
@@ -378,7 +377,7 @@ const Disposition = ({
 
         // Allow closing if successfully submitted
         if (hasSubmittedSuccessfully) {
-          setFormSubmitted(false);
+          setDispositionModal(false);
           return;
         }
 
@@ -459,7 +458,7 @@ const Disposition = ({
 
           fetchLeadsWithDateRange();
 
-          setFormSubmitted(false);
+          setDispositionModal(false);
           setPhoneNumber('');
           setCallType('');
         } else {

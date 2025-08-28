@@ -28,6 +28,7 @@ export default function LeadAndCallInfoPanel({
   status,
   formSubmitted,
   connectionStatus,
+  dispositionModal,
 }) {
   const [activeTab, setActiveTab] = useState('contact');
   const [localFormData, setLocalFormData] = useState({});
@@ -587,7 +588,7 @@ export default function LeadAndCallInfoPanel({
   };
 
   // Disposition modal view
-  if (connectionStatus === 'Disposition') {
+  if (!formSubmitted && dispositionModal) {
     return (
       <AlertDialog open={true}>
         <AlertDialogContent className="p-0 m-0 !max-w-6xl overflow-auto">
