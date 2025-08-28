@@ -131,7 +131,7 @@ export default function AgentCallData() {
   };
 
   const handlePlayAudio = (bridgeID) => {
-    const audioSource = `${window.location.origin}/recording${bridgeID}.wav`;
+    const audioSource = `${window.location.origin}/recording/recording${bridgeID}.wav`;
     setCurrentAudioUrl(audioSource);
     setCurrentBridgeId(bridgeID);
     setIsAudioPlayerOpen(true);

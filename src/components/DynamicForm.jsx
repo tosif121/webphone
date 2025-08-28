@@ -265,26 +265,26 @@ export default function DynamicForm({
     }
   }, [status]);
 
-  if (!currentSection) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center text-muted-foreground">
-            Form configuration not available or invalid state.
-            <div className="mt-2 text-sm">
-              <strong>Debug Info:</strong>
-              <br />
-              Current Index: {currentSectionIndex}
-              <br />
-              Total Sections: {sortedSections.length}
-              <br />
-              Navigation Path: [{navigationPath.join(' → ')}]
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // if (!currentSection) {
+  //   return (
+  //     <Card>
+  //       <CardContent className="p-6">
+  //         <div className="text-center text-muted-foreground">
+  //           Form configuration not available or invalid state.
+  //           <div className="mt-2 text-sm">
+  //             <strong>Debug Info:</strong>
+  //             <br />
+  //             Current Index: {currentSectionIndex}
+  //             <br />
+  //             Total Sections: {sortedSections.length}
+  //             <br />
+  //             Navigation Path: [{navigationPath.join(' → ')}]
+  //           </div>
+  //         </div>
+  //       </CardContent>
+  //     </Card>
+  //   );
+  // }
 
   return (
     <Card

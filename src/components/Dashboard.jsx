@@ -622,6 +622,7 @@ function Dashboard() {
           callType={callType}
           setCallType={setCallType}
           phoneNumber={userCall?.contactNumber}
+          setFormSubmitted={setFormSubmitted}
         />
       )}
       <SessionTimeoutModal isOpen={showTimeoutModal} onClose={closeTimeoutModal} onLoginSuccess={handleLoginSuccess} />
