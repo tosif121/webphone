@@ -434,8 +434,6 @@ function Dashboard() {
 
         if (matchingForm) {
           setFormId(matchingForm.formId);
-        } else {
-          toast.error(`No ${targetType} form found.`);
         }
       } catch (err) {
         console.error('❌ Error fetching form list:', err);
