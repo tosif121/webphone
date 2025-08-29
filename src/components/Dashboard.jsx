@@ -497,7 +497,6 @@ function Dashboard() {
       if (response.data?.success) {
         toast.success(response.data.message || 'Contact saved successfully.');
         setFormSubmitted(true);
-        // Clear form after successful submission
         setTimeout(() => {
           setFormState({});
         }, 100);
@@ -516,14 +515,42 @@ function Dashboard() {
       return;
     }
 
+    // Create the new object to be passed as 'formObject'
+    const formObject = {};
+    for (const key in formDataToSubmit) {
+      if (formDataToSubmit.hasOwnProperty(key)) {
+        if (
+          key !== 'firstName' &&
+          key !== 'lastName' &&
+          key !== 'email' &&
+          key !== 'number' &&
+          key !== 'alternateNumber' &&
+          key !== 'comment' &&
+          key !== 'address' &&
+          key !== 'district' &&
+          key !== 'city' &&
+          key !== 'state' &&
+          key !== 'postalCode'
+        ) {
+          formObject[key] = formDataToSubmit[key];
+        }
+      }
+    }
+
+    // Add agentName to the formObject
+    formObject.agentName = username;
+
     const payload = {
       user: username,
       isFresh: userCall?.isFresh,
+      // Pass formObject in the body, which now includes the agent name
+      formObject: formObject,
       data: {
         ...formDataToSubmit,
         contactNumber: userCall?.contactNumber || '',
-        agentName: username,
         formId: formConfig.formId,
+        // Add agentName to the data object
+        agentName: username,
       },
     };
 
