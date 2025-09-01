@@ -241,6 +241,9 @@ export default function DynamicForm({
     currentSection?.nextSection === 'end' ||
     currentSection?.nextSection === 'submit';
 
+  // Check if there's only one section and directly show submit
+  const showNextButton = sortedSections.length > 1 && !isLastSection;
+
   // Initialize form data from userCall object
   useEffect(() => {
     if (userCall && formConfig?.sections && !localFormData) {
@@ -264,27 +267,6 @@ export default function DynamicForm({
       setNavigationPath([0]);
     }
   }, [status]);
-
-  // if (!currentSection) {
-  //   return (
-  //     <Card>
-  //       <CardContent className="p-6">
-  //         <div className="text-center text-muted-foreground">
-  //           Form configuration not available or invalid state.
-  //           <div className="mt-2 text-sm">
-  //             <strong>Debug Info:</strong>
-  //             <br />
-  //             Current Index: {currentSectionIndex}
-  //             <br />
-  //             Total Sections: {sortedSections.length}
-  //             <br />
-  //             Navigation Path: [{navigationPath.join(' → ')}]
-  //           </div>
-  //         </div>
-  //       </CardContent>
-  //     </Card>
-  //   );
-  // }
 
   return (
     <Card
@@ -505,10 +487,14 @@ export default function DynamicForm({
               <Button onClick={handleSubmit} disabled={formSubmitted || !isSectionValid()}>
                 Submit
               </Button>
-            ) : (
+            ) : showNextButton ? (
               <Button onClick={handleNext} className="flex items-center gap-2" disabled={!isSectionValid()}>
                 Next
                 <ArrowRight className="w-4 h-4" />
+              </Button>
+            ) : (
+              <Button onClick={handleSubmit} disabled={formSubmitted || !isSectionValid()}>
+                Submit
               </Button>
             )}
           </div>
