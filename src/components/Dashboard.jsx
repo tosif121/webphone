@@ -103,6 +103,7 @@ function Dashboard() {
     setScheduleCallsLength,
     selectedStatus,
   } = useContext(HistoryContext);
+
   const [usermissedCalls, setUsermissedCalls] = useState([]);
   const [adminUser, setAdminUser] = useState(null);
   const [userCampaign, setUserCampaign] = useState(null);
@@ -116,13 +117,10 @@ function Dashboard() {
 
   const [selectedDate, setSelectedDate] = useState('');
   const [token, setToken] = useState('');
-  const [formState, setFormState] = useState({});
-  const [formConfig, setFormConfig] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const [startDate, setStartDate] = useState(moment().subtract(7, 'days').startOf('day').toDate());
   const [endDate, setEndDate] = useState(moment().endOf('day').toDate());
-  const [formId, setFormId] = useState(null);
 
   const [activeMainTab, setActiveMainTab] = useState('allLeads');
   const [leadStats, setLeadStats] = useState({
@@ -416,167 +414,6 @@ function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    if (!userCampaign || !token) return;
-
-    async function fetchFormList() {
-      try {
-        setLoading(true);
-
-        const res = await axios.get(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const forms = res.data.agentWebForm || [];
-
-        let targetType = callType === 'outgoing' ? 'outgoing' : 'incoming';
-        let matchingForm = forms.find((form) => form.formType?.toLowerCase() === targetType);
-
-        if (matchingForm) {
-          setFormId(matchingForm.formId);
-        }
-      } catch (err) {
-        console.error('❌ Error fetching form list:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchFormList();
-  }, [userCampaign, token, callType]);
-
-  useEffect(() => {
-    if (!formId || !token || status === 'start') return;
-
-    async function fetchFormDetails() {
-      try {
-        setLoading(true);
-
-        const res = await axios.get(`${window.location.origin}/getDynamicFormData/${formId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        setFormConfig(res.data.result);
-      } catch (err) {
-        console.error('Error fetching form details:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchFormDetails();
-  }, [formId, token, status]);
-
-  const handleContact = async (formDataToSubmit) => {
-    const payload = {
-      user: username,
-      isFresh: userCall?.isFresh,
-      data: {
-        firstName: formDataToSubmit.firstName || '',
-        lastName: formDataToSubmit.lastName || '',
-        emailId: formDataToSubmit.email || '',
-        contactNumber: formDataToSubmit.number || userCall?.contactNumber || '',
-        alternateNumber: formDataToSubmit.alternateNumber || '',
-        comment: formDataToSubmit.comment || '',
-        Contactaddress: formDataToSubmit.address || '',
-        ContactDistrict: formDataToSubmit.district || '',
-        ContactCity: formDataToSubmit.city || '',
-        ContactState: formDataToSubmit.state || '',
-        ContactPincode: formDataToSubmit.postalCode || '',
-        agentName: username,
-      },
-    };
-
-    try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.data?.success) {
-        toast.success(response.data.message || 'Contact saved successfully.');
-        setFormSubmitted(true);
-        setTimeout(() => {
-          setFormState({});
-        }, 100);
-      } else {
-        toast.error(response.data.message || 'Failed to save contact.');
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error occurred.');
-      console.error('Add/Modify contact error:', err);
-    }
-  };
-
-  const handleSubmit = async (formDataToSubmit) => {
-    if (!formConfig) {
-      toast.error('Form configuration not loaded');
-      return;
-    }
-
-    // Create the new object to be passed as 'formObject'
-    const formObject = {};
-    for (const key in formDataToSubmit) {
-      if (formDataToSubmit.hasOwnProperty(key)) {
-        if (
-          key !== 'firstName' &&
-          key !== 'lastName' &&
-          key !== 'email' &&
-          key !== 'number' &&
-          key !== 'alternateNumber' &&
-          key !== 'comment' &&
-          key !== 'address' &&
-          key !== 'district' &&
-          key !== 'city' &&
-          key !== 'state' &&
-          key !== 'postalCode'
-        ) {
-          formObject[key] = formDataToSubmit[key];
-        }
-      }
-    }
-
-    // Add agentName to the formObject
-    formObject.agentName = username;
-
-    const payload = {
-      user: username,
-      isFresh: userCall?.isFresh,
-      // Pass formObject in the body, which now includes the agent name
-      formObject: formObject,
-      data: {
-        ...formDataToSubmit,
-        contactNumber: userCall?.contactNumber || '',
-        formId: formConfig.formId,
-        // Add agentName to the data object
-        agentName: username,
-      },
-    };
-
-    try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.data?.success) {
-        toast.success(response.data.message || 'Contact saved successfully.');
-        setFormSubmitted(true);
-        // Clear form after successful submission
-        setTimeout(() => {
-          setFormState({});
-        }, 100);
-      } else {
-        toast.error(response.data.message || 'Failed to save contact.');
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error occurred.');
-      console.error('Add/Modify contact error:', err);
-    }
-  };
-
   const mapLeadData = (rawData) => {
     if (!Array.isArray(rawData)) rawData = [rawData];
 
@@ -641,15 +478,12 @@ function Dashboard() {
           bridgeID={bridgeID}
           setDispositionModal={setDispositionModal}
           userCall={userCall}
-          setFormData={setFormState}
-          formData={formState}
-          formConfig={formConfig}
-          setPhoneNumber={setPhoneNumber}
-          fetchLeadsWithDateRange={fetchLeadsWithDateRange}
           callType={callType}
           setCallType={setCallType}
           phoneNumber={userCall?.contactNumber}
           setFormSubmitted={setFormSubmitted}
+          fetchLeadsWithDateRange={fetchLeadsWithDateRange}
+          setPhoneNumber={setPhoneNumber}
         />
       )}
       <SessionTimeoutModal isOpen={showTimeoutModal} onClose={closeTimeoutModal} onLoginSuccess={handleLoginSuccess} />
@@ -778,22 +612,16 @@ function Dashboard() {
         >
           <LeadAndCallInfoPanel
             userCall={userCall}
-            formConfig={formConfig}
             handleCall={handleCall}
-            apiCallData={apiCallData}
-            mappedLeads={mapLeadData(leadsData)}
-            setFormData={setFormState}
-            formData={formState}
-            handleSubmit={handleSubmit}
-            handleContact={handleContact}
-            filterStartDate={startDate}
-            setFilterStartDate={setStartDate}
-            filterEndDate={endDate}
-            setFilterEndDate={setEndDate}
             status={status}
             formSubmitted={formSubmitted}
             connectionStatus={connectionStatus}
             dispositionModal={dispositionModal}
+            userCampaign={userCampaign}
+            username={username}
+            token={token}
+            callType={callType}
+            setFormSubmitted={setFormSubmitted}
           />
         </div>
 
@@ -810,7 +638,6 @@ function Dashboard() {
             setStartDate={setStartDate}
             endDate={endDate}
             setEndDate={setEndDate}
-            formConfig={formConfig}
             username={username}
             token={token}
             activeMainTab={activeMainTab}

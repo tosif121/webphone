@@ -82,15 +82,15 @@ export default function WebRTCStats({ peerConnection }) {
   };
 
   return (
-    <div className="flex justify-between items-center w-full px-4 my-4">
-      <div> {time}</div>
+    <div className="flex justify-between items-center w-full my-2">
+      <div className='text-primary text-xs'> {time}</div>
 
       <div className="flex flex-col items-center relative group">
         <div className="flex items-end h-4 gap-1">
           {[...Array(4)].map((_, index) => (
             <div
               key={index}
-              className={`w-1 rounded-sm transition-all duration-300 ${
+              className={`w-0.5 rounded-sm transition-all duration-300 ${
                 index < signalStrength ? 'bg-green-500' : 'bg-gray-300'
               }`}
               style={{ height: `${(index + 1) * 25}%` }}

@@ -74,10 +74,8 @@ const CallScreen = ({
     }
   }, [conferenceNumber, session]);
 
-  // Masking logic
   const maybeMask = (num) => (numberMasking ? maskPhoneNumber?.(num) : num);
 
-  // Main phone display
   const mainNumber = (() => {
     if (isMerged && phoneNumber && conferenceNumber) {
       return `${maybeMask(phoneNumber)} Conference with ${maybeMask(conferenceNumber)}`;
@@ -88,36 +86,35 @@ const CallScreen = ({
   })();
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[400px]">
+    <div className="flex flex-col items-center justify-center min-h-[300px] p-3">
       {session && session.connection && <WebRTCStats peerConnection={session.connection} />}
+
       {/* Header */}
-      <div className="flex flex-col items-center my-6">
-        <div className="relative mb-3">
-          <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-lg">
-            <User className="text-primary-foreground" size={28} />
+      <div className="flex flex-col items-center my-3">
+        <div className="relative mb-2">
+          <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center shadow-md">
+            <User className="text-primary-foreground" size={20} />
           </div>
         </div>
         <div className="text-center mb-2">
-          <marquee
-            behavior="scroll"
-            direction="left"
-            scrollamount="4"
-            className="truncate font-medium text-muted-foreground"
-          >
-            {mainNumber}
-          </marquee>
-          <div className="flex items-center justify-center gap-2 mt-1">
+          {conferenceStatus ? (
+            <div className="text-sm font-medium text-muted-foreground max-w-[250px]">{phoneNumber} Hold</div>
+          ) : (
+            ''
+          )}
+          <div className="text-sm font-medium text-muted-foreground max-w-[250px]">{mainNumber}</div>
+          <div className="flex items-center justify-center gap-1 mt-1">
             {isRunning ? (
               <>
-                <Clock className="w-4 h-4 text-secondary-foreground" />
-                <span className="text-lg font-mono text-secondary-foreground">
+                <Clock className="w-3 h-3 text-secondary-foreground" />
+                <span className="text-sm font-mono text-secondary-foreground">
                   {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
                 </span>
               </>
             ) : (
               <>
-                <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                <span className="text-primary text-sm">Calling...</span>
+                <Loader2 className="w-3 h-3 text-primary animate-spin" />
+                <span className="text-primary text-xs">Calling...</span>
               </>
             )}
           </div>
@@ -125,46 +122,45 @@ const CallScreen = ({
       </div>
 
       {/* Controls Section */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {!showKeyPad ? (
           <>
             {/* Primary Controls Row */}
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-center gap-3">
               <ControlButton
                 onClick={toggleHold}
                 disabled={!session}
                 active={isHeld}
-                icon={<Pause size={22} />}
+                icon={<Pause size={16} />}
                 title="Hold"
               />
               <ControlButton
                 disabled={!isMerged}
                 onClick={handleTransfer}
-                icon={<PhoneForwarded size={22} />}
+                icon={<PhoneForwarded size={16} />}
                 title="Transfer"
                 className={!isMerged ? 'opacity-40' : ''}
               />
-              <ControlButton onClick={() => setShowKeyPad(true)} icon={<Grip size={22} />} title="Keypad" />
+              <ControlButton onClick={() => setShowKeyPad(true)} icon={<Grip size={16} />} title="Keypad" />
             </div>
 
             {/* Secondary Controls Row */}
-            <div className="flex justify-center gap-4 mt-4">
+            <div className="flex justify-center gap-3">
               {conferenceStatus ? (
-                <ControlButton disabled={!session} onClick={handleMerge} icon={<Merge size={22} />} title="Merge" />
+                <ControlButton disabled={!session} onClick={handleMerge} icon={<Merge size={16} />} title="Merge" />
               ) : (
                 <ControlButton
                   disabled={!session}
                   onClick={() => setCallConference?.(true)}
-                  icon={<UserPlus size={22} />}
+                  icon={<UserPlus size={16} />}
                   title="Add Call"
                 />
               )}
 
-              {/* Recording Button */}
               <ControlButton
                 onClick={!isRecording ? startRecording : stopRecording}
                 disabled={!session && !isRecording}
-                icon={<Square size={22} className={isRecording ? 'text-destructive' : 'text-secondary-foreground'} />}
+                icon={<Square size={16} className={isRecording ? 'text-destructive' : 'text-secondary-foreground'} />}
                 title={isRecording ? 'Stop Recording' : 'Start Recording'}
                 active={isRecording}
               />
@@ -175,17 +171,17 @@ const CallScreen = ({
                   muted ? session?.unmute() : session?.mute();
                   setMuted(!muted);
                 }}
-                icon={<MicOff size={22} />}
+                icon={<MicOff size={16} />}
                 title="Mute"
               />
             </div>
           </>
         ) : (
           /* Keypad Section */
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="relative">
               <button
-                className="absolute -top-8 right-0 z-10 p-2 text-muted-foreground hover:text-destructive transition-all duration-200"
+                className="absolute -top-6 right-0 z-10 p-1 text-muted-foreground hover:text-destructive transition-all duration-200"
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 onClick={() => {
@@ -194,7 +190,7 @@ const CallScreen = ({
                 }}
                 aria-label="Close Keypad"
               >
-                <XCircle size={22} className={isHovered ? 'text-destructive' : ''} />
+                <XCircle size={18} className={isHovered ? 'text-destructive' : ''} />
               </button>
               <KeyPad setPhoneNumber={setCurrNum} />
             </div>
@@ -204,7 +200,7 @@ const CallScreen = ({
         {/* End Call Button */}
         <div className="flex justify-center">
           <button
-            className="text-white cursor-pointer w-14 h-14 flex items-center justify-center rounded-full bg-destructive shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 rotate-[133deg] focus:outline-none focus:ring-2 focus:ring-destructive group"
+            className="text-white cursor-pointer w-12 h-12 flex items-center justify-center rounded-full bg-destructive shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 rotate-[133deg] focus:outline-none focus:ring-2 focus:ring-destructive"
             onClick={() => {
               session?.terminate();
               stopRecording?.();
@@ -212,7 +208,7 @@ const CallScreen = ({
             aria-label="End Call"
             type="button"
           >
-            <Phone />
+            <Phone size={18} />
           </button>
         </div>
 
@@ -222,7 +218,7 @@ const CallScreen = ({
             id="audio-device"
             value={selectedDeviceId}
             onChange={(e) => changeAudioDevice?.(e.target.value)}
-            className="w-full bg-muted border border-border text-foreground text-sm rounded-xl p-3 outline-none focus:ring-2 focus:ring-accent transition-all duration-200"
+            className="w-full bg-muted border border-border text-foreground text-xs rounded-lg p-2 outline-none focus:ring-2 focus:ring-accent transition-all duration-200"
           >
             {Array.isArray(devices) && devices.length > 0 ? (
               devices.map((device, index) => (
@@ -240,7 +236,7 @@ const CallScreen = ({
   );
 };
 
-// Reusable Control Button Component
+// Reusable Control Button Component (Reduced Size)
 const ControlButton = ({ onClick, disabled, active, icon, title, className = '' }) => {
   return (
     <button
@@ -248,9 +244,9 @@ const ControlButton = ({ onClick, disabled, active, icon, title, className = '' 
       disabled={disabled}
       title={title}
       className={`
-        w-14 h-14 rounded-xl transition-all duration-200 flex items-center justify-center
-        ${active ? 'bg-primary text-primary-foreground shadow-lg' : 'bg-card/80 text-primary hover:bg-accent'}
-        ${disabled ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105 hover:shadow-xl active:scale-95'}
+        w-10 h-10 rounded-lg transition-all duration-200 flex items-center justify-center
+        ${active ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card/80 text-primary hover:bg-accent'}
+        ${disabled ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105 hover:shadow-lg active:scale-95'}
         ${className}
       `}
     >

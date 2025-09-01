@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   User,
   Mail,
@@ -111,24 +111,66 @@ export default function DynamicForm({
   const [visitedSections, setVisitedSections] = useState([]);
   const [isFormComplete, setIsFormComplete] = useState(false);
   const [navigationPath, setNavigationPath] = useState([0]);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [initialValues, setInitialValues] = useState({});
+  const [userModifiedFields, setUserModifiedFields] = useState(new Set());
 
-  const currentFormData = localFormData || formState || {};
-  const setCurrentFormData = setLocalFormData || setFormState || (() => {});
+  const formDataRef = useRef({});
+  const currentFormData = localFormData || formState || formDataRef.current;
+  const setCurrentFormData =
+    setLocalFormData ||
+    setFormState ||
+    ((data) => {
+      if (typeof data === 'function') {
+        formDataRef.current = data(formDataRef.current);
+      } else {
+        formDataRef.current = { ...data };
+      }
+    });
 
   const sortedSections = formConfig?.sections ? [...formConfig.sections].sort((a, b) => a.id - b.id) : [];
   const currentSection = sortedSections[currentSectionIndex];
 
-  // Data cleanup when navigating to a new section/branch.
+  const getFinalFormData = () => {
+    const finalData = { ...initialValues };
+
+    Object.keys(currentFormData).forEach((key) => {
+      const value = currentFormData[key];
+      if (value !== undefined && value !== null && value !== '') {
+        finalData[key] = value;
+      } else if (value === 0 || value === false || (Array.isArray(value) && value.length === 0)) {
+        finalData[key] = value;
+      }
+    });
+
+    return finalData;
+  };
+
   const cleanupFormDataForPath = (newPath) => {
     const sectionsInPath = new Set(newPath);
     const clearedState = { ...currentFormData };
-    sortedSections.forEach((section, idx) => {
-      if (!sectionsInPath.has(idx) && section?.fields) {
+
+    const fieldsToKeep = new Set();
+
+    sectionsInPath.forEach((sectionIdx) => {
+      const section = sortedSections[sectionIdx];
+      if (section?.fields) {
         section.fields.forEach((field) => {
-          if (clearedState.hasOwnProperty(field.name)) delete clearedState[field.name];
+          fieldsToKeep.add(field.name);
         });
       }
     });
+
+    Object.keys(clearedState).forEach((fieldName) => {
+      if (!fieldsToKeep.has(fieldName)) {
+        if (initialValues.hasOwnProperty(fieldName) && !userModifiedFields.has(fieldName)) {
+          clearedState[fieldName] = initialValues[fieldName];
+        } else {
+          delete clearedState[fieldName];
+        }
+      }
+    });
+
     setCurrentFormData(clearedState);
   };
 
@@ -139,39 +181,15 @@ export default function DynamicForm({
   };
 
   const handleChange = (fieldName, value) => {
-    setCurrentFormData((prev) => ({ ...prev, [fieldName]: value }));
+    console.log(`Changing field ${fieldName} to:`, value);
 
-    // Dynamic navigation for select fields in a dynamic section
-    if (currentSection?.isDynamicSection) {
-      const field = currentSection.fields.find((f) => f.name === fieldName);
-      if (field && field.type === 'select') {
-        const selectedOption = field.options?.find((opt) => opt.value === value);
-        if (selectedOption) {
-          const nextSectionId = selectedOption.nextSection;
-          if (!nextSectionId || String(nextSectionId).trim() === '') {
-            setIsFormComplete(true);
-            return;
-          }
-          const normalizedId = String(nextSectionId).toLowerCase();
-          if (normalizedId === 'end' || normalizedId === 'submit') {
-            setIsFormComplete(true);
-            return;
-          }
-          const nextIndex = sortedSections.findIndex((sec) => String(sec.id) === normalizedId);
-          const wouldCreateLoop = navigationPath.includes(nextIndex);
-          if (nextIndex !== -1 && !wouldCreateLoop) {
-            const newPath = [...navigationPath, nextIndex];
-            cleanupFormDataForPath(newPath);
-            setVisitedSections((prev) => prev.filter((idx) => newPath.includes(idx)));
-            updateVisitedSections(currentSectionIndex);
-            setCurrentSectionIndex(nextIndex);
-            updateNavigationPath(newPath);
-          } else {
-            setIsFormComplete(true);
-          }
-        }
-      }
-    }
+    setCurrentFormData((prev) => {
+      const newData = { ...prev, [fieldName]: value };
+      console.log('Updated form data:', newData);
+      return newData;
+    });
+
+    setUserModifiedFields((prev) => new Set([...prev, fieldName]));
   };
 
   const handleInputChange = (e) => {
@@ -179,13 +197,18 @@ export default function DynamicForm({
     handleChange(name, type === 'checkbox' ? checked : value);
   };
 
-  const handleSelectChange = (name, value) => handleChange(name, value);
+  const handleSelectChange = (name, value) => {
+    console.log(`Select changed: ${name} = ${value}`);
+    handleChange(name, value);
+  };
 
   const isSectionValid = () => {
     if (!currentSection) return true;
+    const finalData = getFinalFormData();
+
     return currentSection.fields.every((field) => {
       if (field.required) {
-        const value = currentFormData[field.name];
+        const value = finalData[field.name];
         if (Array.isArray(value)) return value.length > 0;
         return value !== undefined && value !== '' && value !== null;
       }
@@ -193,13 +216,75 @@ export default function DynamicForm({
     });
   };
 
+  const handleFormSubmit = () => {
+    const finalData = getFinalFormData();
+    console.log('Final form data for submission:', finalData);
+
+    if (handleSubmit) {
+      handleSubmit(finalData);
+    }
+  };
+
+  // **MAIN UPDATE: Enhanced Next Button Handler for Specialist Navigation**
   const handleNext = () => {
     if (!isSectionValid()) {
       toast.error('Please fill all required fields.');
       return;
     }
+
     updateVisitedSections(currentSectionIndex);
+
+    // **Handle Dynamic Navigation Based on Select Fields**
+    if (currentSection?.isDynamicSection) {
+      // Check for any select field with nextSection logic
+      const dynamicSelectField = currentSection.fields.find((field) => {
+        return field.type === 'select' && currentFormData[field.name] && field.options.some((opt) => opt.nextSection);
+      });
+
+      if (dynamicSelectField) {
+        const selectedValue = currentFormData[dynamicSelectField.name];
+        const selectedOption = dynamicSelectField.options.find((opt) => opt.value === selectedValue);
+
+        if (selectedOption && selectedOption.nextSection) {
+          console.log(
+            `${dynamicSelectField.name} "${selectedValue}" selected, navigating to section ${selectedOption.nextSection}`
+          );
+
+          // Handle end/submit navigation
+          const normalizedNextSection = String(selectedOption.nextSection).toLowerCase();
+          if (normalizedNextSection === 'end' || normalizedNextSection === 'submit') {
+            setIsFormComplete(true);
+            return;
+          }
+
+          // Find the target section
+          const nextIndex = sortedSections.findIndex((sec) => String(sec.id) === selectedOption.nextSection);
+          const wouldCreateLoop = navigationPath.includes(nextIndex);
+
+          if (nextIndex !== -1 && !wouldCreateLoop) {
+            const newPath = [...navigationPath, nextIndex];
+            cleanupFormDataForPath(newPath);
+            setVisitedSections((prev) => prev.filter((idx) => newPath.includes(idx)));
+            updateVisitedSections(currentSectionIndex);
+            setCurrentSectionIndex(nextIndex);
+            updateNavigationPath(newPath);
+            return;
+          } else if (nextIndex === -1) {
+            console.error(`Section ${selectedOption.nextSection} not found`);
+            setIsFormComplete(true);
+            return;
+          } else {
+            console.warn(`Would create loop, completing form instead`);
+            setIsFormComplete(true);
+            return;
+          }
+        }
+      }
+    }
+
+    // **Standard Navigation Logic**
     const nextNavigation = currentSection?.nextSection;
+
     if (nextNavigation === 'next') {
       const nextIndex = currentSectionIndex + 1;
       if (nextIndex < sortedSections.length && !visitedSections.includes(nextIndex)) {
@@ -227,6 +312,21 @@ export default function DynamicForm({
       const newPath = [...navigationPath];
       newPath.pop();
       const previousIndex = newPath[newPath.length - 1];
+
+      const sectionsBeingLeft = visitedSections.filter((idx) => !newPath.includes(idx));
+      sectionsBeingLeft.forEach((sectionIdx) => {
+        const section = sortedSections[sectionIdx];
+        if (section?.fields) {
+          section.fields.forEach((field) => {
+            setUserModifiedFields((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(field.name);
+              return newSet;
+            });
+          });
+        }
+      });
+
       cleanupFormDataForPath(newPath);
       setVisitedSections((prev) => prev.filter((index) => newPath.includes(index)));
       setCurrentSectionIndex(previousIndex);
@@ -241,32 +341,70 @@ export default function DynamicForm({
     currentSection?.nextSection === 'end' ||
     currentSection?.nextSection === 'submit';
 
-  // Check if there's only one section and directly show submit
   const showNextButton = sortedSections.length > 1 && !isLastSection;
 
-  // Initialize form data from userCall object
   useEffect(() => {
-    if (userCall && formConfig?.sections && !localFormData) {
+    if (userCall && formConfig?.sections && !isInitialized) {
       const initialData = {};
+      const initialVals = {};
+
       formConfig.sections.forEach((section) => {
         section.fields.forEach((field) => {
           const keyMatch = Object.keys(userCall).find((key) => key.toLowerCase() === field.name.toLowerCase());
-          if (keyMatch) initialData[field.name] = userCall[keyMatch];
+          if (keyMatch && userCall[keyMatch] !== undefined && userCall[keyMatch] !== '') {
+            const value = userCall[keyMatch];
+            initialData[field.name] = value;
+            initialVals[field.name] = value;
+          }
         });
       });
-      setCurrentFormData(initialData);
-    }
-  }, [userCall, formConfig, localFormData]);
 
-  // Reset form if status changes to start
+      setInitialValues(initialVals);
+      setCurrentFormData(initialData);
+      setIsInitialized(true);
+
+      console.log('Initialized with userCall data:', initialData);
+    }
+  }, [userCall, formConfig, isInitialized]);
+
   useEffect(() => {
     if (status === 'start') {
       setCurrentSectionIndex(0);
       setVisitedSections([]);
       setIsFormComplete(false);
       setNavigationPath([0]);
+      setIsInitialized(false);
+      setInitialValues({});
+      setUserModifiedFields(new Set());
+      formDataRef.current = {};
     }
   }, [status]);
+
+  useEffect(() => {
+    const finalData = getFinalFormData();
+    console.log('Current form data:', currentFormData);
+    console.log('Final form data (what will be submitted):', finalData);
+    console.log('User modified fields:', Array.from(userModifiedFields));
+    console.log('Navigation path:', navigationPath);
+  }, [currentFormData, userModifiedFields, navigationPath, initialValues]);
+
+  const getFieldValue = (fieldName) => {
+    if (currentFormData.hasOwnProperty(fieldName)) {
+      const value = currentFormData[fieldName];
+      return value !== undefined && value !== null ? value : '';
+    }
+    return initialValues[fieldName] || '';
+  };
+
+  if (!formConfig || !currentSection) {
+    return (
+      <Card className="p-6">
+        <div className="text-center text-muted-foreground">
+          {!formConfig ? 'Form configuration not loaded' : 'No current section available'}
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card
@@ -281,7 +419,6 @@ export default function DynamicForm({
         <CardTitle className="text-xl text-primary">{formConfig.formTitle || 'Form'}</CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Contact Number field */}
         <div className="mb-4">
           <Label htmlFor="contactNumber" className="text-sm font-medium pl-1 mb-1 block">
             Contact Number
@@ -320,6 +457,7 @@ export default function DynamicForm({
             {currentSection.fields.map((field, idx) => {
               const fieldId = `${field.name}-${idx}`;
               const fieldLabel = field.question || field.label || 'Field';
+
               if (field.type === 'textarea') {
                 return (
                   <div className="relative col-span-2" key={fieldId}>
@@ -338,7 +476,7 @@ export default function DynamicForm({
                         name={field.name}
                         placeholder={fieldLabel}
                         required={field.required}
-                        value={currentFormData[field.name] || ''}
+                        value={getFieldValue(field.name)}
                         onChange={handleInputChange}
                         className="pl-10"
                       />
@@ -346,7 +484,10 @@ export default function DynamicForm({
                   </div>
                 );
               }
+
               if (field.type === 'select') {
+                const fieldValue = getFieldValue(field.name);
+
                 return (
                   <div className="relative" key={fieldId}>
                     <Label
@@ -360,11 +501,14 @@ export default function DynamicForm({
                     <div className="relative">
                       {getFieldIcon(field)}
                       <Select
-                        value={currentFormData[field.name] || ''}
-                        onValueChange={(value) => handleSelectChange(field.name, value)}
+                        value={fieldValue || ''}
+                        onValueChange={(value) => {
+                          console.log(`Select ${field.name} changing to:`, value);
+                          handleSelectChange(field.name, value);
+                        }}
                       >
                         <SelectTrigger className="pl-10" id={fieldId}>
-                          <SelectValue placeholder={`Select an option`} />
+                          <SelectValue placeholder="Select an option" />
                         </SelectTrigger>
                         <SelectContent>
                           {field.options?.map((option, i) => (
@@ -378,7 +522,11 @@ export default function DynamicForm({
                   </div>
                 );
               }
+
               if (field.type === 'multiple-options') {
+                const fieldValue = getFieldValue(field.name);
+                const currentValues = Array.isArray(fieldValue) ? fieldValue : [];
+
                 return (
                   <div className="space-y-3 col-span-2" key={fieldId}>
                     <Label
@@ -393,9 +541,8 @@ export default function DynamicForm({
                         <div key={optionIndex} className="flex items-center space-x-2">
                           <Checkbox
                             id={`${field.name}-${optionIndex}`}
-                            checked={currentFormData[field.name]?.includes(option.value) || false}
+                            checked={currentValues.includes(option.value)}
                             onCheckedChange={(checked) => {
-                              const currentValues = currentFormData[field.name] || [];
                               const newValues = checked
                                 ? [...currentValues, option.value]
                                 : currentValues.filter((v) => v !== option.value);
@@ -414,12 +561,13 @@ export default function DynamicForm({
                   </div>
                 );
               }
+
               if (field.type === 'checkbox') {
                 return (
                   <div className="flex items-center gap-2 col-span-2" key={fieldId}>
                     <Checkbox
                       id={field.name}
-                      checked={!!currentFormData[field.name]}
+                      checked={!!getFieldValue(field.name)}
                       onCheckedChange={(checked) => handleChange(field.name, checked)}
                     />
                     <Label
@@ -433,18 +581,19 @@ export default function DynamicForm({
                   </div>
                 );
               }
+
               if (field.type === 'rating') {
                 return (
                   <RatingField
                     key={fieldId}
                     question={fieldLabel}
                     required={field.required}
-                    value={currentFormData[field.name] || 0}
+                    value={getFieldValue(field.name) || 0}
                     onChange={(newValue) => handleChange(field.name, newValue)}
                   />
                 );
               }
-              // Default input field (text, number, date, etc.)
+
               return (
                 <div className="relative" key={fieldId}>
                   <Label
@@ -463,7 +612,7 @@ export default function DynamicForm({
                       type={field.type || 'text'}
                       placeholder={fieldLabel}
                       required={field.required}
-                      value={currentFormData[field.name] || ''}
+                      value={getFieldValue(field.name)}
                       onChange={handleInputChange}
                       className="pl-10"
                     />
@@ -473,6 +622,7 @@ export default function DynamicForm({
             })}
           </div>
         </div>
+
         <div className="flex justify-between items-center my-6">
           <div>
             {navigationPath.length > 1 && (
@@ -484,7 +634,7 @@ export default function DynamicForm({
           </div>
           <div>
             {isLastSection ? (
-              <Button onClick={handleSubmit} disabled={formSubmitted || !isSectionValid()}>
+              <Button onClick={handleFormSubmit} disabled={formSubmitted || !isSectionValid()}>
                 Submit
               </Button>
             ) : showNextButton ? (
@@ -493,7 +643,7 @@ export default function DynamicForm({
                 <ArrowRight className="w-4 h-4" />
               </Button>
             ) : (
-              <Button onClick={handleSubmit} disabled={formSubmitted || !isSectionValid()}>
+              <Button onClick={handleFormSubmit} disabled={formSubmitted || !isSectionValid()}>
                 Submit
               </Button>
             )}

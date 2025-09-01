@@ -21,25 +21,25 @@ const Home = ({
   };
 
   return (
-    <div className="p-6 h-full flex flex-col">
-      {/* Header (Drag Handle) */}
-      <div className="flex justify-between items-center mb-4 cursor-move select-none">
-        <div className="text-xl font-bold text-primary">WebPhone</div>
-        <div className="flex items-center gap-4">
+    <div className="p-4 h-full flex flex-col">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-3 cursor-move select-none">
+        <div className="text-lg font-semibold text-primary">WebPhone</div>
+        <div className="flex items-center gap-3">
           <NetworkMonitor timeoutArray={timeoutArray} />
           <button
-            className="text-primary hover:text-primary/60 transition-colors"
+            className="text-primary hover:text-primary/70 transition-colors"
             onClick={() => setSeeLogs(true)}
             aria-label="View Call History"
             tabIndex={-1}
           >
-            <History className="w-6 h-6" />
+            <History className="w-5 h-5" />
           </button>
         </div>
       </div>
 
       {/* Phone Input */}
-      <div className="relative mb-4">
+      <div className="relative mb-3">
         <input
           type="text"
           value={formatPhoneNumber(phoneNumber)}
@@ -50,19 +50,19 @@ const Home = ({
           onKeyDown={handleKeyDown}
           autoFocus
           placeholder="Phone number"
-          className="w-full text-2xl font-medium bg-transparent border-b-2 border-border focus:border-primary outline-none py-2 pr-10 text-foreground placeholder:text-muted-foreground transition-all"
+          className="w-full text-xl font-semibold bg-transparent border-b border-border focus:border-primary outline-none py-1.5 pr-8 text-foreground placeholder:text-muted-foreground transition-all"
           aria-label="Phone number"
         />
         {phoneNumber && (
           <button
             type="button"
-            className="absolute inset-y-0 right-0 flex items-center px-2 text-primary hover:text-destructive transition-colors"
+            className="absolute inset-y-0 right-0 flex items-center px-1.5 text-primary hover:text-destructive transition-colors"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onClick={() => setPhoneNumber((prev) => prev.slice(0, -1).trim())}
             aria-label="Delete last digit"
           >
-            <Delete className={`w-6 h-6 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-70'}`} />
+            <Delete className={`w-4 h-4 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-70'}`} />
           </button>
         )}
       </div>
@@ -73,15 +73,14 @@ const Home = ({
       </div>
 
       {/* Call Button */}
-      <div className="flex justify-center mt-6">
+      <div className="flex justify-center">
         <Button
           size="icon"
-          className="w-14 h-14 cursor-pointer rounded-full text-2xl text-white shadow-lg bg-green-600 hover:bg-green-700 focus-visible:ring-green-500"
+          className="w-12 h-12 rounded-full text-white shadow-md bg-green-600 hover:bg-green-700 focus-visible:ring-green-500"
           onClick={handleCall}
-          // disabled={isConnectionLost}
           aria-label="Call"
         >
-          <Phone className="h-8 w-8" />
+          <Phone className="w-6 h-6" />
         </Button>
       </div>
     </div>

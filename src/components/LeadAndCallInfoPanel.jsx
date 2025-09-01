@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import moment from 'moment';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 import { User, Info, Phone, History, UserCog, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -13,26 +15,196 @@ import DateRangePicker from './DateRangePicker';
 
 export default function LeadAndCallInfoPanel({
   userCall,
-  formConfig,
   handleCall,
-  apiCallData,
-  mappedLeads,
-  setFormData,
-  formData,
-  handleSubmit,
-  handleContact,
-  filterStartDate,
-  setFilterStartDate,
-  filterEndDate,
-  setFilterEndDate,
   status,
   formSubmitted,
   connectionStatus,
   dispositionModal,
+  userCampaign,
+  username,
+  token,
+  callType,
+  setFormSubmitted,
 }) {
   const [activeTab, setActiveTab] = useState('contact');
   const [localFormData, setLocalFormData] = useState({});
   const [lastUserCall, setLastUserCall] = useState(null);
+
+  // Internal state management
+  const [startDate, setStartDate] = useState(moment().subtract(7, 'days').startOf('day').toDate());
+  const [endDate, setEndDate] = useState(moment().endOf('day').toDate());
+  const [apiCallData, setApiCallData] = useState([]);
+  const [leadsData, setLeadsData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [formConfig, setFormConfig] = useState(null);
+  const [formId, setFormId] = useState(null);
+
+  // Fetch form configuration
+  useEffect(() => {
+    if (!userCampaign || !token) return;
+
+    async function fetchFormList() {
+      try {
+        setLoading(true);
+
+        const res = await axios.get(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const forms = res.data.agentWebForm || [];
+
+        let targetType = callType === 'outgoing' ? 'outgoing' : 'incoming';
+        let matchingForm = forms.find((form) => form.formType?.toLowerCase() === targetType);
+
+        if (matchingForm) {
+          setFormId(matchingForm.formId);
+        }
+      } catch (err) {
+        console.error('❌ Error fetching form list:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchFormList();
+  }, [userCampaign, token, callType]);
+
+  useEffect(() => {
+    if (!formId || !token || status === 'start') return;
+
+    async function fetchFormDetails() {
+      try {
+        setLoading(true);
+
+        const res = await axios.get(`${window.location.origin}/getDynamicFormData/${formId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setFormConfig(res.data.result);
+      } catch (err) {
+        console.error('Error fetching form details:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchFormDetails();
+  }, [formId, token, status]);
+
+  // Data fetching functions
+  const fetchLeadsWithDateRange = useCallback(async () => {
+    if (!userCampaign || !username || !token || !startDate || !endDate) return;
+
+    setLoading(true);
+    try {
+      const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
+      const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
+
+      const response = await axios.post(
+        `${window.location.origin}/leadswithdaterange`,
+        {
+          startDate: formattedStartDate,
+          endDate: formattedEndDate,
+          campaignID: userCampaign,
+          user: username,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const leads = response.data.data || [];
+      setLeadsData(leads);
+    } catch (error) {
+      console.error('Error fetching leads:', error.response?.data || error.message);
+      setLeadsData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [userCampaign, username, token, startDate, endDate]);
+
+  const fetchCallDataByAgent = useCallback(async () => {
+    if (!username || !token || !startDate || !endDate) return;
+
+    setLoading(true);
+    try {
+      const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
+      const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
+
+      const response = await axios.post(
+        `${window.location.origin}/callDataByAgent`,
+        {
+          startDate: formattedStartDate,
+          endDate: formattedEndDate,
+          agentName: username,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const calls = response.data.result || [];
+      setApiCallData(calls);
+    } catch (error) {
+      console.error('Error fetching API data for Call Info tab:', error);
+      setApiCallData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [username, token, startDate, endDate]);
+
+  // Fetch data when dependencies change
+  useEffect(() => {
+    fetchLeadsWithDateRange();
+    fetchCallDataByAgent();
+  }, [fetchLeadsWithDateRange, fetchCallDataByAgent]);
+
+  // Map lead data function
+  const mapLeadData = useCallback((rawData) => {
+    if (!Array.isArray(rawData)) rawData = [rawData];
+
+    return rawData.map((item) => {
+      const mapped = {
+        name: '',
+        email: '',
+        phone: '',
+        status: 'Pending',
+        uploadDate: item.uploadDate || null,
+        ...item,
+      };
+
+      Object.entries(item).forEach(([key, value]) => {
+        if (!value && value !== 0) return;
+        const v = String(value).trim();
+        const k = key.toLowerCase();
+
+        if (v.includes('@') && v.includes('.')) mapped.email = v;
+        else if (/^\d{10}$/.test(v)) mapped.phone = v;
+        else if (k.includes('name') && !k.includes('file') && !k.includes('user')) mapped.name = v;
+        else if (k.includes('date') || k.includes('time')) mapped.uploadDate = value;
+      });
+
+      switch (item.lastDialedStatus) {
+        case 1:
+        case 9:
+          mapped.status = 'Complete';
+          break;
+        case 0:
+        default:
+          mapped.status = 'Pending';
+      }
+
+      return mapped;
+    });
+  }, []);
+
+  // Get mapped leads
+  const mappedLeads = useMemo(() => mapLeadData(leadsData), [leadsData, mapLeadData]);
 
   // Initialize form data when userCall changes
   useEffect(() => {
@@ -69,70 +241,139 @@ export default function LeadAndCallInfoPanel({
 
       setLocalFormData(initialFormData);
       setLastUserCall(userCall);
-
-      // Sync with parent for backward compatibility
-      if (setFormData) {
-        setFormData(initialFormData);
-      }
     }
-  }, [userCall, formConfig, setFormData]);
+  }, [userCall, formConfig]);
 
   // Clear form data when submission is successful
   useEffect(() => {
     if (formSubmitted) {
       setLocalFormData({});
-      if (setFormData) {
-        setFormData({});
+    }
+  }, [formSubmitted]);
+
+  // Update local form data handler
+  const updateLocalFormData = useCallback((newData) => {
+    setLocalFormData((prev) => {
+      return typeof newData === 'function' ? newData(prev) : { ...prev, ...newData };
+    });
+  }, []);
+
+  // Handle form submission
+  const handleContact = async (formDataToSubmit) => {
+    const payload = {
+      user: username,
+      isFresh: userCall?.isFresh,
+      data: {
+        firstName: formDataToSubmit.firstName || '',
+        lastName: formDataToSubmit.lastName || '',
+        emailId: formDataToSubmit.email || '',
+        contactNumber: formDataToSubmit.number || userCall?.contactNumber || '',
+        alternateNumber: formDataToSubmit.alternateNumber || '',
+        comment: formDataToSubmit.comment || '',
+        Contactaddress: formDataToSubmit.address || '',
+        ContactDistrict: formDataToSubmit.district || '',
+        ContactCity: formDataToSubmit.city || '',
+        ContactState: formDataToSubmit.state || '',
+        ContactPincode: formDataToSubmit.postalCode || '',
+        agentName: username,
+      },
+    };
+
+    try {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.data?.success) {
+        toast.success(response.data.message || 'Contact saved successfully.');
+        setFormSubmitted(true);
+        setTimeout(() => {
+          setLocalFormData({});
+        }, 100);
+      } else {
+        toast.error(response.data.message || 'Failed to save contact.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error occurred.');
+      console.error('Add/Modify contact error:', err);
+    }
+  };
+
+  const handleSubmit = async (formDataToSubmit) => {
+    if (!formConfig) {
+      toast.error('Form configuration not loaded');
+      return;
+    }
+
+    // Create the new object to be passed as 'formObject'
+    const formObject = {};
+    for (const key in formDataToSubmit) {
+      if (formDataToSubmit.hasOwnProperty(key)) {
+        if (
+          key !== 'firstName' &&
+          key !== 'lastName' &&
+          key !== 'email' &&
+          key !== 'number' &&
+          key !== 'alternateNumber' &&
+          key !== 'comment' &&
+          key !== 'address' &&
+          key !== 'district' &&
+          key !== 'city' &&
+          key !== 'state' &&
+          key !== 'postalCode'
+        ) {
+          formObject[key] = formDataToSubmit[key];
+        }
       }
     }
-  }, [formSubmitted, setFormData]);
 
-  // Update local form data handler with sync
-  const updateLocalFormData = useCallback(
-    (newData) => {
-      setLocalFormData((prev) => {
-        const updated = typeof newData === 'function' ? newData(prev) : { ...prev, ...newData };
+    // Add agentName to the formObject
+    formObject.agentName = username;
 
-        // Sync with parent for backward compatibility
-        if (setFormData) {
-          setFormData(updated);
-        }
-        return updated;
+    const payload = {
+      user: username,
+      isFresh: userCall?.isFresh,
+      formObject: formObject,
+      data: {
+        ...formDataToSubmit,
+        contactNumber: userCall?.contactNumber || '',
+        formId: formConfig.formId,
+        agentName: username,
+      },
+    };
+
+    try {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-    },
-    [setFormData]
-  );
 
-  // Optimized submit handlers that pass current data directly
-  const handleSubmitWithCurrentData = useCallback(
-    async (e) => {
-      e?.preventDefault();
-
-      if (!formConfig) {
-        console.error('❌ Form config not available');
-        return;
+      if (response.data?.success) {
+        toast.success(response.data.message || 'Contact saved successfully.');
+        setFormSubmitted(true);
+        // Clear form after successful submission
+        setTimeout(() => {
+          setLocalFormData({});
+        }, 100);
+      } else {
+        toast.error(response.data.message || 'Failed to save contact.');
       }
-
-      await handleSubmit(localFormData);
-    },
-    [handleSubmit, localFormData, formConfig]
-  );
-
-  const handleContactWithCurrentData = useCallback(
-    async (e) => {
-      e?.preventDefault();
-      await handleContact(localFormData);
-    },
-    [handleContact, localFormData]
-  );
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error occurred.');
+      console.error('Add/Modify contact error:', err);
+    }
+  };
 
   // Filter mapped leads for the current contact
   const filteredMappedLeadsForPanel = useMemo(() => {
-    if (!mappedLeads || !filterStartDate || !filterEndDate || !userCall) return [];
+    if (!mappedLeads || !startDate || !endDate || !userCall) return [];
 
     const normalizedContactNumber = String(userCall.contactNumber || '').replace(/^\+91/, '');
-    const startOfDay = moment(filterStartDate).startOf('day');
-    const endOfDay = moment(filterEndDate).endOf('day');
+    const startOfDay = moment(startDate).startOf('day');
+    const endOfDay = moment(endDate).endOf('day');
 
     return mappedLeads.filter((lead) => {
       const leadUploadTime = moment(lead.uploadDate);
@@ -142,7 +383,7 @@ export default function LeadAndCallInfoPanel({
         normalizedLeadPhone === normalizedContactNumber && leadUploadTime.isBetween(startOfDay, endOfDay, null, '[]')
       );
     });
-  }, [mappedLeads, filterStartDate, filterEndDate, userCall]);
+  }, [mappedLeads, startDate, endDate, userCall]);
 
   // Get current lead (most recent)
   const currentLead = useMemo(() => {
@@ -156,11 +397,11 @@ export default function LeadAndCallInfoPanel({
 
   // Filter API call data for the current contact
   const filteredApiCallDataForPanel = useMemo(() => {
-    if (!apiCallData || !filterStartDate || !filterEndDate || !userCall) return [];
+    if (!apiCallData || !startDate || !endDate || !userCall) return [];
 
     const normalizedContactNumber = String(userCall.contactNumber || '').replace(/^\+91/, '');
-    const startOfDay = moment(filterStartDate).startOf('day');
-    const endOfDay = moment(filterEndDate).endOf('day');
+    const startOfDay = moment(startDate).startOf('day');
+    const endOfDay = moment(endDate).endOf('day');
 
     return apiCallData.filter((call) => {
       const callTime = moment(call.startTime);
@@ -168,7 +409,7 @@ export default function LeadAndCallInfoPanel({
 
       return normalizedCallNumber === normalizedContactNumber && callTime.isBetween(startOfDay, endOfDay, null, '[]');
     });
-  }, [apiCallData, filterStartDate, filterEndDate, userCall]);
+  }, [apiCallData, startDate, endDate, userCall]);
 
   // Get current API call record (most recent)
   const currentApiCallRecord = useMemo(() => {
@@ -194,14 +435,16 @@ export default function LeadAndCallInfoPanel({
           userCallDialog={true}
           status={status}
           formSubmitted={formSubmitted}
-          handleSubmit={handleSubmitWithCurrentData}
+          handleSubmit={handleSubmit}
+          localFormData={localFormData}
+          setLocalFormData={updateLocalFormData}
         />
       );
     } else {
       return (
         <UserCall
           formData={localFormData}
-          handleSubmit={handleContactWithCurrentData}
+          handleSubmit={handleContact}
           setFormData={updateLocalFormData}
           userCall={userCall}
           userCallDialog={true}
@@ -411,9 +654,7 @@ export default function LeadAndCallInfoPanel({
         if (lead.history && lead.history.length > 0) {
           lead.history.forEach((item) => {
             const itemDate = moment(item.uploadDate);
-            if (
-              itemDate.isBetween(moment(filterStartDate).startOf('day'), moment(filterEndDate).endOf('day'), null, '[]')
-            ) {
+            if (itemDate.isBetween(moment(startDate).startOf('day'), moment(endDate).endOf('day'), null, '[]')) {
               historyItems.push({ ...item, _isLeadHistory: true });
             }
           });
@@ -423,7 +664,7 @@ export default function LeadAndCallInfoPanel({
       const mainLeadDate = moment(currentLead?.uploadDate);
       if (
         currentLead &&
-        mainLeadDate.isBetween(moment(filterStartDate).startOf('day'), moment(filterEndDate).endOf('day'), null, '[]')
+        mainLeadDate.isBetween(moment(startDate).startOf('day'), moment(endDate).endOf('day'), null, '[]')
       ) {
         if (!historyItems.some((h) => h.uploadDate === currentLead.uploadDate && h.phone === currentLead.phone)) {
           historyItems.push({ ...currentLead, _isLeadHistory: true });
@@ -435,9 +676,7 @@ export default function LeadAndCallInfoPanel({
     if (apiCallData && apiCallData.length > 0) {
       apiCallData.forEach((call) => {
         const mainCallDate = moment(call.startTime);
-        if (
-          mainCallDate.isBetween(moment(filterStartDate).startOf('day'), moment(filterEndDate).endOf('day'), null, '[]')
-        ) {
+        if (mainCallDate.isBetween(moment(startDate).startOf('day'), moment(endDate).endOf('day'), null, '[]')) {
           if (
             !historyItems.some(
               (h) => h.startTime === call.startTime && (h.Caller === call.Caller || h.dialNumber === call.dialNumber)
@@ -450,9 +689,7 @@ export default function LeadAndCallInfoPanel({
         if (call.history && call.history.length > 0) {
           call.history.forEach((item) => {
             const itemDate = moment(item.startTime);
-            if (
-              itemDate.isBetween(moment(filterStartDate).startOf('day'), moment(filterEndDate).endOf('day'), null, '[]')
-            ) {
+            if (itemDate.isBetween(moment(startDate).startOf('day'), moment(endDate).endOf('day'), null, '[]')) {
               historyItems.push({ ...item, _isApiHistory: true });
             }
           });
@@ -623,15 +860,15 @@ export default function LeadAndCallInfoPanel({
                     </TabsList>
                     <div className="w-full sm:w-auto flex justify-end">
                       <DateRangePicker
-                        key={`panel-date-picker-${moment(filterStartDate).format('YYYY-MM-DD')}-${moment(
-                          filterEndDate
-                        ).format('YYYY-MM-DD')}`}
+                        key={`panel-date-picker-${moment(startDate).format('YYYY-MM-DD')}-${moment(endDate).format(
+                          'YYYY-MM-DD'
+                        )}`}
                         onDateChange={([start, end]) => {
-                          setFilterStartDate(start);
-                          setFilterEndDate(end);
+                          setStartDate(start);
+                          setEndDate(end);
                         }}
-                        initialStartDate={filterStartDate}
-                        initialEndDate={filterEndDate}
+                        initialStartDate={startDate}
+                        initialEndDate={endDate}
                       />
                     </div>
                   </div>
@@ -659,7 +896,7 @@ export default function LeadAndCallInfoPanel({
 
   // Normal panel view
   return (
-    <Card className="w-full max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-6xl h-max">
+    <Card className="w-full h-max">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between">
           <span className="text-lg font-semibold">Active Call Information</span>
@@ -690,15 +927,15 @@ export default function LeadAndCallInfoPanel({
               </TabsList>
               <div className="w-full sm:w-auto flex justify-end">
                 <DateRangePicker
-                  key={`panel-date-picker-${moment(filterStartDate).format('YYYY-MM-DD')}-${moment(
-                    filterEndDate
-                  ).format('YYYY-MM-DD')}`}
+                  key={`panel-date-picker-${moment(startDate).format('YYYY-MM-DD')}-${moment(endDate).format(
+                    'YYYY-MM-DD'
+                  )}`}
                   onDateChange={([start, end]) => {
-                    setFilterStartDate(start);
-                    setFilterEndDate(end);
+                    setStartDate(start);
+                    setEndDate(end);
                   }}
-                  initialStartDate={filterStartDate}
-                  initialEndDate={filterEndDate}
+                  initialStartDate={startDate}
+                  initialEndDate={endDate}
                 />
               </div>
             </div>

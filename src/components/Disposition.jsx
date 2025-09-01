@@ -20,9 +20,6 @@ import moment from 'moment';
 const Disposition = ({
   bridgeID,
   setDispositionModal,
-  setFormData,
-  formData,
-  formConfig,
   phoneNumber,
   setPhoneNumber,
   fetchLeadsWithDateRange,
@@ -496,8 +493,6 @@ const Disposition = ({
       hasSubmittedSuccessfully,
       fetchLeadsWithDateRange,
       setCallType,
-      formConfig,
-      formData,
     ]
   );
 
@@ -548,24 +543,6 @@ const Disposition = ({
   if (!shouldShowModal) {
     return null;
   }
-
-  // const isFormValid = () => {
-  //   if (!formConfig?.sections || formConfig.sections.length === 0) {
-  //     return true; // No form, no validation
-  //   }
-
-  //   for (const section of formConfig.sections) {
-  //     for (const field of section.fields) {
-  //       if (field.required) {
-  //         const value = formData[field.name];
-  //         if (value === undefined || value === '' || value === null || (Array.isArray(value) && value.length === 0)) {
-  //           return false;
-  //         }
-  //       }
-  //     }
-  //   }
-  //   return true;
-  // };
 
   return (
     <>
@@ -696,21 +673,6 @@ const Disposition = ({
           </div>
         </DialogContent>
       </Dialog>
-      {userCallOpen && (
-        <Dialog open={userCallOpen} onOpenChange={setUserCallOpen}>
-          <DialogContent className="max-w-2xl p-0">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-foreground"></DialogTitle>
-            </DialogHeader>
-            <DynamicForm
-              formConfig={formConfig}
-              formState={formData}
-              setFormState={setFormData}
-              userCallDialog={true}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
     </>
   );
 };
