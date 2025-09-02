@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Phone, PhoneOff, User, Clock, BarChart2, List, TrendingUp, Activity, Timer, Eye, X } from 'lucide-react';
 import axios from 'axios';
 
@@ -13,6 +13,8 @@ import AgentCallData from './AgentCallData';
 import { Dialog, DialogContent } from './ui/dialog';
 import { Button } from './ui/button';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
+import SessionTimeoutModal from './SessionTimeoutModal';
+import { JssipContext } from '@/context/JssipContext';
 
 // Status badge color mapping using shadcn tokens
 const statusColor = {
@@ -87,6 +89,56 @@ export default function AgentDashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [showActivityModal, setShowActivityModal] = useState(false);
+  const {
+    ringtone,
+    conferenceStatus,
+    reqUnHold,
+    conferenceNumber,
+    setConferenceNumber,
+    createConferenceCall,
+    toggleHold,
+    isHeld,
+    seconds,
+    minutes,
+    status,
+    phoneNumber,
+    setPhoneNumber,
+    handleCall,
+    session,
+    isRunning,
+    audioRef,
+    devices,
+    selectedDeviceId,
+    changeAudioDevice,
+    isRecording,
+    startRecording,
+    stopRecording,
+    bridgeID,
+    dispositionModal,
+    setDispositionModal,
+    userCall,
+    timeoutArray,
+    isConnectionLost,
+    followUpDispoes,
+    incomingSession,
+    incomingNumber,
+    isIncomingRinging,
+    answerIncomingCall,
+    rejectIncomingCall,
+    ringtoneRef,
+    playRingtone,
+    stopRingtone,
+    conferenceCalls,
+    callConference,
+    setCallConference,
+    callType,
+    setCallType,
+    connectionStatus,
+    showTimeoutModal,
+    setShowTimeoutModal,
+    handleLoginSuccess,
+    closeTimeoutModal,
+  } = useContext(JssipContext);
 
   useEffect(() => {
     let isMounted = true;
@@ -174,6 +226,8 @@ export default function AgentDashboard() {
 
   return (
     <>
+      <SessionTimeoutModal isOpen={showTimeoutModal} onClose={closeTimeoutModal} onLoginSuccess={handleLoginSuccess} />
+
       <div className="space-y-8">
         <div className="text-center md:text-start">
           <h1 className="text-2xl font-bold text-primary mb-2">Agent Dashboard</h1>
