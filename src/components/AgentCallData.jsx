@@ -406,7 +406,7 @@ export default function AgentCallData() {
         cell: ({ row }) => (
           <span className="text-gray-700 dark:text-gray-200">
             {row.original.hanguptime && row.original.startTime
-              ? moment.utc((row.original.hanguptime - row.original.startTime) * 1000).format('HH:mm:ss')
+              ? moment.utc(row.original.hanguptime - row.original.startTime).format('HH:mm:ss')
               : '00:00:00'}
           </span>
         ),
