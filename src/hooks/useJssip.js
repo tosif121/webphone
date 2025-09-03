@@ -157,7 +157,7 @@ const useJssip = (isMobile = false) => {
     setShowTimeoutModal(false);
     toast.success('Re-login successful');
     // Refresh page or fetch fresh user data
-    window.location.reload();
+    // window.location.reload();
   };
 
   const closeTimeoutModal = () => {
