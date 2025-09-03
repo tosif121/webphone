@@ -39,20 +39,82 @@ export default function LeadAndCallInfoPanel({
   const [formConfig, setFormConfig] = useState(null);
   const [formId, setFormId] = useState(null);
 
-  // Fetch form configuration
+  const fetchWithTokenRetry = async (url, token, refreshToken, config = {}) => {
+    // Use token if available, otherwise use refreshToken
+    const authToken = token || refreshToken;
+
+    try {
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${authToken}` },
+        ...config,
+      });
+      return res;
+    } catch (err) {
+      if (err.response && err.response.status === 401) {
+        try {
+          const savedUsername = typeof window !== 'undefined' ? localStorage.getItem('savedUsername') : null;
+          const savedPassword = typeof window !== 'undefined' ? localStorage.getItem('savedPassword') : null;
+
+          if (!savedUsername || !savedPassword) {
+            throw new Error('No saved credentials found');
+          }
+
+          const refreshRes = await axios.post('${window.location.origin}/api/applogin', {
+            username: savedUsername,
+            password: savedPassword,
+          });
+
+          const newToken = refreshRes.data.token;
+          const newRefreshToken = refreshRes.data.refreshToken;
+
+          const updatedTokenData = {
+            token: newToken,
+            refreshToken: newRefreshToken,
+          };
+          localStorage.setItem('token', JSON.stringify(updatedTokenData));
+
+          const retryRes = await axios.get(url, {
+            headers: { Authorization: `Bearer ${newToken}` },
+            ...config,
+          });
+          return retryRes;
+        } catch (refreshErr) {
+          console.error('Token refresh failed:', refreshErr);
+          localStorage.removeItem('token');
+          localStorage.removeItem('savedUsername');
+          localStorage.removeItem('savedPassword');
+          throw refreshErr;
+        }
+      } else {
+        throw err;
+      }
+    }
+  };
+
   useEffect(() => {
-    if (!userCampaign || !token) return;
+    if (!userCampaign) return;
 
     async function fetchFormList() {
       try {
         setLoading(true);
 
-        const res = await axios.get(`${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const tokenData = localStorage.getItem('token');
+        let token = null;
+        let refreshToken = localStorage.getItem('refreshToken'); // Direct access, no JSON.parse needed
+
+        if (tokenData) {
+          const parsedData = JSON.parse(tokenData);
+          token = parsedData.token;
+          refreshToken = parsedData.refreshToken || refreshToken;
+        }
+
+        const res = await fetchWithTokenRetry(
+          `${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`,
+          token,
+          refreshToken
+        );
 
         const forms = res.data.agentWebForm || [];
-
         let targetType = callType === 'outgoing' ? 'outgoing' : 'incoming';
         let matchingForm = forms.find((form) => form.formType?.toLowerCase() === targetType);
 
@@ -67,18 +129,30 @@ export default function LeadAndCallInfoPanel({
     }
 
     fetchFormList();
-  }, [userCampaign, token, callType]);
+  }, [userCampaign, callType]);
 
   useEffect(() => {
-    if (!formId || !token || status === 'start') return;
+    if (!formId || status === 'start') return;
 
     async function fetchFormDetails() {
       try {
         setLoading(true);
 
-        const res = await axios.get(`${window.location.origin}/getDynamicFormData/${formId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const tokenData = localStorage.getItem('token');
+        let token = null;
+        let refreshToken = localStorage.getItem('refreshToken'); // Direct access, no JSON.parse needed
+
+        if (tokenData) {
+          const parsedData = JSON.parse(tokenData);
+          token = parsedData.token;
+          refreshToken = parsedData.refreshToken || refreshToken;
+        }
+
+        const res = await fetchWithTokenRetry(
+          `${window.location.origin}/getDynamicFormData/${formId}`,
+          token,
+          refreshToken
+        );
 
         setFormConfig(res.data.result);
       } catch (err) {
@@ -89,7 +163,7 @@ export default function LeadAndCallInfoPanel({
     }
 
     fetchFormDetails();
-  }, [formId, token, status]);
+  }, [formId, status]);
 
   // Data fetching functions
   const fetchLeadsWithDateRange = useCallback(async () => {
@@ -229,11 +303,11 @@ export default function LeadAndCallInfoPanel({
           lastName: userCall.lastName || '',
           number: userCall.contactNumber || '',
           alternateNumber: userCall.alternateNumber || '',
-          address: userCall.Contactaddress || '',
-          state: userCall.ContactState || '',
-          district: userCall.ContactDistrict || '',
-          city: userCall.ContactCity || '',
-          postalCode: userCall.ContactPincode || '',
+          address: userCall.Contactaddress || '', // Note: Capital 'C' in Contact
+          state: userCall.ContactState || '', // Note: Capital 'C' and 'S'
+          district: userCall.ContactDistrict || '', // Note: Capital 'C' and 'D'
+          city: userCall.ContactCity || '', // Note: Capital 'C'
+          postalCode: userCall.ContactPincode || '', // Note: Capital 'C' and 'P'
           email: userCall.emailId || '',
           comment: userCall.comment || '',
         });
@@ -259,7 +333,8 @@ export default function LeadAndCallInfoPanel({
   }, []);
 
   // Handle form submission
-  const handleContact = async (formDataToSubmit) => {
+  const handleContact = async (event, formDataToSubmit) => {
+    event.preventDefault();
     const payload = {
       user: username,
       isFresh: userCall?.isFresh,

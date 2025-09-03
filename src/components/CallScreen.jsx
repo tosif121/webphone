@@ -77,11 +77,11 @@ const CallScreen = ({
   const maybeMask = (num) => (numberMasking ? maskPhoneNumber?.(num) : num);
 
   const mainNumber = (() => {
-    if (isMerged && phoneNumber && conferenceNumber) {
-      return `${maybeMask(phoneNumber)} Conference with ${maybeMask(conferenceNumber)}`;
+    if (isMerged && userCall?.contactNumber && conferenceNumber) {
+      return `${maybeMask(userCall?.contactNumber)} Conference with ${maybeMask(conferenceNumber)}`;
     }
     if (conferenceNumber) return maybeMask(conferenceNumber);
-    if (phoneNumber) return maybeMask(phoneNumber);
+    if (userCall?.contactNumber) return maybeMask(userCall?.contactNumber);
     return maybeMask(userCall?.contactNumber) || '';
   })();
 
@@ -98,7 +98,7 @@ const CallScreen = ({
         </div>
         <div className="text-center mb-2">
           {conferenceStatus ? (
-            <div className="text-sm font-medium text-muted-foreground max-w-[250px]">{phoneNumber} Hold</div>
+            <div className="text-sm font-medium text-muted-foreground max-w-[250px]">{userCall?.contactNumber} Hold</div>
           ) : (
             ''
           )}

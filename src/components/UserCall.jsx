@@ -4,15 +4,15 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 
-const UserCall = ({ 
-  formData, 
-  setFormData, 
-  userCallDialog, 
-  userCall, 
-  handleSubmit, 
+const UserCall = ({
+  formData,
+  setFormData,
+  userCallDialog,
+  userCall,
+  handleSubmit,
   formSubmitted,
   localFormData,
-  setLocalFormData
+  setLocalFormData,
 }) => {
   // Use localFormData if provided, otherwise fallback to formData
   const currentFormData = localFormData || formData || {};
@@ -28,7 +28,7 @@ const UserCall = ({
 
   function userCallorm() {
     return (
-      <form className="space-y-6" onSubmit={handleSubmit}>
+      <form className="space-y-6" onSubmit={(e) => handleSubmit(e, currentFormData)}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* First Name */}
           <div className="relative">

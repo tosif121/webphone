@@ -218,14 +218,12 @@ export default function DynamicForm({
 
   const handleFormSubmit = () => {
     const finalData = getFinalFormData();
-    console.log('Final form data for submission:', finalData);
 
     if (handleSubmit) {
       handleSubmit(finalData);
     }
   };
 
-  // **MAIN UPDATE: Enhanced Next Button Handler for Specialist Navigation**
   const handleNext = () => {
     if (!isSectionValid()) {
       toast.error('Please fill all required fields.');
@@ -234,55 +232,69 @@ export default function DynamicForm({
 
     updateVisitedSections(currentSectionIndex);
 
-    // **Handle Dynamic Navigation Based on Select Fields**
     if (currentSection?.isDynamicSection) {
-      // Check for any select field with nextSection logic
-      const dynamicSelectField = currentSection.fields.find((field) => {
-        return field.type === 'select' && currentFormData[field.name] && field.options.some((opt) => opt.nextSection);
-      });
+      let targetSectionId = null;
 
-      if (dynamicSelectField) {
-        const selectedValue = currentFormData[dynamicSelectField.name];
-        const selectedOption = dynamicSelectField.options.find((opt) => opt.value === selectedValue);
+      const callRelatedField = currentSection.fields.find(
+        (field) => field.name === 'Call Related To' && field.type === 'select' && currentFormData[field.name]
+      );
 
+      if (callRelatedField) {
+        const selectedValue = currentFormData[callRelatedField.name];
+        const selectedOption = callRelatedField.options.find((opt) => opt.value === selectedValue);
         if (selectedOption && selectedOption.nextSection) {
-          console.log(
-            `${dynamicSelectField.name} "${selectedValue}" selected, navigating to section ${selectedOption.nextSection}`
-          );
-
-          // Handle end/submit navigation
-          const normalizedNextSection = String(selectedOption.nextSection).toLowerCase();
-          if (normalizedNextSection === 'end' || normalizedNextSection === 'submit') {
-            setIsFormComplete(true);
-            return;
+          targetSectionId = selectedOption.nextSection;
+        }
+      } else {
+        for (const field of currentSection.fields) {
+          if (field.type === 'select' && currentFormData[field.name] && field.options.some((opt) => opt.nextSection)) {
+            const selectedValue = currentFormData[field.name];
+            const selectedOption = field.options.find((opt) => opt.value === selectedValue);
+            if (selectedOption && selectedOption.nextSection) {
+              targetSectionId = selectedOption.nextSection;
+              break;
+            }
           }
+        }
+      }
 
-          // Find the target section
-          const nextIndex = sortedSections.findIndex((sec) => String(sec.id) === selectedOption.nextSection);
-          const wouldCreateLoop = navigationPath.includes(nextIndex);
+      if (targetSectionId) {
+        if (!targetSectionId || targetSectionId.trim() === '') {
+          console.warn('Empty nextSection detected; proceeding to form end.');
+          setIsFormComplete(true);
+          return;
+        }
 
-          if (nextIndex !== -1 && !wouldCreateLoop) {
-            const newPath = [...navigationPath, nextIndex];
-            cleanupFormDataForPath(newPath);
-            setVisitedSections((prev) => prev.filter((idx) => newPath.includes(idx)));
-            updateVisitedSections(currentSectionIndex);
-            setCurrentSectionIndex(nextIndex);
-            updateNavigationPath(newPath);
-            return;
-          } else if (nextIndex === -1) {
-            console.error(`Section ${selectedOption.nextSection} not found`);
-            setIsFormComplete(true);
-            return;
-          } else {
-            console.warn(`Would create loop, completing form instead`);
-            setIsFormComplete(true);
-            return;
-          }
+        const normalizedId = isNaN(targetSectionId) ? targetSectionId : parseInt(targetSectionId, 10).toString();
+
+        if (normalizedId === 'end' || normalizedId === 'submit') {
+          setIsFormComplete(true);
+          return;
+        }
+
+        const nextIndex = sortedSections.findIndex((sec) => sec.id.toString() === normalizedId);
+        const wouldCreateLoop = navigationPath.includes(nextIndex);
+
+        if (nextIndex !== -1 && !wouldCreateLoop) {
+          const newPath = [...navigationPath, nextIndex];
+          cleanupFormDataForPath(newPath);
+          setVisitedSections((prev) => prev.filter((idx) => newPath.includes(idx)));
+          updateVisitedSections(currentSectionIndex);
+          setCurrentSectionIndex(nextIndex);
+          updateNavigationPath(newPath);
+          return;
+        } else if (nextIndex === -1) {
+          console.error(`Section ${targetSectionId} not found`);
+          setIsFormComplete(true);
+          return;
+        } else {
+          console.warn(`Would create loop, completing form instead`);
+          setIsFormComplete(true);
+          return;
         }
       }
     }
 
-    // **Standard Navigation Logic**
     const nextNavigation = currentSection?.nextSection;
 
     if (nextNavigation === 'next') {
@@ -445,8 +457,8 @@ export default function DynamicForm({
                 {i < navigationPath.length - 1 && ' → '}
               </span>
             ))}
-          </div> */}
-          {/* <div className="flex items-center justify-between mb-4">
+          </div>
+          <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium text-primary flex items-center gap-2 capitalize">
               <List className="w-5 h-5 text-muted-foreground" />
               {currentSection.title || `Section ${currentSection.id}`}
