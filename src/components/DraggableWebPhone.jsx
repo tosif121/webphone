@@ -166,7 +166,9 @@ export default function DraggableWebPhone() {
             setConferenceNumber={setConferenceNumber}
             handleCall={handleCalls}
             setSeeLogs={setSeeLogs}
-            phoneNumber={phoneNumber}
+            phoneNumber={userCall?.contactNumber || phoneNumber}
+            seconds={seconds}
+            minutes={minutes}
           />
         ) : (
           <CallScreen

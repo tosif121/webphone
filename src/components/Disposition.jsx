@@ -439,6 +439,8 @@ const Disposition = ({
               date: callbackData.date,
               time: callbackData.time,
               comment: callbackData.details,
+              user: user,
+              campaignID: campaignID,
             };
           } else {
             requestBody.followUpDisposition = {

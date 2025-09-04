@@ -135,6 +135,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                                   <span>{formatTimeAgo(call.callTime)}</span>
                                 </div>
                                 <span>{formatDateTime(call.callTime)}</span>
+                                {(call.user && <div>By: {call.user}</div>) || ''}
                               </div>
                               {call.phoneNumber && (
                                 <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-md border border-blue-200 dark:border-blue-800">
@@ -193,6 +194,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                                 <span>{formatTimeAgo(call.callTime)}</span>
                               </div>
                               <span>{formatDateTime(call.callTime)}</span>
+                              {(call.user && <div>By: {call.user}</div>) || ''}
                             </div>
                             {call.phoneNumber && (
                               <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-md border border-blue-200 dark:border-blue-800">

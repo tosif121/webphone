@@ -28,7 +28,6 @@ const CallScreen = ({
   reqUnHold,
   toggleHold,
   isHeld,
-  phoneNumber,
   session,
   seconds,
   minutes,
@@ -52,6 +51,36 @@ const CallScreen = ({
   const parsedData = tokenData ? JSON.parse(tokenData) : {};
   const { username } = useContext(HistoryContext);
   const numberMasking = parsedData?.userData?.numberMasking;
+  const [confSeconds, setConfSeconds] = useState(0);
+  const [confMinutes, setConfMinutes] = useState(0);
+  const [confRunning, setConfRunning] = useState(false);
+
+  // Start conference call timer when new conference call starts
+  useEffect(() => {
+    let interval;
+    if (conferenceNumber && !isMerged) {
+      setConfRunning(true);
+      interval = setInterval(() => {
+        setConfSeconds((prev) => {
+          if (prev === 59) {
+            setConfMinutes((m) => m + 1);
+            return 0;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [conferenceNumber, isMerged]);
+
+  // Reset when merged
+  useEffect(() => {
+    if (isMerged) {
+      setConfRunning(false);
+      setConfSeconds(0);
+      setConfMinutes(0);
+    }
+  }, [isMerged]);
 
   const handleTransfer = async () => {
     try {
@@ -98,7 +127,9 @@ const CallScreen = ({
         </div>
         <div className="text-center mb-2">
           {conferenceStatus ? (
-            <div className="text-sm font-medium text-muted-foreground max-w-[250px]">{userCall?.contactNumber} Hold</div>
+            <div className="text-sm font-medium text-muted-foreground max-w-[250px]">
+              {userCall?.contactNumber} Hold {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+            </div>
           ) : (
             ''
           )}
@@ -108,7 +139,9 @@ const CallScreen = ({
               <>
                 <Clock className="w-3 h-3 text-secondary-foreground" />
                 <span className="text-sm font-mono text-secondary-foreground">
-                  {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+                  {conferenceNumber && !isMerged
+                    ? `${String(confMinutes).padStart(2, '0')}:${String(confSeconds).padStart(2, '0')}`
+                    : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`}
                 </span>
               </>
             ) : (

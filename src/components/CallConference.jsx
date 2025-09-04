@@ -1,10 +1,18 @@
 import { useState } from 'react';
-import { Phone, Delete, ArrowLeft } from 'lucide-react';
+import { Phone, Delete, ArrowLeft, Clock } from 'lucide-react';
 import useFormatPhoneNumber from '../hooks/useFormatPhoneNumber';
 import KeyPad from './KeyPad';
 import { Button } from './ui/button';
 
-const CallConference = ({ conferenceNumber, handleCall, setCallConference, phoneNumber, setConferenceNumber }) => {
+const CallConference = ({
+  conferenceNumber,
+  handleCall,
+  setCallConference,
+  phoneNumber,
+  setConferenceNumber,
+  seconds,
+  minutes,
+}) => {
   const [isHovered, setIsHovered] = useState(false);
   const formatPhoneNumber = useFormatPhoneNumber();
 
@@ -15,7 +23,8 @@ const CallConference = ({ conferenceNumber, handleCall, setCallConference, phone
   return (
     <>
       {/* Header */}
-      <div className="flex items-center gap-3 p-3 border-b border-border bg-muted/60">
+      <div className="flex items-center justify-between gap-3 p-3 border-b border-border bg-muted/60">
+        {/* Back button */}
         <button
           onClick={() => setCallConference(false)}
           className="inline-flex items-center justify-center w-7 h-7 rounded bg-muted hover:bg-accent transition-colors text-muted-foreground hover:text-primary"
@@ -23,7 +32,17 @@ const CallConference = ({ conferenceNumber, handleCall, setCallConference, phone
         >
           <ArrowLeft className="w-3.5 h-3.5" />
         </button>
-        <h1 className="text-md font-semibold text-primary">Conference Call</h1>
+
+        {/* Phone number */}
+        <h1 className="text-md font-semibold text-primary">{phoneNumber}</h1>
+
+        {/* Timer */}
+        <div className="flex items-center gap-1">
+          <Clock className="w-3 h-3 text-secondary-foreground" />
+          <span className="text-sm font-mono text-secondary-foreground">
+            {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+          </span>
+        </div>
       </div>
 
       {/* Conference Number Input */}
