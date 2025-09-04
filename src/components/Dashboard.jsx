@@ -273,16 +273,18 @@ function Dashboard() {
   }, [computedMissedCallsLength, setCampaignMissedCallsLength]);
 
   useEffect(() => {
-    if (status == 'start' && username) {
+    if ((status == 'start' && username) || dropCalls) {
       fetchUserMissedCalls();
     }
-  }, [status, username]);
+  }, [status, username, dropCalls]);
 
   useEffect(() => {
-    if (selectedBreak != 'Break' && ringtone.length >= 0) {
-      fetchUserMissedCalls();
+    if (selectedBreak !== 'Break' && ringtone.length >= 0) {
+      if (username) {
+        fetchUserMissedCalls();
+      }
     }
-  }, [ringtone]);
+  }, [ringtone, username]);
 
   const fetchUserMissedCalls = async () => {
     try {
@@ -484,6 +486,8 @@ function Dashboard() {
           setFormSubmitted={setFormSubmitted}
           fetchLeadsWithDateRange={fetchLeadsWithDateRange}
           setPhoneNumber={setPhoneNumber}
+          campaignID={userCampaign}
+          user={username}
         />
       )}
       <SessionTimeoutModal isOpen={showTimeoutModal} onClose={closeTimeoutModal} onLoginSuccess={handleLoginSuccess} />

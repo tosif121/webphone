@@ -101,11 +101,11 @@ export default function DynamicForm({
   setFormState,
   userCallDialog,
   userCall,
-  status,
   handleSubmit,
   formSubmitted,
   localFormData,
   setLocalFormData,
+  status,
 }) {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [visitedSections, setVisitedSections] = useState([]);
@@ -380,7 +380,7 @@ export default function DynamicForm({
   }, [userCall, formConfig, isInitialized]);
 
   useEffect(() => {
-    if (status === 'start') {
+    if (status === 'calling') {
       setCurrentSectionIndex(0);
       setVisitedSections([]);
       setIsFormComplete(false);
@@ -389,8 +389,40 @@ export default function DynamicForm({
       setInitialValues({});
       setUserModifiedFields(new Set());
       formDataRef.current = {};
+      localStorage.removeItem('formNavigationState');
     }
   }, [status]);
+
+  useEffect(() => {
+    // Load complete state from localStorage on mount
+    const savedState = localStorage.getItem('formNavigationState');
+    if (savedState) {
+      try {
+        const parsedState = JSON.parse(savedState);
+        setCurrentSectionIndex(parsedState.currentSectionIndex || 0);
+        setNavigationPath(parsedState.navigationPath || [0]);
+        setVisitedSections(parsedState.visitedSections || []);
+        setIsFormComplete(parsedState.isFormComplete || false);
+        if (parsedState.userModifiedFields) {
+          setUserModifiedFields(new Set(parsedState.userModifiedFields));
+        }
+      } catch (error) {
+        console.warn('Failed to parse saved form state:', error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const stateToSave = {
+      currentSectionIndex,
+      navigationPath,
+      visitedSections,
+      isFormComplete,
+      userModifiedFields: Array.from(userModifiedFields),
+    };
+
+    localStorage.setItem('formNavigationState', JSON.stringify(stateToSave));
+  }, [currentSectionIndex, navigationPath, visitedSections, isFormComplete, userModifiedFields]);
 
   useEffect(() => {
     const finalData = getFinalFormData();

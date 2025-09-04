@@ -81,24 +81,32 @@ export default function Header() {
           });
         }
 
-        localStorage.clear();
-
+        localStorage.removeItem('token');
+        localStorage.removeItem('savedUsername');
+        localStorage.removeItem('savedPassword');
+        localStorage.removeItem('call-history');
+        localStorage.removeItem('phoneShow');
+        localStorage.removeItem('formNavigationState');
+        localStorage.removeItem('selectedBreak');
         toast.success('Logged out successfully');
         setUserMenuOpen(false);
         window.location.href = '/webphone/v1/login';
       } catch (error) {
         console.error('Error during logout:', error);
 
-        localStorage.clear();
-
+        localStorage.removeItem('token');
+        localStorage.removeItem('savedUsername');
+        localStorage.removeItem('savedPassword');
+        localStorage.removeItem('call-history');
+        localStorage.removeItem('phoneShow');
+        localStorage.removeItem('formNavigationState');
+        localStorage.removeItem('selectedBreak');
         toast.warning('Logged out (some cleanup operations failed)');
         setUserMenuOpen(false);
         window.location.href = '/webphone/v1/login';
       }
     }
   };
-
-  // In your Header component, update the handleClickOutside function:
 
   useEffect(() => {
     function handleClickOutside(event) {

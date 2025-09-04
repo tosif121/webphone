@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from './ui/button';
 
-const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
+const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus, queueBreakOnly = false }) => {
   const { username, selectedBreak, setSelectedBreak } = useContext(HistoryContext);
   const [timer, setTimer] = useState(0);
   const [breakTypes, setBreakTypes] = useState([]);
@@ -24,7 +24,8 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
     if (lowerLabel.includes('lunch') || lowerLabel.includes('dinner') || lowerLabel.includes('meal')) return Utensils;
     if (lowerLabel.includes('coffee') || lowerLabel.includes('tea') || lowerLabel.includes('drink')) return Coffee;
     if (lowerLabel.includes('short') || lowerLabel.includes('quick') || lowerLabel.includes('brief')) return Clock3;
-    if (lowerLabel.includes('meeting') || lowerLabel.includes('call') || lowerLabel.includes('conference')) return Users;
+    if (lowerLabel.includes('meeting') || lowerLabel.includes('call') || lowerLabel.includes('conference'))
+      return Users;
     if (lowerLabel.includes('break') || lowerLabel.includes('rest') || lowerLabel.includes('pause')) return Clock;
     return Activity;
   };
@@ -97,7 +98,7 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
     try {
       await axios.post(`${window.location.origin}/user/removebreakuser:${username}`);
       setSelectedBreak('Break');
-      localStorage.removeItem('selectedBreak'); // Clear from localStorage
+      localStorage.removeItem('selectedBreak');
       toast.success('Break removed successfully');
     } catch (error) {
       console.error('Error removing break:', error);
@@ -111,18 +112,19 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
       return;
     }
 
-    try {
-      if (dispoWithBreak && breakType !== 'Break') {
-        await axios.post(
-          `${window.location.origin}/user/disposition${username}`,
-          { bridgeID, Disposition: `dispoWithBreak` },
-          { headers: { 'Content-Type': 'application/json' } }
-        );
-      }
+    // If queueBreakOnly is true (in disposition context), just queue the break
+    if (queueBreakOnly || dispoWithBreak) {
+      setSelectedBreak(breakType);
+      localStorage.setItem('selectedBreak', breakType);
+      toast.success(`${breakType} queued - will be applied after disposition`);
+      return;
+    }
 
+    // Normal break application for standalone use
+    try {
       await axios.post(`${window.location.origin}/user/breakuser:${username}`, { breakType });
       setSelectedBreak(breakType);
-      localStorage.setItem('selectedBreak', breakType); // Save to localStorage
+      localStorage.setItem('selectedBreak', breakType);
       toast.success('Break applied successfully');
     } catch (error) {
       console.error('Error applying break:', error);
@@ -143,11 +145,7 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
           } gap-2 font-medium sm:w-auto justify-baseline`}
           onClick={removeBreak}
         >
-          {selectedBreakObj?.icon ? (
-            <selectedBreakObj.icon className="w-4 h-4" />
-          ) : (
-            <Activity className="w-4 h-4" />
-          )}
+          {selectedBreakObj?.icon ? <selectedBreakObj.icon className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
           <span>{selectedBreakObj?.label}</span>
           <span className="flex items-center gap-1 ml-2 text-xs">
             <Clock className="w-3 h-3" />
@@ -168,11 +166,7 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             {breakTypes.map(({ type, label, icon: Icon, id }) => (
-              <DropdownMenuItem
-                key={id}
-                onClick={() => handleBreakAction(type)}
-                className="gap-3 cursor-pointer"
-              >
+              <DropdownMenuItem key={id} onClick={() => handleBreakAction(type)} className="gap-3 cursor-pointer">
                 <Icon className="w-4 h-4 text-muted-foreground" />
                 <span>{label}</span>
               </DropdownMenuItem>

@@ -162,8 +162,14 @@ const useJssip = (isMobile = false) => {
 
   const closeTimeoutModal = () => {
     setShowTimeoutModal(false);
-    // Clear session and redirect to login page
-    localStorage.clear();
+    localStorage.removeItem('token');
+    localStorage.removeItem('savedUsername');
+    localStorage.removeItem('savedPassword');
+    localStorage.removeItem('call-history');
+    localStorage.removeItem('phoneShow');
+    localStorage.removeItem('formNavigationState');
+    localStorage.removeItem('selectedBreak');
+
     window.location.href = '/webphone/v1/login';
   };
 

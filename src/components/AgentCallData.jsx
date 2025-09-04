@@ -110,9 +110,7 @@ export default function AgentCallData() {
       escapeCsvField(row.anstime ? moment(row.anstime).format('DD-MMM-YYYY HH:mm:ss A') : '-'),
       escapeCsvField(row.hanguptime ? moment(row.hanguptime).format('DD-MMM-YYYY HH:mm:ss A') : '-'),
       escapeCsvField(
-        row.hanguptime && row.startTime
-          ? moment.utc((row.hanguptime - row.startTime) * 1000).format('HH:mm:ss')
-          : '00:00:00'
+        row.hanguptime && row.startTime ? moment.utc(row.hanguptime - row.startTime).format('HH:mm:ss') : '00:00:00'
       ),
       escapeCsvField(row.Type),
       escapeCsvField(row.Disposition || 'No Disposition'),

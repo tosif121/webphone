@@ -88,7 +88,13 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess }) => {
 
   const handleGoToLogin = () => {
     if (typeof window !== 'undefined') {
-      localStorage.clear();
+      localStorage.removeItem('token');
+      localStorage.removeItem('savedUsername');
+      localStorage.removeItem('savedPassword');
+      localStorage.removeItem('call-history');
+      localStorage.removeItem('phoneShow');
+      localStorage.removeItem('formNavigationState');
+          localStorage.removeItem('selectedBreak');
       window.location.href = '/webphone/v1/login';
     }
   };

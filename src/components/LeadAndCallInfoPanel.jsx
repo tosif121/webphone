@@ -83,6 +83,10 @@ export default function LeadAndCallInfoPanel({
           localStorage.removeItem('token');
           localStorage.removeItem('savedUsername');
           localStorage.removeItem('savedPassword');
+          localStorage.removeItem('call-history');
+          localStorage.removeItem('phoneShow');
+          localStorage.removeItem('formNavigationState');
+          localStorage.removeItem('selectedBreak');
           throw refreshErr;
         }
       } else {
@@ -503,15 +507,16 @@ export default function LeadAndCallInfoPanel({
     if (formConfig && formConfig.sections && formConfig.sections.length > 0) {
       return (
         <DynamicForm
+          key={formConfig.formId}
           formConfig={formConfig}
           formState={localFormData}
           setFormState={updateLocalFormData}
           userCall={userCall}
           userCallDialog={true}
-          status={status}
           formSubmitted={formSubmitted}
           handleSubmit={handleSubmit}
           localFormData={localFormData}
+          status={status}
           setLocalFormData={updateLocalFormData}
         />
       );

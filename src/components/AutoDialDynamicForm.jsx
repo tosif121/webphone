@@ -243,7 +243,6 @@ export default function AutoDialDynamicForm({ formConfig, setPhoneNumber, dispos
         setPhoneNumber(phoneValue);
       } else {
         console.error('Failed to initiate call:', response.data.message || 'Unknown error');
-        // localStorage.clear();
         window.location.href = '/webphone/v1/login';
       }
     } catch (err) {

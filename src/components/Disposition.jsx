@@ -26,6 +26,8 @@ const Disposition = ({
   callType,
   setCallType,
   setFormSubmitted,
+  campaignID,
+  user,
 }) => {
   const { username } = useContext(HistoryContext);
   const [selectedAction, setSelectedAction] = useState(null);
@@ -409,18 +411,13 @@ const Disposition = ({
     }
   }, [handleKeyDown, shouldShowModal]);
 
+  // In Disposition component, modify submitForm function
   const submitForm = useCallback(
     async (callbackData = null) => {
       if (!selectedAction) {
         toast.error('Please select a disposition action');
         return;
       }
-
-      // Validate the entire form
-      // if (!isFormValid()) {
-      //   toast.error('Please fill all required fields to proceed.');
-      //   return;
-      // }
 
       if (isSubmitting || hasSubmittedSuccessfully) {
         return;
@@ -435,13 +432,13 @@ const Disposition = ({
           autoDialDisabled: isAutoLeadDialDisabled,
         };
 
+        // Handle callback data
         if (selectedAction === 'Callback Scheduled') {
           if (callbackData) {
             requestBody.followUpDisposition = {
               date: callbackData.date,
               time: callbackData.time,
               comment: callbackData.details,
-              phoneNumber: phoneNumber,
             };
           } else {
             requestBody.followUpDisposition = {
@@ -453,14 +450,30 @@ const Disposition = ({
           }
         }
 
+        // 1. Submit disposition FIRST
         const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
 
         if (response.data.success) {
-          toast.success('Disposition submitted successfully');
+          // 2. AFTER successful disposition, check if break is selected
+          const selectedBreakType = localStorage.getItem('selectedBreak');
+
+          if (selectedBreakType && selectedBreakType !== 'Break') {
+            try {
+              // Apply the break after disposition
+              await axios.post(`${window.location.origin}/user/breakuser:${username}`, {
+                breakType: selectedBreakType,
+              });
+              toast.success('Disposition submitted and break applied successfully');
+            } catch (breakError) {
+              console.error('Break application failed:', breakError);
+              toast.success('Disposition submitted successfully, but break application failed');
+            }
+          } else {
+            toast.success('Disposition submitted successfully');
+          }
+
           setHasSubmittedSuccessfully(true);
-
           fetchLeadsWithDateRange();
-
           setFormSubmitted(false);
           setDispositionModal(false);
           setPhoneNumber('');
@@ -640,7 +653,7 @@ const Disposition = ({
               <div className="flex flex-col lg:flex-row gap-4 justify-end items-start border-t pt-4">
                 <div className="flex flex-wrap sm:flex-row flex-col-reverse gap-2 w-full lg:w-auto md:justify-end">
                   <div>
-                    <BreakDropdown bridgeID={bridgeID} dispoWithBreak={true} />
+                    <BreakDropdown bridgeID={bridgeID} dispoWithBreak={true} queueBreakOnly={true} />
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     {/* <Button

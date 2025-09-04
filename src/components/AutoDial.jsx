@@ -169,7 +169,6 @@ const AutoDial = ({ setPhoneNumber, dispositionModal, handleCall }) => {
         setPhoneNumber(formData.phoneNumber);
       } else {
         console.error('Failed to initiate call:', response.data.message || 'Unknown error');
-        // localStorage.clear();
         window.location.href = '/webphone/v1/login';
       }
     } catch (err) {
