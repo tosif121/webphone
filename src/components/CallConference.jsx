@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 
 const CallConference = ({
   conferenceNumber,
-  handleCall,
+  handleCalls,
   setCallConference,
   phoneNumber,
   setConferenceNumber,
@@ -17,7 +17,10 @@ const CallConference = ({
   const formatPhoneNumber = useFormatPhoneNumber();
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleCall();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleCalls();
+    }
   };
 
   return (
@@ -83,7 +86,7 @@ const CallConference = ({
         <Button
           size="icon"
           className="w-12 h-12 rounded-full text-white shadow-md bg-green-600 hover:bg-green-700 focus-visible:ring-green-500"
-          onClick={handleCall}
+          onClick={handleCalls}
           aria-label="Call"
         >
           <Phone className="w-6 h-6" />

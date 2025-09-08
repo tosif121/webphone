@@ -155,6 +155,7 @@ export default function DraggableWebPhone() {
           isConnectionLost={isConnectionLost}
         />
       )}
+      {console.log(conferenceStatus, 'conferenceStatus', callConference, 'callConference')}
 
       {!(effectiveIsMobile && isIncomingRinging) &&
         !seeLogs &&
@@ -164,7 +165,7 @@ export default function DraggableWebPhone() {
             conferenceNumber={conferenceNumber}
             setCallConference={setCallConference}
             setConferenceNumber={setConferenceNumber}
-            handleCall={handleCalls}
+            handleCalls={handleCalls}
             setSeeLogs={setSeeLogs}
             phoneNumber={userCall?.contactNumber || phoneNumber}
             seconds={seconds}
