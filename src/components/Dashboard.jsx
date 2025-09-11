@@ -1,5 +1,5 @@
 import HistoryContext from '@/context/HistoryContext';
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useRef, useMemo, useState } from 'react';
 import LeadAndCallInfoPanel from './LeadAndCallInfoPanel';
 import Disposition from './Disposition';
 import { JssipContext } from '@/context/JssipContext';
@@ -110,6 +110,7 @@ function Dashboard() {
   const [userCampaign, setUserCampaign] = useState(null);
   const [leadsData, setLeadsData] = useState([]);
   const [apiCallData, setApiCallData] = useState([]);
+  const endCallAudioRef = useRef(null);
 
   const router = useRouter();
   const computedMissedCallsLength = useMemo(() => {
@@ -455,8 +456,29 @@ function Dashboard() {
     });
   };
 
+  // Function to play end-call sound
+  const playEndCallSound = () => {
+    if (endCallAudioRef.current) {
+      endCallAudioRef.current.currentTime = 0; // Reset to beginning
+      endCallAudioRef.current.play().catch((error) => {
+        console.error('Error playing end-call sound:', error);
+      });
+    }
+  };
+
+  // Call this function when dispositionModal opens
+  useEffect(() => {
+    if (dispositionModal) {
+      playEndCallSound();
+    }
+  }, [dispositionModal]);
+
   return (
     <>
+      <audio ref={endCallAudioRef} preload="auto" hidden>
+        <source src={`${window.location.origin}/sounds/end-call.mp3`} type="audio/mpeg" />
+        <source src="/sounds/end-call.mp3" type="audio/mpeg" />
+      </audio>
       {ringtone && ringtone.length > 0 && (
         <div className="w-full bg-primary/10 border border-primary/20 px-3 py-1 flex items-center gap-3 text-xs mb-4 rounded-sm">
           <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center animate-pulse">

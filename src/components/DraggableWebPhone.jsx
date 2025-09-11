@@ -136,17 +136,6 @@ export default function DraggableWebPhone() {
     }
   }, [status]);
 
-  useEffect(() => {
-    if (dispositionModal) {
-      const audioUrl = `${window.location.origin}/sounds/end-call.mp3`;
-      const endCallAudio = new Audio(audioUrl);
-
-      endCallAudio.play().catch((error) => {
-        console.error('Error playing end-call sound:', error);
-      });
-    }
-  }, [dispositionModal]);
-
   const renderPhoneContent = () => (
     <div className={effectiveIsMobile ? 'w-full h-full' : 'webphone-drag-handle w-full h-full'}>
       {effectiveIsMobile && isIncomingRinging && (
