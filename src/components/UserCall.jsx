@@ -3,6 +3,7 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription } from './ui/
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
+import { useEffect, useState } from 'react';
 
 const UserCall = ({
   formData,
@@ -15,8 +16,11 @@ const UserCall = ({
   setLocalFormData,
 }) => {
   // Use localFormData if provided, otherwise fallback to formData
-  const currentFormData = localFormData || formData || {};
-  const setCurrentFormData = setLocalFormData || setFormData || (() => {});
+  const [currentFormData, setCurrentFormData] = useState(localFormData || formData || {});
+
+  useEffect(() => {
+    setCurrentFormData(localFormData || formData || {});
+  }, [localFormData, formData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,6 +28,9 @@ const UserCall = ({
       ...prev,
       [name]: value,
     }));
+
+    if (setLocalFormData) setLocalFormData((prev) => ({ ...prev, [name]: value }));
+    else if (setFormData) setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   function userCallorm() {
