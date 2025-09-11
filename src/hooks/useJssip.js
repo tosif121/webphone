@@ -1002,7 +1002,7 @@ const useJssip = (isMobile = false) => {
     }
     const initializeJsSIP = () => {
       try {
-        var socket = new JsSIP.WebSocketInterface(`wss://${origin}:8089/ws`);
+        var socket = new JsSIP.WebSocketInterface(`wss://${origin}:8099/ws`);
 
         // Add direct socket error handling
         socket.onclose = function (event) {
@@ -1024,7 +1024,7 @@ const useJssip = (isMobile = false) => {
         var configuration = {
           sockets: [socket],
           session_timers: false,
-          uri: `${username.replace('@', '-')}@${origin}:8089`,
+          uri: `${username.replace('@', '-')}@${origin}:8099`,
           password: password,
         };
 
