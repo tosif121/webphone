@@ -138,7 +138,9 @@ export default function DraggableWebPhone() {
 
   useEffect(() => {
     if (dispositionModal) {
-      const endCallAudio = new Audio('/sounds/end-call.mp3');
+      const audioUrl = `${window.location.origin}/sounds/end-call.mp3`;
+      const endCallAudio = new Audio(audioUrl);
+
       endCallAudio.play().catch((error) => {
         console.error('Error playing end-call sound:', error);
       });
