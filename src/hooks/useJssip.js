@@ -53,7 +53,7 @@ const useJssip = (isMobile = false) => {
     autoStart: false,
   });
 
-  // const [origin, setOrigin] = useState('esamwad.iotcom.io');
+  const [origin, setOrigin] = useState('devapp.iotcom.io');
 
   useEffect(() => {
     const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
