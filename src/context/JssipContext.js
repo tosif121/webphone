@@ -66,6 +66,7 @@ export function JssipProvider({ children }) {
     setShowTimeoutModal,
     handleLoginSuccess,
     closeTimeoutModal,
+    userLogin,
   ] = useJssip(isMobile);
 
   return (
@@ -119,6 +120,7 @@ export function JssipProvider({ children }) {
         setShowTimeoutModal,
         handleLoginSuccess,
         closeTimeoutModal,
+        userLogin,
         isMobile,
       }}
     >

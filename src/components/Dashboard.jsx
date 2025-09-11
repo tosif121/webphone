@@ -85,6 +85,7 @@ function Dashboard() {
     setShowTimeoutModal,
     handleLoginSuccess,
     closeTimeoutModal,
+    userLogin,
   } = useContext(JssipContext);
 
   const {
@@ -490,7 +491,12 @@ function Dashboard() {
           user={username}
         />
       )}
-      <SessionTimeoutModal isOpen={showTimeoutModal} onClose={closeTimeoutModal} onLoginSuccess={handleLoginSuccess} />
+      <SessionTimeoutModal
+        isOpen={showTimeoutModal}
+        onClose={closeTimeoutModal}
+        onLoginSuccess={handleLoginSuccess}
+        userLogin={userLogin}
+      />
       {dropCalls && (
         <DropCallsModal
           usermissedCalls={usermissedCalls}

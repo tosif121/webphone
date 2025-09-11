@@ -37,6 +37,7 @@ const useJssip = (isMobile = false) => {
   const [followUpDispoes, setFollowUpDispoes] = useState([]);
   const [conferenceCalls, setConferenceCalls] = useState([]);
   const [callConference, setCallConference] = useState(false);
+  const [userLogin, setUserLogin] = useState(false);
   const [callType, setCallType] = useState('');
   const offlineToastIdRef = useRef(null);
   const agentSocketRef = useRef(null);
@@ -245,6 +246,7 @@ const useJssip = (isMobile = false) => {
       if (response.status === 401 || !response.data.isUserLogin) {
         if (status === 'start' && !dispositionModal) {
           await handleLogout(token, 'Session expired. Please log in again.');
+          setUserLogin(true);
           return true;
         }
         return false;
@@ -1511,6 +1513,7 @@ const useJssip = (isMobile = false) => {
     setShowTimeoutModal,
     handleLoginSuccess,
     closeTimeoutModal,
+    userLogin,
   ];
 };
 

@@ -138,6 +138,7 @@ export default function AgentDashboard() {
     setShowTimeoutModal,
     handleLoginSuccess,
     closeTimeoutModal,
+    userLogin,
   } = useContext(JssipContext);
 
   useEffect(() => {
@@ -226,7 +227,12 @@ export default function AgentDashboard() {
 
   return (
     <>
-      <SessionTimeoutModal isOpen={showTimeoutModal} onClose={closeTimeoutModal} onLoginSuccess={handleLoginSuccess} />
+      <SessionTimeoutModal
+        isOpen={showTimeoutModal}
+        onClose={closeTimeoutModal}
+        onLoginSuccess={handleLoginSuccess}
+        userLogin={userLogin}
+      />
 
       <div className="space-y-8">
         <div className="text-center md:text-start">

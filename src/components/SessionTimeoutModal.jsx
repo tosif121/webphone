@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle } from 'lucide-react';
 
-const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess }) => {
+const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isClient, setIsClient] = useState(false);
@@ -94,7 +94,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess }) => {
       localStorage.removeItem('call-history');
       localStorage.removeItem('phoneShow');
       localStorage.removeItem('formNavigationState');
-          localStorage.removeItem('selectedBreak');
+      localStorage.removeItem('selectedBreak');
       window.location.href = '/webphone/v1/login';
     }
   };
@@ -130,7 +130,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess }) => {
           <Button onClick={handleGoToLogin} variant="outline">
             Go to Login
           </Button>
-          <Button onClick={handleReLogin} disabled={isLoading}>
+          <Button onClick={handleReLogin} disabled={isLoading || userLogin}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isLoading ? 'Re-login...' : 'Re-Connect'}
           </Button>

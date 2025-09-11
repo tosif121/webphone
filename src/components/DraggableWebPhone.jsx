@@ -59,6 +59,7 @@ export default function DraggableWebPhone() {
     setShowTimeoutModal,
     handleLoginSuccess,
     closeTimeoutModal,
+    userLogin,
     isMobile,
   } = useContext(JssipContext);
 
@@ -134,6 +135,15 @@ export default function DraggableWebPhone() {
       stopRecording();
     }
   }, [status]);
+
+  useEffect(() => {
+    if (dispositionModal) {
+      const endCallAudio = new Audio('/sounds/end-call.mp3');
+      endCallAudio.play().catch((error) => {
+        console.error('Error playing end-call sound:', error);
+      });
+    }
+  }, [dispositionModal]);
 
   const renderPhoneContent = () => (
     <div className={effectiveIsMobile ? 'w-full h-full' : 'webphone-drag-handle w-full h-full'}>
