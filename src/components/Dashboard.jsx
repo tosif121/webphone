@@ -467,9 +467,12 @@ function Dashboard() {
   }, [dispositionModal]);
   return (
     <>
-      <audio ref={endCallAudioRef} preload="auto" hidden>
-        <source src="/webphone/end-call.mp3" type="audio/mp3" />
-      </audio>
+      {typeof window !== 'undefined' && (
+        <audio ref={endCallAudioRef} preload="auto" hidden>
+          <source src={`${window.location.origin}/sounds/end-call.mp3`} type="audio/mpeg" />
+          <source src="/sounds/end-call.mp3" type="audio/mpeg" />
+        </audio>
+      )}
       {ringtone && ringtone.length > 0 && (
         <div className="w-full bg-primary/10 border border-primary/20 px-3 py-1 flex items-center gap-3 text-xs mb-4 rounded-sm">
           <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center animate-pulse">
