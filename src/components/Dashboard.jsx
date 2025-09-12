@@ -468,7 +468,7 @@ function Dashboard() {
   return (
     <>
       <audio ref={endCallAudioRef} preload="auto" hidden>
-        <source src="/end-call.mp3" type="audio/mp3" />
+        <source src="/webphone/end-call.mp3" type="audio/mp3" />
       </audio>
       {ringtone && ringtone.length > 0 && (
         <div className="w-full bg-primary/10 border border-primary/20 px-3 py-1 flex items-center gap-3 text-xs mb-4 rounded-sm">
