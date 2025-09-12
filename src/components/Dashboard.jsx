@@ -469,8 +469,8 @@ function Dashboard() {
     <>
       {typeof window !== 'undefined' && (
         <audio ref={endCallAudioRef} preload="auto" hidden>
-          <source src={`${window.location.origin}/sounds/end-call.mp3`} type="audio/mpeg" />
-          <source src="/sounds/end-call.mp3" type="audio/mpeg" />
+          <source src={`${window.location.origin}/webphone/end-call.mp3`} type="audio/mp3" />
+          <source src="/end-call.mp3" type="audio/mp3" />
         </audio>
       )}
       {ringtone && ringtone.length > 0 && (
