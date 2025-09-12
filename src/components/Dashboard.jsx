@@ -110,6 +110,7 @@ function Dashboard() {
   const [userCampaign, setUserCampaign] = useState(null);
   const [leadsData, setLeadsData] = useState([]);
   const [apiCallData, setApiCallData] = useState([]);
+  const endCallAudioRef = useRef(null);
 
   const router = useRouter();
   const computedMissedCallsLength = useMemo(() => {
@@ -455,24 +456,21 @@ function Dashboard() {
     });
   };
 
-  const endCallAudioRef = useRef(null);
 
   useEffect(() => {
-    if (dispositionModal) {
-      if (endCallAudioRef.current) {
-        endCallAudioRef.current.currentTime = 0;
-        endCallAudioRef.current.play().catch(console.error);
-      }
+    if (dispositionModal && endCallAudioRef.current) {
+      endCallAudioRef.current.currentTime = 0;
+      endCallAudioRef.current.play().catch((err) => {
+        console.error('Audio play failed:', err);
+      });
     }
   }, [dispositionModal]);
+
   return (
     <>
-      {typeof window !== 'undefined' && (
-        <audio ref={endCallAudioRef} preload="auto" hidden>
-          <source src={`${window.location.origin}/webphone/end-call.mp3`} type="audio/mp3" />
-          <source src="/end-call.mp3" type="audio/mp3" />
-        </audio>
-      )}
+      <audio ref={endCallAudioRef} preload="auto" hidden>
+        <source src="https://cdn.pixabay.com/audio/2022/09/21/audio_51f53043d7.mp3" type="audio/mpeg" />
+      </audio>
       {ringtone && ringtone.length > 0 && (
         <div className="w-full bg-primary/10 border border-primary/20 px-3 py-1 flex items-center gap-3 text-xs mb-4 rounded-sm">
           <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center animate-pulse">
