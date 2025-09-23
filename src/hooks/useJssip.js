@@ -53,11 +53,11 @@ const useJssip = (isMobile = false) => {
     autoStart: false,
   });
 
-  const [origin, setOrigin] = useState('esamwad.iotcom.io');
+  const [origin, setOrigin] = useState('devapp.iotcom.io');
 
   useEffect(() => {
-    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-    setOrigin(originWithoutProtocol);
+    // const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    // setOrigin(originWithoutProtocol);
   }, []);
 
   useEffect(() => {
@@ -533,6 +533,8 @@ const useJssip = (isMobile = false) => {
         if (audioRef.current) {
           audioRef.current.play();
         }
+        setIsHeld(false);
+
         setConferenceStatus(false);
       } else {
         console.error('Failed to unhold call');
@@ -1002,7 +1004,7 @@ const useJssip = (isMobile = false) => {
     }
     const initializeJsSIP = () => {
       try {
-        var socket = new JsSIP.WebSocketInterface(`wss://${origin}:8089/ws`);
+        var socket = new JsSIP.WebSocketInterface(`wss://${origin}:8099/ws`);
 
         // Add direct socket error handling
         socket.onclose = function (event) {
@@ -1024,7 +1026,7 @@ const useJssip = (isMobile = false) => {
         var configuration = {
           sockets: [socket],
           session_timers: false,
-          uri: `${username.replace('@', '-')}@${origin}:8089`,
+          uri: `${username.replace('@', '-')}@${origin}:8099`,
           password: password,
         };
 
