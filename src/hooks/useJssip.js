@@ -1441,7 +1441,6 @@ const useJssip = (isMobile = false) => {
   };
   useEffect(() => {
     const callApi = async () => {
-      console.log('calling user/callednde api:', Date.now());
       if (isCallended) {
         try {
           await axios.post(
@@ -1453,6 +1452,7 @@ const useJssip = (isMobile = false) => {
               },
             }
           );
+          setIsHeld(false);
           setIsCallended(false);
           setDispositionModal(true);
         } catch (error) {
