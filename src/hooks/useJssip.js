@@ -53,7 +53,7 @@ const useJssip = (isMobile = false) => {
     autoStart: false,
   });
 
-  const [origin, setOrigin] = useState('devapp.iotcom.io');
+  const [origin, setOrigin] = useState('esamwad.iotcom.io');
 
   useEffect(() => {
     const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
@@ -297,7 +297,7 @@ const useJssip = (isMobile = false) => {
           setConferenceStatus(false);
           reqUnHold?.();
         }
-      }, 4000);
+      }, 12000);
     }
 
     return () => clearTimeout(timeout);
@@ -1002,7 +1002,7 @@ const useJssip = (isMobile = false) => {
     }
     const initializeJsSIP = () => {
       try {
-        var socket = new JsSIP.WebSocketInterface(`wss://${origin}:8099/ws`);
+        var socket = new JsSIP.WebSocketInterface(`wss://${origin}:8089/ws`);
 
         // Add direct socket error handling
         socket.onclose = function (event) {
@@ -1024,7 +1024,7 @@ const useJssip = (isMobile = false) => {
         var configuration = {
           sockets: [socket],
           session_timers: false,
-          uri: `${username.replace('@', '-')}@${origin}:8099`,
+          uri: `${username.replace('@', '-')}@${origin}:8089`,
           password: password,
         };
 
