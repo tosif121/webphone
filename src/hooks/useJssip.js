@@ -56,8 +56,8 @@ const useJssip = (isMobile = false) => {
   const [origin, setOrigin] = useState('esamwad.iotcom.io');
 
   useEffect(() => {
-    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-    setOrigin(originWithoutProtocol);
+    // const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    // setOrigin(originWithoutProtocol);
   }, []);
 
   useEffect(() => {
@@ -176,7 +176,7 @@ const useJssip = (isMobile = false) => {
 
   const createConferenceCall = async () => {
     try {
-      const response = await fetch(`${window.location.origin}/reqConf/${username}`, {
+      const response = await fetch(`https://esamwad.iotcom.io/reqConf/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -235,7 +235,7 @@ const useJssip = (isMobile = false) => {
 
       const response = await withTimeout(
         axios.post(
-          `${window.location.origin}/userconnection`,
+          `https://esamwad.iotcom.io/userconnection`,
           { user: username },
           { headers: { 'Content-Type': 'application/json' } }
         ),
@@ -306,7 +306,7 @@ const useJssip = (isMobile = false) => {
   const handleLogout = async (token, message) => {
     try {
       if (token) {
-        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+        await axios.delete(`https://esamwad.iotcom.io/deleteFirebaseToken`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -387,7 +387,7 @@ const useJssip = (isMobile = false) => {
 
   const checkUserReady = async () => {
     try {
-      const url = `${window.location.origin}/userready/${username}`;
+      const url = `https://esamwad.iotcom.io/userready/${username}`;
       const response = await axios.post(url, {}, { headers: { 'Content-Type': 'application/json' } });
       return response.data;
     } catch (error) {
@@ -519,7 +519,7 @@ const useJssip = (isMobile = false) => {
     if (!session) return;
 
     try {
-      const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
+      const response = await fetch(`https://esamwad.iotcom.io/reqUnHold/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -549,7 +549,7 @@ const useJssip = (isMobile = false) => {
 
     try {
       if (!isHeld) {
-        await fetch(`${window.location.origin}/reqHold/${username}`, {
+        await fetch(`https://esamwad.iotcom.io/reqHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -565,7 +565,7 @@ const useJssip = (isMobile = false) => {
 
         setIsHeld(true);
       } else {
-        await fetch(`${window.location.origin}/reqUnHold/${username}`, {
+        await fetch(`https://esamwad.iotcom.io/reqUnHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -802,7 +802,7 @@ const useJssip = (isMobile = false) => {
   const answercall = async (incomingNumber = null) => {
     try {
       const response = await axios.post(
-        `${window.location.origin}/useroncall/${username}`,
+        `https://esamwad.iotcom.io/useroncall/${username}`,
         {},
         {
           headers: {
@@ -898,62 +898,74 @@ const useJssip = (isMobile = false) => {
     }
   }, [inNotification]);
 
-  // const getAverage = (arr) => {
-  //   if (arr.length === 0) return 0; // Handle empty array case
-  //   return arr.reduce((sum, num) => sum + num, 0) / arr.length;
-  // };
+  // In your useJssip hook, add localStorage storage functions
+  const storeInLocalStorage = (key, value) => {
+    try {
+      localStorage.setItem(
+        `jssip_${key}`,
+        JSON.stringify({
+          data: value,
+          timestamp: Date.now(),
+        })
+      );
 
-  // useEffect(() => {
-  //   // console.log('message difference time :', messageDifference);
-  //   // console.log('averages per minutes :', avergaeMessageTimePerMinute);
-  //   if (avergaeMessageTimePerMinute.length > 10) {
-  //     // Remove oldest difference
-  //     setAvergaeMessageTimePerMinute((prev) => prev.slice(1));
-  //   }
-  //   if (messageDifference.length === 12) {
-  //     const average = Math.ceil(getAverage(messageDifference));
-  //     const maxNumber = Math.max(...messageDifference);
-  //     const avgAndMaxNumberObj = {
-  //       average,
-  //       maxNumber,
-  //     }
-  //     setAvergaeMessageTimePerMinute((prev) => [...prev, avgAndMaxNumberObj]);
-  //     setMessageDifference([]);
-  //   }
-  // }, [messageDifference]);
+      // Broadcast to other tabs using BroadcastChannel
+      if (window.BroadcastChannel) {
+        const channel = new BroadcastChannel('jssip-sync');
+        channel.postMessage({ key: `jssip_${key}`, value, timestamp: Date.now() });
+      }
+    } catch (error) {
+      console.error('Failed to store in localStorage:', error);
+    }
+  };
 
-  // useEffect(() => {
-  //   let isMounted = true; // To prevent state updates after unmount
+  const getFromLocalStorage = (key, defaultValue = null) => {
+    try {
+      const stored = localStorage.getItem(`jssip_${key}`);
+      return stored ? JSON.parse(stored).data : defaultValue;
+    } catch (error) {
+      console.error('Failed to get from localStorage:', error);
+      return defaultValue;
+    }
+  };
 
-  //   function checkUserLive() {
-  //     if (!isMounted) return;
+  // In your useJssip hook, store all key states:
+  useEffect(() => {
+    if (ua) {
+      storeInLocalStorage('ua_status', {
+        isConnected: ua?.transport?.socket?.readyState === WebSocket.OPEN,
+        isRegistered: ua?.registrator?.registered || false,
+      });
+    }
+  }, [ua]);
 
-  //     if (messageDifference.length < 12) {
-  //       console.log('running recurrsion functoin for checking time :');
-  //       console.log('messageDifference length :', messageDifference);
-  //       const lastElement = messageDifference[messageDifference.length - 1];
-  //       console.log('last element :', lastElement);
-  //       const timeOfLastElement = lastElement?.messageTime;
-  //       const currentTime = Date.now();
-  //       console.log('current time :', currentTime);
-  //       const difference = currentTime - timeOfLastElement;
-  //       console.log('difference in messageDifference time check : ', difference);
+  useEffect(() => {
+    storeInLocalStorage('connection_status', {
+      connectionStatus,
+      isConnectionLost,
+      userLogin,
+      showTimeoutModal,
+    });
+  }, [connectionStatus, isConnectionLost, userLogin, showTimeoutModal]);
 
-  //       if (difference > 14000) {
-  //         console.log("User is not live");
-  //         toast.error("User is not live. Please login again.");
-  //         return;
-  //       }
-  //     }
+  useEffect(() => {
+    storeInLocalStorage('call_status', {
+      status,
+      isIncomingRinging,
+      bridgeID,
+      isHeld,
+      conferenceStatus,
+      callType,
+    });
+  }, [status, isIncomingRinging, bridgeID, isHeld, conferenceStatus, callType]);
 
-  //     setTimeout(checkUserLive, 5000); //Recursively call every 15 seconds
-  //   };
-  //   checkUserLive(messageDifference);
-
-  //   return () => {
-  //     isMounted = false; //Cleanup to prevent memory leaks
-  //   };
-  // }, [])
+  useEffect(() => {
+    storeInLocalStorage('monitoring_data', {
+      timeoutArray,
+      messageDifference,
+      systemEvents: [],
+    });
+  }, [timeoutArray, messageDifference]);
 
   // FIND THIS SECTION AND UPDATE IT:
   useEffect(() => {
@@ -1047,7 +1059,7 @@ const useJssip = (isMobile = false) => {
               // console.log(
               //   `[Re-apply Break] Attempting to re-apply break to backend: ${storedBreak} for user: ${username}`
               // );
-              const response = await axios.post(`${window.location.origin}/user/breakuser:${username}`, {
+              const response = await axios.post(`https://esamwad.iotcom.io/user/breakuser:${username}`, {
                 breakType: storedBreak,
               });
               if (response.status === 200) {
@@ -1335,7 +1347,7 @@ const useJssip = (isMobile = false) => {
 
   const removeBreak = async () => {
     try {
-      await axios.post(`${window.location.origin}/user/removebreakuser:${username}`);
+      await axios.post(`https://esamwad.iotcom.io/user/removebreakuser:${username}`);
       setSelectedBreak('Break');
       localStorage.removeItem('selectedBreak');
       toast.success('Break removed successfully');
@@ -1402,7 +1414,7 @@ const useJssip = (isMobile = false) => {
 
       // Make the API call
       const response = await axios.post(
-        `${window.location.origin}/dialnumber`,
+        `https://esamwad.iotcom.io/dialnumber`,
         {
           caller: username,
           receiver: targetNumber,
@@ -1446,7 +1458,7 @@ const useJssip = (isMobile = false) => {
       if (isCallended) {
         try {
           await axios.post(
-            `${window.location.origin}/user/callended${username}`,
+            `https://esamwad.iotcom.io/user/callended${username}`,
             {},
             {
               headers: {

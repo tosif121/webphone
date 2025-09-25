@@ -16,6 +16,7 @@ import {
   Phone,
   PhoneForwarded,
   PhoneMissed,
+  MonitorCog,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
@@ -74,7 +75,7 @@ export default function Header() {
     if (typeof window !== 'undefined') {
       try {
         if (token) {
-          await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+          await axios.delete(`https://esamwad.iotcom.io/deleteFirebaseToken`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -168,9 +169,14 @@ export default function Header() {
       name: 'Agent Dashboard',
       icon: <LayoutDashboard className="w-4 h-4" />,
     },
+    {
+      href: '/webphone/v1/system-monitoring',
+      name: 'System Monitoring',
+      icon: <MonitorCog className="w-4 h-4" />,
+    },
 
     {
-      href: '${window.location.origin}/webphone/login',
+      href: 'https://esamwad.iotcom.io/webphone/login',
       name: 'Stable Version',
       icon: <Settings className="w-4 h-4" />,
     },
@@ -191,7 +197,7 @@ export default function Header() {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-4">
-          {pathname !== '/webphone/v1/agent-dashboard' && (
+          {pathname !== '/webphone/v1/agent-dashboard' && pathname !== '/webphone/v1/system-monitoring' && (
             <>
               <nav className="flex gap-2">
                 <Button
@@ -421,7 +427,7 @@ export default function Header() {
               </div>
 
               {/* Missed Calls & BreakDropdown */}
-              {pathname !== '/webphone/v1/agent-dashboard' && (
+              {pathname !== '/webphone/v1/agent-dashboard' && pathname !== '/webphone/v1/system-monitoring' && (
                 <div className="space-y-3">
                   <button
                     onClick={() => {
