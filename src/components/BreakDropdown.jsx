@@ -96,7 +96,7 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus, queueBreakOnl
 
   const removeBreak = async () => {
     try {
-      await axios.post(`https://esamwad.iotcom.io/user/removebreakuser:${username}`);
+      await axios.post(`${window.location.origin}/user/removebreakuser:${username}`);
       setSelectedBreak('Break');
       localStorage.removeItem('selectedBreak');
       toast.success('Break removed successfully');
@@ -122,7 +122,7 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus, queueBreakOnl
 
     // Normal break application for standalone use
     try {
-      await axios.post(`https://esamwad.iotcom.io/user/breakuser:${username}`, { breakType });
+      await axios.post(`${window.location.origin}/user/breakuser:${username}`, { breakType });
       setSelectedBreak(breakType);
       localStorage.setItem('selectedBreak', breakType);
       toast.success('Break applied successfully');
