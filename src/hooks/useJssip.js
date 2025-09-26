@@ -39,6 +39,7 @@ const useJssip = (isMobile = false) => {
   const [callConference, setCallConference] = useState(false);
   const [userLogin, setUserLogin] = useState(false);
   const [callType, setCallType] = useState('');
+  const [hasParticipants, setHasParticipants] = useState(false);
   const offlineToastIdRef = useRef(null);
   const agentSocketRef = useRef(null);
   const customerSocketRef = useRef(null);
@@ -302,6 +303,23 @@ const useJssip = (isMobile = false) => {
 
     return () => clearTimeout(timeout);
   }, [conferenceCalls, status, callConference, conferenceStatus]);
+
+  useEffect(() => {
+    if (conferenceCalls && conferenceCalls.length > 0) {
+      if (!hasParticipants) {
+        setHasParticipants(true);
+      }
+    } else {
+      if (hasParticipants) {
+        setStatus('calling');
+        setCallConference(false);
+        setConferenceNumber('');
+        setConferenceStatus(false);
+        reqUnHold?.();
+        setHasParticipants(false);
+      }
+    }
+  }, [conferenceCalls, hasParticipants]);
 
   const handleLogout = async (token, message) => {
     try {
@@ -1027,7 +1045,6 @@ const useJssip = (isMobile = false) => {
               dialingNumberRef.current = '';
               handleIncomingCall(e.session, e.request); // Your existing auto-answer logic
             } else {
-
               if (isMobile) {
                 // Mobile: Show UI with ringtone
                 const incomingNumber = e.request.from._uri._user;

@@ -156,7 +156,6 @@ export default function DraggableWebPhone() {
           isConnectionLost={isConnectionLost}
         />
       )}
-      {console.log(conferenceStatus, 'conferenceStatus', callConference, 'callConference')}
 
       {!(effectiveIsMobile && isIncomingRinging) &&
         !seeLogs &&

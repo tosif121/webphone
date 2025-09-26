@@ -83,24 +83,16 @@ const SystemFailureMonitors = () => {
   const [refreshInterval, setRefreshInterval] = useState(2000);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
- const {
-   
-    showTimeoutModal,
-    setShowTimeoutModal,
-    handleLoginSuccess,
-    closeTimeoutModal,
-    userLogin,
-  } = useContext(JssipContext);
-  // ADDED: Frozen state to store last data when auto-refresh is OFF
+  const { showTimeoutModal, setShowTimeoutModal, handleLoginSuccess, closeTimeoutModal, userLogin } =
+    useContext(JssipContext);
   const [frozenData, setFrozenData] = useState(null);
 
   const useLocalStorageSync = (key, defaultValue) => {
     const [storedValue, setStoredValue] = useState(defaultValue);
 
     useEffect(() => {
-      // Only sync if auto-refresh is ON
       if (!autoRefresh && frozenData) {
-        return; // Don't update from localStorage when auto-refresh is OFF
+        return;
       }
 
       try {
@@ -112,10 +104,9 @@ const SystemFailureMonitors = () => {
       } catch (error) {
         console.error(`Error reading localStorage key "${key}":`, error);
       }
-    }, [key, autoRefresh]); // Added autoRefresh dependency
+    }, [key, autoRefresh]);
 
     useEffect(() => {
-      // Don't listen to storage changes if auto-refresh is OFF
       if (!autoRefresh) return;
 
       const handleStorageChange = (e) => {
@@ -149,12 +140,11 @@ const SystemFailureMonitors = () => {
           channel.close();
         }
       };
-    }, [key, autoRefresh]); // Added autoRefresh dependency
+    }, [key, autoRefresh]);
 
     return storedValue;
   };
 
-  // CORRECTED: Use the actual localStorage keys from your working useJssip
   const uaStatus = useLocalStorageSync('jssip_ua_status', {
     isConnected: false,
     isRegistered: false,
@@ -214,10 +204,8 @@ const SystemFailureMonitors = () => {
     },
   });
 
-  // ADDED: Store frozen data when auto-refresh is turned OFF
   useEffect(() => {
     if (!autoRefresh && !frozenData) {
-      // Store current state when auto-refresh is turned OFF
       setFrozenData({
         uaStatus,
         connectionStatus,
@@ -225,12 +213,10 @@ const SystemFailureMonitors = () => {
         timestamp: new Date().toISOString(),
       });
     } else if (autoRefresh && frozenData) {
-      // Clear frozen data when auto-refresh is turned ON
       setFrozenData(null);
     }
   }, [autoRefresh, uaStatus, connectionStatus, monitoringData, frozenData]);
 
-  // MODIFIED: Use frozen data when auto-refresh is OFF
   const getCurrentData = useCallback(() => {
     if (!autoRefresh && frozenData) {
       return frozenData;
@@ -279,7 +265,6 @@ const SystemFailureMonitors = () => {
     return Date.now() - lastMessage.messageTime < 14000;
   }, [getCurrentData]);
 
-  // MODIFIED: Use current data (frozen or live)
   const getWebSocketReadyState = useCallback(() => {
     const currentData = getCurrentData();
     const monitoring = currentData.monitoringData;
@@ -334,7 +319,6 @@ const SystemFailureMonitors = () => {
     return { quality: quality.charAt(0).toUpperCase() + quality.slice(1), color };
   }, [getCurrentData]);
 
-  // MODIFIED: Use current data for component status
   const buildCurrentComponentStatus = useCallback(() => {
     const currentData = getCurrentData();
     const ua = currentData.uaStatus;
@@ -416,7 +400,6 @@ const SystemFailureMonitors = () => {
     ];
   }, [getCurrentData, isKeepAliveHealthy, getTimeSinceLastKeepAlive, getWebSocketReadyState, getNetworkQuality]);
 
-  // MODIFIED: Use current data for system health
   const calculateSystemHealth = useCallback(() => {
     const currentData = getCurrentData();
     return currentData.monitoringData.systemAnalysis?.overallHealth || 0;
@@ -794,7 +777,6 @@ const SystemFailureMonitors = () => {
     }
   }, []);
 
-  // MODIFIED: Only run interval when autoRefresh is ON
   useEffect(() => {
     if (!mounted || !autoRefresh) return;
 
@@ -847,7 +829,6 @@ const SystemFailureMonitors = () => {
     );
   };
 
-  // Use current data for displaying stats
   const currentData = getCurrentData();
   const currentUA = currentData.uaStatus;
   const currentMonitoring = currentData.monitoringData;
