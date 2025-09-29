@@ -305,7 +305,7 @@ const useJssip = (isMobile = false) => {
   }, [conferenceCalls, status, callConference, conferenceStatus]);
 
   useEffect(() => {
-    if (conferenceCalls && conferenceCalls.length > 0) {
+    if (conferenceCalls && conferenceCalls.length > 0 && status === 'conference') {
       if (!hasParticipants) {
         setHasParticipants(true);
       }

@@ -41,6 +41,7 @@ const CallScreen = ({
   setCallConference,
   conferenceStatus,
   userCall,
+  conferenceCalls,
 }) => {
   const [currNum, setCurrNum] = useState('');
   const [isHovered, setIsHovered] = useState(false);
@@ -106,11 +107,11 @@ const CallScreen = ({
   const maybeMask = (num) => (numberMasking ? maskPhoneNumber?.(num) : num);
 
   const mainNumber = (() => {
-    if (isMerged && userCall?.contactNumber && conferenceNumber) {
+    if (isMerged && userCall?.contactNumber && conferenceNumber && conferenceCalls.length > 0) {
       return `${maybeMask(userCall?.contactNumber)} Conference with ${maybeMask(conferenceNumber)}`;
     }
-    if (conferenceNumber) return maybeMask(conferenceNumber);
-    if (userCall?.contactNumber) return maybeMask(userCall?.contactNumber);
+    if (conferenceNumber && conferenceCalls.length > 0) return maybeMask(conferenceNumber);
+    if (userCall?.contactNumber && conferenceCalls.length === 0) return maybeMask(userCall?.contactNumber);
     return maybeMask(userCall?.contactNumber) || '';
   })();
 

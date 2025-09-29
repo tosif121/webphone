@@ -192,6 +192,7 @@ export default function DraggableWebPhone() {
             changeAudioDevice={changeAudioDevice}
             conferenceStatus={conferenceStatus}
             status={status}
+            conferenceCalls={conferenceCalls}
           />
         ))}
 
