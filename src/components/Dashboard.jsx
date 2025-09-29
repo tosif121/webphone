@@ -111,6 +111,7 @@ function Dashboard() {
   const [leadsData, setLeadsData] = useState([]);
   const [apiCallData, setApiCallData] = useState([]);
   const endCallAudioRef = useRef(null);
+  const [campaignName, setCampaignName] = useState('N/A');
 
   const router = useRouter();
   const computedMissedCallsLength = useMemo(() => {
@@ -167,6 +168,7 @@ function Dashboard() {
       try {
         const parsedData = JSON.parse(tokenData);
         setUserCampaign(parsedData?.userData?.campaign);
+        setCampaignName(parsedData?.userData?.campaignName || 'N/A');
         setAdminUser(parsedData?.userData?.adminuser);
         setToken(parsedData.token);
       } catch (e) {
@@ -456,7 +458,6 @@ function Dashboard() {
     });
   };
 
-
   useEffect(() => {
     if (dispositionModal && endCallAudioRef.current) {
       endCallAudioRef.current.currentTime = 0;
@@ -471,24 +472,37 @@ function Dashboard() {
       <audio ref={endCallAudioRef} preload="auto" hidden>
         <source src="https://cdn.pixabay.com/audio/2022/09/21/audio_51f53043d7.mp3" type="audio/mpeg" />
       </audio>
-      {ringtone && ringtone.length > 0 && (
-        <div className="w-full bg-primary/10 border border-primary/20 px-3 py-1 flex items-center gap-3 text-xs mb-4 rounded-sm">
-          <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center animate-pulse">
-            <PhoneMissed className="w-3 h-3 text-primary-foreground" />
-          </div>
-          <span className="font-medium text-primary">Call Queue: ({ringtone.length})</span>
-          <div className="flex-1 min-w-0">
-            <marquee
-              behavior="scroll"
-              direction="left"
-              scrollamount="4"
-              className="truncate font-medium text-muted-foreground"
-            >
-              {ringtone.map((call) => call.Caller).join(', ')}
-            </marquee>
-          </div>
-        </div>
-      )}
+      {ringtone &&
+        ringtone.length > 0 &&
+        (() => {
+          const filteredCalls = ringtone.filter((call) => call.campaign === userCampaign);
+
+          if (filteredCalls.length === 0) return null;
+
+          return (
+            <div className="w-full bg-primary/10 border border-primary/20 px-3 py-2 flex items-center gap-3 text-xs mb-4 rounded-sm">
+              <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center animate-pulse">
+                <PhoneMissed className="w-3 h-3 text-primary-foreground" />
+              </div>
+
+              <div className="flex flex-col">
+                <span className="font-medium text-primary">Call Queue: ({filteredCalls.length})</span>
+                <span className="font-medium text-primary">Campaign Queue: ({campaignName})</span>
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <marquee
+                  behavior="scroll"
+                  direction="left"
+                  scrollamount="4"
+                  className="truncate font-medium text-muted-foreground"
+                >
+                  {filteredCalls.map((call) => call.Caller).join(', ')}
+                </marquee>
+              </div>
+            </div>
+          );
+        })()}
 
       {formSubmitted && dispositionModal && (
         <Disposition
