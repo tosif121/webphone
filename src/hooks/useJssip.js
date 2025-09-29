@@ -304,23 +304,6 @@ const useJssip = (isMobile = false) => {
     return () => clearTimeout(timeout);
   }, [conferenceCalls, status, callConference, conferenceStatus]);
 
-  useEffect(() => {
-    if (conferenceCalls && conferenceCalls.length > 0 && status === 'conference') {
-      if (!hasParticipants) {
-        setHasParticipants(true);
-      }
-    } else {
-      if (hasParticipants) {
-        setStatus('calling');
-        setCallConference(false);
-        setConferenceNumber('');
-        setConferenceStatus(false);
-        reqUnHold?.();
-        setHasParticipants(false);
-      }
-    }
-  }, [conferenceCalls, hasParticipants]);
-
   const handleLogout = async (token, message) => {
     try {
       if (token) {
@@ -2073,6 +2056,22 @@ const useJssip = (isMobile = false) => {
       timestamp: new Date().toISOString(),
     });
   }, []);
+
+  useEffect(() => {
+    if (conferenceCalls && conferenceCalls.length > 0 && conferenceStatus) {
+      if (!hasParticipants) {
+        setHasParticipants(true);
+      }
+    } else {
+      if (hasParticipants) {
+        setCallConference(false);
+        setConferenceNumber('');
+        setConferenceStatus(false);
+        reqUnHold?.();
+        setHasParticipants(false);
+      }
+    }
+  }, [conferenceCalls, hasParticipants]);
 
   return [
     ringtone,
