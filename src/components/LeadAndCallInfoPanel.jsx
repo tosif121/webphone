@@ -435,7 +435,7 @@ export default function LeadAndCallInfoPanel({
         setFormSubmitted(true);
         // Clear form after successful submission
         setTimeout(() => {
-          setLocalFormData({});
+          setLocalFormData({});          
         }, 100);
       } else {
         toast.error(response.data.message || 'Failed to save contact.');

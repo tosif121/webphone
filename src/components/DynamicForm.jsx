@@ -221,6 +221,7 @@ export default function DynamicForm({
 
     if (handleSubmit) {
       handleSubmit(finalData);
+      window.location.reload();
     }
   };
 
@@ -365,17 +366,18 @@ export default function DynamicForm({
           const keyMatch = Object.keys(userCall).find((key) => key.toLowerCase() === field.name.toLowerCase());
           if (keyMatch && userCall[keyMatch] !== undefined && userCall[keyMatch] !== '') {
             const value = userCall[keyMatch];
-            initialData[field.name] = value;
-            initialVals[field.name] = value;
+            // Only set if user hasn't modified this field
+            if (!userModifiedFields.has(field.name)) {
+              initialData[field.name] = value;
+              initialVals[field.name] = value;
+            }
           }
         });
       });
 
       setInitialValues(initialVals);
-      setCurrentFormData(initialData);
+      setCurrentFormData((prev) => ({ ...initialData, ...prev }));
       setIsInitialized(true);
-
-      console.log('Initialized with userCall data:', initialData);
     }
   }, [userCall, formConfig, isInitialized]);
 

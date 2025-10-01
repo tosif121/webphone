@@ -107,11 +107,11 @@ const CallScreen = ({
   const maybeMask = (num) => (numberMasking ? maskPhoneNumber?.(num) : num);
 
   const mainNumber = (() => {
-    if (isMerged && userCall?.contactNumber && conferenceNumber && conferenceCalls.length > 0) {
+    if (isMerged && userCall?.contactNumber && conferenceNumber) {
       return `${maybeMask(userCall?.contactNumber)} Conference with ${maybeMask(conferenceNumber)}`;
     }
-    if (conferenceNumber && conferenceCalls.length > 0) return maybeMask(conferenceNumber);
-    if (userCall?.contactNumber && conferenceCalls.length === 0) return maybeMask(userCall?.contactNumber);
+    if (conferenceNumber) return maybeMask(conferenceNumber);
+    if (userCall?.contactNumber) return maybeMask(userCall?.contactNumber);
     return maybeMask(userCall?.contactNumber) || '';
   })();
 
