@@ -266,6 +266,7 @@ const useJssip = (isMobile = false) => {
       }
 
       setConferenceCalls(data.conferenceCalls || []);
+
       // Handle call queue
       if (data.currentCallqueue?.length > 0) {
         if (campaign === data.currentCallqueue[0].campaign) {
@@ -2058,7 +2059,7 @@ const useJssip = (isMobile = false) => {
   }, []);
 
   useEffect(() => {
-    if (conferenceCalls && conferenceCalls.length > 0 && conferenceStatus) {
+    if (conferenceCalls && conferenceCalls.length > 0 && (status === 'conference' || status === 'ringing')) {
       if (!hasParticipants) {
         setHasParticipants(true);
       }

@@ -517,6 +517,7 @@ export default function LeadAndCallInfoPanel({
           handleSubmit={handleSubmit}
           localFormData={localFormData}
           status={status}
+          dispositionModal={dispositionModal}
           setLocalFormData={updateLocalFormData}
         />
       );
