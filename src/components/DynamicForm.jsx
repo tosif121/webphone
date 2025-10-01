@@ -106,7 +106,7 @@ export default function DynamicForm({
   localFormData,
   setLocalFormData,
   status,
-  dispositionModal,
+  connectionStatus,
 }) {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [visitedSections, setVisitedSections] = useState([]);
@@ -382,7 +382,7 @@ export default function DynamicForm({
   }, [userCall, formConfig, isInitialized]);
 
   useEffect(() => {
-    if (status === 'calling' || dispositionModal) {
+    if (status === 'calling' || connectionStatus === 'Disposition') {
       setCurrentSectionIndex(0);
       setVisitedSections([]);
       setIsFormComplete(false);
