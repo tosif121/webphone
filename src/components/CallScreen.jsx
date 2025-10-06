@@ -104,6 +104,43 @@ const CallScreen = ({
     }
   }, [conferenceNumber, session]);
 
+  const handleConferenceHangup = async () => {
+    try {
+      const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const parsedData = tokenData ? JSON.parse(tokenData) : {};
+      const cleanNumber = conferenceNumber.replace(/\s/g, '');
+
+      const response = await axios.post(
+        `${window.location.origin}/hangup/hostChannel/Conf`,
+        {
+          user: username,
+          hostNumber: cleanNumber,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${parsedData?.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      if (response.data.success) {
+        toast.success(response.data.message || 'Conference disconnected successfully');
+        setIsMerged(false);
+        setConfRunning(false);
+        setConfSeconds(0);
+        setConfMinutes(0);
+      } else {
+        toast.error('Failed to disconnect conference');
+      }
+    } catch (error) {
+      console.error('Conference hangup error:', error);
+      toast.error('Error disconnecting conference');
+
+      session?.terminate();
+      stopRecording?.();
+    }
+  };
+
   const maybeMask = (num) => (numberMasking ? maskPhoneNumber?.(num) : num);
 
   const mainNumber = (() => {
@@ -236,10 +273,17 @@ const CallScreen = ({
           <button
             className="text-white cursor-pointer w-12 h-12 flex items-center justify-center rounded-full bg-destructive shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 rotate-[133deg] focus:outline-none focus:ring-2 focus:ring-destructive"
             onClick={() => {
-              session?.terminate();
-              stopRecording?.();
+              if (conferenceNumber) {
+                // If it's a conference call, use the conference hangup
+                handleConferenceHangup();
+              } else {
+                // Regular call hangup
+                session?.terminate();
+                stopRecording?.();
+              }
             }}
             aria-label="End Call"
+            title="End Call"
             type="button"
           >
             <Phone size={18} />

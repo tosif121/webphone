@@ -67,6 +67,9 @@ export function JssipProvider({ children }) {
     handleLoginSuccess,
     closeTimeoutModal,
     userLogin,
+    queueDetails,
+    hasTransfer,
+    currentCallData,
   ] = useJssip(isMobile);
 
   return (
@@ -121,6 +124,9 @@ export function JssipProvider({ children }) {
         handleLoginSuccess,
         closeTimeoutModal,
         userLogin,
+        queueDetails,
+        hasTransfer,
+        currentCallData,
         isMobile,
       }}
     >

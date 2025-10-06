@@ -39,6 +39,9 @@ const useJssip = (isMobile = false) => {
   const [callConference, setCallConference] = useState(false);
   const [userLogin, setUserLogin] = useState(false);
   const [callType, setCallType] = useState('');
+  const [queueDetails, setQueueDetails] = useState([]);
+  const [hasTransfer, setHasTransfer] = useState(false);
+  const [currentCallData, setCurrentCallData] = useState(null);
   const [hasParticipants, setHasParticipants] = useState(false);
   const offlineToastIdRef = useRef(null);
   const agentSocketRef = useRef(null);
@@ -256,6 +259,7 @@ const useJssip = (isMobile = false) => {
       const data = response.data;
       setFollowUpDispoes(data.followUpDispoes);
       setConnectionStatus(data.status);
+
       // Handle connection issues
       if (data.message !== 'ok connection for user') {
         if (status === 'start' && !dispositionModal) {
@@ -267,19 +271,28 @@ const useJssip = (isMobile = false) => {
 
       setConferenceCalls(data.conferenceCalls || []);
 
-      // Handle call queue
+      // In your connectioncheck function:
+      if (data.currentCallqueue?.length > 0 && data.currentCallqueue[0].queueDetail) {
+        setQueueDetails(data.currentCallqueue[0].queueDetail);
+        setHasTransfer(data.currentCallqueue[0].queueTransfered === true);
+        setCurrentCallData(data.currentCallqueue[0]); // ← Make sure this is set
+        console.log('Stored currentCallData:', data.currentCallqueue[0]);
+      } else {
+        setQueueDetails([]);
+        setHasTransfer(false);
+        setCurrentCallData(null);
+      }
       if (data.currentCallqueue?.length > 0) {
         if (campaign === data.currentCallqueue[0].campaign) {
-          setTimeoutArray([]);
           setRingtone(data.currentCallqueue);
           setInNotification(data.currentCallqueue.map((call) => call.Caller));
         } else {
           console.log('Campaign mismatch:', campaign, data.currentCallqueue[0].campaign);
+          setRingtone([]); // ← Explicitly clear ringtone on mismatch
         }
       } else {
-        setRingtone([]);
+        setRingtone([]); // ← Clear ringtone when no calls
       }
-
       setIsConnectionLost(false);
       return false;
     } catch (err) {
@@ -2124,6 +2137,9 @@ const useJssip = (isMobile = false) => {
     handleLoginSuccess,
     closeTimeoutModal,
     userLogin,
+    queueDetails,
+    hasTransfer,
+    currentCallData,
   ];
 };
 

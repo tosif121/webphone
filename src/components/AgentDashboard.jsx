@@ -139,6 +139,9 @@ export default function AgentDashboard() {
     handleLoginSuccess,
     closeTimeoutModal,
     userLogin,
+    queueDetails,
+    hasTransfer,
+    currentCallData,
   } = useContext(JssipContext);
 
   useEffect(() => {
