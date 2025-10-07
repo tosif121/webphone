@@ -1,41 +1,60 @@
-import { User, Mail, Phone, MapPin, Home, Building, MapPinned, Building2, MailOpen, MessageSquare } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Building, MapPinned, Building2, MailOpen, MessageSquare } from 'lucide-react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from './ui/card';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { useEffect, useState } from 'react';
 
-const UserCall = ({
-  formData,
-  setFormData,
-  userCallDialog,
-  userCall,
-  handleSubmit,
-  formSubmitted,
-  localFormData,
-  setLocalFormData,
-}) => {
-  // Use localFormData if provided, otherwise fallback to formData
-  const [currentFormData, setCurrentFormData] = useState(localFormData || formData || {});
+const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, handleSubmit, formSubmitted }) => {
+  // Initialize with proper data source
+  const initialData = localFormData || {};
+console.log(localFormData, 'localFormData')
+  // Ensure contact number is included from userCall
+  const [currentFormData, setCurrentFormData] = useState({
+    ...initialData,
+    number: userCall?.contactNumber || initialData.number || '',
+  });
 
+  console.log(currentFormData, 'currentFormData')
+
+  // Update when localFormData or userCall changes
   useEffect(() => {
-    setCurrentFormData(localFormData || formData || {});
-  }, [localFormData, formData]);
+    const newData = {
+      ...(localFormData || {}),
+      number: userCall?.contactNumber || '',
+    };
+    setCurrentFormData(newData);
+  }, [localFormData, userCall?.contactNumber]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setCurrentFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
 
-    if (setLocalFormData) setLocalFormData((prev) => ({ ...prev, [name]: value }));
-    else if (setFormData) setFormData((prev) => ({ ...prev, [name]: value }));
+    const updatedData = {
+      ...currentFormData,
+      [name]: value,
+    };
+
+    setCurrentFormData(updatedData);
+
+    // Update parent state
+    if (setLocalFormData) {
+      setLocalFormData(updatedData);
+    }
   };
 
-  function userCallorm() {
+  const onSubmit = (e) => {
+    e.preventDefault();
+    // Ensure contact number is included in submission
+    const submissionData = {
+      ...currentFormData,
+      number: userCall?.contactNumber || currentFormData.number,
+    };
+    handleSubmit(e, submissionData);
+  };
+
+  function userCallForm() {
     return (
-      <form className="space-y-6" onSubmit={(e) => handleSubmit(e, currentFormData)}>
+      <form className="space-y-6" onSubmit={onSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* First Name */}
           <div className="relative">
@@ -50,6 +69,7 @@ const UserCall = ({
               aria-label="First Name"
             />
           </div>
+
           {/* Last Name */}
           <div className="relative">
             <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -63,19 +83,21 @@ const UserCall = ({
               aria-label="Last Name"
             />
           </div>
-          {/* Mobile Number - Now fixed and disabled */}
+
+          {/* Mobile Number - Fixed and disabled */}
           <div className="relative">
             <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
               name="number"
               type="tel"
               placeholder="Mobile Number"
-              value={userCall?.contactNumber || ''}
+              value={userCall?.contactNumber || currentFormData.number || ''}
               disabled
               className="pl-10 border-border bg-muted/50 cursor-not-allowed"
               aria-label="Mobile Number"
             />
           </div>
+
           {/* Alternate Number */}
           <div className="relative">
             <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -89,6 +111,7 @@ const UserCall = ({
               aria-label="Alternate Number"
             />
           </div>
+
           {/* Address */}
           <div className="relative">
             <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -102,6 +125,7 @@ const UserCall = ({
               aria-label="Address"
             />
           </div>
+
           {/* State */}
           <div className="relative">
             <MapPinned className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -115,6 +139,7 @@ const UserCall = ({
               aria-label="State"
             />
           </div>
+
           {/* District */}
           <div className="relative">
             <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -128,6 +153,7 @@ const UserCall = ({
               aria-label="District"
             />
           </div>
+
           {/* City */}
           <div className="relative">
             <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -141,6 +167,7 @@ const UserCall = ({
               aria-label="City"
             />
           </div>
+
           {/* Postal Code */}
           <div className="relative">
             <MailOpen className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -154,6 +181,7 @@ const UserCall = ({
               aria-label="Postal Code"
             />
           </div>
+
           {/* Email */}
           <div className="relative">
             <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -168,6 +196,7 @@ const UserCall = ({
             />
           </div>
         </div>
+
         {/* Comment */}
         <div className="relative">
           <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -180,6 +209,7 @@ const UserCall = ({
             aria-label="Comment"
           />
         </div>
+
         <div className="flex justify-end mt-6">
           <Button type="submit" disabled={formSubmitted}>
             Save Contact
@@ -190,7 +220,7 @@ const UserCall = ({
   }
 
   if (userCallDialog) {
-    return userCallorm();
+    return userCallForm();
   }
 
   return (
@@ -206,7 +236,7 @@ const UserCall = ({
           </div>
         </div>
       </CardHeader>
-      <CardContent>{userCallorm()}</CardContent>
+      <CardContent>{userCallForm()}</CardContent>
     </Card>
   );
 };

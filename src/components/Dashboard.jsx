@@ -479,7 +479,6 @@ function Dashboard() {
       {(() => {
         // Check if campaign matches - if yes, show ringtone calls
         const shouldShowRingtone = currentCallData?.campaign === userCampaign;
-        console.log(shouldShowRingtone, currentCallData, userCampaign);
         if (shouldShowRingtone) {
           // Show ringtone calls when campaign matches
           if (ringtone && Array.isArray(ringtone) && ringtone.length > 0) {

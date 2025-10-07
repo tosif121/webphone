@@ -99,14 +99,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin }) => 
     }
   };
 
-  // Debug localStorage on client side only
-  useEffect(() => {
-    if (isClient && typeof window !== 'undefined') {
-      console.log('Saved Username:', localStorage.getItem('savedUsername'));
-      console.log('Saved Password:', localStorage.getItem('savedPassword'));
-    }
-  }, [isClient]);
-
+ 
   return (
     <AlertDialog open={isOpen}>
       <AlertDialogContent>

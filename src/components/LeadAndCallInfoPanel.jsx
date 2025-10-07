@@ -321,7 +321,6 @@ export default function LeadAndCallInfoPanel({
       setLastUserCall(userCall);
     }
   }, [userCall, formConfig]);
-
   // Clear form data when submission is successful
   useEffect(() => {
     if (formSubmitted) {
@@ -435,7 +434,7 @@ export default function LeadAndCallInfoPanel({
         setFormSubmitted(true);
         // Clear form after successful submission
         setTimeout(() => {
-          setLocalFormData({});          
+          setLocalFormData({});
         }, 100);
       } else {
         toast.error(response.data.message || 'Failed to save contact.');
@@ -504,7 +503,7 @@ export default function LeadAndCallInfoPanel({
   const renderContactTab = () => {
     if (!userCall) return null;
 
-    if (formConfig && formConfig.sections && formConfig.sections.length > 0) {
+    if (formConfig && formConfig?.sections && formConfig?.sections?.length > 0) {
       return (
         <DynamicForm
           key={formConfig.formId}
@@ -524,9 +523,9 @@ export default function LeadAndCallInfoPanel({
     } else {
       return (
         <UserCall
-          formData={localFormData}
+          localFormData={localFormData}
+          setLocalFormData={updateLocalFormData}
           handleSubmit={handleContact}
-          setFormData={updateLocalFormData}
           userCall={userCall}
           userCallDialog={true}
           formSubmitted={formSubmitted}
