@@ -209,7 +209,7 @@ const Disposition = ({
         autoDialDisabled: false,
       };
 
-      const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
+      const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody);
 
       if (response.data.success) {
         toast.success('Auto disposition completed successfully');
@@ -453,7 +453,7 @@ const Disposition = ({
         }
 
         // 1. Submit disposition FIRST
-        const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
+        const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody);
 
         if (response.data.success) {
           // 2. AFTER successful disposition, check if break is selected
@@ -462,7 +462,7 @@ const Disposition = ({
           if (selectedBreakType && selectedBreakType !== 'Break') {
             try {
               // Apply the break after disposition
-              await axios.post(`${window.location.origin}/user/breakuser:${username}`, {
+              await axios.post(`https://esamwad.iotcom.io/user/breakuser:${username}`, {
                 breakType: selectedBreakType,
               });
               toast.success('Disposition submitted and break applied successfully');

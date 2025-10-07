@@ -171,17 +171,23 @@ function Dashboard() {
     if (tokenData) {
       try {
         const parsedData = JSON.parse(tokenData);
-        setUserCampaign(parsedData?.userData?.campaign);
-        setCampaignName(parsedData?.userData?.campaignName || 'N/A');
-        setAdminUser(parsedData?.userData?.adminuser);
-        setToken(parsedData.token);
+        const newCampaign = parsedData?.userData?.campaign;
+
+        // Only update if actually different
+        if (newCampaign !== userCampaign) {
+          console.log('🔄 Setting userCampaign from', userCampaign, 'to', newCampaign);
+          setUserCampaign(newCampaign);
+          setCampaignName(parsedData?.userData?.campaignName || 'N/A');
+          setAdminUser(parsedData?.userData?.adminuser);
+          setToken(parsedData.token);
+        }
       } catch (e) {
         console.error('Invalid token JSON in localStorage:', e);
         localStorage.removeItem('token');
         router.push('/webphone/v1/login');
       }
     }
-  }, []);
+  }, []); // Remove router dependency to prevent re-runs
 
   useEffect(() => {
     try {
@@ -296,7 +302,7 @@ function Dashboard() {
 
   const fetchUserMissedCalls = async () => {
     try {
-      const response = await axios.post(`${window.location.origin}/usermissedCalls/${username}`);
+      const response = await axios.post(`https://esamwad.iotcom.io/usermissedCalls/${username}`);
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
@@ -308,7 +314,7 @@ function Dashboard() {
 
   const fetchAdminUser = async () => {
     try {
-      const response = await axios.get(`${window.location.origin}/users/${adminUser}`, {
+      const response = await axios.get(`https://esamwad.iotcom.io/users/${adminUser}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -355,7 +361,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/leadswithdaterange`,
+        `https://esamwad.iotcom.io/leadswithdaterange`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -393,7 +399,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/callDataByAgent`,
+        `https://esamwad.iotcom.io/callDataByAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -462,20 +468,33 @@ function Dashboard() {
     });
   };
 
+  const playEndCallSound = () => {
+    try {
+      const audio = new Audio('/end-call.mp3');
+      audio.currentTime = 0;
+
+      audio
+        .play()
+        .then(() => console.log('✅ Audio played'))
+        .catch((err) => console.error('❌ Audio failed:', err));
+    } catch (error) {
+      console.error('❌ Audio creation failed:', error);
+    }
+  };
+
+  // Use it in your useEffect
   useEffect(() => {
-    if (dispositionModal && endCallAudioRef.current) {
-      endCallAudioRef.current.currentTime = 0;
-      endCallAudioRef.current.play().catch((err) => {
-        console.error('Audio play failed:', err);
-      });
+    if (dispositionModal) {
+      playEndCallSound();
     }
   }, [dispositionModal]);
 
   return (
     <>
       <audio ref={endCallAudioRef} preload="auto" hidden>
-        <source src="https://cdn.pixabay.com/audio/2022/09/21/audio_51f53043d7.mp3" type="audio/mpeg" />
+        <source src="/end-call.mp3" type="audio/mpeg" />
       </audio>
+
       {(() => {
         // Check if campaign matches - if yes, show ringtone calls
         const shouldShowRingtone = currentCallData?.campaign === userCampaign;
