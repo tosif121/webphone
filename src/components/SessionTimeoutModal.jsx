@@ -40,7 +40,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin }) => 
       }
 
       const { data: response } = await axios.post(
-        `https://esamwad.iotcom.io/userlogin/${savedUsername}`,
+        `${window.location.origin}/userlogin/${savedUsername}`,
         { username: savedUsername, password: savedPassword },
         {
           headers: { 'Content-Type': 'application/json' },

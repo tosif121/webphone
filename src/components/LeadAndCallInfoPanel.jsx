@@ -60,7 +60,7 @@ export default function LeadAndCallInfoPanel({
             throw new Error('No saved credentials found');
           }
 
-          const refreshRes = await axios.post('https://esamwad.iotcom.io/api/applogin', {
+          const refreshRes = await axios.post('${window.location.origin}/api/applogin', {
             username: savedUsername,
             password: savedPassword,
           });
@@ -117,7 +117,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`,
+          `${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`,
           token,
           refreshToken
         );
@@ -195,7 +195,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `https://esamwad.iotcom.io/getDynamicFormData/${formId}`,
+          `${window.location.origin}/getDynamicFormData/${formId}`,
           token,
           refreshToken
         );
@@ -210,7 +210,7 @@ export default function LeadAndCallInfoPanel({
     }
 
     fetchFormDetails();
-  }, [formId]); // ✅ Only depend on formId
+  }, [formId]);
 
   // Data fetching functions
   const fetchLeadsWithDateRange = useCallback(async () => {
@@ -222,7 +222,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/leadswithdaterange`,
+        `${window.location.origin}/leadswithdaterange`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -255,7 +255,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/callDataByAgent`,
+        `${window.location.origin}/callDataByAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -403,7 +403,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -468,7 +468,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

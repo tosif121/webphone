@@ -60,6 +60,7 @@ export default function DraggableWebPhone() {
     handleLoginSuccess,
     closeTimeoutModal,
     userLogin,
+    hasParticipants,
     isMobile,
   } = useContext(JssipContext);
 
@@ -193,6 +194,7 @@ export default function DraggableWebPhone() {
             conferenceStatus={conferenceStatus}
             status={status}
             conferenceCalls={conferenceCalls}
+            hasParticipants={hasParticipants}
           />
         ))}
 

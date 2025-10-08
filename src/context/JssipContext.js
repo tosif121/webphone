@@ -70,6 +70,7 @@ export function JssipProvider({ children }) {
     queueDetails,
     hasTransfer,
     currentCallData,
+    hasParticipants,
   ] = useJssip(isMobile);
 
   return (
@@ -127,6 +128,7 @@ export function JssipProvider({ children }) {
         queueDetails,
         hasTransfer,
         currentCallData,
+        hasParticipants,
         isMobile,
       }}
     >

@@ -4,64 +4,149 @@ import { useStopwatch } from 'react-timer-hook';
 import JsSIP from 'jssip';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useJssipState } from './jssip/useJssipState';
+import { useJssipUtils } from './jssip/useJssipUtils';
+import { useJssipConference } from './jssip/useJssipConference';
+import { useJssipRecording } from './jssip/useJssipRecording';
+import { useJssipMonitoring } from './jssip/useJssipMonitoring';
 
 const useJssip = (isMobile = false) => {
   const { setHistory, username, password, setSelectedBreak, selectedBreak } = useContext(HistoryContext);
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [conferenceNumber, setConferenceNumber] = useState('');
-  const [ua, setUa] = useState(null);
-  const [session, setSession] = useState(null);
-  const [bridgeID, setBridgeID] = useState('');
-  const [status, setStatus] = useState('start');
-  const [devices, setDevices] = useState([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState('');
-  const [mediaRecorder, setMediaRecorder] = useState(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [userCall, setUserCall] = useState('');
-  const [ringtone, setRingtone] = useState('');
-  const [inNotification, setInNotification] = useState('');
-  const [isHeld, setIsHeld] = useState(false);
-  const [conferenceStatus, setConferenceStatus] = useState(false);
-  const [dispositionModal, setDispositionModal] = useState(false);
-  const [isConnectionLost, setIsConnectionLost] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState('NOT_INUSE');
-  const [timeoutArray, setTimeoutArray] = useState([]);
-  const [isCallended, setIsCallended] = useState(false);
-  const [messageDifference, setMessageDifference] = useState([]);
-  const [avergaeMessageTimePerMinute, setAvergaeMessageTimePerMinute] = useState([]);
-  const [showTimeoutModal, setShowTimeoutModal] = useState(false);
-  const [callHandled, setCallHandled] = useState(false);
-  const [incomingSession, setIncomingSession] = useState(null);
-  const [incomingNumber, setIncomingNumber] = useState('');
-  const [isIncomingRinging, setIsIncomingRinging] = useState(false);
-  const [followUpDispoes, setFollowUpDispoes] = useState([]);
-  const [conferenceCalls, setConferenceCalls] = useState([]);
-  const [callConference, setCallConference] = useState(false);
-  const [userLogin, setUserLogin] = useState(false);
-  const [callType, setCallType] = useState('');
-  const [queueDetails, setQueueDetails] = useState([]);
-  const [hasTransfer, setHasTransfer] = useState(false);
-  const [currentCallData, setCurrentCallData] = useState(null);
-  const [hasParticipants, setHasParticipants] = useState(false);
-  const offlineToastIdRef = useRef(null);
-  const agentSocketRef = useRef(null);
-  const customerSocketRef = useRef(null);
-  const agentMediaRecorderRef = useRef(null);
-  const customerMediaRecorderRef = useRef(null);
-  const dialingNumberRef = useRef('');
-  const ringtoneRef = useRef(null);
-  const audioRef = useRef();
-  const callHandledRef = useRef(false);
-  const chunks = useRef([]);
-  const { seconds, minutes, isRunning, pause, reset } = useStopwatch({
-    autoStart: false,
-  });
+  const state = useJssipState();
+  const utils = useJssipUtils(state);
+  const conference = useJssipConference(state, utils);
+  const recording = useJssipRecording(state, utils);
+  const monitoring = useJssipMonitoring(state, utils);
+  const {
+    phoneNumber,
+    setPhoneNumber,
+    conferenceNumber,
+    setConferenceNumber,
+    ua,
+    setUa,
+    session,
+    setSession,
+    bridgeID,
+    setBridgeID,
+    status,
+    setStatus,
+    callType,
+    setCallType,
+    isHeld,
+    setIsHeld,
+    conferenceStatus,
+    setConferenceStatus,
+    origin,
+    setOrigin,
+    devices,
+    setDevices,
+    selectedDeviceId,
+    setSelectedDeviceId,
+    mediaRecorder,
+    setMediaRecorder,
+    isRecording,
+    setIsRecording,
+    userCall,
+    setUserCall,
+    ringtone,
+    setRingtone,
+    inNotification,
+    setInNotification,
+    dispositionModal,
+    setDispositionModal,
+    isConnectionLost,
+    setIsConnectionLost,
+    connectionStatus,
+    setConnectionStatus,
+    timeoutArray,
+    setTimeoutArray,
+    messageDifference,
+    setMessageDifference,
+    avergaeMessageTimePerMinute,
+    setAvergaeMessageTimePerMinute,
+    isCallended,
+    setIsCallended,
+    callHandled,
+    setCallHandled,
+    showTimeoutModal,
+    setShowTimeoutModal,
+    incomingSession,
+    setIncomingSession,
+    incomingNumber,
+    setIncomingNumber,
+    isIncomingRinging,
+    setIsIncomingRinging,
+    followUpDispoes,
+    setFollowUpDispoes,
+    conferenceCalls,
+    setConferenceCalls,
+    callConference,
+    setCallConference,
+    hasParticipants,
+    setHasParticipants,
+    userLogin,
+    setUserLogin,
+    queueDetails,
+    setQueueDetails,
+    hasTransfer,
+    setHasTransfer,
+    currentCallData,
+    setCurrentCallData,
+    offlineToastIdRef,
+    agentSocketRef,
+    customerSocketRef,
+    agentMediaRecorderRef,
+    customerMediaRecorderRef,
+    dialingNumberRef,
+    ringtoneRef,
+    audioRef,
+    callHandledRef,
+    chunks,
+    seconds,
+    minutes,
+    isRunning,
+    pause,
+    reset,
+    systemEvents,
+    setSystemEvents,
+    networkHealth,
+    setNetworkHealth,
+    lastError,
+    setLastError,
+    successCount,
+    setSuccessCount,
+    errorCount,
+    setErrorCount,
+    lastLoggedUAState,
+    setLastLoggedUAState,
+  } = state;
 
-  const [origin, setOrigin] = useState('esamwad.iotcom.io');
+  const {
+    playRingtone,
+    stopRingtone,
+    notifyMe,
+    createNotification,
+    checkUserReady,
+    removeBreak,
+    validatePhoneNumber,
+    storeInLocalStorage,
+    getFromLocalStorage,
+  } = utils;
+
+  const { createConferenceCall, reqUnHold, toggleHold, handleConferenceMessage } = conference;
+  const { startRecording, stopRecording, changeAudioDevice } = recording;
+  const {
+    calculateAverageResponseTime,
+    calculateConnectionUptime,
+    isUARegistered,
+    getWebSocketStatus,
+    analyzeSystemHealth,
+    logSystemEvent,
+  } = monitoring;
 
   useEffect(() => {
-    // const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-    // setOrigin(originWithoutProtocol);
+    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    setOrigin(originWithoutProtocol);
   }, []);
 
   useEffect(() => {
@@ -86,78 +171,6 @@ const useJssip = (isMobile = false) => {
     };
   }, [connectionStatus, incomingSession, status, isIncomingRinging]);
 
-  function notifyMe() {
-    if (!('Notification' in window)) {
-      toast.error('This browser does not support desktop notifications');
-      return;
-    }
-
-    if (Notification.permission === 'granted') {
-      createNotification();
-    } else if (Notification.permission !== 'denied') {
-      Notification.requestPermission().then(function (permission) {
-        if (permission === 'granted') {
-          createNotification();
-        }
-      });
-    }
-  }
-
-  const playRingtone = () => {
-    if (ringtoneRef.current) {
-      ringtoneRef.current.currentTime = 0;
-      ringtoneRef.current.volume = 0.5;
-
-      // Handle autoplay policy
-      const playPromise = ringtoneRef.current.play();
-
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            console.log('Ringtone started playing');
-          })
-          .catch((error) => {
-            console.error('Error playing ringtone:', error);
-            // Try to play with user interaction
-            if (error.name === 'NotAllowedError') {
-              console.log('Autoplay prevented. User interaction required.');
-            }
-          });
-      }
-    }
-  };
-
-  const stopRingtone = () => {
-    if (ringtoneRef.current) {
-      ringtoneRef.current.pause();
-      ringtoneRef.current.currentTime = 0;
-    }
-  };
-
-  function createNotification() {
-    const notifiOptions = {
-      body: `Incoming call from ${inNotification}`,
-      icon: '/badge.png',
-      badge: '/badge.png',
-      vibrate: [5000, 4000, 5000],
-      tag: 'notification-tag',
-      renotify: true,
-      requireInteraction: true,
-    };
-
-    const notification = new Notification('Incoming Call', notifiOptions);
-
-    notification.onclick = function (event) {
-      event.preventDefault();
-      window.focus();
-      notification.close();
-    };
-    // notification.onclose = function () {
-    //   console.log('Call notification closed');
-    // };
-    return notification;
-  }
-
   const handleLoginSuccess = () => {
     setShowTimeoutModal(false);
     toast.success('Re-login successful');
@@ -176,37 +189,6 @@ const useJssip = (isMobile = false) => {
     localStorage.removeItem('selectedBreak');
 
     window.location.href = '/webphone/v1/login';
-  };
-
-  const createConferenceCall = async () => {
-    try {
-      const response = await fetch(`https://esamwad.iotcom.io/reqConf/${username}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          confNumber: conferenceNumber.replace(/\s+/g, ''),
-        }),
-      });
-
-      const data = await response.json();
-      if (data.message === 'conferance call dialed') {
-        if (data.result) {
-          setBridgeID(data.result);
-          setConferenceStatus(true);
-          setStatus('conference');
-        }
-      } else if (data.message === 'error dialing conference call') {
-        console.error('Conference call dialing failed');
-        setStatus('calling');
-      } else {
-        console.log('Unexpected response:', data.message);
-      }
-    } catch (error) {
-      console.error('Error creating conference call:', error);
-      setStatus('calling');
-    }
   };
 
   const withTimeout = (promise, timeoutMs) =>
@@ -239,7 +221,7 @@ const useJssip = (isMobile = false) => {
 
       const response = await withTimeout(
         axios.post(
-          `https://esamwad.iotcom.io/userconnection`,
+          `${window.location.origin}/userconnection`,
           { user: username },
           { headers: { 'Content-Type': 'application/json' } }
         ),
@@ -300,28 +282,10 @@ const useJssip = (isMobile = false) => {
     }
   };
 
-  useEffect(() => {
-    let timeout;
-
-    if (conferenceCalls && conferenceStatus && (status === 'conference' || status === 'ringing')) {
-      timeout = setTimeout(() => {
-        if (conferenceCalls.length === 0) {
-          setStatus('calling');
-          setCallConference(false);
-          setConferenceNumber('');
-          setConferenceStatus(false);
-          reqUnHold?.();
-        }
-      }, 12000);
-    }
-
-    return () => clearTimeout(timeout);
-  }, [conferenceCalls, status, callConference, conferenceStatus]);
-
   const handleLogout = async (token, message) => {
     try {
       if (token) {
-        await axios.delete(`https://esamwad.iotcom.io/deleteFirebaseToken`, {
+        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -400,17 +364,6 @@ const useJssip = (isMobile = false) => {
     return true;
   };
 
-  const checkUserReady = async () => {
-    try {
-      const url = `https://esamwad.iotcom.io/userready/${username}`;
-      const response = await axios.post(url, {}, { headers: { 'Content-Type': 'application/json' } });
-      return response.data;
-    } catch (error) {
-      console.error('Error sending login request:', error);
-      return null;
-    }
-  };
-
   useEffect(() => {
     const handleOffline = () => {
       if (offlineToastIdRef.current) {
@@ -437,249 +390,6 @@ const useJssip = (isMobile = false) => {
       }
     };
   }, []);
-
-  const initializeWebSocketTranscription = () => {
-    const createWebSocket = (isAgent = true) => {
-      const socketRef = isAgent ? agentSocketRef : customerSocketRef;
-      const socket = new WebSocket(`wss://${origin}/socket`);
-
-      socketRef.current = socket;
-
-      socket.onopen = () => {
-        // console.log(`${isAgent ? 'Agent' : 'Customer'} WebSocket Connected`);
-      };
-
-      socket.onerror = (error) => {
-        // console.error(`${isAgent ? 'Agent' : 'Customer'} WebSocket Error:`, error);
-      };
-
-      socket.onclose = () => {
-        // console.log(`${isAgent ? 'Agent' : 'Customer'} WebSocket Closed`);
-        setTimeout(() => {
-          createWebSocket(isAgent);
-        }, 3000);
-      };
-
-      return socket;
-    };
-
-    createWebSocket(true);
-    createWebSocket(false);
-  };
-
-  const startSpeechToText = (stream, isAgent = true) => {
-    const websocket = isAgent ? agentSocketRef.current : customerSocketRef.current;
-    const mediaRecorderRef = isAgent ? agentMediaRecorderRef : customerMediaRecorderRef;
-
-    if (!websocket || websocket.readyState !== WebSocket.OPEN) {
-      if (websocket?.readyState === WebSocket.CLOSING || websocket?.readyState === WebSocket.CLOSED) {
-        initializeWebSocketTranscription();
-      }
-
-      return;
-    }
-
-    const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'audio/webm;codecs=opus',
-    });
-
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0 && websocket.readyState === WebSocket.OPEN) {
-        websocket.send(event.data);
-      }
-    };
-
-    mediaRecorder.onstop = async () => {
-      const tracks = stream.getAudioTracks();
-      tracks.forEach((track) => track.stop());
-
-      if (websocket.readyState === WebSocket.OPEN) {
-        websocket.send(JSON.stringify('streamClose'));
-      }
-    };
-
-    mediaRecorder.start(1000);
-    mediaRecorderRef.current = mediaRecorder;
-  };
-
-  const stopSpeechToText = (isAgent = true) => {
-    const mediaRecorderRef = isAgent ? agentMediaRecorderRef : customerMediaRecorderRef;
-    const websocket = isAgent ? agentSocketRef.current : customerSocketRef.current;
-
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-    }
-
-    if (websocket && websocket.readyState === WebSocket.OPEN) {
-      websocket.send(JSON.stringify('streamClose'));
-    }
-  };
-
-  useEffect(() => {
-    if (status != 'start') {
-      initializeWebSocketTranscription();
-    }
-
-    return () => {
-      if (agentSocketRef.current) {
-        agentSocketRef.current.close();
-      }
-      if (customerSocketRef.current) {
-        customerSocketRef.current.close();
-      }
-    };
-  }, []);
-
-  const reqUnHold = async () => {
-    if (!session) return;
-
-    try {
-      const response = await fetch(`https://esamwad.iotcom.io/reqUnHold/${username}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          bridgeID: session.bridgeID,
-        }),
-      });
-
-      if (response.ok) {
-        if (audioRef.current) {
-          audioRef.current.play();
-        }
-        setIsHeld(false);
-
-        setConferenceStatus(false);
-      } else {
-        console.error('Failed to unhold call');
-      }
-    } catch (error) {
-      console.error('Error unholding call:', error);
-    }
-  };
-
-  const toggleHold = async () => {
-    if (!session) return;
-
-    try {
-      if (!isHeld) {
-        await fetch(`https://esamwad.iotcom.io/reqHold/${username}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            bridgeID: session.bridgeID,
-          }),
-        });
-
-        if (audioRef.current) {
-          audioRef.current.pause();
-        }
-
-        setIsHeld(true);
-      } else {
-        await fetch(`https://esamwad.iotcom.io/reqUnHold/${username}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            bridgeID: session.bridgeID,
-          }),
-        });
-
-        if (audioRef.current) {
-          audioRef.current.play();
-        }
-
-        setIsHeld(false);
-      }
-    } catch (error) {
-      console.error('Error toggling hold:', error);
-    }
-  };
-
-  const startRecording = async () => {
-    if (!session || isRecording) return;
-
-    try {
-      const combinedStream = new MediaStream();
-
-      const micStream = await navigator.mediaDevices.getUserMedia({
-        audio: selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : true,
-      });
-
-      const remoteReceivers = session.connection.getReceivers() || [];
-      const remoteTracks = remoteReceivers
-        .filter((receiver) => receiver.track?.kind === 'audio')
-        .map((receiver) => receiver.track)
-        .filter(Boolean);
-
-      startSpeechToText(micStream, true);
-      if (remoteTracks.length > 0) {
-        const remoteStream = new MediaStream(remoteTracks);
-        startSpeechToText(remoteStream, false);
-      }
-
-      remoteTracks.forEach((track) => {
-        combinedStream.addTrack(track);
-      });
-
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const destination = audioContext.createMediaStreamDestination();
-
-      const localSource = audioContext.createMediaStreamSource(micStream);
-      localSource.connect(destination);
-
-      if (remoteTracks.length > 0) {
-        const remoteStream = new MediaStream(remoteTracks);
-        const remoteSource = audioContext.createMediaStreamSource(remoteStream);
-        remoteSource.connect(destination);
-      }
-
-      const recorder = new MediaRecorder(destination.stream, {
-        mimeType: 'audio/webm',
-      });
-
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunks.current.push(event.data);
-        }
-      };
-
-      recorder.start();
-      setMediaRecorder(recorder);
-      setIsRecording(true);
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      setIsRecording(false);
-    }
-  };
-
-  const stopRecording = () => {
-    stopSpeechToText(true);
-    stopSpeechToText(false);
-    if (mediaRecorder && isRecording) {
-      mediaRecorder.stop();
-      setIsRecording(false);
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks.current, { type: 'audio/webm' });
-        chunks.current = [];
-
-        convertToWav(blob).then((wavBlob) => {
-          const audioUrl = URL.createObjectURL(wavBlob);
-          const audioLink = document.createElement('a');
-          audioLink.href = audioUrl;
-          audioLink.download = `call-recording-${new Date().toISOString()}.wav`;
-          audioLink.click();
-          URL.revokeObjectURL(audioUrl);
-        });
-      };
-    }
-  };
 
   const eventHandlers = {
     failed: function (e) {
@@ -715,76 +425,6 @@ const useJssip = (isMobile = false) => {
     },
   };
 
-  const convertToWav = async (blob) => {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const arrayBuffer = await blob.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-    const numberOfChannels = audioBuffer.numberOfChannels;
-    const length = audioBuffer.length;
-    const sampleRate = audioBuffer.sampleRate;
-    const wavBuffer = audioContext.createBuffer(numberOfChannels, length, sampleRate);
-
-    for (let channel = 0; channel < numberOfChannels; channel++) {
-      const channelData = audioBuffer.getChannelData(channel);
-      wavBuffer.copyToChannel(channelData, channel);
-    }
-
-    const wavData = encodeWAV(wavBuffer);
-    return new Blob([wavData], { type: 'audio/wav' });
-  };
-
-  const encodeWAV = (audioBuffer) => {
-    const numChannels = audioBuffer.numberOfChannels;
-    const sampleRate = audioBuffer.sampleRate;
-    const format = 1;
-    const bitDepth = 16;
-
-    const bytesPerSample = bitDepth / 8;
-    const blockAlign = numChannels * bytesPerSample;
-
-    const buffer = audioBuffer.getChannelData(0);
-    const samples = buffer.length;
-    const dataSize = samples * blockAlign;
-    const headerSize = 44;
-    const totalSize = headerSize + dataSize;
-
-    const arrayBuffer = new ArrayBuffer(totalSize);
-    const dataView = new DataView(arrayBuffer);
-
-    writeString(dataView, 0, 'RIFF');
-    dataView.setUint32(4, totalSize - 8, true);
-    writeString(dataView, 8, 'WAVE');
-    writeString(dataView, 12, 'fmt ');
-    dataView.setUint32(16, 16, true);
-    dataView.setUint16(20, format, true);
-    dataView.setUint16(22, numChannels, true);
-    dataView.setUint32(24, sampleRate, true);
-    dataView.setUint32(28, sampleRate * blockAlign, true);
-    dataView.setUint16(32, blockAlign, true);
-    dataView.setUint16(34, bitDepth, true);
-    writeString(dataView, 36, 'data');
-    dataView.setUint32(40, dataSize, true);
-
-    let offset = 44;
-    for (let i = 0; i < samples; i++) {
-      for (let channel = 0; channel < numChannels; channel++) {
-        const sample = audioBuffer.getChannelData(channel)[i];
-        const value = Math.max(-1, Math.min(1, sample));
-        dataView.setInt16(offset, value * 0x7fff, true);
-        offset += bytesPerSample;
-      }
-    }
-
-    return arrayBuffer;
-  };
-
-  const writeString = (dataView, offset, string) => {
-    for (let i = 0; i < string.length; i++) {
-      dataView.setUint8(offset + i, string.charCodeAt(i));
-    }
-  };
-
   var options = {
     eventHandlers: eventHandlers,
     mediaConstraints: {
@@ -800,24 +440,10 @@ const useJssip = (isMobile = false) => {
     },
   };
 
-  const changeAudioDevice = async (deviceId) => {
-    setSelectedDeviceId(deviceId);
-    if (session) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { deviceId: { exact: deviceId } },
-        });
-        session.connection.getSenders()[0].replaceTrack(stream.getAudioTracks()[0]);
-      } catch (error) {
-        console.error('Error changing audio device:', error);
-      }
-    }
-  };
-
   const answercall = async (incomingNumber = null) => {
     try {
       const response = await axios.post(
-        `https://esamwad.iotcom.io/useroncall/${username}`,
+        `${window.location.origin}/useroncall/${username}`,
         {},
         {
           headers: {
@@ -908,13 +534,6 @@ const useJssip = (isMobile = false) => {
   };
 
   useEffect(() => {
-    if (inNotification != '') {
-      notifyMe();
-      setInNotification('');
-    }
-  }, [inNotification]);
-
-  useEffect(() => {
     if (!username || !password) {
       return;
     }
@@ -964,7 +583,7 @@ const useJssip = (isMobile = false) => {
               // console.log(
               //   `[Re-apply Break] Attempting to re-apply break to backend: ${storedBreak} for user: ${username}`
               // );
-              const response = await axios.post(`https://esamwad.iotcom.io/user/breakuser:${username}`, {
+              const response = await axios.post(`${window.location.origin}/user/breakuser:${username}`, {
                 breakType: storedBreak,
               });
               if (response.status === 200) {
@@ -994,19 +613,29 @@ const useJssip = (isMobile = false) => {
         ua.on('newMessage', (e) => {
           const message = e.request.body;
           console.log('message event:', message);
-          const objectToPush = {
-            messageTime: Date.now(),
-          };
 
-          setMessageDifference((prev) => {
-            const updatedDifferences = [...prev, objectToPush]; // Add new difference
+          if (
+            message.includes('customer host channel connected') ||
+            message.includes('customer host channel diconnected')
+          ) {
+            handleConferenceMessage(message);
+          } else {
+            // Handle non-conference messages
+            const objectToPush = {
+              messageTime: Date.now(),
+              messageType: 'keepalive',
+              message: undefined,
+            };
 
-            if (updatedDifferences.length > 10) {
-              updatedDifferences.shift(); // Remove the first (oldest) element
-            }
+            setMessageDifference((prev) => {
+              const updatedDifferences = [...prev, objectToPush];
+              if (updatedDifferences.length > 10) {
+                updatedDifferences.shift();
+              }
+              return updatedDifferences;
+            });
+          }
 
-            return updatedDifferences;
-          });
           connectioncheck();
         });
 
@@ -1243,26 +872,6 @@ const useJssip = (isMobile = false) => {
     };
   }, [username, password]);
 
-  const removeBreak = async () => {
-    try {
-      await axios.post(`https://esamwad.iotcom.io/user/removebreakuser:${username}`);
-      setSelectedBreak('Break');
-      localStorage.removeItem('selectedBreak');
-      toast.success('Break removed successfully');
-      return true;
-    } catch (error) {
-      console.error('Error removing break:', error);
-      toast.error('Error removing break');
-      return false;
-    }
-  };
-
-  const validatePhoneNumber = (number) => {
-    if (!number) return false;
-    const cleaned = number.replace(/\D/g, '');
-    return cleaned.length >= 10 && cleaned.length <= 12;
-  };
-
   const handleCall = async (formattedNumber) => {
     // Early returns for invalid states
     if (isConnectionLost) {
@@ -1310,7 +919,7 @@ const useJssip = (isMobile = false) => {
 
       // Make the API call
       const response = await axios.post(
-        `https://esamwad.iotcom.io/dialnumber`,
+        `${window.location.origin}/dialnumber`,
         {
           caller: username,
           receiver: targetNumber,
@@ -1354,7 +963,7 @@ const useJssip = (isMobile = false) => {
       if (isCallended) {
         try {
           await axios.post(
-            `https://esamwad.iotcom.io/user/callended${username}`,
+            `${window.location.origin}/user/callended${username}`,
             {},
             {
               headers: {
@@ -1373,719 +982,6 @@ const useJssip = (isMobile = false) => {
 
     callApi();
   }, [isCallended, username]);
-
-  const [systemEvents, setSystemEvents] = useState([]);
-  const [networkHealth, setNetworkHealth] = useState('unknown');
-  const [lastError, setLastError] = useState(null);
-  const [successCount, setSuccessCount] = useState(0);
-  const [errorCount, setErrorCount] = useState(0);
-  const [lastLoggedUAState, setLastLoggedUAState] = useState(null);
-
-  const storeInLocalStorage = useCallback((key, value) => {
-    try {
-      const serialized = JSON.stringify({
-        data: value,
-        timestamp: Date.now(),
-      });
-
-      localStorage.setItem(`jssip_${key}`, serialized);
-
-      if (window.BroadcastChannel) {
-        const channel = new BroadcastChannel('jssip-sync');
-        channel.postMessage({
-          key: `jssip_${key}`,
-          value,
-          timestamp: Date.now(),
-          source: 'useJssip',
-        });
-        channel.close();
-      }
-    } catch (error) {
-      console.error(`Failed to store ${key} in localStorage:`, error);
-    }
-  }, []);
-
-  const getFromLocalStorage = useCallback((key, defaultValue = null) => {
-    try {
-      const stored = localStorage.getItem(`jssip_${key}`);
-      if (!stored) return defaultValue;
-      const parsed = JSON.parse(stored);
-      return parsed.data || defaultValue;
-    } catch (error) {
-      console.error(`Failed to get ${key} from localStorage:`, error);
-      return defaultValue;
-    }
-  }, []);
-
-  const calculateAverageResponseTime = useCallback(() => {
-    if (messageDifference.length < 2) return 0;
-    const intervals = [];
-    for (let i = 1; i < messageDifference.length; i++) {
-      const interval = messageDifference[i].messageTime - messageDifference[i - 1].messageTime;
-      intervals.push(interval);
-    }
-    return intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length;
-  }, [messageDifference]);
-
-  const calculateConnectionUptime = useCallback(() => {
-    const sessionStart = getFromLocalStorage('session_start') || Date.now();
-    return Date.now() - sessionStart;
-  }, [getFromLocalStorage]);
-
-  const isUARegistered = useCallback(() => {
-    if (!ua) return false;
-
-    try {
-      if (typeof ua.isRegistered === 'function') {
-        return ua.isRegistered();
-      }
-    } catch (e) {
-      // fallback
-    }
-
-    if (ua.registrator && ua.registrator.registered === true) {
-      return true;
-    }
-
-    const hasRecentKeepAlive =
-      messageDifference.length > 0 && Date.now() - messageDifference[messageDifference.length - 1]?.messageTime < 30000;
-
-    return hasRecentKeepAlive;
-  }, [ua, messageDifference]);
-
-  const getWebSocketStatus = useCallback(() => {
-    if (!ua) {
-      return { connected: false, readyState: null, status: 'no_ua' };
-    }
-
-    let socket = null;
-
-    if (ua.transport && ua.transport.socket) {
-      socket = ua.transport.socket;
-    } else if (ua.transport && ua.transport.connection) {
-      socket = ua.transport.connection;
-    } else if (ua._transport && ua._transport.socket) {
-      socket = ua._transport.socket;
-    }
-
-    if (!socket) {
-      const isRegistered = isUARegistered();
-      if (isRegistered) {
-        return { connected: true, readyState: 1, status: 'connected_inferred' };
-      }
-      return { connected: false, readyState: null, status: 'no_socket' };
-    }
-
-    let readyState = socket.readyState;
-
-    if (readyState === undefined || readyState === null) {
-      const isRegistered = isUARegistered();
-      const hasRecentKeepAlive =
-        messageDifference.length > 0 &&
-        Date.now() - messageDifference[messageDifference.length - 1]?.messageTime < 30000;
-
-      if (isRegistered && hasRecentKeepAlive) {
-        readyState = WebSocket.OPEN;
-      } else if (isRegistered) {
-        readyState = WebSocket.OPEN;
-      } else {
-        readyState = WebSocket.CLOSED;
-      }
-    }
-
-    const connected = readyState === WebSocket.OPEN;
-
-    return { connected, readyState, status: connected ? 'connected' : 'disconnected' };
-  }, [ua, isUARegistered, messageDifference]);
-
-  const analyzeSystemHealth = useCallback(() => {
-    const now = Date.now();
-    const recentTimeWindow = 5 * 60 * 1000;
-
-    const isRegistered = isUARegistered();
-    const wsStatus = getWebSocketStatus();
-
-    const hasRecentKeepAlive =
-      messageDifference.length > 0 && now - messageDifference[messageDifference.length - 1]?.messageTime < 30000;
-
-    const wsHealth = wsStatus.connected || (isRegistered && hasRecentKeepAlive) ? 'healthy' : 'critical';
-    const sipHealth = isRegistered ? 'healthy' : 'critical';
-    const networkOnline = navigator.onLine;
-
-    const connection = navigator.connection;
-    const networkRtt = connection?.rtt || 0;
-    const networkDownlink = connection?.downlink || 0;
-    const effectiveType = connection?.effectiveType || 'unknown';
-
-    let networkQuality = 'poor';
-    let signalStrength = 1;
-
-    if (effectiveType === '4g' || effectiveType === '3g') {
-      if (effectiveType === '4g' && networkRtt < 100 && networkDownlink > 3) {
-        networkQuality = 'excellent';
-        signalStrength = 4;
-      } else if (effectiveType === '4g' && networkRtt < 150) {
-        networkQuality = 'good';
-        signalStrength = 3;
-      } else if (effectiveType === '3g' || networkRtt < 300) {
-        networkQuality = 'fair';
-        signalStrength = 2;
-      }
-    } else {
-      if (networkRtt < 50 && networkDownlink > 10) {
-        networkQuality = 'excellent';
-        signalStrength = 4;
-      } else if (networkRtt < 100 && networkDownlink > 5) {
-        networkQuality = 'good';
-        signalStrength = 3;
-      } else if (networkRtt < 200 && networkDownlink > 2) {
-        networkQuality = 'fair';
-        signalStrength = 2;
-      }
-    }
-
-    const recentErrors = systemEvents.filter(
-      (event) => event.type === 'error' && now - event.timestamp < recentTimeWindow
-    ).length;
-
-    const recentSuccesses = systemEvents.filter(
-      (event) => event.type === 'success' && now - event.timestamp < recentTimeWindow
-    ).length;
-
-    const lastKeepAlive =
-      messageDifference.length > 0 ? messageDifference[messageDifference.length - 1]?.messageTime : null;
-    const keepAliveHealth = lastKeepAlive && now - lastKeepAlive < 15000;
-
-    const recentTimeouts = timeoutArray.filter((timeout) => {
-      if (!timeout.timestamp) return false;
-      const timeoutTime = new Date(timeout.timestamp);
-      const windowStart = new Date(now - 30000);
-      return timeoutTime > windowStart;
-    });
-
-    if (recentTimeouts.length >= 3) signalStrength = Math.max(signalStrength - 2, 1);
-    else if (recentTimeouts.length === 2) signalStrength = Math.max(signalStrength - 1, 1);
-    else if (recentTimeouts.length === 1) signalStrength = Math.max(signalStrength - 1, 2);
-
-    let overallHealth = 100;
-
-    if (!ua) {
-      overallHealth = 25;
-    } else if (isRegistered && (wsStatus.connected || hasRecentKeepAlive)) {
-      overallHealth = 100;
-      if (!keepAliveHealth && messageDifference.length > 0) overallHealth -= 5;
-      if (recentErrors > recentSuccesses) overallHealth -= 5;
-      if (networkQuality === 'poor') overallHealth -= 10;
-      else if (networkQuality === 'fair') overallHealth -= 5;
-    } else if (isRegistered && !wsStatus.connected && !hasRecentKeepAlive) {
-      overallHealth = 60;
-    } else if (!isRegistered && (wsStatus.connected || hasRecentKeepAlive)) {
-      overallHealth = 50;
-    } else {
-      overallHealth = 30;
-    }
-
-    if (!networkOnline) overallHealth = Math.min(overallHealth, 25);
-    overallHealth = Math.max(0, Math.min(100, overallHealth));
-
-    return {
-      overallHealth,
-      wsHealth,
-      sipHealth,
-      networkOnline,
-      networkQuality,
-      networkType: effectiveType,
-      networkRtt,
-      networkDownlink,
-      keepAliveHealth,
-      recentErrors,
-      recentSuccesses,
-      signalStrength,
-      recentTimeouts: recentTimeouts.length,
-      lastKeepAlive: lastKeepAlive ? new Date(lastKeepAlive).toISOString() : null,
-      isUARegistered: isRegistered,
-      wsConnected: wsStatus.connected || (isRegistered && hasRecentKeepAlive),
-      wsReadyState: wsStatus.readyState,
-      hasRecentKeepAlive,
-    };
-  }, [ua, isUARegistered, getWebSocketStatus, systemEvents, messageDifference, timeoutArray]);
-
-  const logSystemEvent = useCallback((type, category, message, details = {}) => {
-    const event = {
-      id: `${Date.now()}_${Math.random()}`,
-      timestamp: Date.now(),
-      type,
-      category,
-      message,
-      details,
-    };
-
-    setSystemEvents((prev) => [...prev, event].slice(-500));
-
-    if (type === 'success') setSuccessCount((prev) => prev + 1);
-    if (type === 'error') {
-      setErrorCount((prev) => prev + 1);
-      setLastError(event);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!ua) return;
-
-    const wsStatus = getWebSocketStatus();
-    const registered = isUARegistered();
-
-    const currentState = {
-      isRegistered: registered,
-      socketReadyState: wsStatus.readyState,
-      socketConnected: wsStatus.connected,
-      connectionStatus,
-      hasSocket: !!ua?.transport?.socket,
-      hasKeepAlive: messageDifference.length > 0,
-      uaStarted: ua._state === 'started',
-    };
-
-    const stateSignature = JSON.stringify(currentState);
-
-    if (lastLoggedUAState !== stateSignature) {
-      setLastLoggedUAState(stateSignature);
-
-      const timeoutId = setTimeout(() => {
-        const systemHealth = analyzeSystemHealth();
-
-        storeInLocalStorage('ua_status', {
-          isConnected: wsStatus.connected,
-          isRegistered: registered,
-          isStarted: ua._state === 'started',
-          transport: {
-            connected: ua?.transport?.connected || false,
-            connecting: ua?.transport?.connecting || false,
-            readyState: wsStatus.readyState,
-          },
-          registrator: {
-            registered: registered,
-            expires: ua?.registrator?.expires || null,
-          },
-          systemHealth,
-          signalStrength: systemHealth.signalStrength,
-        });
-
-        if (registered && wsStatus.connected) {
-          logSystemEvent('success', 'system', 'UA fully operational - registered and connected', {
-            socketReadyState: wsStatus.readyState,
-            uaState: ua._state,
-            keepAliveCount: messageDifference.length,
-          });
-        } else if (registered && !wsStatus.connected) {
-          logSystemEvent('warning', 'system', 'UA registered but WebSocket not connected', {
-            socketReadyState: wsStatus.readyState,
-            registered: registered,
-          });
-        } else if (!registered && wsStatus.connected) {
-          logSystemEvent('info', 'system', 'UA WebSocket connected but not registered yet', {
-            socketReadyState: wsStatus.readyState,
-            uaState: ua._state,
-            connectionStatus,
-          });
-        }
-      }, 2000);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [
-    ua,
-    ua?._state,
-    connectionStatus,
-    messageDifference.length,
-    lastLoggedUAState,
-    isUARegistered,
-    getWebSocketStatus,
-    storeInLocalStorage,
-    analyzeSystemHealth,
-    logSystemEvent,
-  ]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      const connectionHealth = analyzeSystemHealth();
-
-      storeInLocalStorage('connection_status', {
-        connectionStatus,
-        isConnectionLost,
-        userLogin,
-        showTimeoutModal,
-        origin,
-        lastConnectionCheck: Date.now(),
-        networkStatus: navigator.onLine,
-        socketState: getWebSocketStatus().readyState,
-        systemHealth: connectionHealth,
-        networkHealth: connectionHealth.networkQuality,
-        errorCount,
-        successCount,
-        lastError,
-        signalStrength: connectionHealth.signalStrength,
-        uaRegistered: isUARegistered(),
-      });
-    }, 5000);
-
-    return () => clearTimeout(timeoutId);
-  }, [
-    connectionStatus,
-    isConnectionLost,
-    userLogin,
-    showTimeoutModal,
-    origin,
-    errorCount,
-    successCount,
-    lastError,
-    session,
-    isUARegistered,
-    getWebSocketStatus,
-    storeInLocalStorage,
-    analyzeSystemHealth,
-  ]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      const systemHealth = analyzeSystemHealth();
-
-      storeInLocalStorage('monitoring_data', {
-        timeoutArray,
-        messageDifference,
-        systemEvents: systemEvents.slice(-100),
-        performanceMetrics: {
-          lastKeepAlive:
-            messageDifference.length > 0 ? messageDifference[messageDifference.length - 1]?.messageTime : null,
-          timeoutCount: timeoutArray.length,
-          averageResponseTime: calculateAverageResponseTime(),
-          connectionUptime: calculateConnectionUptime(),
-          systemHealth: systemHealth.overallHealth,
-          errorRate: systemEvents.length > 0 ? (errorCount / systemEvents.length) * 100 : 0,
-          successRate: systemEvents.length > 0 ? (successCount / systemEvents.length) * 100 : 0,
-        },
-        networkInfo: {
-          effectiveType: navigator.connection?.effectiveType || 'unknown',
-          downlink: navigator.connection?.downlink || null,
-          rtt: navigator.connection?.rtt || null,
-          online: navigator.onLine,
-          quality: systemHealth.networkQuality,
-          signalStrength: systemHealth.signalStrength,
-        },
-        systemAnalysis: systemHealth,
-      });
-    }, 10000);
-
-    return () => clearTimeout(timeoutId);
-  }, [
-    timeoutArray.length,
-    messageDifference.length,
-    systemEvents.length,
-    errorCount,
-    successCount,
-    storeInLocalStorage,
-    analyzeSystemHealth,
-    calculateAverageResponseTime,
-    calculateConnectionUptime,
-  ]);
-
-  useEffect(() => {
-    const handleOnline = () => {
-      logSystemEvent('success', 'network', 'Internet connection restored', {
-        downlink: navigator.connection?.downlink || 'unknown',
-        rtt: navigator.connection?.rtt || 'unknown',
-      });
-    };
-
-    const handleOffline = () => {
-      logSystemEvent('error', 'network', 'Internet connection lost', {
-        lastOnline: new Date().toISOString(),
-      });
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [logSystemEvent]);
-
-  useEffect(() => {
-    if (!ua) return;
-
-    const handleRegisteredEvent = () => {
-      logSystemEvent('success', 'sip', 'SIP registration successful via ua.on event', {
-        timestamp: new Date().toISOString(),
-      });
-    };
-
-    const handleRegistrationFailedEvent = () => {
-      logSystemEvent('error', 'sip', 'SIP registration failed via ua.on event', {
-        timestamp: new Date().toISOString(),
-      });
-    };
-
-    const handleStoppedEvent = () => {
-      logSystemEvent('error', 'websocket', 'UA stopped via ua.on event', {
-        timestamp: new Date().toISOString(),
-      });
-    };
-
-    const handleDisconnectedEvent = () => {
-      logSystemEvent('error', 'websocket', 'UA disconnected via ua.on event', {
-        timestamp: new Date().toISOString(),
-      });
-    };
-
-    const handleNewMessageEvent = () => {
-      logSystemEvent('success', 'keep_alive', 'Keep-alive message received via ua.on event', {
-        timestamp: new Date().toISOString(),
-      });
-    };
-
-    ua.on('registered', handleRegisteredEvent);
-    ua.on('registrationFailed', handleRegistrationFailedEvent);
-    ua.on('stopped', handleStoppedEvent);
-    ua.on('disconnected', handleDisconnectedEvent);
-    ua.on('newMessage', handleNewMessageEvent);
-
-    return () => {
-      if (ua) {
-        ua.off('registered', handleRegisteredEvent);
-        ua.off('registrationFailed', handleRegistrationFailedEvent);
-        ua.off('stopped', handleStoppedEvent);
-        ua.off('disconnected', handleDisconnectedEvent);
-        ua.off('newMessage', handleNewMessageEvent);
-      }
-    };
-  }, [ua, logSystemEvent]);
-
-  useEffect(() => {
-    if (timeoutArray.length > 0) {
-      const latestTimeout = timeoutArray[timeoutArray.length - 1];
-      logSystemEvent('warning', 'timeout', `Timeout event detected: ${latestTimeout.type}`, {
-        timeoutType: latestTimeout.type,
-        totalTimeouts: timeoutArray.length,
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }, [timeoutArray.length, logSystemEvent]);
-
-  useEffect(() => {
-    if (!ua?.transport?.socket) return;
-
-    const checkWebSocketState = () => {
-      const socket = ua.transport.socket;
-      const currentState = socket.readyState;
-      const prevState = socket._prevReadyState;
-
-      if (prevState !== currentState) {
-        socket._prevReadyState = currentState;
-
-        let stateText = 'UNKNOWN';
-        let eventType = 'info';
-
-        switch (currentState) {
-          case 0:
-            stateText = 'CONNECTING';
-            eventType = 'info';
-            break;
-          case 1:
-            stateText = 'OPEN';
-            eventType = 'success';
-            break;
-          case 2:
-            stateText = 'CLOSING';
-            eventType = 'warning';
-            break;
-          case 3:
-            stateText = 'CLOSED';
-            eventType = 'error';
-            break;
-        }
-
-        logSystemEvent(eventType, 'websocket', `WebSocket state changed to ${stateText}`, {
-          readyState: currentState,
-          previousState: prevState,
-          timestamp: new Date().toISOString(),
-        });
-      }
-    };
-
-    const interval = setInterval(checkWebSocketState, 10000);
-    return () => clearInterval(interval);
-  }, [ua?.transport?.socket, logSystemEvent]);
-
-  useEffect(() => {
-    const checkSystemReadiness = () => {
-      const wsStatus = getWebSocketStatus();
-      const registered = isUARegistered();
-      const isNetworkOnline = navigator.onLine;
-
-      const hasRecentKeepAlive =
-        messageDifference.length > 0
-          ? Date.now() - messageDifference[messageDifference.length - 1].messageTime < 15000
-          : true;
-
-      const systemReady = wsStatus.connected && registered && isNetworkOnline;
-
-      if (!ua) {
-        logSystemEvent('info', 'system', 'Waiting for UA initialization', { connectionStatus });
-      } else if (!registered) {
-        logSystemEvent('info', 'system', 'UA initialized, waiting for SIP registration', {
-          hasUA: !!ua,
-          uaState: ua._state,
-          hasSocket: !!ua?.transport?.socket,
-          connectionStatus,
-        });
-      } else if (systemReady) {
-        logSystemEvent('success', 'system', 'System fully operational', { allSystemsGo: true });
-      }
-    };
-
-    const readinessInterval = setInterval(checkSystemReadiness, 60000);
-    return () => clearInterval(readinessInterval);
-  }, [ua, ua?._state, messageDifference.length, connectionStatus, isUARegistered, getWebSocketStatus, logSystemEvent]);
-
-  useEffect(() => {
-    const logInterval = setInterval(() => {
-      const wsStatus = getWebSocketStatus();
-      const registered = isUARegistered();
-      const hasRecentKeepAlive =
-        messageDifference.length > 0 &&
-        Date.now() - messageDifference[messageDifference.length - 1]?.messageTime < 30000;
-
-      let wsStateText = 'Not Connected';
-      let wsStateIcon = '❌';
-
-      if (!ua) {
-        wsStateText = 'UA Not Initialized';
-        wsStateIcon = '⏸️';
-      } else if (!ua?.transport?.socket && !wsStatus.connected) {
-        wsStateText = 'No Socket';
-        wsStateIcon = '❌';
-      } else if (!registered) {
-        wsStateText = 'Socket Ready, Not Registered';
-        wsStateIcon = '🔄';
-      } else if (registered && hasRecentKeepAlive) {
-        wsStateText = 'CONNECTED & ACTIVE (inferred)';
-        wsStateIcon = '✅';
-      } else if (wsStatus.connected) {
-        wsStateText = 'OPEN & REGISTERED';
-        wsStateIcon = '✅';
-      } else if (registered) {
-        wsStateText = 'REGISTERED (socket status unclear)';
-        wsStateIcon = '⚠️';
-      } else {
-        switch (wsStatus.readyState) {
-          case 0:
-            wsStateText = 'CONNECTING';
-            wsStateIcon = '🔄';
-            break;
-          case 2:
-            wsStateText = 'CLOSING';
-            wsStateIcon = '⚠️';
-            break;
-          case 3:
-            wsStateText = 'CLOSED';
-            wsStateIcon = '❌';
-            break;
-          default:
-            wsStateText = `UNKNOWN(${wsStatus.readyState})`;
-            wsStateIcon = '❓';
-        }
-      }
-
-      let sipStateText = 'NOT_INITIALIZED';
-      let sipStateIcon = '⏸️';
-
-      if (!ua) {
-        sipStateText = 'UA Not Initialized';
-        sipStateIcon = '⏸️';
-      } else if (registered) {
-        sipStateText = 'REGISTERED & ACTIVE';
-        sipStateIcon = '✅';
-      } else if (ua && ua._state) {
-        sipStateText = `UA READY (${ua._state})`;
-        sipStateIcon = '🔄';
-      }
-
-      let connectionIcon = '❓';
-      switch (connectionStatus) {
-        case 'CONNECTED':
-          connectionIcon = '🟢';
-          break;
-        case 'CONNECTING':
-          connectionIcon = '🔄';
-          break;
-        case 'NOT_INUSE':
-          connectionIcon = '⚪';
-          break;
-        case 'INUSE':
-          connectionIcon = '🟡';
-          break;
-        case 'Disposition':
-          connectionIcon = '📞';
-          break;
-        default:
-          connectionIcon = '❓';
-      }
-
-      const currentHealth = analyzeSystemHealth();
-      let healthIcon = '💚';
-      if (currentHealth.overallHealth < 30) healthIcon = '❤️';
-      else if (currentHealth.overallHealth < 60) healthIcon = '💛';
-      else if (currentHealth.overallHealth < 80) healthIcon = '🧡';
-
-      if (messageDifference.length > 0) {
-        const lastMessage = messageDifference[messageDifference.length - 1];
-        const timeSinceLastMessage = Date.now() - lastMessage.messageTime;
-      }
-    }, 30000);
-
-    return () => clearInterval(logInterval);
-  }, [
-    ua,
-    ua?._state,
-    connectionStatus,
-    timeoutArray.length,
-    messageDifference,
-    successCount,
-    errorCount,
-    isUARegistered,
-    getWebSocketStatus,
-    analyzeSystemHealth,
-  ]);
-
-  useEffect(() => {
-    if (!getFromLocalStorage('session_start')) {
-      storeInLocalStorage('session_start', Date.now());
-    }
-
-    logSystemEvent('info', 'system', 'JsSIP monitoring system initialized', {
-      connectionStatus,
-      networkOnline: navigator.onLine,
-      hasUA: !!ua,
-      timestamp: new Date().toISOString(),
-    });
-  }, []);
-
-  useEffect(() => {
-    if (conferenceCalls && conferenceCalls.length > 0 && (status === 'conference' || status === 'ringing')) {
-      if (!hasParticipants) {
-        setHasParticipants(true);
-      }
-    } else {
-      if (hasParticipants) {
-        setCallConference(false);
-        setConferenceNumber('');
-        setConferenceStatus(false);
-        reqUnHold?.();
-        setHasParticipants(false);
-      }
-    }
-  }, [conferenceCalls, hasParticipants]);
 
   return [
     ringtone,
@@ -2140,6 +1036,7 @@ const useJssip = (isMobile = false) => {
     queueDetails,
     hasTransfer,
     currentCallData,
+    hasParticipants,
   ];
 };
 

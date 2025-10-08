@@ -8,14 +8,12 @@ import { useEffect, useState } from 'react';
 const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, handleSubmit, formSubmitted }) => {
   // Initialize with proper data source
   const initialData = localFormData || {};
-console.log(localFormData, 'localFormData')
   // Ensure contact number is included from userCall
   const [currentFormData, setCurrentFormData] = useState({
     ...initialData,
     number: userCall?.contactNumber || initialData.number || '',
   });
 
-  console.log(currentFormData, 'currentFormData')
 
   // Update when localFormData or userCall changes
   useEffect(() => {

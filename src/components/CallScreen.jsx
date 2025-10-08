@@ -42,25 +42,33 @@ const CallScreen = ({
   conferenceStatus,
   userCall,
   conferenceCalls,
+  hasParticipants,
+  status,
 }) => {
   const [currNum, setCurrNum] = useState('');
   const [isHovered, setIsHovered] = useState(false);
   const [showKeyPad, setShowKeyPad] = useState(false);
   const [muted, setMuted] = useState(false);
   const [isMerged, setIsMerged] = useState(false);
-  const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  const parsedData = tokenData ? JSON.parse(tokenData) : {};
-  const { username } = useContext(HistoryContext);
-  const numberMasking = parsedData?.userData?.numberMasking;
+
+  // Conference timer for unmerged calls
   const [confSeconds, setConfSeconds] = useState(0);
   const [confMinutes, setConfMinutes] = useState(0);
   const [confRunning, setConfRunning] = useState(false);
 
-  // Start conference call timer when new conference call starts
+  const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const parsedData = tokenData ? JSON.parse(tokenData) : {};
+  const { username } = useContext(HistoryContext);
+  const numberMasking = parsedData?.userData?.numberMasking;
+
+  // Start conference timer when participants join but not merged
   useEffect(() => {
     let interval;
-    if (conferenceNumber && !isMerged) {
+
+    if (hasParticipants && conferenceStatus && !isMerged) {
+      console.log('Starting conference timer - participants connected but not merged');
       setConfRunning(true);
+
       interval = setInterval(() => {
         setConfSeconds((prev) => {
           if (prev === 59) {
@@ -70,22 +78,39 @@ const CallScreen = ({
           return prev + 1;
         });
       }, 1000);
+    } else {
+      setConfRunning(false);
     }
-    return () => clearInterval(interval);
-  }, [conferenceNumber, isMerged]);
 
-  // Reset when merged
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [hasParticipants, conferenceStatus, isMerged]);
+
+  // Reset conference timer when merged
   useEffect(() => {
     if (isMerged) {
+      console.log('Conference merged - stopping separate timer');
       setConfRunning(false);
       setConfSeconds(0);
       setConfMinutes(0);
     }
   }, [isMerged]);
 
+  // Reset states when conference ends
+  useEffect(() => {
+    if (!hasParticipants && !conferenceStatus) {
+      console.log('Conference ended - resetting all states');
+      setIsMerged(false);
+      setConfRunning(false);
+      setConfSeconds(0);
+      setConfMinutes(0);
+    }
+  }, [hasParticipants, conferenceStatus]);
+
   const handleTransfer = async () => {
     try {
-      await axios.post(`https://esamwad.iotcom.io/reqTransfer/${username}`, {});
+      await axios.post(`${window.location.origin}/reqTransfer/${username}`, {});
       toast.success('Request successful!');
     } catch (error) {
       toast.error('Request failed. Please try again.');
@@ -93,8 +118,14 @@ const CallScreen = ({
   };
 
   const handleMerge = () => {
+    if (!hasParticipants) {
+      toast.error('No conference participants to merge with');
+      return;
+    }
+
     reqUnHold?.();
     setIsMerged(true);
+    toast.success('Merged with conference participants');
   };
 
   useEffect(() => {
@@ -111,7 +142,7 @@ const CallScreen = ({
       const cleanNumber = conferenceNumber.replace(/\s/g, '');
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/hangup/hostChannel/Conf`,
+        `${window.location.origin}/hangup/hostChannel/Conf`,
         {
           user: username,
           hostNumber: cleanNumber,
@@ -123,6 +154,7 @@ const CallScreen = ({
           },
         }
       );
+
       if (response.data.success) {
         toast.success(response.data.message || 'Conference disconnected successfully');
         setIsMerged(false);
@@ -152,17 +184,36 @@ const CallScreen = ({
     return maybeMask(userCall?.contactNumber) || '';
   })();
 
+  const ControlButton = ({ onClick, disabled, active, icon, title, className = '' }) => {
+    return (
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        title={title}
+        className={`
+        w-10 h-10 rounded-lg transition-all duration-200 flex items-center justify-center
+        ${active ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card/80 text-primary hover:bg-accent'}
+        ${disabled ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105 hover:shadow-lg active:scale-95'}
+        ${className}
+      `}
+      >
+        {icon}
+      </button>
+    );
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[300px] p-3">
       {session && session.connection && <WebRTCStats peerConnection={session.connection} />}
 
-      {/* Header */}
+      {/* Header - Original UI Structure */}
       <div className="flex flex-col items-center my-3">
         <div className="relative mb-2">
           <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center shadow-md">
             <User className="text-primary-foreground" size={20} />
           </div>
         </div>
+
         <div className="text-center mb-2">
           {conferenceStatus ? (
             <div className="text-sm font-medium text-muted-foreground max-w-[250px]">
@@ -171,7 +222,9 @@ const CallScreen = ({
           ) : (
             ''
           )}
+
           <div className="text-sm font-medium text-muted-foreground max-w-[250px]">{mainNumber}</div>
+
           <div className="flex items-center justify-center gap-1 mt-1">
             {isRunning ? (
               <>
@@ -192,7 +245,7 @@ const CallScreen = ({
         </div>
       </div>
 
-      {/* Controls Section */}
+      {/* Controls Section - Original Structure */}
       <div className="space-y-4">
         {!showKeyPad ? (
           <>
@@ -218,7 +271,13 @@ const CallScreen = ({
             {/* Secondary Controls Row */}
             <div className="flex justify-center gap-3">
               {conferenceStatus ? (
-                <ControlButton disabled={!session} onClick={handleMerge} icon={<Merge size={16} />} title="Merge" />
+                <ControlButton
+                  disabled={!session || !hasParticipants}
+                  onClick={handleMerge}
+                  icon={<Merge size={16} />}
+                  title="Merge"
+                  active={isMerged}
+                />
               ) : (
                 <ControlButton
                   disabled={!session}
@@ -274,10 +333,8 @@ const CallScreen = ({
             className="text-white cursor-pointer w-12 h-12 flex items-center justify-center rounded-full bg-destructive shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 rotate-[133deg] focus:outline-none focus:ring-2 focus:ring-destructive"
             onClick={() => {
               if (conferenceNumber) {
-                // If it's a conference call, use the conference hangup
                 handleConferenceHangup();
               } else {
-                // Regular call hangup
                 session?.terminate();
                 stopRecording?.();
               }
@@ -311,25 +368,6 @@ const CallScreen = ({
         </div>
       </div>
     </div>
-  );
-};
-
-// Reusable Control Button Component (Reduced Size)
-const ControlButton = ({ onClick, disabled, active, icon, title, className = '' }) => {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className={`
-        w-10 h-10 rounded-lg transition-all duration-200 flex items-center justify-center
-        ${active ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card/80 text-primary hover:bg-accent'}
-        ${disabled ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105 hover:shadow-lg active:scale-95'}
-        ${className}
-      `}
-    >
-      {icon}
-    </button>
   );
 };
 
