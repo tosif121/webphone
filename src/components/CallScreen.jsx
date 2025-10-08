@@ -141,6 +141,11 @@ const CallScreen = ({
       const parsedData = tokenData ? JSON.parse(tokenData) : {};
       const cleanNumber = conferenceNumber.replace(/\s/g, '');
 
+      if (!cleanNumber) {
+        toast.warning('No active conference to disconnect');
+        return;
+      }
+
       const response = await axios.post(
         `${window.location.origin}/hangup/hostChannel/Conf`,
         {
@@ -157,19 +162,31 @@ const CallScreen = ({
 
       if (response.data.success) {
         toast.success(response.data.message || 'Conference disconnected successfully');
-        setIsMerged(false);
-        setConfRunning(false);
-        setConfSeconds(0);
-        setConfMinutes(0);
       } else {
-        toast.error('Failed to disconnect conference');
+        if (response.data.message === 'Host channel not found in conference') {
+        } else {
+          toast.error('Failed to disconnect conference');
+        }
       }
     } catch (error) {
-      console.error('Conference hangup error:', error);
-      toast.error('Error disconnecting conference');
+      if (error.response?.status === 404) {
+      } else if (error.response?.status === 401 || error.response?.status === 403) {
+        toast.error('Not authorized to end conference');
+      } else {
+        toast.error('Error disconnecting conference');
 
-      session?.terminate();
-      stopRecording?.();
+        if (session?.status < 6) {
+          session.terminate();
+        }
+        if (stopRecording && typeof stopRecording === 'function') {
+          stopRecording();
+        }
+      }
+    } finally {
+      setIsMerged(false);
+      setConfRunning(false);
+      setConfSeconds(0);
+      setConfMinutes(0);
     }
   };
 

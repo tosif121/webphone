@@ -484,15 +484,18 @@ function Dashboard() {
 
   // Use it in your useEffect
   useEffect(() => {
-    if (dispositionModal) {
-      playEndCallSound();
+    if (dispositionModal && endCallAudioRef.current) {
+      endCallAudioRef.current.currentTime = 0;
+      endCallAudioRef.current.play().catch((err) => {
+        console.error('Audio play failed:', err);
+      });
     }
   }, [dispositionModal]);
 
   return (
     <>
       <audio ref={endCallAudioRef} preload="auto" hidden>
-        <source src="/end-call.mp3" type="audio/mpeg" />
+        <source src="https://cdn.pixabay.com/audio/2022/09/21/audio_51f53043d7.mp3" type="audio/mpeg" />
       </audio>
 
       {(() => {
