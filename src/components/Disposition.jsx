@@ -655,7 +655,7 @@ const Disposition = ({
               <div className="flex flex-col lg:flex-row gap-4 justify-end items-start border-t pt-4">
                 <div className="flex flex-wrap sm:flex-row flex-col-reverse gap-2 w-full lg:w-auto md:justify-end">
                   <div>
-                    <BreakDropdown bridgeID={bridgeID} dispoWithBreak={true} queueBreakOnly={true} />
+                    <BreakDropdown bridgeID={bridgeID} dispoWithBreak={true}  />
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     {/* <Button

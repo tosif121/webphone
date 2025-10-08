@@ -1,6 +1,6 @@
 // hooks/jssip/useJssipConference.js
 import { useEffect, useContext } from 'react';
-import toast from 'react-hot-toast'; // ✅ ADD THIS IMPORT
+import toast from 'react-hot-toast';
 import HistoryContext from '../../context/HistoryContext';
 
 export const useJssipConference = (state, utils) => {
@@ -43,45 +43,34 @@ export const useJssipConference = (state, utils) => {
 
       const data = await response.json();
 
-      // ✅ Handle success responses (both spellings)
       if (data.message === 'conferance call dialed' || data.message === 'conference call dialed') {
         if (data.result) {
           setBridgeID(data.result);
           setConferenceStatus(true);
           setStatus('conference');
         } else {
-          console.warn('Conference call response without result:', data);
           toast.warning('Conference call initiated but no bridge ID received');
         }
-      }
-      // ✅ Handle error responses (both spellings + variants)
-      else if (
+      } else if (
         data.message === 'error dialing conference call' ||
         data.message === 'error dialing conferance call' ||
         (data.message?.includes('error') && data.message?.includes('conference'))
       ) {
-        console.error('Conference call dialing failed:', data);
         setStatus('calling');
         toast.error(`Failed to create conference call: ${data.message || 'Unknown error'}`);
 
-        // Reset conference states on error
         setConferenceStatus(false);
         setCallConference(false);
         setConferenceNumber('');
-      }
-      // ✅ Handle unexpected responses
-      else {
-        console.log('Unexpected conference response:', data);
+      } else {
         setStatus('calling');
         toast.warning(`Unexpected response: ${data.message || 'Unknown response'}`);
       }
     } catch (error) {
-      console.error('Error creating conference call:', error);
       setStatus('calling');
       setConferenceStatus(false);
       setCallConference(false);
 
-      // ✅ Better error messages based on error type
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         toast.error('Network error: Unable to create conference call');
       } else if (error.name === 'SyntaxError') {
@@ -113,11 +102,9 @@ export const useJssipConference = (state, utils) => {
         setIsHeld(false);
         setConferenceStatus(false);
       } else {
-        console.error('Failed to unhold call:', response.status);
         toast.error(`Failed to resume call: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error unholding call:', error);
       toast.error(`Error resuming call: ${error.message}`);
     }
   };
@@ -127,7 +114,6 @@ export const useJssipConference = (state, utils) => {
 
     try {
       if (!isHeld) {
-        // ✅ Hold the call
         const response = await fetch(`${window.location.origin}/reqHold/${username}`, {
           method: 'POST',
           headers: {
@@ -145,11 +131,9 @@ export const useJssipConference = (state, utils) => {
           setIsHeld(true);
           toast.success('Call placed on hold');
         } else {
-          console.error('Failed to hold call:', response.status);
           toast.error(`Failed to hold call: ${response.status}`);
         }
       } else {
-        // ✅ Unhold the call
         const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
           method: 'POST',
           headers: {
@@ -166,35 +150,30 @@ export const useJssipConference = (state, utils) => {
           }
           setIsHeld(false);
         } else {
-          console.error('Failed to unhold call:', response.status);
           toast.error(`Failed to resume call: ${response.status}`);
         }
       }
     } catch (error) {
-      console.error('Error toggling hold:', error);
       toast.error(`Error ${isHeld ? 'resuming' : 'holding'} call: ${error.message}`);
     }
   };
 
   const handleConferenceMessage = (message) => {
-    console.log('Conference message received:', message);
-
     if (message.includes('customer host channel connected')) {
-      console.log('🟢 Participant connected');
       setHasParticipants(true);
     }
 
-    if (message.includes('customer host channel diconnected')) {
-      console.log('🔴 Participant disconnected');
+    if (
+      message.includes('customer host channel diconnected') ||
+      message.includes('customer host channel disconnected')
+    ) {
+      setCallConference(false);
+      setConferenceNumber('');
+      setConferenceStatus(false);
+      reqUnHold?.();
       setHasParticipants(false);
     }
 
-    if (message.includes('customer host channel disconnected')) {
-      console.log('🔴 Participant disconnected');
-      setHasParticipants(false);
-    }
-
-    // Update message difference tracking
     const objectToPush = {
       messageTime: Date.now(),
       messageType: 'conference',

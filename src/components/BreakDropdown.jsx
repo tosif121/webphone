@@ -11,13 +11,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from './ui/button';
 
-const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus, queueBreakOnly = false }) => {
+const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
   const { username, selectedBreak, setSelectedBreak } = useContext(HistoryContext);
   const [timer, setTimer] = useState(0);
   const [breakTypes, setBreakTypes] = useState([]);
   const timerRef = useRef(null);
 
-  // Map break types to icons dynamically based on keywords
   const getBreakIcon = (label) => {
     if (!label) return Activity;
     const lowerLabel = label.toLowerCase();
@@ -30,7 +29,6 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus, queueBreakOnl
     return Activity;
   };
 
-  // Load break options and previously selected break
   useEffect(() => {
     const storedBreak = localStorage.getItem('selectedBreak');
     if (storedBreak && storedBreak !== 'Break') {
@@ -71,7 +69,6 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus, queueBreakOnl
     setBreakTypes(transformedBreakOptions);
   }, []);
 
-  // Timer effect when on break
   useEffect(() => {
     if (selectedBreak !== 'Break') {
       setTimer(0);
@@ -85,7 +82,6 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus, queueBreakOnl
         clearInterval(timerRef.current);
       }
     }
-    // eslint-disable-next-line
   }, [selectedBreak]);
 
   const formatTime = (seconds) => {
@@ -112,16 +108,30 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus, queueBreakOnl
       return;
     }
 
-    // If queueBreakOnly is true (in disposition context), just queue the break
-    if (queueBreakOnly || dispoWithBreak) {
-      setSelectedBreak(breakType);
-      localStorage.setItem('selectedBreak', breakType);
-      toast.success(`${breakType} queued - will be applied after disposition`);
-      return;
-    }
-
-    // Normal break application for standalone use
     try {
+      // Handle disposition with break (like old code)
+      if (dispoWithBreak && breakType !== 'Break') {
+        const dispositionData = {
+          bridgeID: bridgeID,
+          Disposition: `dispoWithBreak`,
+        };
+
+        const dispositionResponse = await axios.post(
+          `${window.location.origin}/user/disposition${username}`,
+          dispositionData,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (!dispositionResponse.data.success) {
+          throw new Error('Disposition failed');
+        }
+      }
+
+      // Apply break
       await axios.post(`${window.location.origin}/user/breakuser:${username}`, { breakType });
       setSelectedBreak(breakType);
       localStorage.setItem('selectedBreak', breakType);
