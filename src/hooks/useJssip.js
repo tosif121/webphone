@@ -614,10 +614,8 @@ const useJssip = (isMobile = false) => {
           const message = e.request.body;
           console.log('message event:', message);
 
-          if (
-            message.includes('customer host channel connected') ||
-            message.includes('customer host channel diconnected')
-          ) {
+          // ✅ Use regex to catch all spelling variants
+          if (/customer host channel (connected|di[s]?connected)/i.test(message)) {
             handleConferenceMessage(message);
           } else {
             // Handle non-conference messages

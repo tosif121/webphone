@@ -29,7 +29,7 @@ const Disposition = ({
   campaignID,
   user,
 }) => {
-  const { username } = useContext(HistoryContext);
+  const { username, selectedBreak } = useContext(HistoryContext);
   const [selectedAction, setSelectedAction] = useState(null);
   const [isAutoLeadDialDisabled, setIsAutoLeadDialDisabled] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -165,6 +165,7 @@ const Disposition = ({
       }
     );
   };
+
   useEffect(() => {
     // Prevent running if already completed or in progress
     if (isAutoDispositionComplete || isAutoDispositionInProgress) {
@@ -411,9 +412,8 @@ const Disposition = ({
     }
   }, [handleKeyDown, shouldShowModal]);
 
-  // In Disposition component, modify submitForm function
   const submitForm = useCallback(
-    async (callbackData = null) => {
+    async (callbackData = null, isDispoWithBreak = false) => {
       if (!selectedAction) {
         toast.error('Please select a disposition action');
         return;
@@ -428,7 +428,7 @@ const Disposition = ({
       try {
         const requestBody = {
           bridgeID,
-          Disposition: selectedAction,
+          Disposition: isDispoWithBreak ? 'dispoWithBreak' : selectedAction,
           autoDialDisabled: isAutoLeadDialDisabled,
         };
 
@@ -655,18 +655,22 @@ const Disposition = ({
               <div className="flex flex-col lg:flex-row gap-4 justify-end items-start border-t pt-4">
                 <div className="flex flex-wrap sm:flex-row flex-col-reverse gap-2 w-full lg:w-auto md:justify-end">
                   <div>
-                    <BreakDropdown bridgeID={bridgeID} dispoWithBreak={true}  />
+                    <BreakDropdown bridgeID={bridgeID} dispoWithBreak={true} selectedAction={selectedAction} />
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    {/* <Button
-                      variant="outline"
-                      onClick={() => setUserCallOpen(true)}
-                      disabled={isSubmitting || hasSubmittedSuccessfully}
-                    >
-                      View Contact Form
-                    </Button> */}
                     <Button
-                      onClick={() => submitForm()}
+                      onClick={() => {
+                        // Check if break is queued in localStorage
+                        const queuedBreak = localStorage.getItem('selectedBreak');
+
+                        if (queuedBreak && queuedBreak !== 'Break') {
+                          // Break is queued - submit with dispoWithBreak
+                          submitForm(null, true);
+                        } else {
+                          // No break queued - regular submit
+                          submitForm();
+                        }
+                      }}
                       disabled={isSubmitting || !selectedAction || hasSubmittedSuccessfully}
                       className={hasSubmittedSuccessfully}
                     >

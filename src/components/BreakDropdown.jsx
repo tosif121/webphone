@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from './ui/button';
 
-const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
+const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selectedAction, onDispoWithBreak }) => {
   const { username, selectedBreak, setSelectedBreak } = useContext(HistoryContext);
   const [timer, setTimer] = useState(0);
   const [breakTypes, setBreakTypes] = useState([]);
@@ -108,30 +108,25 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
       return;
     }
 
-    try {
-      // Handle disposition with break (like old code)
-      if (dispoWithBreak && breakType !== 'Break') {
-        const dispositionData = {
-          bridgeID: bridgeID,
-          Disposition: `dispoWithBreak`,
-        };
-
-        const dispositionResponse = await axios.post(
-          `${window.location.origin}/user/disposition${username}`,
-          dispositionData,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        if (!dispositionResponse.data.success) {
-          throw new Error('Disposition failed');
-        }
+    // If dispoWithBreak is true, just queue the break
+    if (dispoWithBreak) {
+      // Check if a disposition action is selected
+      if (!selectedAction) {
+        toast.error('Please select a disposition action first');
+        return;
       }
 
-      // Apply break
+      // ✅ FIXED: Only store the break, don't submit anything
+      localStorage.setItem('selectedBreak', breakType);
+      setSelectedBreak(breakType);
+      toast.success(`${breakType} queued - will be applied when you submit`);
+
+      // ✅ DON'T call onDispoWithBreak here
+      return;
+    }
+
+    // Normal break application (without disposition)
+    try {
       await axios.post(`${window.location.origin}/user/breakuser:${username}`, { breakType });
       setSelectedBreak(breakType);
       localStorage.setItem('selectedBreak', breakType);
@@ -148,13 +143,7 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
   return (
     <>
       {isOnBreak ? (
-        <Button
-          variant="default"
-          className={`${
-            (dispoWithBreak && 'w-auto') || 'w-full sm:w-auto'
-          } gap-2 font-medium sm:w-auto justify-baseline`}
-          onClick={removeBreak}
-        >
+        <Button variant="default" className="w-full sm:w-auto gap-2 font-medium justify-baseline" onClick={removeBreak}>
           {selectedBreakObj?.icon ? <selectedBreakObj.icon className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
           <span>{selectedBreakObj?.label}</span>
           <span className="flex items-center gap-1 ml-2 text-xs">
@@ -164,10 +153,7 @@ const BreakDropdown = ({ bridgeID, dispoWithBreak, selectedStatus }) => {
         </Button>
       ) : (
         <DropdownMenu>
-          <DropdownMenuTrigger
-            asChild
-            className={`${(dispoWithBreak && 'w-auto') || 'w-full sm:w-auto'} justify-baseline`}
-          >
+          <DropdownMenuTrigger asChild className="w-full sm:w-auto justify-baseline">
             <Button variant="outline" className="gap-2 font-medium">
               <Activity className="w-4 h-4" />
               <span>Take Break</span>
