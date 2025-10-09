@@ -89,6 +89,11 @@ export default function Header() {
         localStorage.removeItem('phoneShow');
         localStorage.removeItem('formNavigationState');
         localStorage.removeItem('selectedBreak');
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith('breakStartTime_')) {
+            localStorage.removeItem(key);
+          }
+        });
         toast.success('Logged out successfully');
         setUserMenuOpen(false);
         window.location.href = '/webphone/v1/login';
@@ -102,7 +107,12 @@ export default function Header() {
         localStorage.removeItem('phoneShow');
         localStorage.removeItem('formNavigationState');
         localStorage.removeItem('selectedBreak');
-        toast.warning('Logged out (some cleanup operations failed)');
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith('breakStartTime_')) {
+            localStorage.removeItem(key);
+          }
+        });
+        toast.error('Logged out (some cleanup operations failed)');
         setUserMenuOpen(false);
         window.location.href = '/webphone/v1/login';
       }

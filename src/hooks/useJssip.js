@@ -187,6 +187,11 @@ const useJssip = (isMobile = false) => {
     localStorage.removeItem('phoneShow');
     localStorage.removeItem('formNavigationState');
     localStorage.removeItem('selectedBreak');
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('breakStartTime_')) {
+        localStorage.removeItem(key);
+      }
+    });
 
     window.location.href = '/webphone/v1/login';
   };
@@ -597,12 +602,22 @@ const useJssip = (isMobile = false) => {
                 );
                 // toast.error(`Failed to re-apply previous break (${storedBreak}).`);
                 localStorage.removeItem('selectedBreak');
+                Object.keys(localStorage).forEach((key) => {
+                  if (key.startsWith('breakStartTime_')) {
+                    localStorage.removeItem(key);
+                  }
+                });
                 setSelectedBreak('Break');
               }
             } catch (error) {
               console.error('Error re-applying break from localStorage after registration:', error);
               toast.error(`Failed to re-apply previous break (${storedBreak}).`);
               localStorage.removeItem('selectedBreak');
+              Object.keys(localStorage).forEach((key) => {
+                if (key.startsWith('breakStartTime_')) {
+                  localStorage.removeItem(key);
+                }
+              });
               setSelectedBreak('Break');
             }
           } else {

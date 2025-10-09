@@ -70,17 +70,111 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
   }, []);
 
   useEffect(() => {
-    if (selectedBreak !== 'Break') {
-      setTimer(0);
+    const storedBreak = localStorage.getItem('selectedBreak');
+    if (storedBreak && storedBreak !== 'Break') {
+      setSelectedBreak(storedBreak);
+
+      const breakStartKey = `breakStartTime_${storedBreak}`;
+      let storedStartTime = localStorage.getItem(breakStartKey);
+
+      if (!storedStartTime) {
+        storedStartTime = Date.now();
+        localStorage.setItem(breakStartKey, storedStartTime);
+      } else {
+        storedStartTime = parseInt(storedStartTime);
+      }
+
+      const calculateElapsed = () => {
+        const elapsed = Math.floor((Date.now() - storedStartTime) / 1000);
+        return Math.max(0, elapsed);
+      };
+
+      setTimer(calculateElapsed());
+
       timerRef.current = setInterval(() => {
-        setTimer((prev) => prev + 1);
+        setTimer(calculateElapsed());
       }, 1000);
+    }
+
+    const tokenData = localStorage.getItem('token');
+    let transformedBreakOptions = [];
+
+    if (tokenData) {
+      const parsedData = JSON.parse(tokenData);
+      const rawBreakOptions = parsedData?.userData?.breakoptions || [];
+
+      transformedBreakOptions = rawBreakOptions.map((option) => {
+        const type = option.value || option.type || option.name || option.id;
+        const label = option.label || option.name || option.title || option.value || option.type;
+        const id = option.id || option.value || option.type;
+        return {
+          type,
+          label,
+          icon: getBreakIcon(label),
+          id,
+        };
+      });
+    }
+
+    if (transformedBreakOptions.length === 0) {
+      transformedBreakOptions = [
+        {
+          type: 'General Break',
+          label: 'Break',
+          icon: getBreakIcon('General Break'),
+          id: 'default-general',
+        },
+      ];
+    }
+
+    setBreakTypes(transformedBreakOptions);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selectedBreak !== 'Break') {
+      const breakStartKey = `breakStartTime_${selectedBreak}`;
+      let storedStartTime = localStorage.getItem(breakStartKey);
+
+      if (!storedStartTime) {
+        storedStartTime = Date.now();
+        localStorage.setItem(breakStartKey, storedStartTime);
+      } else {
+        storedStartTime = parseInt(storedStartTime);
+      }
+
+      const calculateElapsed = () => {
+        const elapsed = Math.floor((Date.now() - storedStartTime) / 1000);
+        return Math.max(0, elapsed);
+      };
+
+      setTimer(calculateElapsed());
+
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+
+      timerRef.current = setInterval(() => {
+        setTimer(calculateElapsed());
+      }, 1000);
+
       return () => clearInterval(timerRef.current);
     } else {
       setTimer(0);
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
+
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('breakStartTime_')) {
+          localStorage.removeItem(key);
+        }
+      });
     }
   }, [selectedBreak]);
 
@@ -93,8 +187,17 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
   const removeBreak = async () => {
     try {
       await axios.post(`${window.location.origin}/user/removebreakuser:${username}`);
+
+      const breakStartKey = `breakStartTime_${selectedBreak}`;
+      localStorage.removeItem(breakStartKey);
+
       setSelectedBreak('Break');
       localStorage.removeItem('selectedBreak');
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('breakStartTime_')) {
+          localStorage.removeItem(key);
+        }
+      });
       toast.success('Break removed successfully');
     } catch (error) {
       console.error('Error removing break:', error);
@@ -108,28 +211,29 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
       return;
     }
 
-    // If dispoWithBreak is true, just queue the break
     if (dispoWithBreak) {
-      // Check if a disposition action is selected
       if (!selectedAction) {
         toast.error('Please select a disposition action first');
         return;
       }
 
-      // ✅ FIXED: Only store the break, don't submit anything
       localStorage.setItem('selectedBreak', breakType);
+      const breakStartKey = `breakStartTime_${breakType}`;
+      localStorage.setItem(breakStartKey, Date.now());
+
       setSelectedBreak(breakType);
       toast.success(`${breakType} queued - will be applied when you submit`);
-
-      // ✅ DON'T call onDispoWithBreak here
       return;
     }
 
-    // Normal break application (without disposition)
     try {
       await axios.post(`${window.location.origin}/user/breakuser:${username}`, { breakType });
+
       setSelectedBreak(breakType);
       localStorage.setItem('selectedBreak', breakType);
+      const breakStartKey = `breakStartTime_${breakType}`;
+      localStorage.setItem(breakStartKey, Date.now());
+
       toast.success('Break applied successfully');
     } catch (error) {
       console.error('Error applying break:', error);

@@ -94,6 +94,11 @@ export const useJssipUtils = (state) => {
       await axios.post(`${window.location.origin}/user/removebreakuser:${username}`);
       setSelectedBreak('Break');
       localStorage.removeItem('selectedBreak');
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('breakStartTime_')) {
+          localStorage.removeItem(key);
+        }
+      });
       toast.success('Break removed successfully');
       return true;
     } catch (error) {

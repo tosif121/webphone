@@ -49,7 +49,7 @@ export const useJssipConference = (state, utils) => {
           setConferenceStatus(true);
           setStatus('conference');
         } else {
-          toast.warning('Conference call initiated but no bridge ID received');
+          toast.error('Conference call initiated but no bridge ID received');
         }
       } else if (
         data.message === 'error dialing conference call' ||
@@ -58,13 +58,12 @@ export const useJssipConference = (state, utils) => {
       ) {
         setStatus('calling');
         toast.error(`Failed to create conference call: ${data.message || 'Unknown error'}`);
-
         setConferenceStatus(false);
         setCallConference(false);
         setConferenceNumber('');
       } else {
         setStatus('calling');
-        toast.warning(`Unexpected response: ${data.message || 'Unknown response'}`);
+        toast.error(`Unexpected response: ${data.message || 'Unknown response'}`);
       }
     } catch (error) {
       setStatus('calling');
@@ -82,17 +81,12 @@ export const useJssipConference = (state, utils) => {
   };
 
   const reqUnHold = async () => {
-    if (!session) return;
-
     try {
       const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          bridgeID: session.bridgeID,
-        }),
       });
 
       if (response.ok) {
@@ -110,8 +104,6 @@ export const useJssipConference = (state, utils) => {
   };
 
   const toggleHold = async () => {
-    if (!session) return;
-
     try {
       if (!isHeld) {
         const response = await fetch(`${window.location.origin}/reqHold/${username}`, {
@@ -119,9 +111,6 @@ export const useJssipConference = (state, utils) => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            bridgeID: session.bridgeID,
-          }),
         });
 
         if (response.ok) {
@@ -139,9 +128,6 @@ export const useJssipConference = (state, utils) => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            bridgeID: session.bridgeID,
-          }),
         });
 
         if (response.ok) {
@@ -170,8 +156,8 @@ export const useJssipConference = (state, utils) => {
       setCallConference(false);
       setConferenceNumber('');
       setConferenceStatus(false);
-      reqUnHold?.();
       setHasParticipants(false);
+      reqUnHold();
     }
 
     const objectToPush = {
@@ -199,7 +185,7 @@ export const useJssipConference = (state, utils) => {
         setCallConference(false);
         setConferenceNumber('');
         setConferenceStatus(false);
-        reqUnHold?.();
+        reqUnHold();
         setHasParticipants(false);
       }
     }

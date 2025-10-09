@@ -88,6 +88,11 @@ export default function LeadAndCallInfoPanel({
           localStorage.removeItem('phoneShow');
           localStorage.removeItem('formNavigationState');
           localStorage.removeItem('selectedBreak');
+          Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith('breakStartTime_')) {
+              localStorage.removeItem(key);
+            }
+          });
           throw refreshErr;
         }
       } else {

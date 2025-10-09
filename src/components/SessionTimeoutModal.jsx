@@ -95,11 +95,15 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin }) => 
       localStorage.removeItem('phoneShow');
       localStorage.removeItem('formNavigationState');
       localStorage.removeItem('selectedBreak');
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('breakStartTime_')) {
+          localStorage.removeItem(key);
+        }
+      });
       window.location.href = '/webphone/v1/login';
     }
   };
 
- 
   return (
     <AlertDialog open={isOpen}>
       <AlertDialogContent>
