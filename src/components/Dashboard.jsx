@@ -468,36 +468,37 @@ function Dashboard() {
     });
   };
 
-  const playEndCallSound = () => {
-    try {
-      const audio = new Audio('/end-call.mp3');
-      audio.currentTime = 0;
-
-      audio
-        .play()
-        .then(() => console.log('✅ Audio played'))
-        .catch((err) => console.error('❌ Audio failed:', err));
-    } catch (error) {
-      console.error('❌ Audio creation failed:', error);
-    }
-  };
-
-  // Use it in your useEffect
   useEffect(() => {
     if (dispositionModal && endCallAudioRef.current) {
-      endCallAudioRef.current.currentTime = 0;
-      endCallAudioRef.current.play().catch((err) => {
-        console.error('Audio play failed:', err);
-      });
+      const playAudio = async () => {
+        try {
+          endCallAudioRef.current.currentTime = 0;
+          endCallAudioRef.current.muted = false; // Ensure not muted
+          await endCallAudioRef.current.play();
+        } catch (err) {
+          console.error('Audio play failed:', err);
+          // Fallback: try playing muted if autoplay is blocked
+          if (err.name === 'NotAllowedError') {
+            try {
+              endCallAudioRef.current.muted = true;
+              await endCallAudioRef.current.play();
+              console.warn('Playing audio muted due to autoplay policy');
+            } catch (mutedErr) {
+              console.error('Muted playback also failed:', mutedErr);
+            }
+          }
+        }
+      };
+
+      playAudio();
     }
   }, [dispositionModal]);
 
   return (
     <>
-      <audio ref={endCallAudioRef} preload="auto" hidden>
+      <audio ref={endCallAudioRef} preload="auto" style={{ display: 'none' }}>
         <source src="https://cdn.pixabay.com/audio/2022/09/21/audio_51f53043d7.mp3" type="audio/mpeg" />
       </audio>
-
       {(() => {
         // Check if campaign matches - if yes, show ringtone calls
         const shouldShowRingtone = currentCallData?.campaign === userCampaign;
