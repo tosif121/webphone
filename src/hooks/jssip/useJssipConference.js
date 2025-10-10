@@ -29,6 +29,34 @@ export const useJssipConference = (state, utils) => {
     setMessageDifference,
   } = state;
 
+  // Helper function to log merge events
+  const logMergeEvent = (eventType, details = {}) => {
+    const mergeLog = {
+      timestamp: new Date().toISOString(),
+      eventType, // 'auto_merge', 'manual_merge', 'conference_disconnect', etc.
+      username,
+      conferenceNumber,
+      bridgeID,
+      hasParticipants,
+      isHeld,
+      status,
+      ...details,
+    };
+
+    // Store in localStorage
+    const existingLogs = JSON.parse(localStorage.getItem('mergeEventLogs') || '[]');
+    existingLogs.push(mergeLog);
+
+    // Keep only last 50 logs
+    if (existingLogs.length > 50) {
+      existingLogs.shift();
+    }
+
+    localStorage.setItem('mergeEventLogs', JSON.stringify(existingLogs));
+
+    console.log('🔍 Merge Event Logged:', mergeLog);
+  };
+
   const createConferenceCall = async () => {
     try {
       const response = await fetch(`${window.location.origin}/reqConf/${username}`, {
@@ -48,7 +76,13 @@ export const useJssipConference = (state, utils) => {
           setBridgeID(data.result);
           setConferenceStatus(true);
           setStatus('conference');
-          toast.success('conferance call dialed');
+
+          logMergeEvent('conference_created', {
+            message: data.message,
+            bridgeID: data.result,
+          });
+
+          toast.success('Conference call dialed');
         } else {
           toast.error('Conference call initiated but no bridge ID received');
         }
@@ -62,14 +96,29 @@ export const useJssipConference = (state, utils) => {
         setConferenceStatus(false);
         setCallConference(false);
         setConferenceNumber('');
+
+        logMergeEvent('conference_failed', {
+          error: data.message,
+          reason: 'api_error',
+        });
       } else {
         setStatus('calling');
         toast.error(`Unexpected response: ${data.message || 'Unknown response'}`);
+
+        logMergeEvent('conference_failed', {
+          error: data.message,
+          reason: 'unexpected_response',
+        });
       }
     } catch (error) {
       setStatus('calling');
       setConferenceStatus(false);
       setCallConference(false);
+
+      logMergeEvent('conference_failed', {
+        error: error.message,
+        reason: 'network_error',
+      });
 
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         toast.error('Network error: Unable to create conference call');
@@ -81,8 +130,13 @@ export const useJssipConference = (state, utils) => {
     }
   };
 
-  const reqUnHold = async () => {
+  const reqUnHold = async (triggerSource = 'unknown') => {
     try {
+      logMergeEvent('unhold_requested', {
+        triggerSource,
+        wasHeld: isHeld,
+      });
+
       const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
         method: 'POST',
         headers: {
@@ -96,11 +150,26 @@ export const useJssipConference = (state, utils) => {
         }
         setIsHeld(false);
         setConferenceStatus(false);
+
+        logMergeEvent('unhold_success', {
+          triggerSource,
+          previouslyHeld: isHeld,
+        });
       } else {
         toast.error(`Failed to resume call: ${response.status}`);
+
+        logMergeEvent('unhold_failed', {
+          triggerSource,
+          error: `HTTP ${response.status}`,
+        });
       }
     } catch (error) {
       toast.error(`Error resuming call: ${error.message}`);
+
+      logMergeEvent('unhold_failed', {
+        triggerSource,
+        error: error.message,
+      });
     }
   };
 
@@ -120,6 +189,10 @@ export const useJssipConference = (state, utils) => {
           }
           setIsHeld(true);
           toast.success('Call placed on hold');
+
+          logMergeEvent('hold_applied', {
+            triggerSource: 'manual_toggle',
+          });
         } else {
           toast.error(`Failed to hold call: ${response.status}`);
         }
@@ -136,6 +209,10 @@ export const useJssipConference = (state, utils) => {
             audioRef.current.play();
           }
           setIsHeld(false);
+
+          logMergeEvent('unhold_success', {
+            triggerSource: 'manual_toggle',
+          });
         } else {
           toast.error(`Failed to resume call: ${response.status}`);
         }
@@ -148,6 +225,11 @@ export const useJssipConference = (state, utils) => {
   const handleConferenceMessage = (message) => {
     if (message.includes('customer host channel connected')) {
       setHasParticipants(true);
+
+      logMergeEvent('participant_connected', {
+        message,
+        participantCount: conferenceCalls?.length || 0,
+      });
     }
 
     if (
@@ -158,7 +240,15 @@ export const useJssipConference = (state, utils) => {
       setConferenceNumber('');
       setConferenceStatus(false);
       setHasParticipants(false);
-      reqUnHold();
+
+      logMergeEvent('participant_disconnected', {
+        message,
+        autoMergeTriggered: true,
+        reason: 'conference_message',
+      });
+
+      // Call reqUnHold with tracking
+      reqUnHold('participant_disconnect');
       toast.error('Conference disconnected');
     }
 
@@ -187,8 +277,16 @@ export const useJssipConference = (state, utils) => {
         setCallConference(false);
         setConferenceNumber('');
         setConferenceStatus(false);
-        reqUnHold();
         setHasParticipants(false);
+
+        logMergeEvent('conference_ended', {
+          autoMergeTriggered: true,
+          reason: 'participants_left',
+          conferenceCallsLength: conferenceCalls?.length || 0,
+        });
+
+        // Call reqUnHold with tracking
+        reqUnHold('participants_left');
       }
     }
   }, [conferenceCalls, hasParticipants]);

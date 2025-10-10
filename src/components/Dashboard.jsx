@@ -529,6 +529,39 @@ function Dashboard() {
     }
   }, [dispositionModal]);
 
+  // In your Dashboard useEffect, replace the complex logging with this simple version:
+
+  useEffect(() => {
+    // Simple debug functions
+    window.webPhoneDebug = {
+      showLogs: () => {
+        const logs = JSON.parse(localStorage.getItem('mergeEventLogs') || '[]');
+        console.log('📋 Merge Logs:', logs);
+        return logs;
+      },
+
+      clear: () => {
+        localStorage.removeItem('mergeEventLogs');
+        console.log('✅ Logs cleared');
+      },
+
+      stats: () => {
+        const logs = JSON.parse(localStorage.getItem('mergeEventLogs') || '[]');
+        const manual = logs.filter((log) => log.eventType === 'manual_merge').length;
+        const auto = logs.filter((log) => log.eventType.includes('participant_')).length;
+        console.log(`📊 Total: ${logs.length} | Manual: ${manual} | Auto: ${auto}`);
+        return { total: logs.length, manual, auto };
+      },
+    };
+
+    // Simple console info
+    console.log('📋 Debug: webPhoneDebug.showLogs() | webPhoneDebug.stats() | webPhoneDebug.clear()');
+
+    return () => {
+      delete window.webPhoneDebug;
+    };
+  }, []);
+
   return (
     <>
       <audio ref={endCallAudioRef} preload="auto" style={{ display: 'none' }} src={endCallAudioBase64} />

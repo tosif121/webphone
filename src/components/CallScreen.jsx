@@ -123,6 +123,29 @@ const CallScreen = ({
       return;
     }
 
+    // Log manual merge event
+    const mergeLog = {
+      timestamp: new Date().toISOString(),
+      eventType: 'manual_merge',
+      username,
+      conferenceNumber,
+      hasParticipants,
+      isHeld,
+      status,
+      triggerSource: 'user_click_merge_button',
+      userInitiated: true,
+    };
+
+    const existingLogs = JSON.parse(localStorage.getItem('mergeEventLogs') || '[]');
+    existingLogs.push(mergeLog);
+
+    if (existingLogs.length > 50) {
+      existingLogs.shift();
+    }
+
+    localStorage.setItem('mergeEventLogs', JSON.stringify(existingLogs));
+    console.log('🔍 Manual Merge Logged:', mergeLog);
+
     reqUnHold?.();
     setIsMerged(true);
     toast.success('Merged with conference participants');
@@ -200,7 +223,6 @@ const CallScreen = ({
     if (userCall?.contactNumber) return maybeMask(userCall?.contactNumber);
     return maybeMask(userCall?.contactNumber) || '';
   })();
-  
 
   const ControlButton = ({ onClick, disabled, active, icon, title, className = '' }) => {
     return (
