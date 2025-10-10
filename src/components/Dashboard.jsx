@@ -35,6 +35,7 @@ import { Button } from './ui/button';
 import BreakDropdown from './BreakDropdown';
 import { Card, CardContent } from './ui/card';
 import SessionTimeoutModal from './SessionTimeoutModal';
+import { endCallAudioBase64 } from '../constants/audioData';
 
 function Dashboard() {
   const {
@@ -302,7 +303,7 @@ function Dashboard() {
 
   const fetchUserMissedCalls = async () => {
     try {
-      const response = await axios.post(`${window.location.origin}/usermissedCalls/${username}`);
+      const response = await axios.post(`https://esamwad.iotcom.io/usermissedCalls/${username}`);
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
@@ -314,7 +315,7 @@ function Dashboard() {
 
   const fetchAdminUser = async () => {
     try {
-      const response = await axios.get(`${window.location.origin}/users/${adminUser}`, {
+      const response = await axios.get(`https://esamwad.iotcom.io/users/${adminUser}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -332,9 +333,44 @@ function Dashboard() {
     }
   }, [info]);
 
+  const checkUserAvailability = async () => {
+    // Check the conditions first
+    const matchingQueues = queueDetails?.filter((queue) => queue.ID === userCampaign) || [];
+
+    if (matchingQueues.length > 0 && connectionStatus === 'NOT_INUSE' && conferenceCalls?.length > 0) {
+      try {
+        const response = await fetch(`https://esamwad.iotcom.io/user/agentAvailable/${username}`, {
+          method: 'POST',
+        });
+
+        const data = await response.json();
+
+        if (data.message === 'User is not live.') {
+          toast.error('You are not available for calls. Please make yourself available to handle conference calls.');
+          console.log('User is not live with active conference calls');
+
+          // Optional: Take action like redirecting or showing a modal
+          // You could also auto-make user available here
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error('Error checking user availability:', error);
+        toast.error('Failed to check user availability');
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  // Add useEffect to check availability when conditions change
   useEffect(() => {
-    setCampaignMissedCallsLength(campaignMissedCallsLength);
-  }, [campaignMissedCallsLength]);
+    if (userCampaign && queueDetails && username) {
+      checkUserAvailability();
+    }
+  }, [userCampaign, queueDetails, connectionStatus, conferenceCalls?.length, username]);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
@@ -361,7 +397,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/leadswithdaterange`,
+        `https://esamwad.iotcom.io/leadswithdaterange`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -399,7 +435,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/callDataByAgent`,
+        `https://esamwad.iotcom.io/callDataByAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -473,11 +509,10 @@ function Dashboard() {
       const playAudio = async () => {
         try {
           endCallAudioRef.current.currentTime = 0;
-          endCallAudioRef.current.muted = false; // Ensure not muted
+          endCallAudioRef.current.muted = false;
           await endCallAudioRef.current.play();
         } catch (err) {
           console.error('Audio play failed:', err);
-          // Fallback: try playing muted if autoplay is blocked
           if (err.name === 'NotAllowedError') {
             try {
               endCallAudioRef.current.muted = true;
@@ -496,9 +531,8 @@ function Dashboard() {
 
   return (
     <>
-      <audio ref={endCallAudioRef} preload="auto" style={{ display: 'none' }}>
-        <source src="https://cdn.pixabay.com/audio/2022/09/21/audio_51f53043d7.mp3" type="audio/mpeg" />
-      </audio>
+      <audio ref={endCallAudioRef} preload="auto" style={{ display: 'none' }} src={endCallAudioBase64} />
+
       {(() => {
         // Check if campaign matches - if yes, show ringtone calls
         const shouldShowRingtone = currentCallData?.campaign === userCampaign;

@@ -31,7 +31,7 @@ export const useJssipConference = (state, utils) => {
 
   const createConferenceCall = async () => {
     try {
-      const response = await fetch(`${window.location.origin}/reqConf/${username}`, {
+      const response = await fetch(`https://esamwad.iotcom.io/reqConf/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -48,6 +48,7 @@ export const useJssipConference = (state, utils) => {
           setBridgeID(data.result);
           setConferenceStatus(true);
           setStatus('conference');
+          toast.success('conferance call dialed');
         } else {
           toast.error('Conference call initiated but no bridge ID received');
         }
@@ -82,7 +83,7 @@ export const useJssipConference = (state, utils) => {
 
   const reqUnHold = async () => {
     try {
-      const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
+      const response = await fetch(`https://esamwad.iotcom.io/reqUnHold/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +107,7 @@ export const useJssipConference = (state, utils) => {
   const toggleHold = async () => {
     try {
       if (!isHeld) {
-        const response = await fetch(`${window.location.origin}/reqHold/${username}`, {
+        const response = await fetch(`https://esamwad.iotcom.io/reqHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -123,7 +124,7 @@ export const useJssipConference = (state, utils) => {
           toast.error(`Failed to hold call: ${response.status}`);
         }
       } else {
-        const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
+        const response = await fetch(`https://esamwad.iotcom.io/reqUnHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -158,6 +159,7 @@ export const useJssipConference = (state, utils) => {
       setConferenceStatus(false);
       setHasParticipants(false);
       reqUnHold();
+      toast.error('Conference disconnected');
     }
 
     const objectToPush = {

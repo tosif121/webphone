@@ -75,7 +75,7 @@ export default function Header() {
     if (typeof window !== 'undefined') {
       try {
         if (token) {
-          await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+          await axios.delete(`https://esamwad.iotcom.io/deleteFirebaseToken`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -186,7 +186,7 @@ export default function Header() {
     },
 
     {
-      href: '${window.location.origin}/webphone/login',
+      href: 'https://esamwad.iotcom.io/webphone/login',
       name: 'Stable Version',
       icon: <Settings className="w-4 h-4" />,
     },

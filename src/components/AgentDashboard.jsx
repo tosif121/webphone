@@ -145,6 +145,7 @@ export default function AgentDashboard() {
     hasParticipants,
   } = useContext(JssipContext);
 
+
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
@@ -153,7 +154,7 @@ export default function AgentDashboard() {
       try {
         const tokenData = JSON.parse(localStorage.getItem('token'));
         const response = await axios.post(
-          `${window.location.origin}/agentDashboardData`,
+          `https://esamwad.iotcom.io/agentDashboardData`,
           { user: tokenData.userData.userid },
           {
             headers: {
