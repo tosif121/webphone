@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import {
   User,
   MicOff,
@@ -55,6 +55,10 @@ const CallScreen = ({
   const [confSeconds, setConfSeconds] = useState(0);
   const [confMinutes, setConfMinutes] = useState(0);
   const [confRunning, setConfRunning] = useState(false);
+
+  // FIXED: Use ref to track processing state to avoid stale closures
+  const processingRef = useRef(new Set());
+  const [, forceUpdate] = useState({});
 
   const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const parsedData = tokenData ? JSON.parse(tokenData) : {};
@@ -117,7 +121,25 @@ const CallScreen = ({
     }
   };
 
-  const handleMerge = () => {
+  // FIXED: Enhanced hold toggle with proper async handling
+  const handleToggleHoldDebounced = useCallback(async () => {
+    console.log('🔘 Hold button clicked, current state:', isHeld);
+
+    if (!toggleHold) {
+      console.warn('toggleHold function not provided');
+      return;
+    }
+
+    try {
+      await toggleHold();
+      console.log('✅ Hold toggle completed successfully');
+    } catch (error) {
+      console.error('❌ Hold toggle failed:', error);
+      toast.error('Failed to toggle hold');
+    }
+  }, [toggleHold, isHeld]);
+
+  const handleMerge = useCallback(() => {
     if (!hasParticipants) {
       toast.error('No conference participants to merge with');
       return;
@@ -149,7 +171,19 @@ const CallScreen = ({
     reqUnHold?.();
     setIsMerged(true);
     toast.success('Merged with conference participants');
-  };
+  }, [hasParticipants, username, conferenceNumber, isHeld, status, reqUnHold]);
+
+  const handleMuteToggle = useCallback(() => {
+    const newMutedState = !muted;
+
+    if (newMutedState) {
+      session?.mute();
+    } else {
+      session?.unmute();
+    }
+
+    setMuted(newMutedState);
+  }, [muted, session]);
 
   useEffect(() => {
     if (conferenceNumber) {
@@ -213,6 +247,8 @@ const CallScreen = ({
     }
   };
 
+  console.log(status, 'status');
+
   const maybeMask = (num) => (numberMasking ? maskPhoneNumber?.(num) : num);
 
   const mainNumber = (() => {
@@ -224,20 +260,71 @@ const CallScreen = ({
     return maybeMask(userCall?.contactNumber) || '';
   })();
 
-  const ControlButton = ({ onClick, disabled, active, icon, title, className = '' }) => {
+  // FIXED: Enhanced ControlButton with proper click handling
+  const ControlButton = ({ onClick, disabled, active, icon, title, className = '', buttonId, debounceTime = 300 }) => {
+    const isProcessing = processingRef.current.has(buttonId);
+    const isDisabled = disabled || isProcessing;
+
+    const handleClick = useCallback(
+      async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // FIXED: Check processing state from ref
+        if (processingRef.current.has(buttonId) || disabled || !onClick) {
+          console.log(
+            `🚫 Button ${buttonId} click ignored - processing: ${processingRef.current.has(
+              buttonId
+            )}, disabled: ${disabled}`
+          );
+          return;
+        }
+
+        console.log(`🔘 Button ${buttonId} clicked - starting`);
+
+        // FIXED: Mark as processing immediately
+        processingRef.current.add(buttonId);
+        forceUpdate({}); // Force re-render to show loading state
+
+        try {
+          // Execute the actual click handler
+          const result = onClick(e);
+
+          // Handle both sync and async functions
+          if (result instanceof Promise) {
+            await result;
+          }
+
+          console.log(`✅ Button ${buttonId} completed successfully`);
+        } catch (error) {
+          console.error(`❌ Error in ${buttonId} button:`, error);
+          toast.error(`${title} failed. Please try again.`);
+        } finally {
+          // FIXED: Remove processing state after minimum debounce time
+          setTimeout(() => {
+            processingRef.current.delete(buttonId);
+            forceUpdate({}); // Force re-render to remove loading state
+            console.log(`🔓 Button ${buttonId} unlocked`);
+          }, debounceTime);
+        }
+      },
+      [onClick, disabled, buttonId, debounceTime, title]
+    );
+
     return (
       <button
-        onClick={onClick}
-        disabled={disabled}
+        type="button"
+        onClick={handleClick}
+        disabled={isDisabled}
         title={title}
         className={`
-        w-10 h-10 rounded-lg transition-all duration-200 flex items-center justify-center
-        ${active ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card/80 text-primary hover:bg-accent'}
-        ${disabled ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105 hover:shadow-lg active:scale-95'}
-        ${className}
-      `}
+          w-10 h-10 rounded-lg transition-all duration-200 flex items-center justify-center
+          ${active ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card/80 text-primary hover:bg-accent'}
+          ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105 hover:shadow-lg active:scale-95'}
+          ${className}
+        `}
       >
-        {icon}
+        {isProcessing ? <Loader2 size={16} className="animate-spin" /> : icon}
       </button>
     );
   };
@@ -285,64 +372,79 @@ const CallScreen = ({
         </div>
       </div>
 
-      {/* Controls Section - Original Structure */}
+      {/* Controls Section with Enhanced Buttons */}
       <div className="space-y-4">
         {!showKeyPad ? (
           <>
             {/* Primary Controls Row */}
             <div className="flex justify-center gap-3">
               <ControlButton
-                onClick={toggleHold}
-                disabled={!session}
+                buttonId="hold-button"
+                onClick={handleToggleHoldDebounced}
+                disabled={!session || conferenceStatus}
                 active={isHeld}
                 icon={<Pause size={16} />}
                 title="Hold"
+                debounceTime={1000}
               />
               <ControlButton
+                buttonId="transfer-button"
                 disabled={!isMerged}
                 onClick={handleTransfer}
                 icon={<PhoneForwarded size={16} />}
                 title="Transfer"
                 className={!isMerged ? 'opacity-40' : ''}
+                debounceTime={500}
               />
-              <ControlButton onClick={() => setShowKeyPad(true)} icon={<Grip size={16} />} title="Keypad" />
+              <ControlButton
+                buttonId="keypad-button"
+                onClick={() => setShowKeyPad(true)}
+                icon={<Grip size={16} />}
+                title="Keypad"
+                debounceTime={200}
+              />
             </div>
 
             {/* Secondary Controls Row */}
             <div className="flex justify-center gap-3">
               {conferenceStatus ? (
                 <ControlButton
+                  buttonId="merge-button"
                   disabled={!session || !hasParticipants}
                   onClick={handleMerge}
                   icon={<Merge size={16} />}
                   title="Merge"
                   active={isMerged}
+                  debounceTime={800}
                 />
               ) : (
                 <ControlButton
+                  buttonId="add-call-button"
                   disabled={!session}
                   onClick={() => setCallConference?.(true)}
                   icon={<UserPlus size={16} />}
                   title="Add Call"
+                  debounceTime={500}
                 />
               )}
 
               <ControlButton
+                buttonId="record-button"
                 onClick={!isRecording ? startRecording : stopRecording}
                 disabled={!session && !isRecording}
                 icon={<Square size={16} className={isRecording ? 'text-destructive' : 'text-secondary-foreground'} />}
                 title={isRecording ? 'Stop Recording' : 'Start Recording'}
                 active={isRecording}
+                debounceTime={600}
               />
 
               <ControlButton
+                buttonId="mute-button"
                 active={muted}
-                onClick={() => {
-                  muted ? session?.unmute() : session?.mute();
-                  setMuted(!muted);
-                }}
+                onClick={handleMuteToggle}
                 icon={<MicOff size={16} />}
                 title="Mute"
+                debounceTime={200}
               />
             </div>
           </>

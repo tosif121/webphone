@@ -119,6 +119,7 @@ const useJssip = (isMobile = false) => {
     setErrorCount,
     lastLoggedUAState,
     setLastLoggedUAState,
+   
   } = state;
 
   const {
@@ -971,6 +972,7 @@ const useJssip = (isMobile = false) => {
       }
     }
   };
+
   useEffect(() => {
     const callApi = async () => {
       if (isCallended) {
