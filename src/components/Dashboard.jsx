@@ -333,44 +333,31 @@ function Dashboard() {
     }
   }, [info]);
 
-  const checkUserAvailability = async () => {
-    // Check the conditions first
-    const matchingQueues = queueDetails?.filter((queue) => queue.ID === userCampaign) || [];
+  useEffect(() => {
+    const checkUserAvailability = async () => {
+      // Check the conditions first
+      if (userCampaign === currentCallData?.campaign && connectionStatus === 'NOT_INUSE' && queueDetails?.length > 0) {
+        console.log('first');
+        try {
+          const { data } = await axios.post(`${window.location.origin}/user/agentAvailable/${username}`);
 
-    if (matchingQueues.length > 0 && connectionStatus === 'NOT_INUSE' && conferenceCalls?.length > 0) {
-      try {
-        const response = await fetch(`${window.location.origin}/user/agentAvailable/${username}`, {
-          method: 'POST',
-        });
-
-        const data = await response.json();
-
-        if (data.message === 'User is not live.') {
-          toast.error('You are not available for calls. Please make yourself available to handle conference calls.');
-          console.log('User is not live with active conference calls');
-
-          // Optional: Take action like redirecting or showing a modal
-          // You could also auto-make user available here
+          if (data.message === 'User is not live.') {
+            toast.error('You are not available for calls. Please make yourself available to handle conference calls.');
+            console.log('User is not live with active conference calls');
+            return false;
+          }
+          return true;
+        } catch (error) {
+          console.error('Error checking user availability:', error);
+          toast.error('Failed to check user availability');
           return false;
         }
-
-        return true;
-      } catch (error) {
-        console.error('Error checking user availability:', error);
-        toast.error('Failed to check user availability');
-        return false;
       }
-    }
+      return true;
+    };
 
-    return true;
-  };
-
-  // Add useEffect to check availability when conditions change
-  useEffect(() => {
-    if (userCampaign && queueDetails && username) {
-      checkUserAvailability();
-    }
-  }, [userCampaign, queueDetails, connectionStatus, conferenceCalls?.length, username]);
+    checkUserAvailability();
+  }, [userCampaign, currentCallData, queueDetails, connectionStatus, username]);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
