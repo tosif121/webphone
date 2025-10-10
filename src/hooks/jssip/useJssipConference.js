@@ -178,7 +178,7 @@ export const useJssipConference = (state, utils) => {
   };
 
   useEffect(() => {
-    if (conferenceCalls && conferenceCalls.length > 0 && (status === 'conference' || status === 'ringing')) {
+    if (conferenceCalls && conferenceCalls.length > 0 && status === 'conference') {
       if (!hasParticipants) {
         setHasParticipants(true);
       }
