@@ -6,23 +6,35 @@ import { Button } from './ui/button';
 import { useEffect, useState } from 'react';
 
 const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, handleSubmit, formSubmitted }) => {
-  // Initialize with proper data source
-  const initialData = localFormData || {};
-  // Ensure contact number is included from userCall
-  const [currentFormData, setCurrentFormData] = useState({
-    ...initialData,
-    number: userCall?.contactNumber || initialData.number || '',
-  });
+  // Initialize state - prioritize localFormData, fallback to userCall
+  const initializeFormData = () => {
+    return {
+      firstName: localFormData?.firstName || userCall?.firstName || '',
+      lastName: localFormData?.lastName || userCall?.lastName || '',
+      emailId: localFormData?.emailId || userCall?.emailId || userCall?.Email || userCall?.email || '',
+      contactNumber: userCall?.contactNumber || localFormData?.contactNumber || '',
+      alternateNumber: localFormData?.alternateNumber || userCall?.alternateNumber || '',
+      comment: localFormData?.comment || userCall?.comment || userCall?.Remarks || '',
+      Contactaddress: localFormData?.Contactaddress || userCall?.Contactaddress || userCall?.address || '',
+      ContactDistrict: localFormData?.ContactDistrict || userCall?.ContactDistrict || '',
+      ContactCity: localFormData?.ContactCity || userCall?.ContactCity || userCall?.city || userCall?.CIty || '',
+      ContactState: localFormData?.ContactState || userCall?.ContactState || userCall?.state || '',
+      ContactPincode:
+        localFormData?.ContactPincode ||
+        userCall?.ContactPincode ||
+        userCall?.postalCode ||
+        userCall?.['Pincode '] ||
+        '',
+    };
+  };
 
+  const [currentFormData, setCurrentFormData] = useState(initializeFormData());
 
   // Update when localFormData or userCall changes
   useEffect(() => {
-    const newData = {
-      ...(localFormData || {}),
-      number: userCall?.contactNumber || '',
-    };
+    const newData = initializeFormData();
     setCurrentFormData(newData);
-  }, [localFormData, userCall?.contactNumber]);
+  }, [localFormData, userCall]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -42,10 +54,19 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
 
   const onSubmit = (e) => {
     e.preventDefault();
-    // Ensure contact number is included in submission
+    // Submission with exact API field names
     const submissionData = {
-      ...currentFormData,
-      number: userCall?.contactNumber || currentFormData.number,
+      firstName: currentFormData.firstName,
+      lastName: currentFormData.lastName,
+      emailId: currentFormData.emailId,
+      contactNumber: userCall?.contactNumber || currentFormData.contactNumber,
+      alternateNumber: currentFormData.alternateNumber,
+      comment: currentFormData.comment,
+      Contactaddress: currentFormData.Contactaddress,
+      ContactDistrict: currentFormData.ContactDistrict,
+      ContactCity: currentFormData.ContactCity,
+      ContactState: currentFormData.ContactState,
+      ContactPincode: currentFormData.ContactPincode,
     };
     handleSubmit(e, submissionData);
   };
@@ -86,10 +107,10 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
           <div className="relative">
             <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
-              name="number"
+              name="contactNumber"
               type="tel"
               placeholder="Mobile Number"
-              value={userCall?.contactNumber || currentFormData.number || ''}
+              value={userCall?.contactNumber || currentFormData.contactNumber || ''}
               disabled
               className="pl-10 border-border bg-muted/50 cursor-not-allowed"
               aria-label="Mobile Number"
@@ -114,10 +135,10 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
           <div className="relative">
             <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
-              name="address"
+              name="Contactaddress"
               type="text"
               placeholder="Address"
-              value={currentFormData.address || ''}
+              value={currentFormData.Contactaddress || ''}
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="Address"
@@ -128,10 +149,10 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
           <div className="relative">
             <MapPinned className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
-              name="state"
+              name="ContactState"
               type="text"
               placeholder="State"
-              value={currentFormData.state || ''}
+              value={currentFormData.ContactState || ''}
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="State"
@@ -142,10 +163,10 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
           <div className="relative">
             <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
-              name="district"
+              name="ContactDistrict"
               type="text"
               placeholder="District"
-              value={currentFormData.district || ''}
+              value={currentFormData.ContactDistrict || ''}
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="District"
@@ -156,10 +177,10 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
           <div className="relative">
             <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
-              name="city"
+              name="ContactCity"
               type="text"
               placeholder="City"
-              value={currentFormData.city || ''}
+              value={currentFormData.ContactCity || ''}
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="City"
@@ -170,10 +191,10 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
           <div className="relative">
             <MailOpen className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
-              name="postalCode"
+              name="ContactPincode"
               type="text"
               placeholder="Postal Code"
-              value={currentFormData.postalCode || ''}
+              value={currentFormData.ContactPincode || ''}
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="Postal Code"
@@ -184,10 +205,10 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
           <div className="relative">
             <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
-              name="email"
+              name="emailId"
               type="email"
               placeholder="Email"
-              value={currentFormData.email || ''}
+              value={currentFormData.emailId || ''}
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="Email"

@@ -70,7 +70,6 @@ const CallScreen = ({
     let interval;
 
     if (hasParticipants && conferenceStatus && !isMerged) {
-      console.log('Starting conference timer - participants connected but not merged');
       setConfRunning(true);
 
       interval = setInterval(() => {
@@ -94,7 +93,6 @@ const CallScreen = ({
   // Reset conference timer when merged
   useEffect(() => {
     if (isMerged) {
-      console.log('Conference merged - stopping separate timer');
       setConfRunning(false);
       setConfSeconds(0);
       setConfMinutes(0);
@@ -104,7 +102,6 @@ const CallScreen = ({
   // Reset states when conference ends
   useEffect(() => {
     if (!hasParticipants && !conferenceStatus) {
-      console.log('Conference ended - resetting all states');
       setIsMerged(false);
       setConfRunning(false);
       setConfSeconds(0);
@@ -123,7 +120,6 @@ const CallScreen = ({
 
   // FIXED: Enhanced hold toggle with proper async handling
   const handleToggleHoldDebounced = useCallback(async () => {
-    console.log('🔘 Hold button clicked, current state:', isHeld);
 
     if (!toggleHold) {
       console.warn('toggleHold function not provided');
@@ -132,9 +128,7 @@ const CallScreen = ({
 
     try {
       await toggleHold();
-      console.log('✅ Hold toggle completed successfully');
     } catch (error) {
-      console.error('❌ Hold toggle failed:', error);
       toast.error('Failed to toggle hold');
     }
   }, [toggleHold, isHeld]);
@@ -166,7 +160,6 @@ const CallScreen = ({
     }
 
     localStorage.setItem('mergeEventLogs', JSON.stringify(existingLogs));
-    console.log('🔍 Manual Merge Logged:', mergeLog);
 
     reqUnHold?.();
     setIsMerged(true);
@@ -247,7 +240,6 @@ const CallScreen = ({
     }
   };
 
-  console.log(status, 'status');
 
   const maybeMask = (num) => (numberMasking ? maskPhoneNumber?.(num) : num);
 
@@ -280,7 +272,6 @@ const CallScreen = ({
           return;
         }
 
-        console.log(`🔘 Button ${buttonId} clicked - starting`);
 
         // FIXED: Mark as processing immediately
         processingRef.current.add(buttonId);
@@ -295,16 +286,12 @@ const CallScreen = ({
             await result;
           }
 
-          console.log(`✅ Button ${buttonId} completed successfully`);
         } catch (error) {
-          console.error(`❌ Error in ${buttonId} button:`, error);
           toast.error(`${title} failed. Please try again.`);
         } finally {
-          // FIXED: Remove processing state after minimum debounce time
           setTimeout(() => {
             processingRef.current.delete(buttonId);
-            forceUpdate({}); // Force re-render to remove loading state
-            console.log(`🔓 Button ${buttonId} unlocked`);
+            forceUpdate({});
           }, debounceTime);
         }
       },

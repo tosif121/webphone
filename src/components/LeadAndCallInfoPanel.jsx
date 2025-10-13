@@ -170,7 +170,6 @@ export default function LeadAndCallInfoPanel({
           setFormId(null);
         }
       } catch (err) {
-        console.error('❌ Error fetching form list:', err);
         setFormId(null);
       } finally {
         setLoading(false);
@@ -207,7 +206,6 @@ export default function LeadAndCallInfoPanel({
 
         setFormConfig(res.data.result);
       } catch (err) {
-        console.error('❌ Error fetching form details:', err);
         setFormConfig(null);
       } finally {
         setLoading(false);
@@ -388,21 +386,22 @@ export default function LeadAndCallInfoPanel({
   // Handle form submission
   const handleContact = async (event, formDataToSubmit) => {
     event.preventDefault();
+
     const payload = {
       user: username,
       isFresh: userCall?.isFresh,
       data: {
         firstName: formDataToSubmit.firstName || '',
         lastName: formDataToSubmit.lastName || '',
-        emailId: formDataToSubmit.email || '',
-        contactNumber: formDataToSubmit.number || userCall?.contactNumber || '',
+        emailId: formDataToSubmit.emailId || '',
+        contactNumber: formDataToSubmit.contactNumber || userCall?.contactNumber || '',
         alternateNumber: formDataToSubmit.alternateNumber || '',
         comment: formDataToSubmit.comment || '',
-        Contactaddress: formDataToSubmit.address || '',
-        ContactDistrict: formDataToSubmit.district || '',
-        ContactCity: formDataToSubmit.city || '',
-        ContactState: formDataToSubmit.state || '',
-        ContactPincode: formDataToSubmit.postalCode || '',
+        Contactaddress: formDataToSubmit.Contactaddress || '',
+        ContactDistrict: formDataToSubmit.ContactDistrict || '',
+        ContactCity: formDataToSubmit.ContactCity || '',
+        ContactState: formDataToSubmit.ContactState || '',
+        ContactPincode: formDataToSubmit.ContactPincode || '',
         agentName: username,
       },
     };

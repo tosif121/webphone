@@ -24,11 +24,11 @@ export const useJssipState = () => {
   const chunks = useRef([]);
 
   /* ----------------------------- user / lead data -------------------------- */
-  const [userCall, setUserCall] = useState(''); // ✅ Fixed: was null, should be ''
+  const [userCall, setUserCall] = useState('');
   const [followUpDispoes, setFollowUpDispoes] = useState([]);
 
   /* ------------------------------- ui states ------------------------------- */
-  const [ringtone, setRingtone] = useState(''); // ✅ Fixed: was [], should be ''
+  const [ringtone, setRingtone] = useState('');
   const [inNotification, setInNotification] = useState('');
   const [dispositionModal, setDispositionModal] = useState(false);
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
@@ -37,11 +37,11 @@ export const useJssipState = () => {
   const [connectionStatus, setConnectionStatus] = useState('NOT_INUSE');
   const [isConnectionLost, setIsConnectionLost] = useState(false);
   const [timeoutArray, setTimeoutArray] = useState([]);
-  const [origin, setOrigin] = useState('esamwad.iotcom.io'); // ✅ MISSING!
+  const [origin, setOrigin] = useState('esamwad.iotcom.io');
 
   /* ---------------------------- call tracking ------------------------------ */
-  const [isCallended, setIsCallended] = useState(false); // ✅ MISSING!
-  const [callHandled, setCallHandled] = useState(false); // ✅ MISSING!
+  const [isCallended, setIsCallended] = useState(false);
+  const [callHandled, setCallHandled] = useState(false);
 
   /* ---------------------------- incoming call ------------------------------ */
   const [incomingSession, setIncomingSession] = useState(null);
@@ -75,7 +75,7 @@ export const useJssipState = () => {
 
   /* ------------------------------ network log ------------------------------ */
   const [messageDifference, setMessageDifference] = useState([]);
-  const [avergaeMessageTimePerMinute, setAvergaeMessageTimePerMinute] = useState([]); // ✅ MISSING!
+  const [avergaeMessageTimePerMinute, setAvergaeMessageTimePerMinute] = useState([]);
 
   // System monitoring states (these were added later in your original)
   const [systemEvents, setSystemEvents] = useState([]);
@@ -107,7 +107,7 @@ export const useJssipState = () => {
     conferenceStatus,
     setConferenceStatus,
     origin,
-    setOrigin, // ✅ NOW INCLUDED
+    setOrigin,
 
     /* devices & recording */
     devices,
@@ -146,9 +146,9 @@ export const useJssipState = () => {
 
     /* call tracking */
     isCallended,
-    setIsCallended, // ✅ NOW INCLUDED
+    setIsCallended,
     callHandled,
-    setCallHandled, // ✅ NOW INCLUDED
+    setCallHandled,
 
     /* incoming */
     incomingSession,
@@ -198,7 +198,7 @@ export const useJssipState = () => {
     messageDifference,
     setMessageDifference,
     avergaeMessageTimePerMinute,
-    setAvergaeMessageTimePerMinute, // ✅ NOW INCLUDED
+    setAvergaeMessageTimePerMinute,
     systemEvents,
     setSystemEvents,
     networkHealth,

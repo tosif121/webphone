@@ -119,7 +119,6 @@ const useJssip = (isMobile = false) => {
     setErrorCount,
     lastLoggedUAState,
     setLastLoggedUAState,
-   
   } = state;
 
   const {
@@ -264,7 +263,6 @@ const useJssip = (isMobile = false) => {
         setQueueDetails(data.currentCallqueue[0].queueDetail);
         setHasTransfer(data.currentCallqueue[0].queueTransfered === true);
         setCurrentCallData(data.currentCallqueue[0]); // ← Make sure this is set
-        console.log('Stored currentCallData:', data.currentCallqueue[0]);
       } else {
         setQueueDetails([]);
         setHasTransfer(false);
@@ -275,7 +273,6 @@ const useJssip = (isMobile = false) => {
           setRingtone(data.currentCallqueue);
           setInNotification(data.currentCallqueue.map((call) => call.Caller));
         } else {
-          console.log('Campaign mismatch:', campaign, data.currentCallqueue[0].campaign);
           setRingtone([]); // ← Explicitly clear ringtone on mismatch
         }
       } else {
@@ -575,33 +572,22 @@ const useJssip = (isMobile = false) => {
         ua.start();
 
         ua.on('registered', async (data) => {
-          console.log('Successfully registered:', data);
-
           checkUserReady();
           const storedBreak = localStorage.getItem('selectedBreak');
           if (storedBreak && storedBreak !== 'Break') {
-            console.log(`[Re-apply Break] Found stored break in localStorage: ${storedBreak}`);
             try {
-              // Add a small delay to allow backend to fully register the SIP session
-              // before attempting to set the break. This might solve race conditions.
               await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
 
-              // console.log(
-              //   `[Re-apply Break] Attempting to re-apply break to backend: ${storedBreak} for user: ${username}`
-              // );
               const response = await axios.post(`${window.location.origin}/user/breakuser:${username}`, {
                 breakType: storedBreak,
               });
               if (response.status === 200) {
                 setSelectedBreak(storedBreak);
-                // toast.success(`Break (${storedBreak}) re-applied successfully.`);
-                // console.log(`[Re-apply Break] Backend confirmed break re-applied.`);
               } else {
                 console.error(
                   `[Re-apply Break] Backend responded with status ${response.status} for break re-application.`,
                   response.data
                 );
-                // toast.error(`Failed to re-apply previous break (${storedBreak}).`);
                 localStorage.removeItem('selectedBreak');
                 Object.keys(localStorage).forEach((key) => {
                   if (key.startsWith('breakStartTime_')) {
@@ -630,7 +616,6 @@ const useJssip = (isMobile = false) => {
           const message = e.request.body;
           console.log('message event:', message);
 
-          // ✅ Use regex to catch all spelling variants
           if (/customer host channel (connected|di[s]?connected)/i.test(message)) {
             handleConferenceMessage(message);
           } else {
@@ -947,8 +932,6 @@ const useJssip = (isMobile = false) => {
         }
       );
     } catch (error) {
-      console.error('❌ Call initiation failed:', error);
-
       // Reset state on error
       setStatus('start');
       setPhoneNumber('');

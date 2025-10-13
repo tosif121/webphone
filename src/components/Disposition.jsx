@@ -178,7 +178,6 @@ const Disposition = ({
 
     // Prioritize disposition flag
     if (dispositionFlag === false) {
-      console.log('Disposition flag is false, triggering auto disposition:', Date.now());
       setIsAutoDispositionInProgress(true);
       autoDispoFunc();
       return;
@@ -196,7 +195,6 @@ const Disposition = ({
       setShouldShowModal(true);
       setIsAutoDispositionComplete(true);
     } else {
-      console.log('No disposition options found, triggering auto disposition:', Date.now());
       setIsAutoDispositionInProgress(true);
       autoDispoFunc();
     }
@@ -252,7 +250,6 @@ const Disposition = ({
 
       // Check if the error is a 400 status error
       if (error.response?.status === 400) {
-        console.log('400 error received, not showing modal');
         setIsAutoDispositionComplete(true);
 
         // Don't show modal for 400 errors - just close everything

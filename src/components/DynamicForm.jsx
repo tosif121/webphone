@@ -182,11 +182,8 @@ export default function DynamicForm({
   };
 
   const handleChange = (fieldName, value) => {
-    console.log(`Changing field ${fieldName} to:`, value);
-
     setCurrentFormData((prev) => {
       const newData = { ...prev, [fieldName]: value };
-      console.log('Updated form data:', newData);
       return newData;
     });
 
@@ -199,25 +196,111 @@ export default function DynamicForm({
   };
 
   const handleSelectChange = (name, value) => {
-    console.log(`Select changed: ${name} = ${value}`);
     handleChange(name, value);
   };
 
+  // FIXED VALIDATION - Check actual currentFormData, not getFinalFormData
   const isSectionValid = () => {
-    if (!currentSection) return true;
-    const finalData = getFinalFormData();
-
-    return currentSection.fields.every((field) => {
-      if (field.required) {
-        const value = finalData[field.name];
-        if (Array.isArray(value)) return value.length > 0;
-        return value !== undefined && value !== '' && value !== null;
-      }
+    if (!currentSection) {
       return true;
-    });
+    }
+
+    // USE CURRENT FORM DATA DIRECTLY, NOT getFinalFormData()
+
+    const invalidFields = [];
+    const requiredFields = currentSection.fields.filter((f) => f.required === true);
+
+    // Check only fields with required: true
+    for (const field of currentSection.fields) {
+      if (field.required === true) {
+        // Check currentFormData directly, not finalData
+        const value = currentFormData[field.name];
+
+        // Also check if this field exists in initialValues
+        const hasInitialValue = initialValues.hasOwnProperty(field.name);
+        const initialValue = initialValues[field.name];
+
+        let isValid = false;
+
+        // Validate based on field type
+        if (Array.isArray(value)) {
+          isValid = value.length > 0;
+        } else if (typeof value === 'number') {
+          isValid = value > 0;
+        } else if (typeof value === 'boolean') {
+          isValid = value === true;
+        } else if (typeof value === 'string') {
+          isValid = value.trim() !== '';
+        } else {
+          // If value is undefined/null, check if there's an initial value we can use
+          if (hasInitialValue && initialValue !== undefined && initialValue !== null && initialValue !== '') {
+            if (typeof initialValue === 'string') {
+              isValid = initialValue.trim() !== '';
+            } else {
+              isValid = true;
+            }
+          } else {
+            isValid = false;
+          }
+        }
+
+        if (!isValid) {
+          invalidFields.push(field.question || field.label || field.name);
+        } else {
+          console.log('VALID FIELD:', field.name);
+        }
+      } else {
+        console.log('Field not required, skipping');
+      }
+    }
+
+    return invalidFields.length === 0;
   };
 
   const handleFormSubmit = () => {
+    const isValid = isSectionValid();
+
+    if (!isValid) {
+      const missingFields = [];
+
+      currentSection.fields.forEach((field) => {
+        if (field.required === true) {
+          const value = currentFormData[field.name];
+          const hasInitialValue = initialValues.hasOwnProperty(field.name);
+          const initialValue = initialValues[field.name];
+
+          let isValid = false;
+
+          if (Array.isArray(value)) {
+            isValid = value.length > 0;
+          } else if (typeof value === 'number') {
+            isValid = value > 0;
+          } else if (typeof value === 'boolean') {
+            isValid = value === true;
+          } else if (typeof value === 'string') {
+            isValid = value.trim() !== '';
+          } else {
+            if (hasInitialValue && initialValue !== undefined && initialValue !== null && initialValue !== '') {
+              if (typeof initialValue === 'string') {
+                isValid = initialValue.trim() !== '';
+              } else {
+                isValid = true;
+              }
+            } else {
+              isValid = false;
+            }
+          }
+
+          if (!isValid) {
+            missingFields.push(field.question || field.label || field.name);
+          }
+        }
+      });
+
+      toast.error(`Please fill all required fields: ${missingFields.join(', ')}`, {});
+      return;
+    }
+
     const finalData = getFinalFormData();
 
     if (handleSubmit) {
@@ -226,8 +309,46 @@ export default function DynamicForm({
   };
 
   const handleNext = () => {
-    if (!isSectionValid()) {
-      toast.error('Please fill all required fields.');
+    const isValid = isSectionValid();
+
+    if (!isValid) {
+      const missingFields = [];
+
+      currentSection.fields.forEach((field) => {
+        if (field.required === true) {
+          const value = currentFormData[field.name];
+          const hasInitialValue = initialValues.hasOwnProperty(field.name);
+          const initialValue = initialValues[field.name];
+
+          let isValid = false;
+
+          if (Array.isArray(value)) {
+            isValid = value.length > 0;
+          } else if (typeof value === 'number') {
+            isValid = value > 0;
+          } else if (typeof value === 'boolean') {
+            isValid = value === true;
+          } else if (typeof value === 'string') {
+            isValid = value.trim() !== '';
+          } else {
+            if (hasInitialValue && initialValue !== undefined && initialValue !== null && initialValue !== '') {
+              if (typeof initialValue === 'string') {
+                isValid = initialValue.trim() !== '';
+              } else {
+                isValid = true;
+              }
+            } else {
+              isValid = false;
+            }
+          }
+
+          if (!isValid) {
+            missingFields.push(field.question || field.label || field.name);
+          }
+        }
+      });
+
+      toast.error(`Please fill all required fields: ${missingFields.join(', ')}`, {});
       return;
     }
 
@@ -248,7 +369,7 @@ export default function DynamicForm({
         }
       } else {
         for (const field of currentSection.fields) {
-          if (field.type === 'select' && currentFormData[field.name] && field.options.some((opt) => opt.nextSection)) {
+          if (field.type === 'select' && currentFormData[field.name] && field.options?.some((opt) => opt.nextSection)) {
             const selectedValue = currentFormData[field.name];
             const selectedOption = field.options.find((opt) => opt.value === selectedValue);
             if (selectedOption && selectedOption.nextSection) {
@@ -366,7 +487,6 @@ export default function DynamicForm({
           const keyMatch = Object.keys(userCall).find((key) => key.toLowerCase() === field.name.toLowerCase());
           if (keyMatch && userCall[keyMatch] !== undefined && userCall[keyMatch] !== '') {
             const value = userCall[keyMatch];
-            // Only set if user hasn't modified this field
             if (!userModifiedFields.has(field.name)) {
               initialData[field.name] = value;
               initialVals[field.name] = value;
@@ -396,7 +516,6 @@ export default function DynamicForm({
   }, [status]);
 
   useEffect(() => {
-    // Load complete state from localStorage on mount
     const savedState = localStorage.getItem('formNavigationState');
     if (savedState) {
       try {
@@ -483,22 +602,6 @@ export default function DynamicForm({
         </div>
 
         <div className="space-y-6 mb-6">
-          {/* <div className="text-sm text-muted-foreground mb-2">
-            Navigation:{' '}
-            {navigationPath.map((idx, i) => (
-              <span key={idx}>
-                {sortedSections[idx]?.title || `Section ${sortedSections[idx]?.id}`}
-                {i < navigationPath.length - 1 && ' → '}
-              </span>
-            ))}
-          </div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-primary flex items-center gap-2 capitalize">
-              <List className="w-5 h-5 text-muted-foreground" />
-              {currentSection.title || `Section ${currentSection.id}`}
-            </h3>
-            <div className="text-sm bg-blue-100 px-2 py-1 rounded">Section {currentSection.id}</div>
-          </div> */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {currentSection.fields.map((field, idx) => {
               const fieldId = `${field.name}-${idx}`;
@@ -549,7 +652,6 @@ export default function DynamicForm({
                       <Select
                         value={fieldValue || ''}
                         onValueChange={(value) => {
-                          console.log(`Select ${field.name} changing to:`, value);
                           handleSelectChange(field.name, value);
                         }}
                       >
@@ -680,16 +782,16 @@ export default function DynamicForm({
           </div>
           <div>
             {isLastSection ? (
-              <Button onClick={handleFormSubmit} disabled={formSubmitted || !isSectionValid()}>
+              <Button onClick={handleFormSubmit} disabled={formSubmitted}>
                 Submit
               </Button>
             ) : showNextButton ? (
-              <Button onClick={handleNext} className="flex items-center gap-2" disabled={!isSectionValid()}>
+              <Button onClick={handleNext} className="flex items-center gap-2">
                 Next
                 <ArrowRight className="w-4 h-4" />
               </Button>
             ) : (
-              <Button onClick={handleFormSubmit} disabled={formSubmitted || !isSectionValid()}>
+              <Button onClick={handleFormSubmit} disabled={formSubmitted}>
                 Submit
               </Button>
             )}

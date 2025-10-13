@@ -337,13 +337,11 @@ function Dashboard() {
     const checkUserAvailability = async () => {
       // Check the conditions first
       if (userCampaign === currentCallData?.campaign && connectionStatus === 'NOT_INUSE' && queueDetails?.length > 0) {
-        console.log('first');
         try {
           const { data } = await axios.post(`${window.location.origin}/user/agentAvailable/${username}`);
 
           if (data.message === 'User is not live.') {
             toast.error('You are not available for calls. Please make yourself available to handle conference calls.');
-            console.log('User is not live with active conference calls');
             return false;
           }
           return true;
@@ -523,26 +521,20 @@ function Dashboard() {
     window.webPhoneDebug = {
       showLogs: () => {
         const logs = JSON.parse(localStorage.getItem('mergeEventLogs') || '[]');
-        console.log('📋 Merge Logs:', logs);
         return logs;
       },
 
       clear: () => {
         localStorage.removeItem('mergeEventLogs');
-        console.log('✅ Logs cleared');
       },
 
       stats: () => {
         const logs = JSON.parse(localStorage.getItem('mergeEventLogs') || '[]');
         const manual = logs.filter((log) => log.eventType === 'manual_merge').length;
         const auto = logs.filter((log) => log.eventType.includes('participant_')).length;
-        console.log(`📊 Total: ${logs.length} | Manual: ${manual} | Auto: ${auto}`);
         return { total: logs.length, manual, auto };
       },
     };
-
-    // Simple console info
-    console.log('📋 Debug: webPhoneDebug.showLogs() | webPhoneDebug.stats() | webPhoneDebug.clear()');
 
     return () => {
       delete window.webPhoneDebug;
