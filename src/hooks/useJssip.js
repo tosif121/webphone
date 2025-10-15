@@ -164,7 +164,11 @@ const useJssip = (isMobile = false) => {
         status === 'conference' ||
         isIncomingRinging;
 
-      if (hasActiveCall) {
+      // ✅ Check if agent is on break (selectedBreak is not 'Break')
+      const isOnBreak = selectedBreak && selectedBreak !== 'Break';
+
+      // ✅ Prevent close if active call OR on break
+      if (hasActiveCall || isOnBreak) {
         event.preventDefault();
         event.returnValue = '';
       }
@@ -175,7 +179,7 @@ const useJssip = (isMobile = false) => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [connectionStatus, incomingSession, status, isIncomingRinging]);
+  }, [connectionStatus, incomingSession, status, isIncomingRinging, selectedBreak]);
 
   // In useJssip.js
 
