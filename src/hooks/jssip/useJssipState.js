@@ -13,6 +13,8 @@ export const useJssipState = () => {
   const [callType, setCallType] = useState('');
   const [isHeld, setIsHeld] = useState(false);
   const [conferenceStatus, setConferenceStatus] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [isCustomerAnswered, setIsCustomerAnswered] = useState(false);
 
   /* ----------------------------- device control ---------------------------- */
   const [devices, setDevices] = useState([]);
@@ -38,6 +40,7 @@ export const useJssipState = () => {
   const [isConnectionLost, setIsConnectionLost] = useState(false);
   const [timeoutArray, setTimeoutArray] = useState([]);
   const [origin, setOrigin] = useState('esamwad.iotcom.io');
+  const [timeoutMessage, setTimeoutMessage] = useState('');
 
   /* ---------------------------- call tracking ------------------------------ */
   const [isCallended, setIsCallended] = useState(false);
@@ -51,7 +54,7 @@ export const useJssipState = () => {
   /* ---------------------------- conference data ---------------------------- */
   const [conferenceCalls, setConferenceCalls] = useState([]);
   const [callConference, setCallConference] = useState(false);
-  const [hasParticipants, setHasParticipants] = useState(false);
+  const [hasParticipants, setHasParticipants] = useState(null);
 
   /* ------------------------------ misc flags ------------------------------- */
   const [userLogin, setUserLogin] = useState(false);
@@ -211,5 +214,12 @@ export const useJssipState = () => {
     setErrorCount,
     lastLoggedUAState,
     setLastLoggedUAState,
+    muted,
+    setMuted,
+    timeoutMessage,
+    setTimeoutMessage,
+    isCustomerAnswered,
+    setIsCustomerAnswered
+    
   };
 };

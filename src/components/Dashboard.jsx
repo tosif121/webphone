@@ -92,6 +92,7 @@ function Dashboard() {
     hasTransfer,
     currentCallData,
     hasParticipants,
+    timeoutMessage,
   } = useContext(JssipContext);
 
   const {
@@ -639,6 +640,7 @@ function Dashboard() {
         onClose={closeTimeoutModal}
         onLoginSuccess={handleLoginSuccess}
         userLogin={userLogin}
+        customMessage={timeoutMessage}
       />
       {dropCalls && (
         <DropCallsModal

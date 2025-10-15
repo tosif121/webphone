@@ -11,20 +11,19 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, WifiOff, UserX } from 'lucide-react';
 
-const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin }) => {
+const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, customMessage }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isClient, setIsClient] = useState(false);
 
-  // Ensure we only run on client side
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   const handleReLogin = async () => {
-    if (!isClient) return; // Don't run on server side
+    if (!isClient) return;
 
     setIsLoading(true);
     setError('');
@@ -44,28 +43,23 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin }) => 
         { username: savedUsername, password: savedPassword },
         {
           headers: { 'Content-Type': 'application/json' },
-          timeout: 10000, // 10 second timeout
+          timeout: 10000,
         }
       );
 
-      // Check if the response is successful
       if (response && (response.success || response.token || response.message === 'Login successful')) {
         if (typeof window !== 'undefined') {
           localStorage.setItem('token', JSON.stringify(response));
         }
 
-        // Call success handlers
         onLoginSuccess();
         toast.success('Re-login successful');
-
-        // Don't call onClose() here - let onLoginSuccess handle the redirect/refresh
       } else {
         throw new Error('Invalid response from server');
       }
     } catch (err) {
       console.error('Re-login failed:', err);
 
-      // Handle different types of errors
       if (err.code === 'ECONNABORTED') {
         setError('Request timed out. Please try again.');
       } else if (err.response?.status === 401) {
@@ -104,16 +98,44 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin }) => 
     }
   };
 
+  // ✅ Determine the issue type
+  const isPoorConnection = customMessage?.toLowerCase().includes('poor connection');
+  const isNotReady = customMessage?.toLowerCase().includes('not in a ready state');
+  const isForceLogout = userLogin === true;
+
+  // ✅ NEW: Check if error requires manual login
+  const requiresManualLogin = 
+    error.includes('Please login manually') || 
+    error.includes('Invalid credentials') ||
+    error.includes('User not found') ||
+    error.includes('No saved credentials found');
+
+  // ✅ Select appropriate icon
+  const getIcon = () => {
+    if (isPoorConnection) return <WifiOff className="h-6 w-6 text-red-600" />;
+    if (isNotReady) return <UserX className="h-6 w-6 text-orange-600" />;
+    return <AlertCircle className="h-6 w-6 text-yellow-600" />;
+  };
+
+  // ✅ Select appropriate title
+  const getTitle = () => {
+    if (isForceLogout) return 'Session Expired';
+    if (isPoorConnection) return 'Connection Issue';
+    if (isNotReady) return 'Agent Not Ready';
+    return 'Session Expired';
+  };
+
   return (
     <AlertDialog open={isOpen}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <div className="flex items-center space-x-2">
-            <AlertCircle className="h-6 w-6 text-yellow-600" />
-            <AlertDialogTitle>Session Expired</AlertDialogTitle>
+            {getIcon()}
+            <AlertDialogTitle>{getTitle()}</AlertDialogTitle>
           </div>
           <AlertDialogDescription>
-            Session timed out due to inactivity or no keep-alive response from server. Please re-login to continue.
+            {customMessage ||
+              'Session timed out due to inactivity or no keep-alive response from server. Please re-login to continue.'}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -123,14 +145,55 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin }) => 
           </Alert>
         )}
 
+        {/* ✅ Show helpful tips based on error type */}
+        {!error && !isForceLogout && (
+          <>
+            {isPoorConnection && (
+              <Alert>
+                <AlertDescription>
+                  This may be due to network instability. Please check your internet connection and try re-connecting.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {isNotReady && (
+              <Alert>
+                <AlertDescription>
+                  Your agent status may have changed. Please re-login to restore your ready state.
+                </AlertDescription>
+              </Alert>
+            )}
+          </>
+        )}
+
         <AlertDialogFooter>
-          <Button onClick={handleGoToLogin} variant="outline">
-            Go to Login
-          </Button>
-          <Button onClick={handleReLogin} disabled={isLoading || userLogin}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLoading ? 'Re-login...' : 'Re-Connect'}
-          </Button>
+          {/* ✅ Show buttons based on scenario */}
+          {isForceLogout || requiresManualLogin ? (
+            /* Show only "Go to Login" button */
+            <Button onClick={handleGoToLogin} className="w-full">
+              Go to Login
+            </Button>
+          ) : (
+            /* Show both buttons */
+            <div className="flex gap-2 w-full">
+              {/* Show "Go to Login" as secondary option when there's an error */}
+              {error && (
+                <Button onClick={handleGoToLogin} variant="outline" className="flex-1">
+                  Go to Login
+                </Button>
+              )}
+              
+              {/* Show "Re-Connect" button */}
+              <Button 
+                onClick={handleReLogin} 
+                disabled={isLoading || requiresManualLogin} 
+                className="flex-1"
+              >
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading ? 'Re-connecting...' : 'Re-Connect'}
+              </Button>
+            </div>
+          )}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

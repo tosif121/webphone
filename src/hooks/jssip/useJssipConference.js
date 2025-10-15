@@ -23,17 +23,15 @@ export const useJssipConference = (state, utils) => {
     setHasParticipants,
     callConference,
     setCallConference,
-    isCallended,
-    setIsCallended,
     messageDifference,
     setMessageDifference,
+    setIsCustomerAnswered,
   } = state;
 
-  // Helper function to log merge events
   const logMergeEvent = (eventType, details = {}) => {
     const mergeLog = {
       timestamp: new Date().toISOString(),
-      eventType, // 'auto_merge', 'manual_merge', 'conference_disconnect', etc.
+      eventType,
       username,
       conferenceNumber,
       bridgeID,
@@ -43,18 +41,14 @@ export const useJssipConference = (state, utils) => {
       ...details,
     };
 
-    // Store in localStorage
     const existingLogs = JSON.parse(localStorage.getItem('mergeEventLogs') || '[]');
     existingLogs.push(mergeLog);
 
-    // Keep only last 50 logs
     if (existingLogs.length > 50) {
       existingLogs.shift();
     }
 
     localStorage.setItem('mergeEventLogs', JSON.stringify(existingLogs));
-
-    console.log('🔍 Merge Event Logged:', mergeLog);
   };
 
   const createConferenceCall = async () => {
@@ -93,10 +87,12 @@ export const useJssipConference = (state, utils) => {
       ) {
         setStatus('calling');
         toast.error(`Failed to create conference call: ${data.message || 'Unknown error'}`);
+
         setConferenceStatus(false);
         setCallConference(false);
         setConferenceNumber('');
-
+        setHasParticipants(null);
+        setIsCustomerAnswered(false);
         logMergeEvent('conference_failed', {
           error: data.message,
           reason: 'api_error',
@@ -105,6 +101,11 @@ export const useJssipConference = (state, utils) => {
         setStatus('calling');
         toast.error(`Unexpected response: ${data.message || 'Unknown response'}`);
 
+        setConferenceStatus(false);
+        setCallConference(false);
+        setConferenceNumber('');
+        setHasParticipants(null);
+        setIsCustomerAnswered(false);
         logMergeEvent('conference_failed', {
           error: data.message,
           reason: 'unexpected_response',
@@ -112,8 +113,11 @@ export const useJssipConference = (state, utils) => {
       }
     } catch (error) {
       setStatus('calling');
+
       setConferenceStatus(false);
       setCallConference(false);
+      setHasParticipants(null);
+      setIsCustomerAnswered(false);
 
       logMergeEvent('conference_failed', {
         error: error.message,
@@ -224,7 +228,7 @@ export const useJssipConference = (state, utils) => {
 
   const handleConferenceMessage = (message) => {
     if (message.includes('customer host channel connected')) {
-      setHasParticipants(true);
+      setHasParticipants('connected');
 
       logMergeEvent('participant_connected', {
         message,
@@ -239,7 +243,8 @@ export const useJssipConference = (state, utils) => {
       setCallConference(false);
       setConferenceNumber('');
       setConferenceStatus(false);
-      setHasParticipants(false);
+      setHasParticipants('disconnected');
+      setIsCustomerAnswered(true);
 
       logMergeEvent('participant_disconnected', {
         message,
@@ -247,8 +252,7 @@ export const useJssipConference = (state, utils) => {
         reason: 'conference_message',
       });
 
-      // Call reqUnHold with tracking
-      reqUnHold('participant_disconnect');
+      // reqUnHold will be called automatically by useEffect below
       toast.error('Conference disconnected');
     }
 
@@ -267,29 +271,49 @@ export const useJssipConference = (state, utils) => {
     });
   };
 
+  // ✅ Reset to null when call ends
   useEffect(() => {
-    if (conferenceCalls && conferenceCalls.length > 0 && status === 'conference') {
-      if (!hasParticipants) {
-        setHasParticipants(true);
-      }
-    } else {
-      if (hasParticipants) {
-        setCallConference(false);
-        setConferenceNumber('');
-        setConferenceStatus(false);
-        setHasParticipants(false);
-
-        logMergeEvent('conference_ended', {
-          autoMergeTriggered: true,
-          reason: 'participants_left',
-          conferenceCallsLength: conferenceCalls?.length || 0,
-        });
-
-        // Call reqUnHold with tracking
-        reqUnHold('participants_left');
-      }
+    if (status === 'start') {
+      setHasParticipants(null);
+      setIsCustomerAnswered(false);
     }
-  }, [conferenceCalls, hasParticipants]);
+  }, [status]);
+
+  // ✅ NEW: Auto reqUnHold when participant disconnects
+  useEffect(() => {
+    if (hasParticipants === 'Conference disconnected') {
+      setCallConference(false);
+      setConferenceNumber('');
+      setConferenceStatus(false);
+      setHasParticipants(null);
+      setIsCustomerAnswered(true);
+      reqUnHold('auto_unhold_on_disconnect');
+    }
+  }, [hasParticipants]);
+
+  //   useEffect(() => {
+  //   if (conferenceCalls && conferenceCalls.length > 0 && status === 'conference') {
+  //     if (!hasParticipants) {
+  //       setHasParticipants(true);
+  //     }
+  //   } else {
+  //     if (hasParticipants) {
+  //       setCallConference(false);
+  //       setConferenceNumber('');
+  //       setConferenceStatus(false);
+  //       setHasParticipants(false);
+
+  //       logMergeEvent('conference_ended', {
+  //         autoMergeTriggered: true,
+  //         reason: 'participants_left',
+  //         conferenceCallsLength: conferenceCalls?.length || 0,
+  //       });
+
+  //       // Call reqUnHold with tracking
+  //       reqUnHold('participants_left');
+  //     }
+  //   }
+  // }, [conferenceCalls, hasParticipants]);
 
   return {
     createConferenceCall,

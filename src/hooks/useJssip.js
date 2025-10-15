@@ -119,6 +119,12 @@ const useJssip = (isMobile = false) => {
     setErrorCount,
     lastLoggedUAState,
     setLastLoggedUAState,
+    muted,
+    setMuted,
+    timeoutMessage,
+    setTimeoutMessage,
+    isCustomerAnswered,
+    setIsCustomerAnswered,
   } = state;
 
   const {
@@ -171,11 +177,27 @@ const useJssip = (isMobile = false) => {
     };
   }, [connectionStatus, incomingSession, status, isIncomingRinging]);
 
-  const handleLoginSuccess = () => {
+  // In useJssip.js
+
+  const handleLoginSuccess = async () => {
+    // Close the modal
     setShowTimeoutModal(false);
-    toast.success('Re-login successful');
-    // Refresh page or fetch fresh user data
-    // window.location.reload();
+
+    // Clear connection lost flag
+    setIsConnectionLost(false);
+
+    // Clear timeout message
+    setTimeoutMessage('');
+
+    // Show success message
+    toast.success('Re-login successful. Reconnecting...', {
+      duration: 2000,
+    });
+
+    // ✅ Full page reload to re-initialize everything
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   const closeTimeoutModal = () => {
@@ -202,6 +224,8 @@ const useJssip = (isMobile = false) => {
   const addTimeout = (type) => {
     setTimeoutArray((prev) => [...prev, type]);
   };
+
+  // In useJssip.js
 
   const connectioncheck = async () => {
     try {
@@ -233,54 +257,92 @@ const useJssip = (isMobile = false) => {
         3000
       );
 
-      // Handle authentication failures
-      if (response.status === 401 || !response.data.isUserLogin) {
+      const data = response.data;
+
+      // In connectioncheck function
+
+      // ✅ 1. Poor connection - don't set userLogin, allow re-connect
+      if (data.message === 'poor connection problem ,please login again') {
+        console.warn('⚠️ Poor connection detected from server');
+
         if (status === 'start' && !dispositionModal) {
-          await handleLogout(token, 'Session expired. Please log in again.');
-          setUserLogin(true);
+          setTimeoutMessage('Poor connection problem. Please login again.');
+          setShowTimeoutModal(true);
+
           return true;
         }
         return false;
       }
 
-      const data = response.data;
-      setFollowUpDispoes(data.followUpDispoes);
+      // ✅ 2. Force logout - set userLogin to true
+      if (response.status === 401 || !data.isUserLogin) {
+        console.warn('⚠️ Authentication failure detected');
+
+        if (status === 'start' && !dispositionModal) {
+          setTimeoutMessage('');
+          await handleLogout(token, 'Force logout. Please log in again.');
+
+          // ✅ SET userLogin to true - force to login page
+          setUserLogin(true);
+
+          return true;
+        }
+        return false;
+      }
+
+      // ✅ 3. Set follow-up dispositions and connection status
+      setFollowUpDispoes(data.followUpDispoes || []);
       setConnectionStatus(data.status);
 
-      // Handle connection issues
+      // ✅ 4. Handle other connection issues
       if (data.message !== 'ok connection for user') {
+        console.warn('⚠️ Connection issue:', data.message);
+
         if (status === 'start' && !dispositionModal) {
+          // Clear custom timeout message
+          setTimeoutMessage('');
+
           await handleConnectionLost();
           return true;
         }
         return false;
       }
 
+      // ✅ 5. Update conference calls
       setConferenceCalls(data.conferenceCalls || []);
 
-      // In your connectioncheck function:
+      // ✅ 6. Update queue details
       if (data.currentCallqueue?.length > 0 && data.currentCallqueue[0].queueDetail) {
         setQueueDetails(data.currentCallqueue[0].queueDetail);
         setHasTransfer(data.currentCallqueue[0].queueTransfered === true);
-        setCurrentCallData(data.currentCallqueue[0]); // ← Make sure this is set
+        setCurrentCallData(data.currentCallqueue[0]);
       } else {
         setQueueDetails([]);
         setHasTransfer(false);
         setCurrentCallData(null);
       }
+
+      // ✅ 7. Handle ringtone/incoming calls
       if (data.currentCallqueue?.length > 0) {
+        // Check if campaign matches
         if (campaign === data.currentCallqueue[0].campaign) {
           setRingtone(data.currentCallqueue);
           setInNotification(data.currentCallqueue.map((call) => call.Caller));
         } else {
-          setRingtone([]); // ← Explicitly clear ringtone on mismatch
+          // Campaign mismatch - clear ringtone
+          setRingtone([]);
         }
       } else {
-        setRingtone([]); // ← Clear ringtone when no calls
+        // No calls in queue - clear ringtone
+        setRingtone([]);
       }
+
+      // ✅ 8. Connection successful
       setIsConnectionLost(false);
       return false;
     } catch (err) {
+      // ✅ 9. Handle errors
+      console.error('Connection check error:', err);
       return await handleConnectionError(err);
     }
   };
@@ -614,12 +676,33 @@ const useJssip = (isMobile = false) => {
 
         ua.on('newMessage', (e) => {
           const message = e.request.body;
-          console.log('message event:', message);
+          console.log('Message event:', message);
 
+          // ✅ Check for conference messages
           if (/customer host channel (connected|di[s]?connected)/i.test(message)) {
             handleConferenceMessage(message);
+          }
+          // ✅ NEW: Check if customer channel answered
+          else if (message.includes('customer channel answered')) {
+            // Set customer answered state
+            setIsCustomerAnswered(true);
+
+            // Store in message difference for tracking
+            const objectToPush = {
+              messageTime: Date.now(),
+              messageType: 'customer_answered',
+              message: message,
+            };
+
+            setMessageDifference((prev) => {
+              const updatedDifferences = [...prev, objectToPush];
+              if (updatedDifferences.length > 10) {
+                updatedDifferences.shift();
+              }
+              return updatedDifferences;
+            });
           } else {
-            // Handle non-conference messages
+            // Handle non-conference messages (keepalive)
             const objectToPush = {
               messageTime: Date.now(),
               messageType: 'keepalive',
@@ -635,6 +718,7 @@ const useJssip = (isMobile = false) => {
             });
           }
 
+          // Always run connection check
           connectioncheck();
         });
 
@@ -660,8 +744,6 @@ const useJssip = (isMobile = false) => {
           // window.location.href = '/webphone/v1';
         });
         ua.on('newRTCSession', function (e) {
-          console.log('🔍 Session Direction:', e.session.direction);
-          console.log('🔍 Is Mobile:', isMobile);
           if (e.session.direction === 'incoming') {
             const remoteNumber = e.session.remote_identity.uri.user;
             const isActuallyOutgoing = dialingNumberRef.current && remoteNumber === dialingNumberRef.current;
@@ -696,6 +778,7 @@ const useJssip = (isMobile = false) => {
                   setIncomingSession(null);
                   setIsIncomingRinging(false);
                   setStatus('start');
+                  setIsCustomerAnswered(false);
                   setHistory((prev) => [
                     ...prev.slice(0, -1),
                     { ...prev[prev.length - 1], status: 'Missed', end: new Date().getTime() },
@@ -754,6 +837,7 @@ const useJssip = (isMobile = false) => {
               if (isRecording) {
                 stopRecording();
               }
+              setIsCustomerAnswered(false);
               setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
               pause();
               setStatus('start');
@@ -872,7 +956,7 @@ const useJssip = (isMobile = false) => {
   }, [username, password]);
 
   const handleCall = async (formattedNumber) => {
-    // Early returns for invalid states
+    // ✅ 1. Early return - Check connection status
     if (isConnectionLost) {
       toast.error('Connection lost. Please check your internet connection.');
       return;
@@ -880,27 +964,23 @@ const useJssip = (isMobile = false) => {
 
     const targetNumber = phoneNumber || formattedNumber;
 
-    // if (!validatePhoneNumber(targetNumber)) {
-    //   toast.error('Phone number must be 10-12 digits');
-    //   return;
-    // }
-
     try {
-      // Handle break removal if needed
+      // ✅ 2. Handle break removal if needed
       if (selectedBreak !== 'Break') {
         const breakRemoved = await removeBreak();
         if (!breakRemoved) {
+          console.warn('Break removal failed');
           return; // Stop if break removal failed
         }
       }
 
-      // Clean and store the number
+      // ✅ 3. Clean and store the number
       const cleanedNumber = targetNumber.replace(/\D/g, '');
       dialingNumberRef.current = cleanedNumber;
       setPhoneNumber(targetNumber);
       setCallType('outgoing');
 
-      // Add to call history
+      // ✅ 4. Add to call history
       const callRecord = {
         startTime: new Date(),
         phoneNumber: targetNumber,
@@ -908,7 +988,7 @@ const useJssip = (isMobile = false) => {
       };
       setHistory((prev) => [...prev, callRecord]);
 
-      // Set dialing state
+      // ✅ 5. Set dialing state in localStorage
       try {
         localStorage.setItem('dialing', 'true');
       } catch (storageError) {
@@ -916,7 +996,7 @@ const useJssip = (isMobile = false) => {
         // Continue anyway, localStorage isn't critical for the call
       }
 
-      // Make the API call
+      // ✅ 6. Make the API call to dial number
       const response = await axios.post(
         `${window.location.origin}/dialnumber`,
         {
@@ -931,27 +1011,100 @@ const useJssip = (isMobile = false) => {
           timeout: 10000, // 10 second timeout
         }
       );
+
+
+      // ✅ 7. Check response for errors even if status is 200
+      if (response.data && !response.data.success) {
+        const errorMessage = response.data.message || response.data.cause;
+        console.warn('API returned error:', errorMessage);
+
+        // ✅ 7a. Check if it's the "agent not ready" error
+        if (errorMessage?.includes('Agent is not in a ready state') || errorMessage?.includes('Please Login again')) {
+          console.warn('⚠️ Agent not in ready state');
+
+          // Set custom timeout message
+          setTimeoutMessage('Agent is not in a ready state. Please login again.');
+
+          // Show modal (don't set userLogin to allow re-connect)
+          setShowTimeoutModal(true);
+
+          // Reset call state
+          setStatus('start');
+          setPhoneNumber('');
+          dialingNumberRef.current = '';
+          setCallType('');
+
+          return;
+        }
+
+        // ✅ 7b. Other API errors
+        toast.error(errorMessage || 'Failed to initiate call');
+        setStatus('start');
+        setPhoneNumber('');
+        dialingNumberRef.current = '';
+        setCallType('');
+        return;
+      }
+
+      // ✅ 8. Success - call initiated
     } catch (error) {
-      // Reset state on error
+      console.error('❌ Call initiation error:', error);
+
+      // ✅ 9. Reset state on error
       setStatus('start');
       setPhoneNumber('');
       dialingNumberRef.current = '';
       setCallType('');
 
-      // Handle different types of errors
-      if (error.code === 'ECONNABORTED') {
-        toast.error('Call request timed out. Please try again.');
-      } else if (error.response?.status === 400) {
-        toast.error('Invalid phone number or user not found');
-      } else if (error.response?.status >= 500) {
-        toast.error('Server error. Please try again later.');
-      } else {
-        toast.error('Failed to initiate the call. Please try again.');
+      // ✅ 10. Check if error response contains "agent not ready" message
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        const errorMessage = errorData.message || errorData.cause;
+
+
+        // ✅ 10a. Agent not ready error from error response
+        if (errorMessage?.includes('Agent is not in a ready state') || errorMessage?.includes('Please Login again')) {
+          console.warn('⚠️ Agent not in ready state (from error response)');
+
+          // Set custom timeout message
+          setTimeoutMessage('Agent is not in a ready state. Please login again.');
+
+          // Show modal (don't set userLogin to allow re-connect)
+          setShowTimeoutModal(true);
+
+          return;
+        }
       }
 
-      // Only redirect on critical errors, not all errors
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        window.location.href = '/webphone/v1';
+      // ✅ 11. Handle different types of errors
+      if (error.code === 'ECONNABORTED') {
+        console.error('Request timeout');
+        toast.error('Call request timed out. Please try again.');
+      } else if (error.response?.status === 400) {
+        console.error('Bad request (400)');
+        toast.error('Invalid phone number or user not found');
+      } else if (error.response?.status === 401 || error.response?.status === 403) {
+        // ✅ 11a. Authentication errors - force logout
+        console.error('Authentication error (401/403)');
+
+        const tokenDataString = localStorage.getItem('token');
+        const parsedTokenData = tokenDataString ? JSON.parse(tokenDataString) : null;
+        const token = parsedTokenData?.token;
+
+        // Clear custom message (use default)
+        setTimeoutMessage('');
+
+        // Trigger logout
+        await handleLogout(token, 'Session expired. Please log in again.');
+
+        // Force to login page
+        setUserLogin(true);
+      } else if (error.response?.status >= 500) {
+        console.error('Server error (5xx)');
+        toast.error('Server error. Please try again later.');
+      } else {
+        console.error('Unknown error');
+        toast.error('Failed to initiate the call. Please try again.');
       }
     }
   };
@@ -1035,6 +1188,12 @@ const useJssip = (isMobile = false) => {
     hasTransfer,
     currentCallData,
     hasParticipants,
+    muted,
+    setMuted,
+    timeoutMessage,
+    setTimeoutMessage,
+    isCustomerAnswered,
+    setHasParticipants,
   ];
 };
 

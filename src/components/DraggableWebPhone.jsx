@@ -61,7 +61,11 @@ export default function DraggableWebPhone() {
     closeTimeoutModal,
     userLogin,
     hasParticipants,
+    muted,
+    setMuted,
     isMobile,
+    isCustomerAnswered,
+    setHasParticipants,
   } = useContext(JssipContext);
 
   const [audioSrc, setAudioSrc] = useState('');
@@ -134,6 +138,7 @@ export default function DraggableWebPhone() {
   useEffect(() => {
     if (status === 'start') {
       stopRecording();
+      setMuted(false);
     }
   }, [status]);
 
@@ -195,6 +200,11 @@ export default function DraggableWebPhone() {
             status={status}
             conferenceCalls={conferenceCalls}
             hasParticipants={hasParticipants}
+            muted={muted}
+            setMuted={setMuted}
+            isCustomerAnswered={isCustomerAnswered}
+            setConferenceNumber={setConferenceNumber}
+            setHasParticipants={setHasParticipants}
           />
         ))}
 

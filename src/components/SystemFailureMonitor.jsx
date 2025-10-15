@@ -83,7 +83,7 @@ const SystemFailureMonitors = () => {
   const [refreshInterval, setRefreshInterval] = useState(2000);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { showTimeoutModal, setShowTimeoutModal, handleLoginSuccess, closeTimeoutModal, userLogin } =
+  const { showTimeoutModal, setShowTimeoutModal, handleLoginSuccess, closeTimeoutModal, userLogin, timeoutMessage } =
     useContext(JssipContext);
   const [frozenData, setFrozenData] = useState(null);
 
@@ -840,6 +840,7 @@ const SystemFailureMonitors = () => {
         onClose={closeTimeoutModal}
         onLoginSuccess={handleLoginSuccess}
         userLogin={userLogin}
+        customMessage={timeoutMessage}
       />
       <div className="space-y-6">
         <div className="flex items-center justify-between">

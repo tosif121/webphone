@@ -143,8 +143,8 @@ export default function AgentDashboard() {
     hasTransfer,
     currentCallData,
     hasParticipants,
+    timeoutMessage,
   } = useContext(JssipContext);
-
 
   useEffect(() => {
     let isMounted = true;
@@ -237,6 +237,7 @@ export default function AgentDashboard() {
         onClose={closeTimeoutModal}
         onLoginSuccess={handleLoginSuccess}
         userLogin={userLogin}
+        customMessage={timeoutMessage}
       />
 
       <div className="space-y-8">

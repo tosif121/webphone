@@ -71,6 +71,12 @@ export function JssipProvider({ children }) {
     hasTransfer,
     currentCallData,
     hasParticipants,
+    muted,
+    setMuted,
+    timeoutMessage,
+    setTimeoutMessage,
+    isCustomerAnswered,
+    setHasParticipants
   ] = useJssip(isMobile);
 
   return (
@@ -129,6 +135,12 @@ export function JssipProvider({ children }) {
         hasTransfer,
         currentCallData,
         hasParticipants,
+        muted,
+        setMuted,
+        timeoutMessage,
+        setTimeoutMessage,
+        isCustomerAnswered,
+        setHasParticipants, 
         isMobile,
       }}
     >

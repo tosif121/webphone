@@ -205,8 +205,6 @@ export default function DynamicForm({
       return true;
     }
 
-    // USE CURRENT FORM DATA DIRECTLY, NOT getFinalFormData()
-
     const invalidFields = [];
     const requiredFields = currentSection.fields.filter((f) => f.required === true);
 
@@ -544,14 +542,6 @@ export default function DynamicForm({
 
     localStorage.setItem('formNavigationState', JSON.stringify(stateToSave));
   }, [currentSectionIndex, navigationPath, visitedSections, isFormComplete, userModifiedFields]);
-
-  useEffect(() => {
-    const finalData = getFinalFormData();
-    console.log('Current form data:', currentFormData);
-    console.log('Final form data (what will be submitted):', finalData);
-    console.log('User modified fields:', Array.from(userModifiedFields));
-    console.log('Navigation path:', navigationPath);
-  }, [currentFormData, userModifiedFields, navigationPath, initialValues]);
 
   const getFieldValue = (fieldName) => {
     if (currentFormData.hasOwnProperty(fieldName)) {

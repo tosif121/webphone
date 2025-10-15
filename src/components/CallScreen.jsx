@@ -44,11 +44,14 @@ const CallScreen = ({
   conferenceCalls,
   hasParticipants,
   status,
+  muted,
+  setMuted,
+  isCustomerAnswered,
+  setHasParticipants,
 }) => {
   const [currNum, setCurrNum] = useState('');
   const [isHovered, setIsHovered] = useState(false);
   const [showKeyPad, setShowKeyPad] = useState(false);
-  const [muted, setMuted] = useState(false);
   const [isMerged, setIsMerged] = useState(false);
 
   // Conference timer for unmerged calls
@@ -120,7 +123,6 @@ const CallScreen = ({
 
   // FIXED: Enhanced hold toggle with proper async handling
   const handleToggleHoldDebounced = useCallback(async () => {
-
     if (!toggleHold) {
       console.warn('toggleHold function not provided');
       return;
@@ -212,8 +214,10 @@ const CallScreen = ({
 
       if (response.data.success) {
         toast.success(response.data.message || 'Conference disconnected successfully');
+        setHasParticipants('Conference disconnected');
       } else {
         if (response.data.message === 'Host channel not found in conference') {
+          setHasParticipants('Conference disconnected');
         } else {
           toast.error('Failed to disconnect conference');
         }
@@ -239,7 +243,6 @@ const CallScreen = ({
       setConfMinutes(0);
     }
   };
-
 
   const maybeMask = (num) => (numberMasking ? maskPhoneNumber?.(num) : num);
 
@@ -272,7 +275,6 @@ const CallScreen = ({
           return;
         }
 
-
         // FIXED: Mark as processing immediately
         processingRef.current.add(buttonId);
         forceUpdate({}); // Force re-render to show loading state
@@ -285,7 +287,6 @@ const CallScreen = ({
           if (result instanceof Promise) {
             await result;
           }
-
         } catch (error) {
           toast.error(`${title} failed. Please try again.`);
         } finally {
@@ -397,7 +398,7 @@ const CallScreen = ({
               {conferenceStatus ? (
                 <ControlButton
                   buttonId="merge-button"
-                  disabled={!session || !hasParticipants}
+                  disabled={hasParticipants !== 'connected'}
                   onClick={handleMerge}
                   icon={<Merge size={16} />}
                   title="Merge"
@@ -412,9 +413,9 @@ const CallScreen = ({
                   icon={<UserPlus size={16} />}
                   title="Add Call"
                   debounceTime={500}
+                  disabled={!isCustomerAnswered || isMerged}
                 />
               )}
-
               <ControlButton
                 buttonId="record-button"
                 onClick={!isRecording ? startRecording : stopRecording}
@@ -475,6 +476,7 @@ const CallScreen = ({
             <Phone size={18} />
           </button>
         </div>
+
 
         {/* Audio Device Selector */}
         <div>
