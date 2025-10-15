@@ -76,6 +76,8 @@ const CallScreen = ({
 
     if (hasParticipants === 'connected' && conferenceStatus && !isMerged) {
       setConfRunning(true);
+      session?.unmute();
+      setMuted(false);
 
       interval = setInterval(() => {
         setConfSeconds((prev) => {
@@ -181,13 +183,6 @@ const CallScreen = ({
 
     setMuted(newMutedState);
   }, [muted, session]);
-
-  useEffect(() => {
-    if (conferenceNumber) {
-      session?.unmute();
-      setMuted(false);
-    }
-  }, [conferenceNumber, session]);
 
   const handleConferenceHangup = async () => {
     try {
