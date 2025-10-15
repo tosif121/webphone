@@ -76,7 +76,7 @@ export function JssipProvider({ children }) {
     timeoutMessage,
     setTimeoutMessage,
     isCustomerAnswered,
-    setHasParticipants
+    setHasParticipants,
   ] = useJssip(isMobile);
 
   return (
@@ -140,7 +140,7 @@ export function JssipProvider({ children }) {
         timeoutMessage,
         setTimeoutMessage,
         isCustomerAnswered,
-        setHasParticipants, 
+        setHasParticipants,
         isMobile,
       }}
     >

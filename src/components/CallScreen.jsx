@@ -48,16 +48,18 @@ const CallScreen = ({
   setMuted,
   isCustomerAnswered,
   setHasParticipants,
+  confRunning,
+  confMinutes,
+  confSeconds,
+  isMerged,
+  setIsMerged,
+  setConfRunning,
+  setConfSeconds,
+  setConfMinutes,
 }) => {
   const [currNum, setCurrNum] = useState('');
   const [isHovered, setIsHovered] = useState(false);
   const [showKeyPad, setShowKeyPad] = useState(false);
-  const [isMerged, setIsMerged] = useState(false);
-
-  // Conference timer for unmerged calls
-  const [confSeconds, setConfSeconds] = useState(0);
-  const [confMinutes, setConfMinutes] = useState(0);
-  const [confRunning, setConfRunning] = useState(false);
 
   // FIXED: Use ref to track processing state to avoid stale closures
   const processingRef = useRef(new Set());
@@ -72,7 +74,7 @@ const CallScreen = ({
   useEffect(() => {
     let interval;
 
-    if (hasParticipants && conferenceStatus && !isMerged) {
+    if (hasParticipants === 'connected' && conferenceStatus && !isMerged) {
       setConfRunning(true);
 
       interval = setInterval(() => {
@@ -416,6 +418,7 @@ const CallScreen = ({
                   disabled={!isCustomerAnswered || isMerged}
                 />
               )}
+              {console.log(isCustomerAnswered, 'isCustomerAnswered')}
               <ControlButton
                 buttonId="record-button"
                 onClick={!isRecording ? startRecording : stopRecording}
@@ -476,7 +479,6 @@ const CallScreen = ({
             <Phone size={18} />
           </button>
         </div>
-
 
         {/* Audio Device Selector */}
         <div>

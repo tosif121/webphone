@@ -72,6 +72,12 @@ export default function DraggableWebPhone() {
   const [phoneShow, setPhoneShow] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [seeLogs, setSeeLogs] = useState(false);
+  const [isMerged, setIsMerged] = useState(false);
+
+  // Conference timer for unmerged calls
+  const [confSeconds, setConfSeconds] = useState(0);
+  const [confMinutes, setConfMinutes] = useState(0);
+  const [confRunning, setConfRunning] = useState(false);
 
   const [localIsMobile, setLocalIsMobile] = useState(false);
   const effectiveIsMobile = isMobile ?? localIsMobile;
@@ -205,6 +211,14 @@ export default function DraggableWebPhone() {
             isCustomerAnswered={isCustomerAnswered}
             setConferenceNumber={setConferenceNumber}
             setHasParticipants={setHasParticipants}
+            confRunning={confRunning}
+            confMinutes={confMinutes}
+            confSeconds={confSeconds}
+            isMerged={isMerged}
+            setIsMerged={setIsMerged}
+            setConfRunning={setConfRunning}
+            setConfSeconds={setConfSeconds}
+            setConfMinutes={setConfMinutes}
           />
         ))}
 

@@ -678,19 +678,18 @@ const useJssip = (isMobile = false) => {
           const message = e.request.body;
           console.log('Message event:', message);
 
-          // ✅ Check for conference messages
+          // ✅ Check for conference messages (connected/disconnected)
           if (/customer host channel (connected|di[s]?connected)/i.test(message)) {
             handleConferenceMessage(message);
           }
-          // ✅ NEW: Check if customer channel answered
-          else if (message.includes('customer channel answered')) {
-            // Set customer answered state
+          // ✅ Check if customer/agent channel answered (both enable Add Call button)
+          else if (message.includes('customer channel answered') || message.includes('agent channel answered')) {
+            console.log('✅ Call answered - enabling Add Call button');
             setIsCustomerAnswered(true);
 
-            // Store in message difference for tracking
             const objectToPush = {
               messageTime: Date.now(),
-              messageType: 'customer_answered',
+              messageType: message.includes('customer') ? 'customer_answered' : 'agent_answered',
               message: message,
             };
 
@@ -1012,7 +1011,6 @@ const useJssip = (isMobile = false) => {
         }
       );
 
-
       // ✅ 7. Check response for errors even if status is 200
       if (response.data && !response.data.success) {
         const errorMessage = response.data.message || response.data.cause;
@@ -1060,7 +1058,6 @@ const useJssip = (isMobile = false) => {
       if (error.response?.data) {
         const errorData = error.response.data;
         const errorMessage = errorData.message || errorData.cause;
-
 
         // ✅ 10a. Agent not ready error from error response
         if (errorMessage?.includes('Agent is not in a ready state') || errorMessage?.includes('Please Login again')) {
