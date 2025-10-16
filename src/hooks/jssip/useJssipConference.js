@@ -107,7 +107,7 @@ export const useJssipConference = (state, utils) => {
         setCallConference(false);
         setConferenceNumber('');
         setHasParticipants(null);
-        setIsCustomerAnswered(false);
+        setIsCustomerAnswered(true);
         logMergeEvent('conference_failed', {
           error: data.message,
           reason: 'unexpected_response',
