@@ -60,7 +60,7 @@ export default function LeadAndCallInfoPanel({
             throw new Error('No saved credentials found');
           }
 
-          const refreshRes = await axios.post('${window.location.origin}/api/applogin', {
+          const refreshRes = await axios.post('https://esamwad.iotcom.io/api/applogin', {
             username: savedUsername,
             password: savedPassword,
           });
@@ -122,7 +122,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`,
+          `https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`,
           token,
           refreshToken
         );
@@ -199,7 +199,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `${window.location.origin}/getDynamicFormData/${formId}`,
+          `https://esamwad.iotcom.io/getDynamicFormData/${formId}`,
           token,
           refreshToken
         );
@@ -225,7 +225,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/leadswithdaterange`,
+        `https://esamwad.iotcom.io/leadswithdaterange`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -258,7 +258,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/callDataByAgent`,
+        `https://esamwad.iotcom.io/callDataByAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -407,7 +407,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -472,7 +472,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
