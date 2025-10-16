@@ -26,6 +26,8 @@ export const useJssipConference = (state, utils) => {
     messageDifference,
     setMessageDifference,
     setIsCustomerAnswered,
+    isMerged,
+    setIsMerged,
   } = state;
 
   const logMergeEvent = (eventType, details = {}) => {
@@ -245,6 +247,7 @@ export const useJssipConference = (state, utils) => {
       setConferenceStatus(false);
       setHasParticipants('disconnected');
       setIsCustomerAnswered(true);
+      setIsMerged(false);
 
       logMergeEvent('participant_disconnected', {
         message,
@@ -287,6 +290,7 @@ export const useJssipConference = (state, utils) => {
       setConferenceStatus(false);
       setHasParticipants(null);
       setIsCustomerAnswered(true);
+      setIsMerged(false);
       reqUnHold('auto_unhold_on_disconnect');
     }
   }, [hasParticipants]);

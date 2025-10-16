@@ -41,6 +41,7 @@ export const useJssipState = () => {
   const [timeoutArray, setTimeoutArray] = useState([]);
   const [origin, setOrigin] = useState('esamwad.iotcom.io');
   const [timeoutMessage, setTimeoutMessage] = useState('');
+  const [isMerged, setIsMerged] = useState(false);
 
   /* ---------------------------- call tracking ------------------------------ */
   const [isCallended, setIsCallended] = useState(false);
@@ -219,7 +220,8 @@ export const useJssipState = () => {
     timeoutMessage,
     setTimeoutMessage,
     isCustomerAnswered,
-    setIsCustomerAnswered
-    
+    setIsCustomerAnswered,
+    isMerged,
+    setIsMerged,
   };
 };

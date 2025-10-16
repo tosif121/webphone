@@ -66,13 +66,14 @@ export default function DraggableWebPhone() {
     isMobile,
     isCustomerAnswered,
     setHasParticipants,
+    isMerged,
+    setIsMerged,
   } = useContext(JssipContext);
 
   const [audioSrc, setAudioSrc] = useState('');
   const [phoneShow, setPhoneShow] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [seeLogs, setSeeLogs] = useState(false);
-  const [isMerged, setIsMerged] = useState(false);
 
   // Conference timer for unmerged calls
   const [confSeconds, setConfSeconds] = useState(0);

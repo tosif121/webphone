@@ -125,6 +125,8 @@ const useJssip = (isMobile = false) => {
     setTimeoutMessage,
     isCustomerAnswered,
     setIsCustomerAnswered,
+    isMerged,
+    setIsMerged,
   } = state;
 
   const {
@@ -688,7 +690,6 @@ const useJssip = (isMobile = false) => {
           }
           // ✅ Check if customer/agent channel answered (both enable Add Call button)
           else if (message.includes('customer channel answered') || message.includes('agent channel answered')) {
-            console.log('✅ Call answered - enabling Add Call button');
             setIsCustomerAnswered(true);
 
             const objectToPush = {
@@ -1195,6 +1196,8 @@ const useJssip = (isMobile = false) => {
     setTimeoutMessage,
     isCustomerAnswered,
     setHasParticipants,
+        isMerged,
+    setIsMerged,
   ];
 };
 

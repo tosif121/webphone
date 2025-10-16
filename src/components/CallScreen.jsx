@@ -381,6 +381,7 @@ const CallScreen = ({
                 className={!isMerged ? 'opacity-40' : ''}
                 debounceTime={500}
               />
+
               <ControlButton
                 buttonId="keypad-button"
                 onClick={() => setShowKeyPad(true)}
