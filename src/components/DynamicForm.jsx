@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   User,
   Mail,
@@ -132,6 +132,32 @@ export default function DynamicForm({
   const sortedSections = formConfig?.sections ? [...formConfig.sections].sort((a, b) => a.id - b.id) : [];
   const currentSection = sortedSections[currentSectionIndex];
 
+  // ✅ NEW: Get filtered options for cascading dropdowns
+  const getFilteredOptions = useCallback(
+    (field) => {
+      // If no parentField → top-level field, show all options
+      if (!field.parentField) {
+        return field.options || [];
+      }
+
+      // Get parent field's current value
+      const parentValue = currentFormData[field.parentField];
+
+      // If parent is empty → no options
+      if (!parentValue) {
+        return [];
+      }
+
+      // ✅ CRITICAL FIX: Filter with TRIMMED exact string match
+      const filtered = (field.options || []).filter((opt) => {
+        return opt.parentValue?.trim() === parentValue?.trim();
+      });
+
+      return filtered;
+    },
+    [currentFormData]
+  );
+
   const getFinalFormData = () => {
     const finalData = { ...initialValues };
 
@@ -184,6 +210,14 @@ export default function DynamicForm({
   const handleChange = (fieldName, value) => {
     setCurrentFormData((prev) => {
       const newData = { ...prev, [fieldName]: value };
+
+      // ✅ NEW: Clear dependent fields when parent changes
+      currentSection?.fields.forEach((field) => {
+        if (field.parentField === fieldName && newData[field.name]) {
+          newData[field.name] = '';
+        }
+      });
+
       return newData;
     });
 
@@ -199,7 +233,6 @@ export default function DynamicForm({
     handleChange(name, value);
   };
 
-  // FIXED VALIDATION - Check actual currentFormData, not getFinalFormData
   const isSectionValid = () => {
     if (!currentSection) {
       return true;
@@ -208,19 +241,14 @@ export default function DynamicForm({
     const invalidFields = [];
     const requiredFields = currentSection.fields.filter((f) => f.required === true);
 
-    // Check only fields with required: true
     for (const field of currentSection.fields) {
       if (field.required === true) {
-        // Check currentFormData directly, not finalData
         const value = currentFormData[field.name];
-
-        // Also check if this field exists in initialValues
         const hasInitialValue = initialValues.hasOwnProperty(field.name);
         const initialValue = initialValues[field.name];
 
         let isValid = false;
 
-        // Validate based on field type
         if (Array.isArray(value)) {
           isValid = value.length > 0;
         } else if (typeof value === 'number') {
@@ -230,7 +258,6 @@ export default function DynamicForm({
         } else if (typeof value === 'string') {
           isValid = value.trim() !== '';
         } else {
-          // If value is undefined/null, check if there's an initial value we can use
           if (hasInitialValue && initialValue !== undefined && initialValue !== null && initialValue !== '') {
             if (typeof initialValue === 'string') {
               isValid = initialValue.trim() !== '';
@@ -244,11 +271,7 @@ export default function DynamicForm({
 
         if (!isValid) {
           invalidFields.push(field.question || field.label || field.name);
-        } else {
-          console.log('VALID FIELD:', field.name);
         }
-      } else {
-        console.log('Field not required, skipping');
       }
     }
 
@@ -626,6 +649,9 @@ export default function DynamicForm({
 
               if (field.type === 'select') {
                 const fieldValue = getFieldValue(field.name);
+                // ✅ NEW: Get filtered options for cascading
+                const selectOptions = getFilteredOptions(field);
+                const isDisabled = field.parentField && !currentFormData[field.parentField];
 
                 return (
                   <div className="relative" key={fieldId}>
@@ -636,6 +662,9 @@ export default function DynamicForm({
                       }`}
                     >
                       {fieldLabel}
+                      {field.parentField && (
+                        <span className="text-xs text-gray-500 ml-2">(depends on {field.parentField})</span>
+                      )}
                     </Label>
                     <div className="relative">
                       {getFieldIcon(field)}
@@ -644,12 +673,21 @@ export default function DynamicForm({
                         onValueChange={(value) => {
                           handleSelectChange(field.name, value);
                         }}
+                        disabled={isDisabled}
                       >
                         <SelectTrigger className="pl-10" id={fieldId}>
-                          <SelectValue placeholder="Select an option" />
+                          <SelectValue
+                            placeholder={
+                              isDisabled
+                                ? `Select ${field.parentField} first`
+                                : selectOptions.length === 0
+                                ? 'No options available'
+                                : 'Select an option'
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent>
-                          {field.options?.map((option, i) => (
+                          {selectOptions.map((option, i) => (
                             <SelectItem key={i} value={option.value}>
                               {option.label}
                             </SelectItem>

@@ -1196,7 +1196,7 @@ const useJssip = (isMobile = false) => {
     setTimeoutMessage,
     isCustomerAnswered,
     setHasParticipants,
-        isMerged,
+    isMerged,
     setIsMerged,
   ];
 };
