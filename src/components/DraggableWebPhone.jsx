@@ -239,7 +239,7 @@ export default function DraggableWebPhone() {
 
   return (
     <>
-      <div className="fixed bottom-2 right-4 sm:right-6 z-[51]">
+      <div className="fixed bottom-18 sm:bottom-2 right-4 sm:right-6 z-[51]">
         <Button
           type="button"
           size="sm"
@@ -255,7 +255,7 @@ export default function DraggableWebPhone() {
         <>
           {effectiveIsMobile ? (
             <div className="fixed inset-0 z-[50] bg-black/50 backdrop-blur-sm flex items-center justify-center p-3">
-              <div className="relative w-full max-w-sm h-[430px] bg-card rounded-xl border border-border shadow-xl overflow-hidden">
+              <div className="relative w-[250px] h-[430px] bg-card rounded-xl border border-border shadow-xl overflow-hidden">
                 {renderPhoneContent()}
               </div>
             </div>

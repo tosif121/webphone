@@ -958,8 +958,8 @@ export default function LeadAndCallInfoPanel({
     return (
       <AlertDialog open={true}>
         <AlertDialogContent className="p-0 m-0 !max-w-6xl overflow-auto">
-          <Card className="w-full h-full border-0 shadow-none">
-            <CardHeader className="pb-3">
+          <Card className="w-full h-full border-0 shadow-none !gap-2">
+            <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span className="text-lg font-semibold">Active Call Information</span>
               </CardTitle>
@@ -973,7 +973,7 @@ export default function LeadAndCallInfoPanel({
               ) : (
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
-                    <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:grid-cols-4 flex-grow">
+                    <TabsList className="grid w-full sm:w-auto grid-cols-4 flex-grow">
                       <TabsTrigger value="contact" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
                         <UserCog size={16} /> <span className="hidden sm:inline">Contact</span>
                       </TabsTrigger>
@@ -987,7 +987,7 @@ export default function LeadAndCallInfoPanel({
                         <History size={16} /> <span className="hidden sm:inline">History</span>
                       </TabsTrigger>
                     </TabsList>
-                    <div className="w-full sm:w-auto flex justify-end">
+                    <div className="w-auto flex justify-end">
                       <DateRangePicker
                         key={`panel-date-picker-${moment(startDate).format('YYYY-MM-DD')}-${moment(endDate).format(
                           'YYYY-MM-DD'
@@ -1025,8 +1025,8 @@ export default function LeadAndCallInfoPanel({
 
   // Normal panel view
   return (
-    <Card className="w-full h-max">
-      <CardHeader className="pb-3">
+    <Card className="w-full h-max !gap-2">
+      <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span className="text-lg font-semibold">Active Call Information</span>
         </CardTitle>
@@ -1040,7 +1040,7 @@ export default function LeadAndCallInfoPanel({
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
-              <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:grid-cols-4 flex-grow">
+                    <TabsList className="grid w-full sm:w-auto grid-cols-4 flex-grow">
                 <TabsTrigger value="contact" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
                   <UserCog size={16} /> <span className="hidden sm:inline">Contact</span>
                 </TabsTrigger>
@@ -1054,7 +1054,7 @@ export default function LeadAndCallInfoPanel({
                   <History size={16} /> <span className="hidden sm:inline">History</span>
                 </TabsTrigger>
               </TabsList>
-              <div className="w-full sm:w-auto flex justify-end">
+              <div className="sm:w-auto flex justify-end">
                 <DateRangePicker
                   key={`panel-date-picker-${moment(startDate).format('YYYY-MM-DD')}-${moment(endDate).format(
                     'YYYY-MM-DD'

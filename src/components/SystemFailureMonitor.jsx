@@ -843,7 +843,7 @@ const SystemFailureMonitors = () => {
         customMessage={timeoutMessage}
       />
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-primary mb-2">Network Monitoring Dashboard</h1>
             <p className="text-sm text-muted-foreground">Real-time JsSIP network monitoring with system analysis</p>

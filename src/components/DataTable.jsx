@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronUp, ChevronDown, ChevronsUpDown, PanelRight } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown, ChevronsUpDown, PanelRight, ChevronRight, ChevronLeft } from 'lucide-react';
 
 const DataTable = ({
   expandRow,
@@ -201,9 +201,21 @@ const DataTable = ({
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
+            className="flex sm:hidden"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+            className="hidden sm:flex"
           >
             Previous
           </Button>
+
           <div className="flex items-center gap-2">
             {Array.from({ length: Math.min(table.getPageCount(), 5) }, (_, i) => {
               const pageIndex = pagination.pageIndex;
@@ -227,7 +239,23 @@ const DataTable = ({
               );
             })}
           </div>
-          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+            className="flex sm:hidden"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+            className="hidden sm:flex"
+          >
             Next
           </Button>
         </div>

@@ -73,7 +73,7 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
 
   function userCallForm() {
     return (
-      <form className="space-y-6" onSubmit={onSubmit}>
+      <form className="space-y-6 max-h-[32rem] overflow-y-auto" onSubmit={onSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* First Name */}
           <div className="relative">

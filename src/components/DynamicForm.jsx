@@ -590,7 +590,7 @@ export default function DynamicForm({
       className={`${
         !userCallDialog
           ? 'backdrop-blur-sm bg-card/80 rounded-lg max-w-2xl mx-auto'
-          : 'bg-transparent border-0 shadow-none p-0'
+          : 'bg-transparent border-0 shadow-none p-0 !gap-2 max-h-[32rem] overflow-y-auto'
       }`}
     >
       <CardHeader className="pb-2">
