@@ -1,6 +1,7 @@
-import { useState, useEffect, useContext, useRef, useCallback } from 'react';
-import { Phone, PhoneCall, PhoneOff } from 'lucide-react';
+import { useState, useEffect, useContext } from 'react';
+import { Phone, PhoneCall, PhoneOff, MoveHorizontal, Lock, Unlock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Rnd } from 'react-rnd';
 import HistoryScreen from './HistoryScreen';
 import Home from './Home';
 import CallScreen from './CallScreen';
@@ -74,6 +75,16 @@ export default function DraggableWebPhone() {
   const [phoneShow, setPhoneShow] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [seeLogs, setSeeLogs] = useState(false);
+  const [phonePosition, setPhonePosition] = useState('right');
+  const [isDraggable, setIsDraggable] = useState(false);
+
+  // RND state with size - UPDATED DEFAULT HERE
+  const [rndState, setRndState] = useState({
+    x: 1430,
+    y: -497,
+    width: 250,
+    height: 430,
+  });
 
   // Conference timer for unmerged calls
   const [confSeconds, setConfSeconds] = useState(0);
@@ -103,27 +114,45 @@ export default function DraggableWebPhone() {
     };
   }, [effectiveIsMobile, phoneShow]);
 
+  // Load settings from localStorage
   useEffect(() => {
     setIsHydrated(true);
     try {
-      const saved = localStorage.getItem('phoneShow');
-      if (saved) {
-        setPhoneShow(JSON.parse(saved));
+      const savedShow = localStorage.getItem('phoneShow');
+      const savedPosition = localStorage.getItem('phonePosition');
+      const savedDraggable = localStorage.getItem('phoneDraggable');
+      const savedRndState = localStorage.getItem('phoneRndState');
+
+      if (savedShow) {
+        setPhoneShow(JSON.parse(savedShow));
+      }
+      if (savedPosition && (savedPosition === 'left' || savedPosition === 'right')) {
+        setPhonePosition(savedPosition);
+      }
+      if (savedDraggable) {
+        setIsDraggable(JSON.parse(savedDraggable));
+      }
+      if (savedRndState) {
+        setRndState(JSON.parse(savedRndState));
       }
     } catch (error) {
-      console.warn('Failed to load phoneShow from localStorage:', error);
+      console.warn('Failed to load phone settings from localStorage:', error);
     }
   }, []);
 
+  // Save settings to localStorage
   useEffect(() => {
     if (isHydrated) {
       try {
         localStorage.setItem('phoneShow', JSON.stringify(phoneShow));
+        localStorage.setItem('phonePosition', phonePosition);
+        localStorage.setItem('phoneDraggable', JSON.stringify(isDraggable));
+        localStorage.setItem('phoneRndState', JSON.stringify(rndState));
       } catch (error) {
-        console.warn('Failed to save phoneShow to localStorage:', error);
+        console.warn('Failed to save phone settings to localStorage:', error);
       }
     }
-  }, [phoneShow, isHydrated]);
+  }, [phoneShow, phonePosition, isDraggable, rndState, isHydrated]);
 
   useEffect(() => {
     if (isIncomingRinging) {
@@ -149,11 +178,53 @@ export default function DraggableWebPhone() {
     }
   }, [status]);
 
+  // Toggle position between left and right
+  const togglePosition = () => {
+    const newPosition = phonePosition === 'right' ? 'left' : 'right';
+    setPhonePosition(newPosition);
+
+    // Update position when switching sides
+    if (!isDraggable && typeof window !== 'undefined') {
+      const windowWidth = window.innerWidth;
+      const x = newPosition === 'right' ? windowWidth - 250 - 32 : 32;
+
+      setRndState((prev) => ({
+        ...prev,
+        x,
+        y: window.innerHeight - 430 - 64,
+      }));
+    }
+  };
+
+  // Toggle draggable mode
+  const toggleDraggable = () => {
+    const newDraggable = !isDraggable;
+    setIsDraggable(newDraggable);
+
+    if (!newDraggable && typeof window !== 'undefined') {
+      // Reset to default position based on phonePosition when locking
+      const windowWidth = window.innerWidth;
+      const x = phonePosition === 'right' ? windowWidth - 250 - 32 : 32;
+
+      setRndState({
+        x,
+        y: window.innerHeight - 430 - 64,
+        width: 250,
+        height: 430,
+      });
+    }
+  };
+
   const renderPhoneContent = () => (
-    <div className={effectiveIsMobile ? 'w-full h-full' : 'webphone-drag-handle w-full h-full'}>
+    <div className="w-full h-full">
       {effectiveIsMobile && isIncomingRinging && (
         <IncomingCall
-          {...{ incomingNumber, incomingSession, isIncomingRinging, answerIncomingCall, rejectIncomingCall, session }}
+          incomingNumber={incomingNumber}
+          incomingSession={incomingSession}
+          isIncomingRinging={isIncomingRinging}
+          answerIncomingCall={answerIncomingCall}
+          rejectIncomingCall={rejectIncomingCall}
+          session={session}
         />
       )}
 
@@ -237,9 +308,66 @@ export default function DraggableWebPhone() {
     </div>
   );
 
+  // Dynamic position classes for buttons
+  const positionClasses = phonePosition === 'right' ? 'right-4 sm:right-6' : 'left-4 sm:left-6';
+
+  // Calculate default position based on phonePosition
+  const getDefaultPosition = () => {
+    if (typeof window === 'undefined') {
+      return { x: 0, y: 0, width: 250, height: 430 };
+    }
+
+    if (isDraggable && rndState.x !== 0) {
+      return rndState;
+    }
+
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    const x = phonePosition === 'right' ? windowWidth - 250 - 32 : 32;
+
+    return {
+      x,
+      y: windowHeight - 430 - 64,
+      width: 250,
+      height: 430,
+    };
+  };
+
   return (
     <>
-      <div className="fixed bottom-18 sm:bottom-2 right-4 sm:right-6 z-[51]">
+      {/* Floating buttons container */}
+      <div className={`fixed bottom-18 sm:bottom-2 ${positionClasses} z-[51] flex flex-col gap-2`}>
+        {/* Drag toggle button - only show on desktop when phone is visible */}
+        {!effectiveIsMobile && phoneShow && (
+          <Button
+            type="button"
+            size="sm"
+            variant={isDraggable ? 'default' : 'outline'}
+            className="rounded-full w-12 h-12 hover:scale-105 transition-transform"
+            onClick={toggleDraggable}
+            aria-label={isDraggable ? 'Lock position' : 'Enable dragging'}
+            title={isDraggable ? 'Lock position' : 'Enable dragging'}
+          >
+            {isDraggable ? <Unlock className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+          </Button>
+        )}
+
+        {/* Position toggle button - only show when NOT draggable */}
+        {!effectiveIsMobile && phoneShow && !isDraggable && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="rounded-full w-12 h-12 hover:scale-105 transition-transform"
+            onClick={togglePosition}
+            aria-label={`Move phone to ${phonePosition === 'right' ? 'left' : 'right'}`}
+            title={`Move to ${phonePosition === 'right' ? 'left' : 'right'}`}
+          >
+            <MoveHorizontal className="h-5 w-5" />
+          </Button>
+        )}
+
+        {/* Show/Hide phone button */}
         <Button
           type="button"
           size="sm"
@@ -251,7 +379,7 @@ export default function DraggableWebPhone() {
         </Button>
       </div>
 
-      {(!dispositionModal && phoneShow && (
+      {!dispositionModal && phoneShow && (
         <>
           {effectiveIsMobile ? (
             <div className="fixed inset-0 z-[50] bg-black/50 backdrop-blur-sm flex items-center justify-center p-3">
@@ -259,14 +387,58 @@ export default function DraggableWebPhone() {
                 {renderPhoneContent()}
               </div>
             </div>
+          ) : isDraggable ? (
+            <Rnd
+              position={{ x: rndState.x, y: rndState.y }}
+              size={{ width: rndState.width, height: rndState.height }}
+              minWidth={250}
+              minHeight={430}
+              maxWidth={400}
+              maxHeight={600}
+              bounds="window"
+              enableResizing={{
+                top: true,
+                right: true,
+                bottom: true,
+                left: true,
+                topRight: true,
+                bottomRight: true,
+                bottomLeft: true,
+                topLeft: true,
+              }}
+              disableDragging={false}
+              onDragStop={(e, d) => {
+                setRndState((prev) => ({
+                  ...prev,
+                  x: d.x,
+                  y: d.y,
+                }));
+              }}
+              onResizeStop={(e, direction, ref, delta, position) => {
+                setRndState({
+                  x: position.x,
+                  y: position.y,
+                  width: parseInt(ref.style.width),
+                  height: parseInt(ref.style.height),
+                });
+              }}
+              style={{ zIndex: 50 }}
+            >
+              <div className="w-full h-full backdrop-blur-md bg-card/80 rounded-xl border-2 border-primary shadow-xl overflow-hidden">
+                {renderPhoneContent()}
+              </div>
+            </Rnd>
           ) : (
-            <div className="backdrop-blur-md bottom-16 end-8 fixed w-[250px] h-[430px] z-0 md:z-[50] bg-card/80 rounded-xl border border-border shadow-xl transition-all overflow-hidden">
+            <div
+              className={`backdrop-blur-md bottom-16 ${
+                phonePosition === 'right' ? 'end-8' : 'start-8'
+              } fixed w-[250px] h-[430px] z-0 md:z-[50] bg-card/80 rounded-xl border border-border shadow-xl transition-all duration-300 overflow-hidden`}
+            >
               {renderPhoneContent()}
             </div>
           )}
         </>
-      )) ||
-        ''}
+      )}
 
       <audio ref={audioRef} autoPlay hidden />
     </>

@@ -80,7 +80,7 @@ export const useJssipUtils = (state) => {
 
   const checkUserReady = async () => {
     try {
-      const url = `${window.location.origin}/userready/${username}`;
+      const url = `https://esamwad.iotcom.io/userready/${username}`;
       const response = await axios.post(url, {}, { headers: { 'Content-Type': 'application/json' } });
       return response.data;
     } catch (error) {
@@ -91,7 +91,7 @@ export const useJssipUtils = (state) => {
 
   const removeBreak = async () => {
     try {
-      await axios.post(`${window.location.origin}/user/removebreakuser:${username}`);
+      await axios.post(`https://esamwad.iotcom.io/user/removebreakuser:${username}`);
       setSelectedBreak('Break');
       localStorage.removeItem('selectedBreak');
       Object.keys(localStorage).forEach((key) => {
