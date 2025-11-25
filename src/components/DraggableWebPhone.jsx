@@ -78,15 +78,13 @@ export default function DraggableWebPhone() {
   const [phonePosition, setPhonePosition] = useState('right');
   const [isDraggable, setIsDraggable] = useState(false);
 
-  // RND state with size - UPDATED DEFAULT HERE
   const [rndState, setRndState] = useState({
-    x: 1430,
-    y: -497,
+    x: 0,
+    y: 0,
     width: 250,
     height: 430,
   });
 
-  // Conference timer for unmerged calls
   const [confSeconds, setConfSeconds] = useState(0);
   const [confMinutes, setConfMinutes] = useState(0);
   const [confRunning, setConfRunning] = useState(false);
@@ -94,6 +92,7 @@ export default function DraggableWebPhone() {
   const [localIsMobile, setLocalIsMobile] = useState(false);
   const effectiveIsMobile = isMobile ?? localIsMobile;
 
+  // Detect mobile screen size
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 640px)');
     setLocalIsMobile(mediaQuery.matches);
@@ -103,6 +102,7 @@ export default function DraggableWebPhone() {
     return () => mediaQuery.removeEventListener('change', handleResize);
   }, []);
 
+  // Handle body scroll on mobile
   useEffect(() => {
     if (effectiveIsMobile && phoneShow) {
       document.body.style.overflow = 'hidden';
@@ -113,6 +113,22 @@ export default function DraggableWebPhone() {
       document.body.style.overflow = 'unset';
     };
   }, [effectiveIsMobile, phoneShow]);
+
+  // Initialize default position after hydration
+  useEffect(() => {
+    if (typeof window !== 'undefined' && rndState.x === 0 && rndState.y === 0 && isHydrated) {
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      const x = phonePosition === 'right' ? windowWidth - 250 - 32 : 32;
+
+      setRndState({
+        x,
+        y: windowHeight - 430 - 64,
+        width: 250,
+        height: 430,
+      });
+    }
+  }, [isHydrated, phonePosition]);
 
   // Load settings from localStorage
   useEffect(() => {
@@ -133,7 +149,8 @@ export default function DraggableWebPhone() {
         setIsDraggable(JSON.parse(savedDraggable));
       }
       if (savedRndState) {
-        setRndState(JSON.parse(savedRndState));
+        const parsed = JSON.parse(savedRndState);
+        setRndState(parsed);
       }
     } catch (error) {
       console.warn('Failed to load phone settings from localStorage:', error);
@@ -154,36 +171,39 @@ export default function DraggableWebPhone() {
     }
   }, [phoneShow, phonePosition, isDraggable, rndState, isHydrated]);
 
+  // Auto-show on incoming call
   useEffect(() => {
     if (isIncomingRinging) {
       setPhoneShow(true);
     }
   }, [isIncomingRinging]);
 
+  // Auto-show when calling
   useEffect(() => {
     if (status === 'calling') {
       setPhoneShow(true);
     }
   }, [status]);
 
+  // Conference call handler
   function handleCalls() {
     createConferenceCall();
     setCallConference(false);
   }
 
+  // Reset on call start
   useEffect(() => {
     if (status === 'start') {
       stopRecording();
       setMuted(false);
     }
-  }, [status]);
+  }, [status, stopRecording, setMuted]);
 
-  // Toggle position between left and right
+  // Toggle left/right position
   const togglePosition = () => {
     const newPosition = phonePosition === 'right' ? 'left' : 'right';
     setPhonePosition(newPosition);
 
-    // Update position when switching sides
     if (!isDraggable && typeof window !== 'undefined') {
       const windowWidth = window.innerWidth;
       const x = newPosition === 'right' ? windowWidth - 250 - 32 : 32;
@@ -196,13 +216,12 @@ export default function DraggableWebPhone() {
     }
   };
 
-  // Toggle draggable mode
+  // Toggle drag mode
   const toggleDraggable = () => {
     const newDraggable = !isDraggable;
     setIsDraggable(newDraggable);
 
     if (!newDraggable && typeof window !== 'undefined') {
-      // Reset to default position based on phonePosition when locking
       const windowWidth = window.innerWidth;
       const x = phonePosition === 'right' ? windowWidth - 250 - 32 : 32;
 
@@ -215,8 +234,9 @@ export default function DraggableWebPhone() {
     }
   };
 
+  // Render phone content
   const renderPhoneContent = () => (
-    <div className="w-full h-full">
+    <div className={effectiveIsMobile ? 'w-full h-full' : 'webphone-drag-handle w-full h-full'}>
       {effectiveIsMobile && isIncomingRinging && (
         <IncomingCall
           incomingNumber={incomingNumber}
@@ -308,36 +328,13 @@ export default function DraggableWebPhone() {
     </div>
   );
 
-  // Dynamic position classes for buttons
   const positionClasses = phonePosition === 'right' ? 'right-4 sm:right-6' : 'left-4 sm:left-6';
-
-  // Calculate default position based on phonePosition
-  const getDefaultPosition = () => {
-    if (typeof window === 'undefined') {
-      return { x: 0, y: 0, width: 250, height: 430 };
-    }
-
-    if (isDraggable && rndState.x !== 0) {
-      return rndState;
-    }
-
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    const x = phonePosition === 'right' ? windowWidth - 250 - 32 : 32;
-
-    return {
-      x,
-      y: windowHeight - 430 - 64,
-      width: 250,
-      height: 430,
-    };
-  };
 
   return (
     <>
-      {/* Floating buttons container */}
+      {/* Control Buttons */}
       <div className={`fixed bottom-18 sm:bottom-2 ${positionClasses} z-[51] flex flex-col gap-2`}>
-        {/* Drag toggle button - only show on desktop when phone is visible */}
+        {/* Lock/Unlock Toggle */}
         {!effectiveIsMobile && phoneShow && (
           <Button
             type="button"
@@ -352,7 +349,7 @@ export default function DraggableWebPhone() {
           </Button>
         )}
 
-        {/* Position toggle button - only show when NOT draggable */}
+        {/* Left/Right Position Toggle */}
         {!effectiveIsMobile && phoneShow && !isDraggable && (
           <Button
             type="button"
@@ -367,7 +364,7 @@ export default function DraggableWebPhone() {
           </Button>
         )}
 
-        {/* Show/Hide phone button */}
+        {/* Show/Hide Toggle */}
         <Button
           type="button"
           size="sm"
@@ -379,15 +376,18 @@ export default function DraggableWebPhone() {
         </Button>
       </div>
 
+      {/* Phone Interface */}
       {!dispositionModal && phoneShow && (
         <>
           {effectiveIsMobile ? (
+            // Mobile: Full screen overlay
             <div className="fixed inset-0 z-[50] bg-black/50 backdrop-blur-sm flex items-center justify-center p-3">
               <div className="relative w-[250px] h-[430px] bg-card rounded-xl border border-border shadow-xl overflow-hidden">
                 {renderPhoneContent()}
               </div>
             </div>
           ) : isDraggable ? (
+            // Desktop: Draggable mode
             <Rnd
               position={{ x: rndState.x, y: rndState.y }}
               size={{ width: rndState.width, height: rndState.height }}
@@ -396,6 +396,8 @@ export default function DraggableWebPhone() {
               maxWidth={400}
               maxHeight={600}
               bounds="window"
+              dragHandleClassName="webphone-drag-handle"
+              cancel="button, input, textarea, select, a"
               enableResizing={{
                 top: true,
                 right: true,
@@ -406,7 +408,6 @@ export default function DraggableWebPhone() {
                 bottomLeft: true,
                 topLeft: true,
               }}
-              disableDragging={false}
               onDragStop={(e, d) => {
                 setRndState((prev) => ({
                   ...prev,
@@ -424,23 +425,22 @@ export default function DraggableWebPhone() {
               }}
               style={{ zIndex: 50 }}
             >
-              <div className="w-full h-full backdrop-blur-md bg-card/80 rounded-xl border-2 border-primary shadow-xl overflow-hidden">
+              <div className="w-full h-full backdrop-blur-md bg-card/80 rounded-xl border-2 border-border shadow-xl overflow-hidden">
                 {renderPhoneContent()}
               </div>
             </Rnd>
           ) : (
+            // Desktop: Fixed position mode
             <div
               className={`backdrop-blur-md bottom-16 ${
                 phonePosition === 'right' ? 'end-8' : 'start-8'
-              } fixed w-[250px] h-[430px] z-0 md:z-[50] bg-card/80 rounded-xl border border-border shadow-xl transition-all duration-300 overflow-hidden`}
+              } fixed w-[250px] h-[430px] z-[50] bg-card/80 rounded-xl border border-border shadow-xl transition-all duration-300 overflow-hidden`}
             >
               {renderPhoneContent()}
             </div>
           )}
         </>
       )}
-
-      <audio ref={audioRef} autoPlay hidden />
     </>
   );
 }
