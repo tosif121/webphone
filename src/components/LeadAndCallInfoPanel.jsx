@@ -1040,7 +1040,7 @@ export default function LeadAndCallInfoPanel({
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
-                    <TabsList className="grid w-full sm:w-auto grid-cols-4 flex-grow">
+              <TabsList className="grid w-full sm:w-auto grid-cols-4 flex-grow">
                 <TabsTrigger value="contact" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
                   <UserCog size={16} /> <span className="hidden sm:inline">Contact</span>
                 </TabsTrigger>

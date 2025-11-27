@@ -235,7 +235,7 @@ export default function Header() {
                   <PhoneForwarded className="w-4 h-4" />
                   <span>Follow Ups</span>
                   {scheduleCallsLength > 0 && (
-                    <span className="absolute animate-caret-blink -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
+                    <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
                       {scheduleCallsLength}
                     </span>
                   )}

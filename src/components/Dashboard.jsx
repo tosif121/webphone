@@ -161,12 +161,10 @@ function Dashboard() {
         };
       });
 
-    const fiveMinEarly = processed.filter((item) => {
-      const alertWindowStart = new Date(item.callTime.getTime() - 5 * 60 * 1000);
-      return now >= alertWindowStart && now <= item.callTime;
-    });
+    // Show all upcoming calls (where call time is in the future or now)
+    const upcomingCalls = processed.filter((item) => item.callTime >= now);
 
-    setScheduleCallsLength(fiveMinEarly.length);
+    setScheduleCallsLength(upcomingCalls.length);
   }, [followUpDispoes, setScheduleCallsLength]);
 
   useEffect(() => {

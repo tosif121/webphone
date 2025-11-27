@@ -12,35 +12,75 @@ import DateRangePicker from './DateRangePicker';
 const mapLeadData = (rawData) => {
   if (!Array.isArray(rawData)) rawData = [rawData];
 
-  return rawData.map((item) => {
+  return rawData.map((item, index) => {
+    console.log(`Processing item ${index}:`, item);
+
+    // Initialize mapped object with all original data
     const mapped = {
+      ...item, // Keep all original fields
       name: '',
       email: '',
       phone: '',
       status: 'Pending',
-      uploadDate: item.uploadDate || null,
-      ...item,
+      uploadDate: null,
     };
 
+    // Handle Name: first_name + last_name OR name field
+    if (item.first_name || item.last_name) {
+      mapped.name = `${item.first_name || ''} ${item.last_name || ''}`.trim();
+    } else if (item.name) {
+      mapped.name = item.name;
+    }
+
+    // Handle Phone: phone_number OR phone field
+    if (item.phone_number) {
+      mapped.phone = String(item.phone_number).replace(/^\+91/, '');
+    } else if (item.phone) {
+      mapped.phone = String(item.phone).replace(/^\+91/, '');
+    }
+
+    // Handle Start Time/Upload Date: startTime OR uploadDate
+    if (item.startTime) {
+      mapped.uploadDate = item.startTime;
+    } else if (item.uploadDate) {
+      mapped.uploadDate = item.uploadDate;
+    }
+
+    // Fallback: scan all fields for email/phone/name patterns
     Object.entries(item).forEach(([key, value]) => {
       if (!value && value !== 0) return;
       const v = String(value).trim();
       const k = key.toLowerCase();
 
-      if (v.includes('@') && v.includes('.')) mapped.email = v;
-      else if (/^\d{10}$/.test(v)) mapped.phone = v;
-      else if (k.includes('name') && !k.includes('file') && !k.includes('user')) mapped.name = v;
-      else if (k.includes('date') || k.includes('time')) mapped.uploadDate = value;
+      // Email pattern
+      if (!mapped.email && v.includes('@') && v.includes('.')) {
+        mapped.email = v;
+      }
+      // Phone pattern (10 digits) - only if not already set
+      else if (!mapped.phone && /^\d{10}$/.test(v)) {
+        mapped.phone = v;
+      }
+      // Name pattern - only if not already set
+      else if (
+        !mapped.name &&
+        k.includes('name') &&
+        !k.includes('file') &&
+        !k.includes('user') &&
+        !k.includes('campaign')
+      ) {
+        mapped.name = v;
+      }
+      // Date/Time pattern - only if not already set
+      else if (!mapped.uploadDate && (k.includes('date') || k.includes('time'))) {
+        mapped.uploadDate = value;
+      }
     });
 
-    switch (item.lastDialedStatus) {
-      case 1:
-      case 9:
-        mapped.status = 'Complete';
-        break;
-      case 0:
-      default:
-        mapped.status = 'Pending';
+    // Map status based on lastDialedStatus
+    if (item.lastDialedStatus === 1 || item.lastDialedStatus === 9) {
+      mapped.status = 'Complete';
+    } else if (item.lastDialedStatus === 0) {
+      mapped.status = 'Pending';
     }
 
     return mapped;
@@ -166,14 +206,37 @@ export default function LeadCallsTable({
       {
         accessorKey: 'name',
         header: 'Name',
-        cell: ({ row }) => <span className="font-semibold">{row.original.name || '-'}</span>,
+        cell: ({ row }) => {
+          // Try multiple sources for name
+          const name =
+            row.original.name ||
+            (row.original.first_name && row.original.last_name
+              ? `${row.original.first_name} ${row.original.last_name}`.trim()
+              : row.original.first_name || row.original.last_name) ||
+            '-';
+          return <span className="font-semibold capitalize text-primary">{name}</span>;
+        },
+      },
+      {
+        accessorKey: 'phone',
+        header: 'Phone',
+        cell: ({ row }) => {
+          // Try multiple sources for phone
+          const phone =
+            row.original.phone ||
+            (row.original.phone_number ? String(row.original.phone_number).replace(/^\+91/, '') : null) ||
+            '-';
+          return <>{phone}</>;
+        },
       },
       {
         accessorKey: 'uploadDate',
         header: 'Start Time',
-        cell: ({ row }) => (
-          <span>{row.original.uploadDate ? moment(row.original.uploadDate).format('DD MMM YYYY, hh:mm A') : '-'}</span>
-        ),
+        cell: ({ row }) => {
+          // Try multiple sources for date
+          const date = row.original.uploadDate || row.original.startTime;
+          return <>{date ? moment(date).format('DD MMM YYYY, hh:mm A') : '-'}</>;
+        },
       },
       {
         accessorKey: 'status',
@@ -195,18 +258,20 @@ export default function LeadCallsTable({
         },
       },
       {
-        accessorKey: 'phone',
-        header: 'Phone',
+        accessorKey: 'actions',
+        header: 'Actions',
         cell: ({ row }) => {
-          const phone = row.original.phone;
+          const phone =
+            row.original.phone ||
+            (row.original.phone_number ? String(row.original.phone_number).replace(/^\+91/, '') : null);
           return (
-            <div className="flex items-center gap-3">
-              <span className="font-mono">{phone || '-'}</span>
+            <div className="flex items-center gap-2">
               {phone && (
                 <Button
                   onClick={() => handleCall(phone)}
                   size="sm"
                   className="bg-green-600 text-white hover:bg-green-700 rounded-full h-8 w-8 p-0"
+                  title="Make call"
                 >
                   <Phone size={16} />
                 </Button>
