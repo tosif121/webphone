@@ -133,24 +133,19 @@ export default function LeadCallsTable({
   const mappedLeads = useMemo(() => mapLeadData(callDetails), [callDetails]);
 
   const groupedLeads = useMemo(() => {
-    const grouped = {};
-    mappedLeads.forEach((lead) => {
-      if (!lead.phone) return;
-
-      const normalizedPhone = String(lead.phone).replace(/^\+91/, '');
-
-      if (!grouped[normalizedPhone]) {
-        grouped[normalizedPhone] = {
-          ...lead,
-          history: [],
-          _originalData: lead,
-        };
-      } else {
-        grouped[normalizedPhone].history.push(lead);
-      }
-    });
-
-    return Object.values(grouped);
+    // Return all leads without grouping, sorted by uploadDate (newest first)
+    return mappedLeads
+      .map((lead) => ({
+        ...lead,
+        history: [],
+        _originalData: lead,
+      }))
+      .sort((a, b) => {
+        // Sort by uploadDate descending (newest first)
+        const dateA = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
+        const dateB = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
+        return dateB - dateA;
+      });
   }, [mappedLeads]);
 
   const filteredLeads = useMemo(() => {
@@ -813,7 +808,7 @@ export default function LeadCallsTable({
                 />
               </div>
             </div>
-
+{console.log(filteredLeads, 'filteredLeads')}
             <TabsContent value="allLeads" className="mt-4">
               <DataTable
                 data={filteredLeads}

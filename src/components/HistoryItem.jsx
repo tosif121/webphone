@@ -14,40 +14,51 @@ const HistoryItem = ({ date, phone, status, type, start, end, index, handleCall,
   };
 
   return (
-    <div className="p-2 flex items-baseline border-b justify-between">
-      <div>
-        <div className="gap-x-4 flex mb-2">
-          <span className="text-sm text-gray-600">{format(new Date(date), 'MM/dd/yyyy')}</span>
-          <span className="text-sm text-gray-600">{format(new Date(date), 'hh:mm bbbb')}</span>
+    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+      <div className="flex-1 min-w-0">
+        {/* Date and Time */}
+        <div className="flex flex-wrap gap-x-3 sm:gap-x-4 gap-y-1 mb-2">
+          <span className="text-xs text-gray-600">{format(new Date(date), 'MM/dd/yyyy')}</span>
+          <span className="text-xs text-gray-600">{format(new Date(date), 'hh:mm bbbb')}</span>
         </div>
-        <div className="gap-x-4 flex md:mb-2 flex-wrap">
-          <span className="phone-numbe text-primary font-semibold">{phone}</span>
-          <div>
-            <span className="text-gray-600 mr-2">Status:</span>
-            <em className={`font-medium ${status === 'Success' ? 'text-green-500' : 'text-red-600'}`}>
+
+        {/* Phone and Status */}
+        <div className="flex flex-col gap-2 mb-2">
+          <span className="text-sm font-semibold text-primary truncate">{phone}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-600">Status:</span>
+            <em className={`text-xs font-medium ${status === 'Success' ? 'text-green-500' : 'text-red-600'}`}>
               {(status !== 'Success' && 'Failed') || status}
             </em>
           </div>
         </div>
-        <div className="flex gap-5 items-center">
-          <p className="duration text-gray-600">
-            Duration: <em>{duration}</em>
+
+        {/* Duration and Call Type */}
+        <div className="flex flex-wrap items-center gap-3 sm:gap-5">
+          <p className="text-xs text-gray-600">
+            Duration: <em className="font-medium">{duration}</em>
           </p>
-          <p className="text-blue">
+          <div className="flex items-center gap-1">
             {type === 'outgoing' ? (
-              <PhoneOutgoing className="w-5 h-5" />
+              <PhoneOutgoing className="w-4 h-4 text-blue-600" />
             ) : type === 'incoming' ? (
-              <PhoneIncoming className="w-5 h-5" />
+              <PhoneIncoming className="w-4 h-4 text-green-600" />
             ) : (
-              <PhoneMissed className="w-5 h-5 text-red-600" />
+              <PhoneMissed className="w-4 h-4 text-red-600" />
             )}
-          </p>
+            <span className="text-xs text-gray-500 capitalize sm:hidden">{type}</span>
+          </div>
         </div>
       </div>
 
-      <div className="hover:text-red-800 cursor-pointer text-red-600" onClick={handleDelete}>
-        <Trash2 className="w-5 h-5" />
-      </div>
+      {/* Delete Button */}
+      <button
+        onClick={handleDelete}
+        className="self-end sm:self-start hover:text-red-800 cursor-pointer text-red-600 transition-colors p-1 hover:bg-red-50 rounded"
+        aria-label="Delete call"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
     </div>
   );
 };

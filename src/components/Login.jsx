@@ -16,6 +16,9 @@ import {
   Calendar,
 } from 'lucide-react';
 
+import { LoginConflictModal, TimerWaitingModal } from './ForceLoginModals';
+import HistoryContext from '@/context/HistoryContext';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +30,8 @@ import axios from 'axios';
 
 export default function Login() {
   const router = useRouter();
+  const { showSecurityAlert, setShowSecurityAlert } = useContext(HistoryContext);
+  
   const [validationErrors, setValidationErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,6 +45,15 @@ export default function Login() {
     daysExpired: 0,
     type: 'expired',
   });
+
+  const [showLoginConflict, setShowLoginConflict] = useState(false);
+  const [showTimerWaiting, setShowTimerWaiting] = useState(false);
+  const [sessionDuration, setSessionDuration] = useState('45 minutes');
+
+  // Log showSecurityAlert for debugging
+  useEffect(() => {
+    console.log('showSecurityAlert in Login:', showSecurityAlert);
+  }, [showSecurityAlert]);
 
   const handleUsernameChange = (e) => {
     const value = e.target.value.replace(/\s+/g, '');
@@ -182,7 +196,7 @@ export default function Login() {
 
     try {
       const { data: response } = await axios.post(
-        `${window.location.origin}/userlogin/${loginUsername}`,
+        `https://esamwad.iotcom.io/userlogin/${loginUsername}`,
         { username: loginUsername, password: loginPassword },
         { headers: { 'Content-Type': 'application/json' } }
       );
@@ -200,7 +214,8 @@ export default function Login() {
       }
 
       if (response.message === 'User already login somewhere else') {
-        toast.error(response.message || 'User already logged in elsewhere. Please log out from other devices.');
+        console.log('User already logged in elsewhere - showing Login Conflict modal');
+        setShowLoginConflict(true);
         setIsLoading(false);
         return;
       }
@@ -324,8 +339,49 @@ export default function Login() {
     }
   }, [router]);
 
+  const handleForceLogin = () => {
+    console.log('Force Login clicked - closing Login Conflict modal, showing Timer modal');
+    setShowLoginConflict(false);
+    setShowTimerWaiting(true);
+    
+    // Auto-close timer modal after 5 seconds and retry login
+    setTimeout(() => {
+      console.log('Timer completed - closing Timer modal, retrying login');
+      setShowTimerWaiting(false);
+      // Here you would make the force login API call
+      toast.success('Force login request sent');
+      // Retry the login after force login request
+      performLogin();
+    }, 5000);
+  };
+
+  // Log modal states for debugging
+  useEffect(() => {
+    console.log('Login Modal States:', {
+      showLoginConflict,
+      showTimerWaiting,
+      showSecurityAlert
+    });
+  }, [showLoginConflict, showTimerWaiting, showSecurityAlert]);
+
   return (
     <>
+      {/* Login Conflict Modal */}
+      {showLoginConflict && (
+        <LoginConflictModal
+          onCancel={() => {
+            console.log('Login Conflict modal cancelled');
+            setShowLoginConflict(false);
+            setIsLoading(false);
+          }}
+          onForceLogin={handleForceLogin}
+          sessionDuration={sessionDuration}
+        />
+      )}
+
+      {/* Timer Waiting Modal */}
+      {showTimerWaiting && <TimerWaitingModal />}
+
       <Dialog open={subscriptionDialog.isOpen} onOpenChange={() => {}} modal={true}>
         <DialogContent
           className="w-[95%] max-w-lg md:max-w-xl lg:max-w-2xl bg-card/95 [&>button]:hidden backdrop-blur-md border shadow-2xl z-50 mx-auto my-auto p-4 sm:p-6 md:p-8 overflow-y-auto max-h-[90vh]"

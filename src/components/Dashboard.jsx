@@ -129,8 +129,8 @@ function Dashboard() {
   const [token, setToken] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const [startDate, setStartDate] = useState(moment().subtract(7, 'days').startOf('day').toDate());
-  const [endDate, setEndDate] = useState(moment().endOf('day').toDate());
+  const [startDate, setStartDate] = useState(moment().subtract(24, 'hours').format('YYYY-MM-DD'));
+  const [endDate, setEndDate] = useState(moment().format('YYYY-MM-DD'));
 
   const [activeMainTab, setActiveMainTab] = useState('allLeads');
   const [leadStats, setLeadStats] = useState({
@@ -302,7 +302,7 @@ function Dashboard() {
 
   const fetchUserMissedCalls = async () => {
     try {
-      const response = await axios.post(`${window.location.origin}/usermissedCalls/${username}`);
+      const response = await axios.post(`https://esamwad.iotcom.io/usermissedCalls/${username}`);
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
@@ -314,7 +314,7 @@ function Dashboard() {
 
   const fetchAdminUser = async () => {
     try {
-      const response = await axios.get(`${window.location.origin}/users/${adminUser}`, {
+      const response = await axios.get(`https://esamwad.iotcom.io/users/${adminUser}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -337,7 +337,7 @@ function Dashboard() {
       // Check the conditions first
       if (userCampaign === currentCallData?.campaign && connectionStatus === 'NOT_INUSE' && queueDetails?.length > 0) {
         try {
-          const { data } = await axios.post(`${window.location.origin}/user/agentAvailable/${username}`);
+          const { data } = await axios.post(`https://esamwad.iotcom.io/user/agentAvailable/${username}`);
 
           if (data.message === 'User is not live.') {
             toast.error('You are not available for calls. Please make yourself available to handle conference calls.');
@@ -381,7 +381,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/leadswithdaterange`,
+        `https://esamwad.iotcom.io/leadswithdaterange`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -419,7 +419,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/callDataByAgent`,
+        `https://esamwad.iotcom.io/callDataByAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
