@@ -1,4 +1,4 @@
-import { History, LayoutGrid, BarChart3, Grid3x3, PhoneCall } from 'lucide-react';
+import { History, LayoutGrid, BarChart3, PhoneCall, TableOfContents } from 'lucide-react';
 
 export default function MobileNavigation({ activeTab, onTabChange }) {
   const handleTabChange = (tab) => {
@@ -44,7 +44,7 @@ export default function MobileNavigation({ activeTab, onTabChange }) {
               activeTab === 'leads' ? 'text-primary' : 'text-muted-foreground'
             }`}
           >
-            <LayoutGrid className="w-5 h-5 mb-1" />
+            <TableOfContents className="w-5 h-5 mb-1" />
             <span className="text-[10px] font-medium">Leads</span>
           </button>
 
@@ -64,7 +64,7 @@ export default function MobileNavigation({ activeTab, onTabChange }) {
               activeTab === 'dialpad' ? 'text-primary' : 'text-muted-foreground'
             }`}
           >
-            <Grid3x3 className="w-5 h-5 mb-1" />
+            <LayoutGrid className="w-5 h-5 mb-1" />
             <span className="text-[10px] font-medium">Dialpad</span>
           </button>
         </div>
