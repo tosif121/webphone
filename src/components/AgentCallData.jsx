@@ -50,7 +50,7 @@ export default function AgentCallData() {
         enddate: endDate,
       };
 
-      const { data } = await axios.post(`https://esamwad.iotcom.io/agentcallData`, payload, {
+      const { data } = await axios.post(`${window.location.origin}/agentcallData`, payload, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${tokenDetails.token}`,
@@ -140,7 +140,7 @@ export default function AgentCallData() {
         return;
       }
 
-      const response = await axios.get(`https://esamwad.iotcom.io/recording/recording${bridgeID}.wav`, {
+      const response = await axios.get(`${window.location.origin}/recording/recording${bridgeID}.wav`, {
         headers: {
           Authorization: `Bearer ${tokenDetails.token}`,
         },
@@ -456,28 +456,28 @@ export default function AgentCallData() {
   return (
     <div>
       {/* Header Controls */}
-      <div className="flex justify-between flex-wrap mb-4 items-center">
-        <div className="flex items-center gap-x-2">
+      <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleDownloadCSV}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded flex items-center gap-2 shadow"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded flex items-center gap-2 shadow text-sm"
           >
             <Download size={16} />
-            <span className="hidden md:inline">Download CSV</span>
+            <span>CSV</span>
           </button>
           <button
             onClick={handleDownloadPDF}
             disabled={isPdfLoading}
-            className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded flex items-center gap-2 shadow"
+            className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded flex items-center gap-2 shadow text-sm disabled:opacity-50"
           >
-            <FileText size={16} />
-            <span className="hidden md:inline">
-              {isPdfLoading ? <Loader2 className="animate-spin w-4 h-4" /> : 'Download PDF'}
-            </span>
+            {isPdfLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <FileText size={16} />}
+            <span>PDF</span>
           </button>
         </div>
 
-        <DateRangePicker onDateChange={handleDateRangeChange} initialStartDate={startDate} initialEndDate={endDate} />
+        <div className="w-full sm:w-auto">
+          <DateRangePicker onDateChange={handleDateRangeChange} initialStartDate={startDate} initialEndDate={endDate} />
+        </div>
       </div>
 
       {/* Audio Player */}

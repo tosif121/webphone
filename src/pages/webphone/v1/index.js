@@ -1,6 +1,6 @@
-import Dashboard from '@/components/Dashboard';
+import MobileTabsWrapper from '@/components/MobileTabsWrapper';
 
 export default function Home() {
-  return <Dashboard />;
+  return <MobileTabsWrapper />;
 }
 

@@ -186,7 +186,7 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
 
   const removeBreak = async () => {
     try {
-      await axios.post(`https://esamwad.iotcom.io/user/removebreakuser:${username}`);
+      await axios.post(`${window.location.origin}/user/removebreakuser:${username}`);
 
       const breakStartKey = `breakStartTime_${selectedBreak}`;
       localStorage.removeItem(breakStartKey);
@@ -227,7 +227,7 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
     }
 
     try {
-      await axios.post(`https://esamwad.iotcom.io/user/breakuser:${username}`, { breakType });
+      await axios.post(`${window.location.origin}/user/breakuser:${username}`, { breakType });
 
       setSelectedBreak(breakType);
       localStorage.setItem('selectedBreak', breakType);
@@ -247,7 +247,7 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
   return (
     <>
       {isOnBreak ? (
-        <Button variant="default" className="w-full sm:w-auto gap-2 font-medium justify-baseline" onClick={removeBreak}>
+        <Button variant="default" className="w-full sm:text-base text-sm md:w-auto gap-2 font-medium justify-baseline" onClick={removeBreak}>
           {selectedBreakObj?.icon ? <selectedBreakObj.icon className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
           <span>{selectedBreakObj?.label}</span>
           <span className="flex items-center gap-1 ml-2 text-xs">
@@ -257,7 +257,7 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
         </Button>
       ) : (
         <DropdownMenu>
-          <DropdownMenuTrigger asChild className="w-full sm:w-auto justify-baseline">
+          <DropdownMenuTrigger asChild className="w-full md:w-auto sm:text-base text-sm justify-baseline">
             <Button variant="outline" className="gap-2 font-medium">
               <Activity className="w-4 h-4" />
               <span>Take Break</span>

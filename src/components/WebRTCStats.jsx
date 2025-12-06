@@ -82,7 +82,7 @@ export default function WebRTCStats({ peerConnection }) {
   };
 
   return (
-    <div className="flex justify-between items-center w-full my-2">
+    <div className="justify-between items-center w-full my-2 md:flex hidden">
       <div className='text-primary text-xs'> {time}</div>
 
       <div className="flex flex-col items-center relative group">

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import moment from 'moment';
-import { ChevronDown, Clock, Phone, Users, X, User, History, UserCog, LayoutGrid, Info } from 'lucide-react';
+import { ChevronDown, Clock, Phone, Users, X, User, History, UserCog, LayoutGrid, Info, Eye } from 'lucide-react';
 import DataTable from './DataTable';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -13,8 +13,6 @@ const mapLeadData = (rawData) => {
   if (!Array.isArray(rawData)) rawData = [rawData];
 
   return rawData.map((item, index) => {
-    console.log(`Processing item ${index}:`, item);
-
     // Initialize mapped object with all original data
     const mapped = {
       ...item, // Keep all original fields
@@ -261,6 +259,15 @@ export default function LeadCallsTable({
             (row.original.phone_number ? String(row.original.phone_number).replace(/^\+91/, '') : null);
           return (
             <div className="flex items-center gap-2">
+              {/* Eye icon for mobile to view details */}
+              <Button
+                onClick={() => handleRowExpand(row.original)}
+                size="sm"
+                className="lg:hidden bg-blue-600 text-white hover:bg-blue-700 rounded-full h-8 w-8 p-0"
+                title="View details"
+              >
+                <Eye size={16} />
+              </Button>
               {phone && (
                 <Button
                   onClick={() => handleCall(phone)}
@@ -319,8 +326,17 @@ export default function LeadCallsTable({
           }
 
           return (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <span className="font-mono">{phone || '-'}</span>
+              {/* Eye icon for mobile to view details */}
+              <Button
+                onClick={() => handleRowExpand(row.original)}
+                size="sm"
+                className="lg:hidden bg-blue-600 text-white hover:bg-blue-700 rounded-full h-8 w-8 p-0"
+                title="View details"
+              >
+                <Eye size={16} />
+              </Button>
               {phone && (
                 <Button
                   onClick={() => handleCall(row.original.Caller)}
@@ -645,10 +661,12 @@ export default function LeadCallsTable({
   };
 
   return (
-    <div className="flex transition-all duration-300 ease-in-out">
+    <div className="flex flex-col lg:flex-row transition-all duration-300 ease-in-out gap-4 lg:gap-0">
       <Card
-        className={`h-max transition-all duration-300 ease-in-out ${
-          expand ? 'w-1/3 opacity-100 translate-x-0' : 'w-0 opacity-0 -translate-x-full overflow-hidden'
+        className={`transition-all duration-300 ease-in-out ${
+          expand 
+            ? 'lg:w-1/3 w-full h-max opacity-100 translate-x-0 block' 
+            : 'w-0 h-0 opacity-0 lg:-translate-x-full overflow-hidden hidden lg:block'
         }`}
       >
         <CardHeader className="pb-3">
@@ -706,7 +724,7 @@ export default function LeadCallsTable({
         </CardContent>
       </Card>
 
-      <Card className={`transition-all duration-500 ease-in-out h-max ${expand ? 'w-2/3 ms-5' : 'w-full'}`}>
+      <Card className={`transition-all duration-500 ease-in-out h-max ${expand ? 'lg:w-2/3 w-full lg:ms-5' : 'w-full'}`}>
         <CardContent>
           <Tabs
             value={activeMainTab}
@@ -719,25 +737,27 @@ export default function LeadCallsTable({
             }}
             className="w-full"
           >
-            <div className="flex justify-between items-center md:mb-6 flex-wrap md:gap-0 gap-5">
-              <TabsList className="grid grid-cols-2 w-fit">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center md:mb-6 gap-4">
+              <TabsList className="grid grid-cols-2 w-full sm:w-fit">
                 <TabsTrigger value="allLeads" className="flex items-center gap-2">
                   <LayoutGrid size={16} />
-                  All Leads
+                  <span className="hidden sm:inline">All Leads</span>
+                  <span className="sm:hidden">Leads</span>
                 </TabsTrigger>
                 <TabsTrigger value="callInfo" className="flex items-center gap-2">
                   <Clock size={16} />
-                  Call Info
+                  <span className="hidden sm:inline">Call Info</span>
+                  <span className="sm:hidden">Calls</span>
                 </TabsTrigger>
               </TabsList>
 
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                 {activeMainTab === 'allLeads' && (
-                  <div ref={dropdownRef} className="relative">
+                  <div ref={dropdownRef} className="relative w-full sm:w-auto">
                     <Button
                       variant="outline"
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="min-w-[140px] justify-between"
+                      className="w-full sm:min-w-[140px] justify-between"
                     >
                       {filter}
                       <ChevronDown
@@ -767,11 +787,11 @@ export default function LeadCallsTable({
                   </div>
                 )}
                 {activeMainTab === 'callInfo' && (
-                  <div ref={dropdownRef} className="relative">
+                  <div ref={dropdownRef} className="relative w-full sm:w-auto">
                     <Button
                       variant="outline"
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="min-w-[140px] justify-between"
+                      className="w-full sm:min-w-[140px] justify-between"
                     >
                       {callTypeFilter}
                       <ChevronDown
@@ -800,15 +820,17 @@ export default function LeadCallsTable({
                     )}
                   </div>
                 )}
-                <DateRangePicker
-                  key={`${startDate}-${endDate}`}
-                  onDateChange={handleDateRangeChange}
-                  initialStartDate={startDate ? moment(startDate).toDate() : null}
-                  initialEndDate={endDate ? moment(endDate).toDate() : null}
-                />
+                <div className="w-full sm:w-auto">
+                  <DateRangePicker
+                    key={`${startDate}-${endDate}`}
+                    onDateChange={handleDateRangeChange}
+                    initialStartDate={startDate ? moment(startDate).toDate() : null}
+                    initialEndDate={endDate ? moment(endDate).toDate() : null}
+                  />
+                </div>
               </div>
             </div>
-{console.log(filteredLeads, 'filteredLeads')}
+
             <TabsContent value="allLeads" className="mt-4">
               <DataTable
                 data={filteredLeads}

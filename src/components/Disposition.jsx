@@ -208,7 +208,7 @@ const Disposition = ({
         autoDialDisabled: false,
       };
 
-      const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody);
+      const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
 
       if (response.data.success) {
         toast.success('Auto disposition completed successfully');
@@ -450,7 +450,7 @@ const Disposition = ({
         }
 
         // 1. Submit disposition FIRST
-        const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody);
+        const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
 
         if (response.data.success) {
           // 2. AFTER successful disposition, check if break is selected
@@ -459,7 +459,7 @@ const Disposition = ({
           if (selectedBreakType && selectedBreakType !== 'Break') {
             try {
               // Apply the break after disposition
-              await axios.post(`https://esamwad.iotcom.io/user/breakuser:${username}`, {
+              await axios.post(`${window.location.origin}/user/breakuser:${username}`, {
                 breakType: selectedBreakType,
               });
               toast.success('Disposition submitted and break applied successfully');
@@ -601,30 +601,32 @@ const Disposition = ({
                 <DialogTitle className="text-xl font-bold text-foreground">Select Disposition</DialogTitle>
                 <p className="text-sm text-muted-foreground">Choose the appropriate outcome for this call</p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4 items-start justify-between">
+              <div className="flex flex-row gap-2 sm:gap-4 items-start justify-start overflow-x-auto">
                 {/* Call Type */}
-                <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-4 py-3 shadow-sm backdrop-blur-sm min-w-[180px]">
+                <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-3 sm:px-4 py-2 sm:py-3 md:w-full w-max">
                   <div className="flex flex-col">
                     <span className="text-xs text-slate-500 dark:text-slate-400">Type</span>
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-100">
-                      {callType === 'outgoing' ? 'Outgoing Call' : 'Incoming Call'}
+                    <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-100 whitespace-nowrap">
+                      {callType === 'outgoing' ? 'Outgoing' : 'Incoming'}
                     </span>
                   </div>
                 </div>
 
                 {/* Phone Number */}
-                <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-4 py-3 shadow-sm backdrop-blur-sm min-w-[180px]">
+                <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-3 sm:px-4 py-2 sm:py-3 md:w-full w-max">
                   <div className="flex flex-col">
                     <span className="text-xs text-slate-500 dark:text-slate-400">Number</span>
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-100">{phoneNumber}</span>
+                    <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-100 whitespace-nowrap">
+                      {phoneNumber}
+                    </span>
                   </div>
                 </div>
 
                 {/* Campaign */}
-                <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-4 py-3 shadow-sm backdrop-blur-sm min-w-[180px]">
+                <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-3 sm:px-4 py-2 sm:py-3 md:w-full w-max">
                   <div className="flex flex-col">
                     <span className="text-xs text-slate-500 dark:text-slate-400">Campaign</span>
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-100 capitalize">
+                    <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-100 capitalize whitespace-nowrap">
                       {campaignName}
                     </span>
                   </div>
@@ -650,7 +652,7 @@ const Disposition = ({
                 })}
               </div>
               <div className="flex flex-col lg:flex-row gap-4 justify-end items-start border-t pt-4">
-                <div className="flex flex-wrap sm:flex-row flex-col-reverse gap-2 w-full lg:w-auto md:justify-end">
+                <div className="flex flex-row gap-2 w-full lg:w-auto md:justify-end">
                   <div>
                     <BreakDropdown bridgeID={bridgeID} dispoWithBreak={true} selectedAction={selectedAction} />
                   </div>

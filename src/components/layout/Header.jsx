@@ -75,7 +75,7 @@ export default function Header() {
     if (typeof window !== 'undefined') {
       try {
         if (token) {
-          await axios.delete(`https://esamwad.iotcom.io/deleteFirebaseToken`, {
+          await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -178,15 +178,15 @@ export default function Header() {
       href: '/webphone/v1/agent-dashboard',
       name: 'Agent Dashboard',
       icon: <LayoutDashboard className="w-4 h-4" />,
+      desktopOnly: true, // Only show on desktop
     },
     {
       href: '/webphone/v1/system-monitoring',
       name: 'System Monitoring',
       icon: <MonitorCog className="w-4 h-4" />,
     },
-
     {
-      href: 'https://esamwad.iotcom.io/webphone/login',
+      href: '${window.location.origin}/webphone/login',
       name: 'Stable Version',
       icon: <Settings className="w-4 h-4" />,
     },
@@ -454,7 +454,7 @@ export default function Header() {
                     type="button"
                   >
                     <PhoneCall className="w-4 h-4" />
-                    <span>Missed Calls</span>
+                    <span className="sm:text-base text-sm">Missed Calls</span>
                     {campaignMissedCallsLength > 0 && (
                       <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
                         {campaignMissedCallsLength}
@@ -467,48 +467,48 @@ export default function Header() {
 
               {/* Navigation Links */}
               <div className="space-y-1">
-                {navLinks.map((link, index) => {
-                  const isActive = pathname === link.href;
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={cn(
-                        'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group',
-                        isActive
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'hover:bg-accent hover:translate-x-1'
-                      )}
-                      style={{
-                        transitionDelay: `${index * 50}ms`,
-                      }}
-                    >
-                      <div className="transition-transform duration-200 group-hover:scale-110">{link.icon}</div>
-                      {link.name}
-                    </Link>
-                  );
-                })}
+                {navLinks
+                  .filter((link) => !link.desktopOnly)
+                  .map((link, index) => {
+                    const isActive = pathname === link.href;
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={cn(
+                          'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group',
+                          isActive
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'hover:bg-accent hover:translate-x-1'
+                        )}
+                        style={{
+                          transitionDelay: `${index * 50}ms`,
+                        }}
+                      >
+                        <div className="transition-transform duration-200 group-hover:scale-110">{link.icon}</div>
+                        {link.name}
+                      </Link>
+                    );
+                  })}
               </div>
 
               {/* Theme Toggle */}
               <div className="py-3 border-t">
                 <ThemeToggle />
               </div>
-            </div>
-
-            {/* Footer with logout */}
-            <div className="p-4 border-t bg-muted/30">
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  handleLogout();
-                }}
-                className="flex w-full items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-all duration-200 hover:translate-x-1 group"
-              >
-                <LogOut className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
-                Sign out
-              </button>
+              <div className="p-4 border-t bg-muted/30">
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="flex w-full items-center gap-3 sm:px-0 md:px-4 py-3 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-all duration-200 hover:translate-x-1 group"
+                >
+                  <LogOut className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
+                  Sign out
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -194,7 +194,7 @@ const DataTable = ({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-between mt-4 flex-wrap gap-4 md:gap-0">
+      <div className="flex items-center justify-center sm:justify-between mt-4 flex-wrap gap-4 md:gap-0">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"

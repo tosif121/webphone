@@ -1,7 +1,21 @@
 import { useState, useEffect, useContext } from 'react';
-import { Phone, PhoneCall, PhoneOff, MoveHorizontal, Lock, Unlock } from 'lucide-react';
+import {
+  Phone,
+  PhoneCall,
+  PhoneOff,
+  MoveHorizontal,
+  Lock,
+  Unlock,
+  History,
+  LayoutGrid,
+  BarChart3,
+  Grid3x3,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Rnd } from 'react-rnd';
+import { useRouter } from 'next/router';
 import HistoryScreen from './HistoryScreen';
 import Home from './Home';
 import CallScreen from './CallScreen';
@@ -71,12 +85,14 @@ export default function DraggableWebPhone() {
     setIsMerged,
   } = useContext(JssipContext);
 
+  const router = useRouter();
   const [audioSrc, setAudioSrc] = useState('');
   const [phoneShow, setPhoneShow] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [seeLogs, setSeeLogs] = useState(false);
   const [phonePosition, setPhonePosition] = useState('right');
   const [isDraggable, setIsDraggable] = useState(false);
+  const [activeTab, setActiveTab] = useState('dialpad');
 
   const [rndState, setRndState] = useState({
     x: 0,
@@ -94,7 +110,7 @@ export default function DraggableWebPhone() {
 
   // Detect mobile screen size
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 640px)');
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
     setLocalIsMobile(mediaQuery.matches);
 
     const handleResize = () => setLocalIsMobile(mediaQuery.matches);
@@ -130,18 +146,24 @@ export default function DraggableWebPhone() {
     }
   }, [isHydrated, phonePosition]);
 
-  // Load settings from localStorage
+  // Load settings from localStorage and always show phone on desktop
   useEffect(() => {
     setIsHydrated(true);
     try {
-      const savedShow = localStorage.getItem('phoneShow');
       const savedPosition = localStorage.getItem('phonePosition');
       const savedDraggable = localStorage.getItem('phoneDraggable');
       const savedRndState = localStorage.getItem('phoneRndState');
+      const savedShow = localStorage.getItem('phoneShow');
 
-      if (savedShow) {
-        setPhoneShow(JSON.parse(savedShow));
+      // Load phoneShow state from localStorage, default to true on desktop
+      if (!effectiveIsMobile) {
+        if (savedShow !== null) {
+          setPhoneShow(JSON.parse(savedShow));
+        } else {
+          setPhoneShow(true);
+        }
       }
+
       if (savedPosition && (savedPosition === 'left' || savedPosition === 'right')) {
         setPhonePosition(savedPosition);
       }
@@ -155,21 +177,21 @@ export default function DraggableWebPhone() {
     } catch (error) {
       console.warn('Failed to load phone settings from localStorage:', error);
     }
-  }, []);
+  }, [effectiveIsMobile]);
 
   // Save settings to localStorage
   useEffect(() => {
     if (isHydrated) {
       try {
-        localStorage.setItem('phoneShow', JSON.stringify(phoneShow));
         localStorage.setItem('phonePosition', phonePosition);
         localStorage.setItem('phoneDraggable', JSON.stringify(isDraggable));
         localStorage.setItem('phoneRndState', JSON.stringify(rndState));
+        localStorage.setItem('phoneShow', JSON.stringify(phoneShow));
       } catch (error) {
         console.warn('Failed to save phone settings to localStorage:', error);
       }
     }
-  }, [phoneShow, phonePosition, isDraggable, rndState, isHydrated]);
+  }, [phonePosition, isDraggable, rndState, phoneShow, isHydrated]);
 
   // Auto-show on incoming call
   useEffect(() => {
@@ -184,6 +206,51 @@ export default function DraggableWebPhone() {
       setPhoneShow(true);
     }
   }, [status]);
+
+  // Listen for custom events from mobile navigation
+  useEffect(() => {
+    const handleOpenDialpad = () => {
+      setPhoneShow(true);
+      setActiveTab('dialpad');
+      setSeeLogs(false);
+    };
+
+    const handleOpenDialpadRecents = () => {
+      setPhoneShow(true);
+      setActiveTab('recents');
+      setSeeLogs(true);
+    };
+
+    const handleCloseDialpad = () => {
+      console.log('Close dialpad event received. Status:', status, 'Session:', !!session);
+      // Only close if not in an active call
+      if (status === 'start' || !session) {
+        console.log('Closing dialpad');
+        setPhoneShow(false);
+      } else {
+        console.log('Cannot close dialpad - call in progress');
+      }
+    };
+
+    window.addEventListener('openDialpad', handleOpenDialpad);
+    window.addEventListener('openDialpadRecents', handleOpenDialpadRecents);
+    window.addEventListener('closeDialpad', handleCloseDialpad);
+
+    return () => {
+      window.removeEventListener('openDialpad', handleOpenDialpad);
+      window.removeEventListener('openDialpadRecents', handleOpenDialpadRecents);
+      window.removeEventListener('closeDialpad', handleCloseDialpad);
+    };
+  }, [status, session]);
+
+  // Notify when dialpad opens/closes
+  useEffect(() => {
+    if (phoneShow) {
+      window.dispatchEvent(new CustomEvent('dialpadOpened'));
+    } else {
+      window.dispatchEvent(new CustomEvent('dialpadClosed'));
+    }
+  }, [phoneShow]);
 
   // Conference call handler
   function handleCalls() {
@@ -234,9 +301,27 @@ export default function DraggableWebPhone() {
     }
   };
 
+  // Handle tab navigation
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (tab === 'recents') {
+      setSeeLogs(true);
+    } else if (tab === 'leads') {
+      router.push('/webphone/v1');
+    } else if (tab === 'stats') {
+      router.push('/webphone/v1/agent-dashboard');
+    } else if (tab === 'dialpad') {
+      setSeeLogs(false);
+    }
+  };
+
   // Render phone content
   const renderPhoneContent = () => (
-    <div className={effectiveIsMobile ? 'w-full h-full' : 'webphone-drag-handle w-full h-full'}>
+    <div
+      className={
+        effectiveIsMobile ? 'w-full h-full flex flex-col justify-center' : 'webphone-drag-handle w-full h-full'
+      }
+    >
       {effectiveIsMobile && isIncomingRinging && (
         <IncomingCall
           incomingNumber={incomingNumber}
@@ -248,83 +333,89 @@ export default function DraggableWebPhone() {
         />
       )}
 
-      {!(effectiveIsMobile && isIncomingRinging) && seeLogs && <HistoryScreen setSeeLogs={setSeeLogs} />}
-
-      {!(effectiveIsMobile && isIncomingRinging) && !seeLogs && status === 'start' && (
-        <Home
-          phoneNumber={phoneNumber}
-          setPhoneNumber={setPhoneNumber}
-          handleCall={handleCall}
-          setSeeLogs={setSeeLogs}
-          timeoutArray={timeoutArray}
-          isConnectionLost={isConnectionLost}
-        />
-      )}
-
-      {!(effectiveIsMobile && isIncomingRinging) &&
-        !seeLogs &&
-        (status === 'calling' || status === 'ringing' || status === 'conference') &&
-        (callConference ? (
-          <CallConference
-            conferenceNumber={conferenceNumber}
-            setCallConference={setCallConference}
-            setConferenceNumber={setConferenceNumber}
-            handleCalls={handleCalls}
-            setSeeLogs={setSeeLogs}
-            phoneNumber={userCall?.contactNumber || phoneNumber}
-            seconds={seconds}
-            minutes={minutes}
-          />
-        ) : (
-          <CallScreen
-            conferenceNumber={conferenceNumber}
-            userCall={userCall}
-            reqUnHold={reqUnHold}
-            setCallConference={setCallConference}
-            toggleHold={toggleHold}
-            isHeld={isHeld}
-            isRecording={isRecording}
-            startRecording={startRecording}
-            stopRecording={stopRecording}
-            phoneNumber={phoneNumber}
-            session={session}
-            seconds={seconds < 10 ? `0${seconds}` : `${seconds}`}
-            minutes={minutes < 10 ? `0${minutes}` : `${minutes}`}
-            isRunning={isRunning}
-            devices={devices}
-            selectedDeviceId={selectedDeviceId}
-            changeAudioDevice={changeAudioDevice}
-            conferenceStatus={conferenceStatus}
-            status={status}
-            conferenceCalls={conferenceCalls}
-            hasParticipants={hasParticipants}
-            muted={muted}
-            setMuted={setMuted}
-            isCustomerAnswered={isCustomerAnswered}
-            setConferenceNumber={setConferenceNumber}
-            setHasParticipants={setHasParticipants}
-            confRunning={confRunning}
-            confMinutes={confMinutes}
-            confSeconds={confSeconds}
-            isMerged={isMerged}
-            setIsMerged={setIsMerged}
-            setConfRunning={setConfRunning}
-            setConfSeconds={setConfSeconds}
-            setConfMinutes={setConfMinutes}
-          />
-        ))}
-
-      {!(effectiveIsMobile && isIncomingRinging) &&
-        !seeLogs &&
-        !['start', 'calling', 'ringing', 'conference'].includes(status) && (
-          <div className="flex flex-col items-center justify-center h-full text-center py-12">
-            <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center mb-4">
-              <PhoneCall className="h-6 w-6 text-slate-400 dark:text-slate-500" />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-600 dark:text-slate-200">No Active Calls</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Ready to make or receive calls</p>
-          </div>
+      {/* Main Content Area */}
+      <div className={effectiveIsMobile ? 'flex-1 overflow-hidden' : 'w-full h-full'}>
+        {!(effectiveIsMobile && isIncomingRinging) && (activeTab === 'recents' || seeLogs) && (
+          <HistoryScreen setSeeLogs={setSeeLogs} />
         )}
+
+        {!(effectiveIsMobile && isIncomingRinging) && !seeLogs && activeTab === 'dialpad' && status === 'start' && (
+          <Home
+            phoneNumber={phoneNumber}
+            setPhoneNumber={setPhoneNumber}
+            handleCall={handleCall}
+            setSeeLogs={setSeeLogs}
+            timeoutArray={timeoutArray}
+            isConnectionLost={isConnectionLost}
+          />
+        )}
+
+        {!(effectiveIsMobile && isIncomingRinging) &&
+          !seeLogs &&
+          (status === 'calling' || status === 'ringing' || status === 'conference') &&
+          (callConference ? (
+            <CallConference
+              conferenceNumber={conferenceNumber}
+              setCallConference={setCallConference}
+              setConferenceNumber={setConferenceNumber}
+              handleCalls={handleCalls}
+              setSeeLogs={setSeeLogs}
+              phoneNumber={userCall?.contactNumber || phoneNumber}
+              seconds={seconds}
+              minutes={minutes}
+            />
+          ) : (
+            <CallScreen
+              conferenceNumber={conferenceNumber}
+              userCall={userCall}
+              reqUnHold={reqUnHold}
+              setCallConference={setCallConference}
+              toggleHold={toggleHold}
+              isHeld={isHeld}
+              isRecording={isRecording}
+              startRecording={startRecording}
+              stopRecording={stopRecording}
+              phoneNumber={phoneNumber}
+              session={session}
+              seconds={seconds < 10 ? `0${seconds}` : `${seconds}`}
+              minutes={minutes < 10 ? `0${minutes}` : `${minutes}`}
+              isRunning={isRunning}
+              devices={devices}
+              selectedDeviceId={selectedDeviceId}
+              changeAudioDevice={changeAudioDevice}
+              conferenceStatus={conferenceStatus}
+              status={status}
+              conferenceCalls={conferenceCalls}
+              hasParticipants={hasParticipants}
+              muted={muted}
+              setMuted={setMuted}
+              isCustomerAnswered={isCustomerAnswered}
+              setConferenceNumber={setConferenceNumber}
+              setHasParticipants={setHasParticipants}
+              confRunning={confRunning}
+              confMinutes={confMinutes}
+              confSeconds={confSeconds}
+              isMerged={isMerged}
+              setIsMerged={setIsMerged}
+              setConfRunning={setConfRunning}
+              setConfSeconds={setConfSeconds}
+              setConfMinutes={setConfMinutes}
+            />
+          ))}
+
+        {!(effectiveIsMobile && isIncomingRinging) &&
+          !seeLogs &&
+          activeTab === 'dialpad' &&
+          !['start', 'calling', 'ringing', 'conference'].includes(status) && (
+            <div className="flex flex-col items-center justify-center h-full text-center py-12">
+              <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center mb-4">
+                <PhoneCall className="h-6 w-6 text-slate-400 dark:text-slate-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-600 dark:text-slate-200">No Active Calls</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Ready to make or receive calls</p>
+            </div>
+          )}
+      </div>
     </div>
   );
 
@@ -332,59 +423,61 @@ export default function DraggableWebPhone() {
 
   return (
     <>
-      {/* Control Buttons */}
-      <div className={`fixed bottom-18 sm:bottom-2 ${positionClasses} z-[51] flex flex-col gap-2`}>
-        {/* Lock/Unlock Toggle */}
-        {!effectiveIsMobile && phoneShow && (
+      {/* Control Buttons - Desktop Only */}
+      {!effectiveIsMobile && (
+        <div className={`fixed bottom-2 ${positionClasses} z-[51] flex flex-col gap-2`}>
+          {/* Show/Hide Toggle */}
           <Button
             type="button"
             size="sm"
-            variant={isDraggable ? 'default' : 'outline'}
             className="rounded-full w-12 h-12 hover:scale-105 transition-transform"
-            onClick={toggleDraggable}
-            aria-label={isDraggable ? 'Lock position' : 'Enable dragging'}
-            title={isDraggable ? 'Lock position' : 'Enable dragging'}
+            onClick={() => setPhoneShow((prev) => !prev)}
+            aria-label={phoneShow ? 'Hide phone interface' : 'Show phone interface'}
           >
-            {isDraggable ? <Unlock className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+            {!phoneShow ? <PhoneOff className="h-5 w-5" /> : <Phone className="h-5 w-5" />}
           </Button>
-        )}
 
-        {/* Left/Right Position Toggle */}
-        {!effectiveIsMobile && phoneShow && !isDraggable && (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="rounded-full w-12 h-12 hover:scale-105 transition-transform"
-            onClick={togglePosition}
-            aria-label={`Move phone to ${phonePosition === 'right' ? 'left' : 'right'}`}
-            title={`Move to ${phonePosition === 'right' ? 'left' : 'right'}`}
-          >
-            <MoveHorizontal className="h-5 w-5" />
-          </Button>
-        )}
+          {phoneShow && (
+            <>
+              {/* Lock/Unlock Toggle */}
+              <Button
+                type="button"
+                size="sm"
+                variant={isDraggable ? 'default' : 'outline'}
+                className="rounded-full w-12 h-12 hover:scale-105 transition-transform"
+                onClick={toggleDraggable}
+                aria-label={isDraggable ? 'Lock position' : 'Enable dragging'}
+                title={isDraggable ? 'Lock position' : 'Enable dragging'}
+              >
+                {isDraggable ? <Unlock className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+              </Button>
 
-        {/* Show/Hide Toggle */}
-        <Button
-          type="button"
-          size="sm"
-          className="rounded-full w-12 h-12 hover:scale-105 transition-transform"
-          onClick={() => setPhoneShow((prev) => !prev)}
-          aria-label={phoneShow ? 'Hide phone interface' : 'Show phone interface'}
-        >
-          {!phoneShow ? <PhoneOff className="h-5 w-5" /> : <Phone className="h-5 w-5" />}
-        </Button>
-      </div>
+              {/* Left/Right Position Toggle */}
+              {!isDraggable && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full w-12 h-12 hover:scale-105 transition-transform"
+                  onClick={togglePosition}
+                  aria-label={`Move phone to ${phonePosition === 'right' ? 'left' : 'right'}`}
+                  title={`Move to ${phonePosition === 'right' ? 'left' : 'right'}`}
+                >
+                  <MoveHorizontal className="h-5 w-5" />
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Phone Interface */}
       {!dispositionModal && phoneShow && (
         <>
           {effectiveIsMobile ? (
-            // Mobile: Full screen overlay
-            <div className="fixed inset-0 z-[50] bg-black/50 backdrop-blur-sm flex items-center justify-center p-3">
-              <div className="relative w-[250px] h-[430px] bg-card rounded-xl border border-border shadow-xl overflow-hidden">
-                {renderPhoneContent()}
-              </div>
+            // Mobile: Full screen with padding for header and bottom nav from MobileNavigation
+            <div className="fixed left-0 right-0 top-14 bottom-16 z-[35] bg-card overflow-hidden">
+              {renderPhoneContent()}
             </div>
           ) : isDraggable ? (
             // Desktop: Draggable mode
@@ -425,16 +518,16 @@ export default function DraggableWebPhone() {
               }}
               style={{ zIndex: 50 }}
             >
-              <div className="w-full h-full backdrop-blur-md bg-card/80 rounded-xl border-2 border-border shadow-xl overflow-hidden">
+              <div className="w-full h-full bg-card rounded-xl border-2 border-border shadow-xl overflow-hidden">
                 {renderPhoneContent()}
               </div>
             </Rnd>
           ) : (
             // Desktop: Fixed position mode
             <div
-              className={`backdrop-blur-md bottom-16 ${
+              className={`bottom-16 ${
                 phonePosition === 'right' ? 'end-8' : 'start-8'
-              } fixed w-[250px] h-[430px] z-[50] bg-card/80 rounded-xl border border-border shadow-xl transition-all duration-300 overflow-hidden`}
+              } fixed w-[250px] h-[460px] z-[50] bg-card rounded-xl border border-border shadow-xl transition-all duration-300 overflow-hidden`}
             >
               {renderPhoneContent()}
             </div>

@@ -154,7 +154,7 @@ export default function AgentDashboard() {
       try {
         const tokenData = JSON.parse(localStorage.getItem('token'));
         const response = await axios.post(
-          `https://esamwad.iotcom.io/agentDashboardData`,
+          `${window.location.origin}/agentDashboardData`,
           { user: tokenData.userData.userid },
           {
             headers: {
@@ -241,26 +241,26 @@ export default function AgentDashboard() {
       />
 
       <div className="space-y-8">
-        <div className="text-center md:text-start">
-          <h1 className="text-2xl font-bold text-primary mb-2">Agent Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Real-time performance metrics and activity tracking</p>
+        <div className="text-center sm:text-start px-4 sm:px-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-primary mb-2">Agent Dashboard</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Real-time performance metrics and activity tracking</p>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-0">
           {metrics.map((metric, index) => (
             <MetricCard key={index} metric={metric} index={index} />
           ))}
         </div>
 
-        <div className="bg-card/90 rounded-2xl border border-border/50 shadow overflow-hidden">
-          <div className="bg-muted/80 p-4">
-            <div className="flex justify-between items-center flex-wrap gap-4">
+        <div className="bg-card/90 rounded-2xl border border-border/50 shadow overflow-hidden mx-4 sm:mx-0">
+          <div className="bg-muted/80 p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
-                  <Activity className="w-5 h-5 text-primary" />
+                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-foreground">
+                  <h2 className="text-base sm:text-lg font-bold text-foreground">
                     {incomingCallData ? 'Call Logs' : 'Activity Statistics'}
                   </h2>
                   <p className="text-xs text-muted-foreground">Track your daily performance</p>
@@ -269,53 +269,54 @@ export default function AgentDashboard() {
               <Button
                 onClick={() => setIncomingCallData(!incomingCallData)}
                 variant="default"
-                className="flex items-center gap-2 hover:scale-105 transition-all duration-300 shadow-md justify-center"
+                size="sm"
+                className="flex items-center gap-2 hover:scale-105 transition-all duration-300 shadow-md justify-center w-full sm:w-auto"
               >
                 {incomingCallData ? (
                   <>
                     <List className="w-4 h-4" />
-                    <span className="text-sm">Activity Stats</span>
+                    <span className="text-xs sm:text-sm">Activity Stats</span>
                   </>
                 ) : (
                   <>
                     <BarChart2 className="w-4 h-4" />
-                    <span className="text-sm">Call Logs</span>
+                    <span className="text-xs sm:text-sm">Call Logs</span>
                   </>
                 )}
               </Button>
             </div>
           </div>
-          <div className="p-4">
+          <div className="p-3 sm:p-4">
             {incomingCallData ? (
               <AgentCallData />
             ) : (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                   {Object.entries(dashboardData.timeStats)
                     .slice(0, -1)
                     .map(([key, value], index) => (
                       <TimeStatCard key={key} label={key} value={value} index={index} />
                     ))}
                 </div>
-                <div className="bg-secondary/80 rounded-xl p-4 border border-secondary/30 shadow">
-                  <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
+                <div className="bg-secondary/80 rounded-xl p-3 sm:p-4 border border-secondary/30 shadow">
+                  <div className="flex flex-col lg:flex-row items-center justify-between gap-3 sm:gap-4">
+                    <div className="flex items-center gap-3 w-full lg:w-auto">
                       <div className="p-2 bg-secondary-foreground/10 rounded-xl">
-                        <Timer className="w-5 h-5 text-secondary-foreground" />
+                        <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-secondary-foreground" />
                       </div>
-                      <span className="font-semibold text-secondary-foreground text-sm">Total Login Time</span>
+                      <span className="font-semibold text-secondary-foreground text-xs sm:text-sm">Total Login Time</span>
                     </div>
-                    <div className="text-xl font-bold text-secondary-foreground">
+                    <div className="text-lg sm:text-xl font-bold text-secondary-foreground">
                       {dashboardData.timeStats.totalLoginTime}
                     </div>
                     <Button
                       onClick={() => setShowActivityModal(true)}
                       variant="default"
                       size="sm"
-                      className="flex items-center gap-2 hover:scale-105 transition-all duration-300 shadow-md justify-center"
+                      className="flex items-center gap-2 hover:scale-105 transition-all duration-300 shadow-md justify-center w-full lg:w-auto"
                     >
                       <Eye className="w-4 h-4" />
-                      <span className="text-sm">View Details</span>
+                      <span className="text-xs sm:text-sm">View Details</span>
                     </Button>
                   </div>
                 </div>
@@ -325,39 +326,39 @@ export default function AgentDashboard() {
         </div>
 
         {!incomingCallData && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 px-4 sm:px-0">
             <div className="bg-card/90 rounded-2xl border border-border/50 shadow overflow-hidden">
-              <div className="bg-muted/80 p-4">
-                <div className="flex items-center gap-3">
+              <div className="bg-muted/80 p-3 sm:p-4">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
-                    <BarChart2 className="w-5 h-5 text-primary" />
+                    <BarChart2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-foreground">Activity Distribution</h3>
+                    <h3 className="text-base sm:text-lg font-bold text-foreground">Activity Distribution</h3>
                     <p className="text-xs text-muted-foreground">Daily activity breakdown</p>
                   </div>
                 </div>
               </div>
-              <div className="p-4">
-                <div className="h-64">
+              <div className="p-3 sm:p-4">
+                <div className="w-full h-80">
                   <ActivityChart data={dashboardData.chartData} />
                 </div>
               </div>
             </div>
             <div className="bg-card/90 rounded-2xl border border-border/50 shadow overflow-hidden">
-              <div className="bg-muted/80 p-4">
-                <div className="flex items-center gap-3">
+              <div className="bg-muted/80 p-3 sm:p-4">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
-                    <TrendingUp className="w-5 h-5 text-primary" />
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-foreground">Disposition Chart</h3>
+                    <h3 className="text-base sm:text-lg font-bold text-foreground">Disposition Chart</h3>
                     <p className="text-xs text-muted-foreground">Call outcome analysis</p>
                   </div>
                 </div>
               </div>
-              <div className="p-4">
-                <div className="h-64">
+              <div className="p-3 sm:p-4">
+                <div className="w-full h-80">
                   <DispositionChart callsData={dashboardData.summaryCalls} />
                 </div>
               </div>
@@ -366,22 +367,22 @@ export default function AgentDashboard() {
         )}
 
         <Dialog open={showActivityModal} onOpenChange={setShowActivityModal}>
-          <DialogContent className="max-w-4xl w-full p-0 overflow-hidden rounded-2xl border-0">
+          <DialogContent className="max-w-4xl w-[95vw] sm:w-full p-0 overflow-hidden rounded-2xl border-0 max-h-[90vh]">
             <div className="bg-card/95 rounded-2xl shadow-2xl">
-              <div className="bg-muted/80 p-4">
+              <div className="bg-muted/80 p-3 sm:p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
-                      <List className="w-5 h-5 text-primary" />
+                      <List className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold text-foreground">Detailed Activity Log</h2>
-                      <p className="text-xs text-muted-foreground">Complete activity timeline</p>
+                      <h2 className="text-base sm:text-lg font-bold text-foreground">Detailed Activity Log</h2>
+                      <p className="text-xs text-muted-foreground hidden sm:block">Complete activity timeline</p>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="p-4 max-h-[60vh] overflow-y-auto">
+              <div className="p-3 sm:p-4 max-h-[60vh] overflow-y-auto">
                 <div className="space-y-3">
                   {dashboardData.activityData.map((activity, index) => (
                     <div
@@ -410,6 +411,8 @@ export default function AgentDashboard() {
           </DialogContent>
         </Dialog>
       </div>
+
+
     </>
   );
 }

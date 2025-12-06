@@ -60,6 +60,17 @@ const CallScreen = ({
   const [currNum, setCurrNum] = useState('');
   const [isHovered, setIsHovered] = useState(false);
   const [showKeyPad, setShowKeyPad] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 640px)');
+    setIsMobile(mediaQuery.matches);
+
+    const handleResize = () => setIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleResize);
+    return () => mediaQuery.removeEventListener('change', handleResize);
+  }, []);
 
   // FIXED: Use ref to track processing state to avoid stale closures
   const processingRef = useRef(new Set());
@@ -118,7 +129,7 @@ const CallScreen = ({
 
   const handleTransfer = async () => {
     try {
-      await axios.post(`https://esamwad.iotcom.io/reqTransfer/${username}`, {});
+      await axios.post(`${window.location.origin}/reqTransfer/${username}`, {});
       toast.success('Request successful!');
     } catch (error) {
       toast.error('Request failed. Please try again.');
@@ -196,7 +207,7 @@ const CallScreen = ({
       }
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/hangup/hostChannel/Conf`,
+        `${window.location.origin}/hangup/hostChannel/Conf`,
         {
           user: username,
           hostNumber: cleanNumber,
@@ -303,197 +314,205 @@ const CallScreen = ({
         disabled={isDisabled}
         title={title}
         className={`
-          w-10 h-10 rounded-lg transition-all duration-200 flex items-center justify-center
+          w-14 h-14 sm:w-10 sm:h-10 rounded-lg transition-all duration-200 flex items-center justify-center
           ${active ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card/80 text-primary hover:bg-accent'}
           ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105 hover:shadow-lg active:scale-95'}
           ${className}
         `}
       >
-        {isProcessing ? <Loader2 size={16} className="animate-spin" /> : icon}
+        {isProcessing ? <Loader2 size={isMobile ? 24 : 16} className="animate-spin" /> : icon}
       </button>
     );
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[300px] p-3">
+    <div className="flex flex-col sm:justify-start justify-end min-h-full md:pb-0 pb-10 px-0 md:px-3">
       {session && session.connection && <WebRTCStats peerConnection={session.connection} />}
 
-      {/* Header - Original UI Structure */}
-      <div className="flex flex-col items-center my-3">
-        <div className="relative mb-2">
-          <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center shadow-md">
-            <User className="text-primary-foreground" size={20} />
+      {/* Mobile: White box with shadow */}
+      <div className={isMobile ? '' : 'w-full max-w-md mx-auto'}>
+        {/* Header - Original UI Structure */}
+        <div className="flex flex-col items-center my-4 md:my-3">
+          <div className="relative mb-4 md:mb-2">
+            <div className="w-16 h-16 md:w-12 md:h-12 rounded-full bg-primary flex items-center justify-center shadow-md">
+              <User className="text-primary-foreground" size={isMobile ? 28 : 20} />
+            </div>
+          </div>
+
+          <div className="text-center mb-3 md:mb-2">
+            {conferenceStatus ? (
+              <div className="text-lg md:text-sm font-medium text-muted-foreground max-w-[250px]">
+                {userCall?.contactNumber} Hold {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+              </div>
+            ) : (
+              ''
+            )}
+
+            <div className="text-xl md:text-sm font-medium text-muted-foreground max-w-[250px]">{mainNumber}</div>
+
+            <div className="flex items-center justify-center gap-1 mt-1">
+              {isRunning ? (
+                <>
+                  <Clock className="w-4 h-4 sm:w-3 sm:h-3 text-secondary-foreground" />
+                  <span className="text-lg md:text-sm font-mono text-secondary-foreground">
+                    {conferenceNumber && !isMerged
+                      ? `${String(confMinutes).padStart(2, '0')}:${String(confSeconds).padStart(2, '0')}`
+                      : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Loader2 className="w-4 h-4 sm:w-3 sm:h-3 text-primary animate-spin" />
+                  <span className="text-primary text-sm md:text-xs">Calling...</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="text-center mb-2">
-          {conferenceStatus ? (
-            <div className="text-sm font-medium text-muted-foreground max-w-[250px]">
-              {userCall?.contactNumber} Hold {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
-            </div>
+        {/* Controls Section with Enhanced Buttons */}
+        <div className="space-y-4">
+          {!showKeyPad ? (
+            <>
+              {/* Primary Controls Row */}
+              <div className="flex justify-center gap-6 sm:gap-4">
+                <ControlButton
+                  buttonId="hold-button"
+                  onClick={handleToggleHoldDebounced}
+                  disabled={!session || conferenceStatus}
+                  active={isHeld}
+                  icon={<Pause size={isMobile ? 24 : 16} />}
+                  title="Hold"
+                  debounceTime={1000}
+                />
+                <ControlButton
+                  buttonId="transfer-button"
+                  disabled={!isMerged}
+                  onClick={handleTransfer}
+                  icon={<PhoneForwarded size={isMobile ? 24 : 16} />}
+                  title="Transfer"
+                  className={!isMerged ? 'opacity-40' : ''}
+                  debounceTime={500}
+                />
+
+                <ControlButton
+                  buttonId="keypad-button"
+                  onClick={() => setShowKeyPad(true)}
+                  icon={<Grip size={isMobile ? 24 : 16} />}
+                  title="Keypad"
+                  debounceTime={200}
+                />
+              </div>
+
+              {/* Secondary Controls Row */}
+              <div className="flex justify-center gap-4 sm:gap-3">
+                {conferenceStatus ? (
+                  <ControlButton
+                    buttonId="merge-button"
+                    disabled={hasParticipants !== 'connected'}
+                    onClick={handleMerge}
+                    icon={<Merge size={isMobile ? 24 : 16} />}
+                    title="Merge"
+                    active={isMerged}
+                    debounceTime={800}
+                  />
+                ) : (
+                  <ControlButton
+                    buttonId="add-call-button"
+                    disabled={!session}
+                    onClick={() => setCallConference?.(true)}
+                    icon={<UserPlus size={isMobile ? 24 : 16} />}
+                    title="Add Call"
+                    debounceTime={500}
+                    disabled={!isCustomerAnswered || isMerged}
+                  />
+                )}
+                {console.log(isCustomerAnswered, 'isCustomerAnswered')}
+                <ControlButton
+                  buttonId="record-button"
+                  onClick={!isRecording ? startRecording : stopRecording}
+                  disabled={!session && !isRecording}
+                  icon={
+                    <Square
+                      size={isMobile ? 24 : 16}
+                      className={isRecording ? 'text-destructive' : 'text-secondary-foreground'}
+                    />
+                  }
+                  title={isRecording ? 'Stop Recording' : 'Start Recording'}
+                  active={isRecording}
+                  debounceTime={600}
+                />
+
+                <ControlButton
+                  buttonId="mute-button"
+                  active={muted}
+                  onClick={handleMuteToggle}
+                  icon={<MicOff size={isMobile ? 24 : 16} />}
+                  title="Mute"
+                  debounceTime={200}
+                />
+              </div>
+            </>
           ) : (
-            ''
+            /* Keypad Section */
+            <div className="space-y-3">
+              <div className="relative">
+                <button
+                  className="absolute -top-6 right-0 z-10 p-1 text-muted-foreground hover:text-destructive transition-all duration-200"
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
+                  onClick={() => {
+                    setCurrNum('');
+                    setShowKeyPad(false);
+                  }}
+                  aria-label="Close Keypad"
+                >
+                  <XCircle size={isMobile ? 24 : 16}  className={isHovered ? 'text-destructive' : ''} />
+                </button>
+                <KeyPad setPhoneNumber={setCurrNum} />
+              </div>
+            </div>
           )}
 
-          <div className="text-sm font-medium text-muted-foreground max-w-[250px]">{mainNumber}</div>
-
-          <div className="flex items-center justify-center gap-1 mt-1">
-            {isRunning ? (
-              <>
-                <Clock className="w-3 h-3 text-secondary-foreground" />
-                <span className="text-sm font-mono text-secondary-foreground">
-                  {conferenceNumber && !isMerged
-                    ? `${String(confMinutes).padStart(2, '0')}:${String(confSeconds).padStart(2, '0')}`
-                    : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`}
-                </span>
-              </>
-            ) : (
-              <>
-                <Loader2 className="w-3 h-3 text-primary animate-spin" />
-                <span className="text-primary text-xs">Calling...</span>
-              </>
-            )}
+          {/* End Call Button */}
+          <div className="flex justify-center md:py-0 py-4">
+            <button
+              className="text-white cursor-pointer w-16 h-16 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-destructive shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 rotate-[133deg] focus:outline-none focus:ring-2 focus:ring-destructive"
+              onClick={() => {
+                if (conferenceNumber) {
+                  handleConferenceHangup();
+                } else {
+                  session?.terminate();
+                  stopRecording?.();
+                }
+              }}
+              aria-label="End Call"
+              title="End Call"
+              type="button"
+            >
+              <Phone size={isMobile ? 24 : 18} />
+            </button>
           </div>
-        </div>
-      </div>
 
-      {/* Controls Section with Enhanced Buttons */}
-      <div className="space-y-4">
-        {!showKeyPad ? (
-          <>
-            {/* Primary Controls Row */}
-            <div className="flex justify-center gap-3">
-              <ControlButton
-                buttonId="hold-button"
-                onClick={handleToggleHoldDebounced}
-                disabled={!session || conferenceStatus}
-                active={isHeld}
-                icon={<Pause size={16} />}
-                title="Hold"
-                debounceTime={1000}
-              />
-              <ControlButton
-                buttonId="transfer-button"
-                disabled={!isMerged}
-                onClick={handleTransfer}
-                icon={<PhoneForwarded size={16} />}
-                title="Transfer"
-                className={!isMerged ? 'opacity-40' : ''}
-                debounceTime={500}
-              />
-
-              <ControlButton
-                buttonId="keypad-button"
-                onClick={() => setShowKeyPad(true)}
-                icon={<Grip size={16} />}
-                title="Keypad"
-                debounceTime={200}
-              />
-            </div>
-
-            {/* Secondary Controls Row */}
-            <div className="flex justify-center gap-3">
-              {conferenceStatus ? (
-                <ControlButton
-                  buttonId="merge-button"
-                  disabled={hasParticipants !== 'connected'}
-                  onClick={handleMerge}
-                  icon={<Merge size={16} />}
-                  title="Merge"
-                  active={isMerged}
-                  debounceTime={800}
-                />
+          {/* Audio Device Selector */}
+          <div className="text-center">
+            <select
+              id="audio-device"
+              value={selectedDeviceId}
+              onChange={(e) => changeAudioDevice?.(e.target.value)}
+              className="md:w-full max-w-xs text-center bg-muted border border-border text-foreground text-xs rounded-lg p-2 outline-none focus:ring-2 focus:ring-accent transition-all duration-200"
+            >
+              {Array.isArray(devices) && devices.length > 0 ? (
+                devices.map((device, index) => (
+                  <option key={device.deviceId} value={device.deviceId}>
+                    {device.label || `Audio device ${index + 1}`}
+                  </option>
+                ))
               ) : (
-                <ControlButton
-                  buttonId="add-call-button"
-                  disabled={!session}
-                  onClick={() => setCallConference?.(true)}
-                  icon={<UserPlus size={16} />}
-                  title="Add Call"
-                  debounceTime={500}
-                  disabled={!isCustomerAnswered || isMerged}
-                />
+                <option value="default">Default Audio Device</option>
               )}
-              {console.log(isCustomerAnswered, 'isCustomerAnswered')}
-              <ControlButton
-                buttonId="record-button"
-                onClick={!isRecording ? startRecording : stopRecording}
-                disabled={!session && !isRecording}
-                icon={<Square size={16} className={isRecording ? 'text-destructive' : 'text-secondary-foreground'} />}
-                title={isRecording ? 'Stop Recording' : 'Start Recording'}
-                active={isRecording}
-                debounceTime={600}
-              />
-
-              <ControlButton
-                buttonId="mute-button"
-                active={muted}
-                onClick={handleMuteToggle}
-                icon={<MicOff size={16} />}
-                title="Mute"
-                debounceTime={200}
-              />
-            </div>
-          </>
-        ) : (
-          /* Keypad Section */
-          <div className="space-y-3">
-            <div className="relative">
-              <button
-                className="absolute -top-6 right-0 z-10 p-1 text-muted-foreground hover:text-destructive transition-all duration-200"
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-                onClick={() => {
-                  setCurrNum('');
-                  setShowKeyPad(false);
-                }}
-                aria-label="Close Keypad"
-              >
-                <XCircle size={18} className={isHovered ? 'text-destructive' : ''} />
-              </button>
-              <KeyPad setPhoneNumber={setCurrNum} />
-            </div>
+            </select>
           </div>
-        )}
-
-        {/* End Call Button */}
-        <div className="flex justify-center">
-          <button
-            className="text-white cursor-pointer w-12 h-12 flex items-center justify-center rounded-full bg-destructive shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 rotate-[133deg] focus:outline-none focus:ring-2 focus:ring-destructive"
-            onClick={() => {
-              if (conferenceNumber) {
-                handleConferenceHangup();
-              } else {
-                session?.terminate();
-                stopRecording?.();
-              }
-            }}
-            aria-label="End Call"
-            title="End Call"
-            type="button"
-          >
-            <Phone size={18} />
-          </button>
-        </div>
-
-        {/* Audio Device Selector */}
-        <div>
-          <select
-            id="audio-device"
-            value={selectedDeviceId}
-            onChange={(e) => changeAudioDevice?.(e.target.value)}
-            className="w-full bg-muted border border-border text-foreground text-xs rounded-lg p-2 outline-none focus:ring-2 focus:ring-accent transition-all duration-200"
-          >
-            {Array.isArray(devices) && devices.length > 0 ? (
-              devices.map((device, index) => (
-                <option key={device.deviceId} value={device.deviceId}>
-                  {device.label || `Audio device ${index + 1}`}
-                </option>
-              ))
-            ) : (
-              <option value="default">Default Audio Device</option>
-            )}
-          </select>
         </div>
       </div>
     </div>

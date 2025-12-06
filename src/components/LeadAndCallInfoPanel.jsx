@@ -32,14 +32,17 @@ export default function LeadAndCallInfoPanel({
   const [isFormDataInitialized, setIsFormDataInitialized] = useState(false);
 
   // Internal state management
-  const [startDate, setStartDate] = useState(moment().subtract(24, 'hours').format('YYYY-MM-DD'));
-  const [endDate, setEndDate] = useState(moment().format('YYYY-MM-DD'));
+  const [startDate, setStartDate] = useState(moment().subtract(7, 'days').startOf('day').toDate());
+  const [endDate, setEndDate] = useState(moment().endOf('day').toDate());
   const [apiCallData, setApiCallData] = useState([]);
   const [leadsData, setLeadsData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formConfig, setFormConfig] = useState(null);
   const [formId, setFormId] = useState(null);
 
+  console.log(
+    formConfig
+  );
   const fetchWithTokenRetry = async (url, token, refreshToken, config = {}) => {
     // Use token if available, otherwise use refreshToken
     const authToken = token || refreshToken;
@@ -60,7 +63,7 @@ export default function LeadAndCallInfoPanel({
             throw new Error('No saved credentials found');
           }
 
-          const refreshRes = await axios.post('https://esamwad.iotcom.io/api/applogin', {
+          const refreshRes = await axios.post('${window.location.origin}/api/applogin', {
             username: savedUsername,
             password: savedPassword,
           });
@@ -101,9 +104,12 @@ export default function LeadAndCallInfoPanel({
     }
   };
 
+  console.log(userCampaign, 'userCampaign')
   useEffect(() => {
     if (!userCampaign) {
+      console.log('LeadAndCallInfoPanel - No userCampaign, will use static form');
       setFormId(null);
+      setFormConfig(null);
       return;
     }
 
@@ -117,19 +123,41 @@ export default function LeadAndCallInfoPanel({
 
         if (tokenData) {
           const parsedData = JSON.parse(tokenData);
-          token = parsedData.token;
+          token = parsedData.token || parsedData.accessToken;
           refreshToken = parsedData.refreshToken || refreshToken;
         }
 
+        if (!token) {
+          console.warn('LeadAndCallInfoPanel - No token found, will use static form');
+          setFormId(null);
+          setFormConfig(null);
+          return;
+        }
+
+        console.log('LeadAndCallInfoPanel - Fetching form list:', { 
+          userCampaign, 
+          callType, 
+          hasToken: !!token 
+        });
+
         const res = await fetchWithTokenRetry(
-          `https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`,
+          `${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`,
           token,
           refreshToken
         );
 
         const forms = res.data.agentWebForm || [];
+        console.log('LeadAndCallInfoPanel - Forms received:', forms.length, forms);
+
+        if (forms.length === 0) {
+          console.log('LeadAndCallInfoPanel - No forms available, will use static form');
+          setFormId(null);
+          setFormConfig(null);
+          return;
+        }
 
         let targetType = callType === 'outgoing' ? 'outgoing' : 'incoming';
+        console.log('LeadAndCallInfoPanel - Looking for form type:', targetType);
 
         // Try multiple possible property names and values
         let matchingForm = forms.find((form) => {
@@ -142,8 +170,11 @@ export default function LeadAndCallInfoPanel({
 
         // If no match found, try fallback logic
         if (!matchingForm && forms.length > 0) {
+          console.log('LeadAndCallInfoPanel - No exact match, trying fallback logic');
+          
           // Fallback 1: Use first form if only one exists
           if (forms.length === 1) {
+            console.log('LeadAndCallInfoPanel - Using single available form');
             matchingForm = forms[0];
           }
 
@@ -160,17 +191,29 @@ export default function LeadAndCallInfoPanel({
               return false;
             });
           }
+
+          // Fallback 3: Just use the first form
+          if (!matchingForm) {
+            console.log('LeadAndCallInfoPanel - No match found, using first form as fallback');
+            matchingForm = forms[0];
+          }
         }
 
         if (matchingForm) {
           // Try different property names for formId
           const formId = matchingForm.formId || matchingForm.id || matchingForm.Id || matchingForm.form_id;
+          console.log('LeadAndCallInfoPanel - Form matched, formId:', formId, 'form:', matchingForm);
           setFormId(formId);
         } else {
+          console.log('LeadAndCallInfoPanel - No matching form found, will use static form');
           setFormId(null);
+          setFormConfig(null);
         }
       } catch (err) {
+        console.error('LeadAndCallInfoPanel - Error fetching form list:', err.response?.data || err.message);
+        // On error, fall back to static form
         setFormId(null);
+        setFormConfig(null);
       } finally {
         setLoading(false);
       }
@@ -180,7 +223,10 @@ export default function LeadAndCallInfoPanel({
   }, [userCampaign, callType]);
 
   useEffect(() => {
+    console.log(formId, 'formId');
     if (!formId) {
+      console.log('LeadAndCallInfoPanel - No formId, will use static form');
+      setFormConfig(null);
       return;
     }
 
@@ -194,18 +240,36 @@ export default function LeadAndCallInfoPanel({
 
         if (tokenData) {
           const parsedData = JSON.parse(tokenData);
-          token = parsedData.token;
+          token = parsedData.token || parsedData.accessToken;
           refreshToken = parsedData.refreshToken || refreshToken;
         }
 
+        if (!token) {
+          console.warn('LeadAndCallInfoPanel - No token for form details, will use static form');
+          setFormConfig(null);
+          return;
+        }
+
+        console.log('LeadAndCallInfoPanel - Fetching form details for formId:', formId);
+
         const res = await fetchWithTokenRetry(
-          `https://esamwad.iotcom.io/getDynamicFormData/${formId}`,
+          `${window.location.origin}/getDynamicFormData/${formId}`,
           token,
           refreshToken
         );
 
-        setFormConfig(res.data.result);
+        const formConfigData = res.data.result;
+        console.log('LeadAndCallInfoPanel - Form config received:', formConfigData);
+        
+        if (formConfigData && formConfigData.sections && formConfigData.sections.length > 0) {
+          setFormConfig(formConfigData);
+        } else {
+          console.warn('LeadAndCallInfoPanel - Form config invalid or empty, will use static form');
+          setFormConfig(null);
+        }
       } catch (err) {
+        console.error('LeadAndCallInfoPanel - Error fetching form details:', err.response?.data || err.message);
+        // On error, fall back to static form
         setFormConfig(null);
       } finally {
         setLoading(false);
@@ -225,7 +289,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/leadswithdaterange`,
+        `${window.location.origin}/leadswithdaterange`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -258,7 +322,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/callDataByAgent`,
+        `${window.location.origin}/callDataByAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -407,7 +471,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -472,7 +536,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
