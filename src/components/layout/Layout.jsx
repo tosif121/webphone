@@ -48,29 +48,21 @@ export default function Layout({ children }) {
     if (tokenData) {
       try {
         const parsedData = JSON.parse(tokenData);
-        console.log('Layout - Raw token data:', parsedData);
-        
+
         // Try multiple possible paths for campaign (matching Dashboard.jsx)
-        const campaignID = 
-          parsedData?.userData?.campaign ||      // Primary path used in Dashboard
-          parsedData?.userData?.campaignID || 
-          parsedData?.user?.campaignID || 
+        const campaignID =
+          parsedData?.userData?.campaign || // Primary path used in Dashboard
+          parsedData?.userData?.campaignID ||
+          parsedData?.user?.campaignID ||
           parsedData?.campaignID ||
           parsedData?.data?.campaignID;
-        
+
         // Try multiple possible paths for token
-        const accessToken = 
-          parsedData?.token ||                   // Primary path used in Dashboard
-          parsedData?.accessToken || 
+        const accessToken =
+          parsedData?.token || // Primary path used in Dashboard
+          parsedData?.accessToken ||
           parsedData?.data?.token;
-        
-        console.log('Layout - Extracted data:', { 
-          campaignID, 
-          hasToken: !!accessToken,
-          tokenLength: accessToken?.length,
-          userData: parsedData?.userData 
-        });
-        
+
         setUserCampaign(campaignID);
         setToken(accessToken);
       } catch (e) {
@@ -129,7 +121,6 @@ export default function Layout({ children }) {
   // Listen for force login request messages from JsSIP
   useEffect(() => {
     const handleForceLoginRequest = (event) => {
-      console.log('Force login request received in Layout:', event.detail);
       setShowSecurityAlert(true);
       toast.error('Security Alert: Someone is trying to login from another device!');
     };
@@ -140,7 +131,6 @@ export default function Layout({ children }) {
     // FOR TESTING: Expose a function to manually trigger the security alert
     // You can call this from browser console: window.testForceLogin()
     window.testForceLogin = () => {
-      console.log('Testing force login alert...');
       setShowSecurityAlert(true);
     };
 

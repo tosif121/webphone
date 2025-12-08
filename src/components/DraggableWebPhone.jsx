@@ -222,7 +222,6 @@ export default function DraggableWebPhone() {
     };
 
     const handleCloseDialpad = () => {
-      console.log('Close dialpad event received. Status:', status, 'Session:', !!session);
       // Only close if not in an active call
       if (status === 'start' || !session) {
         console.log('Closing dialpad');

@@ -40,9 +40,6 @@ export default function LeadAndCallInfoPanel({
   const [formConfig, setFormConfig] = useState(null);
   const [formId, setFormId] = useState(null);
 
-  console.log(
-    formConfig
-  );
   const fetchWithTokenRetry = async (url, token, refreshToken, config = {}) => {
     // Use token if available, otherwise use refreshToken
     const authToken = token || refreshToken;
@@ -104,10 +101,8 @@ export default function LeadAndCallInfoPanel({
     }
   };
 
-  console.log(userCampaign, 'userCampaign')
   useEffect(() => {
     if (!userCampaign) {
-      console.log('LeadAndCallInfoPanel - No userCampaign, will use static form');
       setFormId(null);
       setFormConfig(null);
       return;
@@ -134,12 +129,6 @@ export default function LeadAndCallInfoPanel({
           return;
         }
 
-        console.log('LeadAndCallInfoPanel - Fetching form list:', { 
-          userCampaign, 
-          callType, 
-          hasToken: !!token 
-        });
-
         const res = await fetchWithTokenRetry(
           `${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`,
           token,
@@ -147,17 +136,14 @@ export default function LeadAndCallInfoPanel({
         );
 
         const forms = res.data.agentWebForm || [];
-        console.log('LeadAndCallInfoPanel - Forms received:', forms.length, forms);
 
         if (forms.length === 0) {
-          console.log('LeadAndCallInfoPanel - No forms available, will use static form');
           setFormId(null);
           setFormConfig(null);
           return;
         }
 
         let targetType = callType === 'outgoing' ? 'outgoing' : 'incoming';
-        console.log('LeadAndCallInfoPanel - Looking for form type:', targetType);
 
         // Try multiple possible property names and values
         let matchingForm = forms.find((form) => {
@@ -170,11 +156,8 @@ export default function LeadAndCallInfoPanel({
 
         // If no match found, try fallback logic
         if (!matchingForm && forms.length > 0) {
-          console.log('LeadAndCallInfoPanel - No exact match, trying fallback logic');
-          
           // Fallback 1: Use first form if only one exists
           if (forms.length === 1) {
-            console.log('LeadAndCallInfoPanel - Using single available form');
             matchingForm = forms[0];
           }
 
@@ -194,7 +177,6 @@ export default function LeadAndCallInfoPanel({
 
           // Fallback 3: Just use the first form
           if (!matchingForm) {
-            console.log('LeadAndCallInfoPanel - No match found, using first form as fallback');
             matchingForm = forms[0];
           }
         }
@@ -202,10 +184,8 @@ export default function LeadAndCallInfoPanel({
         if (matchingForm) {
           // Try different property names for formId
           const formId = matchingForm.formId || matchingForm.id || matchingForm.Id || matchingForm.form_id;
-          console.log('LeadAndCallInfoPanel - Form matched, formId:', formId, 'form:', matchingForm);
           setFormId(formId);
         } else {
-          console.log('LeadAndCallInfoPanel - No matching form found, will use static form');
           setFormId(null);
           setFormConfig(null);
         }
@@ -223,9 +203,7 @@ export default function LeadAndCallInfoPanel({
   }, [userCampaign, callType]);
 
   useEffect(() => {
-    console.log(formId, 'formId');
     if (!formId) {
-      console.log('LeadAndCallInfoPanel - No formId, will use static form');
       setFormConfig(null);
       return;
     }
@@ -250,8 +228,6 @@ export default function LeadAndCallInfoPanel({
           return;
         }
 
-        console.log('LeadAndCallInfoPanel - Fetching form details for formId:', formId);
-
         const res = await fetchWithTokenRetry(
           `${window.location.origin}/getDynamicFormData/${formId}`,
           token,
@@ -259,8 +235,7 @@ export default function LeadAndCallInfoPanel({
         );
 
         const formConfigData = res.data.result;
-        console.log('LeadAndCallInfoPanel - Form config received:', formConfigData);
-        
+
         if (formConfigData && formConfigData.sections && formConfigData.sections.length > 0) {
           setFormConfig(formConfigData);
         } else {

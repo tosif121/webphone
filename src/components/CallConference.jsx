@@ -35,7 +35,7 @@ const CallConference = ({
   };
 
   return (
-    <div className="p-3 h-full flex items-end md:pb-0 pb-10 justify-center">
+    <div className="md:p-3 p-4 h-full flex flex-col md:justify-start justify-end md:pb-0 pb-10">
       {/* Mobile: White box with shadow */}
       <div className={isMobile ? '  ' : 'w-full max-w-md mx-auto'}>
         {/* Header - Only show on desktop */}
@@ -50,7 +50,7 @@ const CallConference = ({
           </button>
 
           {/* Phone number */}
-          <h1 className="text-xl md:text-md font-semibold text-primary">{phoneNumber}</h1>
+          <h1 className="text-xl md:text-lg font-semibold text-primary">{phoneNumber}</h1>
 
           {/* Timer */}
           <div className="flex items-center gap-1">

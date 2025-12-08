@@ -12,7 +12,7 @@ export default function MobileTabsWrapper() {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -40,8 +40,6 @@ export default function MobileTabsWrapper() {
   }, []);
 
   const handleTabChange = (tab) => {
-    console.log('Changing tab to:', tab);
-    
     if (tab === 'recents') {
       setActiveTab('recents');
       setDialpadOpen(true);
@@ -83,7 +81,7 @@ export default function MobileTabsWrapper() {
     <div className="flex flex-col h-screen">
       {/* Mobile Navigation Header - Always visible */}
       <MobileNavigation activeTab={activeTab} onTabChange={handleTabChange} />
-      
+
       {/* Content Area with padding for header and bottom nav */}
       {/* Only show content area for leads and stats tabs, dialpad and recents are handled by DraggableWebPhone */}
       {(activeTab === 'leads' || activeTab === 'stats') && (

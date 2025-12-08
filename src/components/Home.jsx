@@ -28,7 +28,7 @@ const Home = ({ phoneNumber, setPhoneNumber, handleCall, setSeeLogs, timeoutArra
   };
 
   return (
-    <div className="p-3 sm:p-4 h-full flex flex-col justify-end md:pb-0 pb-10">
+    <div className="md:p-3 p-4 h-full flex flex-col md:justify-start justify-end md:pb-0 pb-10">
       {/* Header - Only show on desktop, hidden on mobile since MobileNavigation provides it */}
       {!isMobile && (
         <div className="flex justify-between items-center mb-4 sm:mb-3 cursor-move select-none">

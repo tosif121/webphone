@@ -2,7 +2,6 @@ import { History, LayoutGrid, BarChart3, PhoneCall, TableOfContents } from 'luci
 
 export default function MobileNavigation({ activeTab, onTabChange }) {
   const handleTabChange = (tab) => {
-    console.log('Tab clicked:', tab);
     if (onTabChange) {
       onTabChange(tab);
     }
@@ -26,7 +25,7 @@ export default function MobileNavigation({ activeTab, onTabChange }) {
   return (
     <>
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card md:hidden">
+      <div className="fixed bottom-3 left-0 right-0 z-50 border-t border-border bg-card md:hidden">
         <div className="flex items-center justify-around px-2 py-2 safe-area-inset-bottom">
           <button
             onClick={() => handleTabChange('recents')}
