@@ -129,7 +129,7 @@ const CallScreen = ({
 
   const handleTransfer = async () => {
     try {
-      await axios.post(`${window.location.origin}/reqTransfer/${username}`, {});
+      await axios.post(`https://esamwad.iotcom.io/reqTransfer/${username}`, {});
       toast.success('Request successful!');
     } catch (error) {
       toast.error('Request failed. Please try again.');
@@ -207,7 +207,7 @@ const CallScreen = ({
       }
 
       const response = await axios.post(
-        `${window.location.origin}/hangup/hostChannel/Conf`,
+        `https://esamwad.iotcom.io/hangup/hostChannel/Conf`,
         {
           user: username,
           hostNumber: cleanNumber,

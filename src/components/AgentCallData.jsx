@@ -50,7 +50,7 @@ export default function AgentCallData() {
         enddate: endDate,
       };
 
-      const { data } = await axios.post(`${window.location.origin}/agentcallData`, payload, {
+      const { data } = await axios.post(`https://esamwad.iotcom.io/agentcallData`, payload, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${tokenDetails.token}`,
@@ -140,7 +140,7 @@ export default function AgentCallData() {
         return;
       }
 
-      const response = await axios.get(`${window.location.origin}/recording/recording${bridgeID}.wav`, {
+      const response = await axios.get(`https://esamwad.iotcom.io/recording/recording${bridgeID}.wav`, {
         headers: {
           Authorization: `Bearer ${tokenDetails.token}`,
         },

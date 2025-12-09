@@ -25,8 +25,8 @@ export default function MobileNavigation({ activeTab, onTabChange }) {
   return (
     <>
       {/* Bottom Navigation */}
-      <div className="fixed bottom-3 left-0 right-0 z-50 border-t border-border bg-card md:hidden">
-        <div className="flex items-center justify-around px-2 py-2 safe-area-inset-bottom">
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card md:hidden">
+        <div className="flex items-center justify-around px-2 py-4 safe-area-inset-bottom">
           <button
             onClick={() => handleTabChange('recents')}
             className={`flex flex-col items-center justify-center flex-1 py-2 px-3 rounded-lg transition-colors ${

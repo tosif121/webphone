@@ -153,8 +153,8 @@ const useJssip = (isMobile = false) => {
   } = monitoring;
 
   useEffect(() => {
-    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-    setOrigin(originWithoutProtocol);
+    // const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    // setOrigin(originWithoutProtocol);
   }, []);
 
   useEffect(() => {
@@ -256,7 +256,7 @@ const useJssip = (isMobile = false) => {
 
       const response = await withTimeout(
         axios.post(
-          `${window.location.origin}/userconnection`,
+          `https://esamwad.iotcom.io/userconnection`,
           { user: username },
           { headers: { 'Content-Type': 'application/json' } }
         ),
@@ -356,7 +356,7 @@ const useJssip = (isMobile = false) => {
   const handleLogout = async (token, message) => {
     try {
       if (token) {
-        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+        await axios.delete(`https://esamwad.iotcom.io/deleteFirebaseToken`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -514,7 +514,7 @@ const useJssip = (isMobile = false) => {
   const answercall = async (incomingNumber = null) => {
     try {
       const response = await axios.post(
-        `${window.location.origin}/useroncall/${username}`,
+        `https://esamwad.iotcom.io/useroncall/${username}`,
         {},
         {
           headers: {
@@ -646,7 +646,7 @@ const useJssip = (isMobile = false) => {
             try {
               await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
 
-              const response = await axios.post(`${window.location.origin}/user/breakuser:${username}`, {
+              const response = await axios.post(`https://esamwad.iotcom.io/user/breakuser:${username}`, {
                 breakType: storedBreak,
               });
               if (response.status === 200) {
@@ -1008,7 +1008,7 @@ const useJssip = (isMobile = false) => {
 
       // ✅ 6. Make the API call to dial number
       const response = await axios.post(
-        `${window.location.origin}/dialnumber`,
+        `https://esamwad.iotcom.io/dialnumber`,
         {
           caller: username,
           receiver: targetNumber,
@@ -1122,7 +1122,7 @@ const useJssip = (isMobile = false) => {
       if (isCallended) {
         try {
           await axios.post(
-            `${window.location.origin}/user/callended${username}`,
+            `https://esamwad.iotcom.io/user/callended${username}`,
             {},
             {
               headers: {

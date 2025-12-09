@@ -86,10 +86,10 @@ export default function MobileTabsWrapper() {
       {/* Only show content area for leads and stats tabs, dialpad and recents are handled by DraggableWebPhone */}
       {(activeTab === 'leads' || activeTab === 'stats') && (
         <div className="flex-1 overflow-y-auto">
-          <div className="p-4">
+          <>
             {activeTab === 'leads' && <Dashboard />}
             {activeTab === 'stats' && <AgentDashboard />}
-          </div>
+          </>
         </div>
       )}
     </div>
