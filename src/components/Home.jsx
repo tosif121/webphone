@@ -59,7 +59,8 @@ const Home = ({ phoneNumber, setPhoneNumber, handleCall, setSeeLogs, timeoutArra
               if (input.length <= 12) setPhoneNumber(input);
             }}
             onKeyDown={handleKeyDown}
-            autoFocus
+            autoFocus={!isMobile}
+            readOnly={isMobile}
             placeholder="Enter number"
             className="w-full text-4xl md:text-2xl font-normal text-center bg-transparent border-none focus:border-none outline-none py-0 pr-8 text-foreground placeholder:text-muted-foreground/50 transition-all"
             aria-label="Phone number"

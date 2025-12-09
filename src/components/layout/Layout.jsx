@@ -80,6 +80,57 @@ export default function Layout({ children }) {
     }
   }, [dispositionModal]);
 
+  // Auto-disposition on mobile when call ends
+  useEffect(() => {
+    const autoDispositionOnMobile = async () => {
+      if (isMobile && dispositionModal && status === 'start' && bridgeID && username) {
+        try {
+          console.log('📱 Mobile: Auto-disposing call...');
+          
+          const requestBody = {
+            bridgeID,
+            Disposition: 'Auto Disposed',
+            autoDialDisabled: false,
+          };
+
+          const response = await axios.post(
+            `${window.location.origin}/user/disposition${username}`,
+            requestBody
+          );
+
+          if (response.data.success) {
+            console.log('✅ Mobile: Auto disposition successful');
+            toast.success('Call disposed automatically');
+            
+            // Refresh leads
+            fetchLeadsWithDateRange();
+            
+            // Close disposition modal
+            setDispositionModal(false);
+            setPhoneNumber('');
+            setCallType('');
+          } else {
+            console.error('❌ Mobile: Auto disposition failed:', response.data.message);
+            toast.error(response.data.message || 'Auto disposition failed');
+          }
+        } catch (error) {
+          console.error('❌ Mobile: Auto disposition error:', error);
+          
+          // If it's a 400 error, just close the modal silently
+          if (error.response?.status === 400) {
+            setDispositionModal(false);
+            setPhoneNumber('');
+            setCallType('');
+          } else {
+            toast.error('Failed to auto-dispose call');
+          }
+        }
+      }
+    };
+
+    autoDispositionOnMobile();
+  }, [isMobile, dispositionModal, status, bridgeID, username]);
+
   // Function to fetch leads - can be called from Disposition
   const fetchLeadsWithDateRange = async () => {
     // Dispatch custom event to notify Dashboard to refresh leads
@@ -155,45 +206,6 @@ export default function Layout({ children }) {
 
       {/* Phone UI - conditionally rendered WITHOUT wrapper - Hidden when Security Alert is shown */}
       {shouldShowPhone && <DraggableWebPhone />}
-
-      {/* Disposition Modals - Mobile Only */}
-      {isMobile && (
-        <>
-          {/* Active Call Information Modal - Shows first when call ends */}
-          {!formSubmitted && dispositionModal && (
-            <LeadAndCallInfoPanel
-              userCall={userCall}
-              handleCall={handleCall}
-              status={status}
-              formSubmitted={formSubmitted}
-              connectionStatus={connectionStatus}
-              dispositionModal={dispositionModal}
-              userCampaign={userCampaign}
-              username={username}
-              token={token}
-              callType={callType}
-              setFormSubmitted={setFormSubmitted}
-            />
-          )}
-
-          {/* Disposition Modal - Shows after Active Call Information is submitted */}
-          {formSubmitted && dispositionModal && (
-            <Disposition
-              bridgeID={bridgeID}
-              setDispositionModal={setDispositionModal}
-              userCall={userCall}
-              callType={callType}
-              setCallType={setCallType}
-              phoneNumber={userCall?.contactNumber}
-              setFormSubmitted={setFormSubmitted}
-              fetchLeadsWithDateRange={fetchLeadsWithDateRange}
-              setPhoneNumber={setPhoneNumber}
-              campaignID={userCampaign}
-              user={username}
-            />
-          )}
-        </>
-      )}
 
       {/* Persistent audio - ALWAYS mounted, never unmounts */}
       <audio ref={audioRef} autoPlay playsInline style={{ display: 'none' }} />

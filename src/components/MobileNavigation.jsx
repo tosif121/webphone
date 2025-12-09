@@ -1,6 +1,6 @@
 import { History, LayoutGrid, BarChart3, PhoneCall, TableOfContents } from 'lucide-react';
 
-export default function MobileNavigation({ activeTab, onTabChange }) {
+export default function MobileNavigation({ activeTab, onTabChange, isCallActive = false }) {
   const handleTabChange = (tab) => {
     if (onTabChange) {
       onTabChange(tab);
@@ -39,9 +39,10 @@ export default function MobileNavigation({ activeTab, onTabChange }) {
 
           <button
             onClick={() => handleTabChange('leads')}
+            disabled={isCallActive}
             className={`flex flex-col items-center justify-center flex-1 py-2 px-3 rounded-lg transition-colors ${
               activeTab === 'leads' ? 'text-primary' : 'text-muted-foreground'
-            }`}
+            } ${isCallActive ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
             <TableOfContents className="w-5 h-5 mb-1" />
             <span className="text-[10px] font-medium">Leads</span>
@@ -49,9 +50,10 @@ export default function MobileNavigation({ activeTab, onTabChange }) {
 
           <button
             onClick={() => handleTabChange('stats')}
+            disabled={isCallActive}
             className={`flex flex-col items-center justify-center flex-1 py-2 px-3 rounded-lg transition-colors ${
               activeTab === 'stats' ? 'text-primary' : 'text-muted-foreground'
-            }`}
+            } ${isCallActive ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
             <BarChart3 className="w-5 h-5 mb-1" />
             <span className="text-[10px] font-medium">Stats</span>

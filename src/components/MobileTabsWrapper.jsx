@@ -1,12 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import Dashboard from './Dashboard';
 import AgentDashboard from './AgentDashboard';
 import MobileNavigation from './MobileNavigation';
+import { JssipContext } from '@/context/JssipContext';
+import toast from 'react-hot-toast';
 
 export default function MobileTabsWrapper() {
   const [activeTab, setActiveTab] = useState('leads');
   const [isMobile, setIsMobile] = useState(false);
   const [dialpadOpen, setDialpadOpen] = useState(false);
+  const { status } = useContext(JssipContext);
+
+  // Check if there's an active call
+  const isCallActive = status === 'calling' || status === 'conference' || status === 'incoming';
 
   useEffect(() => {
     const checkMobile = () => {
@@ -40,6 +46,12 @@ export default function MobileTabsWrapper() {
   }, []);
 
   const handleTabChange = (tab) => {
+    // Prevent switching to Leads or Stats during an active call
+    if (isCallActive && (tab === 'leads' || tab === 'stats')) {
+      toast.error('Cannot access Leads or Stats during an active call');
+      return;
+    }
+
     if (tab === 'recents') {
       setActiveTab('recents');
       setDialpadOpen(true);
@@ -80,7 +92,7 @@ export default function MobileTabsWrapper() {
   return (
     <div className="flex flex-col h-screen">
       {/* Mobile Navigation Header - Always visible */}
-      <MobileNavigation activeTab={activeTab} onTabChange={handleTabChange} />
+      <MobileNavigation activeTab={activeTab} onTabChange={handleTabChange} isCallActive={isCallActive} />
 
       {/* Content Area with padding for header and bottom nav */}
       {/* Only show content area for leads and stats tabs, dialpad and recents are handled by DraggableWebPhone */}
