@@ -33,8 +33,8 @@ export default function MobileNavigation({ activeTab, onTabChange, isCallActive 
               activeTab === 'recents' ? 'text-primary' : 'text-muted-foreground'
             }`}
           >
-            <History className="w-5 h-5 mb-1" />
-            <span className="text-[10px] font-medium">Recents</span>
+            <History className="w-6 h-6 mb-1" />
+            <span className="text-xs font-medium">Recents</span>
           </button>
 
           <button
@@ -44,8 +44,8 @@ export default function MobileNavigation({ activeTab, onTabChange, isCallActive 
               activeTab === 'leads' ? 'text-primary' : 'text-muted-foreground'
             } ${isCallActive ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
-            <TableOfContents className="w-5 h-5 mb-1" />
-            <span className="text-[10px] font-medium">Leads</span>
+            <TableOfContents className="w-6 h-6 mb-1" />
+            <span className="text-xs font-medium">Leads</span>
           </button>
 
           <button
@@ -55,8 +55,8 @@ export default function MobileNavigation({ activeTab, onTabChange, isCallActive 
               activeTab === 'stats' ? 'text-primary' : 'text-muted-foreground'
             } ${isCallActive ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
-            <BarChart3 className="w-5 h-5 mb-1" />
-            <span className="text-[10px] font-medium">Stats</span>
+            <BarChart3 className="w-6 h-6 mb-1" />
+            <span className="text-xs font-medium">Stats</span>
           </button>
 
           <button
@@ -65,8 +65,8 @@ export default function MobileNavigation({ activeTab, onTabChange, isCallActive 
               activeTab === 'dialpad' ? 'text-primary' : 'text-muted-foreground'
             }`}
           >
-            <LayoutGrid className="w-5 h-5 mb-1" />
-            <span className="text-[10px] font-medium">Dialpad</span>
+            <LayoutGrid className="w-6 h-6 mb-1" />
+            <span className="text-xs font-medium">Dialpad</span>
           </button>
         </div>
       </div>

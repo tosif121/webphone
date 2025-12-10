@@ -194,7 +194,7 @@ export default function Header() {
 
   return (
     <header className="w-full bg-white dark:bg-background shadow-md border-b border-border sticky top-0 z-40">
-      <div className="container mx-auto flex items-center justify-between h-16 px-4">
+      <div className="container mx-auto flex items-center justify-between h-16 px-4 mt-4">
         {/* Logo and Brand */}
         <Link href={'/'} className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center shadow-sm">
@@ -349,16 +349,16 @@ export default function Header() {
             onClick={toggleMobileMenu}
             className="p-2 transition-transform duration-200 hover:scale-105"
           >
-            <div className="relative w-5 h-5">
+            <div className="relative w-8 h-8">
               <Menu
                 className={cn(
-                  'w-5 h-5 absolute inset-0 transition-all duration-300 ease-in-out',
+                  'w-8 h-8 absolute inset-0 transition-all duration-300 ease-in-out',
                   mobileMenuOpen ? 'opacity-0 rotate-90 scale-75' : 'opacity-100 rotate-0 scale-100'
                 )}
               />
               <X
                 className={cn(
-                  'w-5 h-5 absolute inset-0 transition-all duration-300 ease-in-out',
+                  'w-8 h-8 absolute inset-0 transition-all duration-300 ease-in-out',
                   mobileMenuOpen ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-75'
                 )}
               />
