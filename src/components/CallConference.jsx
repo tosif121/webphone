@@ -35,7 +35,7 @@ const CallConference = ({
   };
 
   return (
-    <div className="md:p-3 p-4 h-full flex flex-col md:justify-start justify-end md:pb-0 pb-10">
+    <div className="md:p-3 p-4 h-full flex flex-col md:justify-start justify-end md:pb-0 pb-14">
       {/* Mobile: White box with shadow */}
       <div className={isMobile ? '  ' : 'w-full max-w-md mx-auto'}>
         {/* Header - Only show on desktop */}
@@ -71,8 +71,9 @@ const CallConference = ({
               if (input.length <= 12) setConferenceNumber(input);
             }}
             onKeyDown={handleKeyDown}
+            readOnly={isMobile}
             placeholder="Conference number"
-            className="w-full text-4xl md:text-2xl font-normal text-center bg-transparent border-none focus:border-none outline-none py-0 pr-8 text-foreground placeholder:text-muted-foreground/50 transition-all"
+            className="w-full text-4xl md:text-2xl placeholder:text-2xl font-normal text-center bg-transparent border-none focus:border-none outline-none py-0 pr-8 text-foreground placeholder:text-muted-foreground/50 transition-all"
             aria-label="Conference number"
           />
           {conferenceNumber && (

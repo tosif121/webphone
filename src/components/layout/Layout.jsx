@@ -100,7 +100,7 @@ export default function Layout({ children }) {
 
           if (response.data.success) {
             console.log('✅ Mobile: Auto disposition successful');
-            toast.success('Call disposed automatically');
+            // toast.success('Call disposed automatically');
             
             // Refresh leads
             fetchLeadsWithDateRange();

@@ -326,7 +326,7 @@ const CallScreen = ({
   };
 
   return (
-    <div className="flex flex-col sm:justify-start justify-end min-h-full md:pb-0 pb-10 px-0 md:px-3">
+    <div className="flex flex-col sm:justify-start justify-end min-h-full md:pb-0 pb-14 px-0 md:px-3">
       {session && session.connection && <WebRTCStats peerConnection={session.connection} />}
 
       {/* Mobile: White box with shadow */}
@@ -334,7 +334,7 @@ const CallScreen = ({
         {/* Header - Original UI Structure */}
         <div className="flex flex-col items-center my-4 md:my-3">
           <div className="relative mb-4 md:mb-2">
-            <div className="w-16 h-16 md:w-12 md:h-12 rounded-full bg-primary flex items-center justify-center shadow-md">
+            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center shadow-md">
               <User className="text-primary-foreground" size={isMobile ? 28 : 20} />
             </div>
           </div>

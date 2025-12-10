@@ -26,15 +26,15 @@ export default function MobileNavigation({ activeTab, onTabChange, isCallActive 
     <>
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card md:hidden">
-        <div className="flex items-center justify-around px-2 py-4 safe-area-inset-bottom">
+        <div className="flex items-center justify-around p-2.5 mb-7 safe-area-inset-bottom">
           <button
             onClick={() => handleTabChange('recents')}
             className={`flex flex-col items-center justify-center flex-1 py-2 px-3 rounded-lg transition-colors ${
               activeTab === 'recents' ? 'text-primary' : 'text-muted-foreground'
             }`}
           >
-            <History className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium">Recents</span>
+            <History className="w-5 h-5 mb-1" />
+            <span className="text-[10px] font-medium">Recents</span>
           </button>
 
           <button
@@ -44,8 +44,8 @@ export default function MobileNavigation({ activeTab, onTabChange, isCallActive 
               activeTab === 'leads' ? 'text-primary' : 'text-muted-foreground'
             } ${isCallActive ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
-            <TableOfContents className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium">Leads</span>
+            <TableOfContents className="w-5 h-5 mb-1" />
+            <span className="text-[10px] font-medium">Leads</span>
           </button>
 
           <button
@@ -55,8 +55,8 @@ export default function MobileNavigation({ activeTab, onTabChange, isCallActive 
               activeTab === 'stats' ? 'text-primary' : 'text-muted-foreground'
             } ${isCallActive ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
-            <BarChart3 className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium">Stats</span>
+            <BarChart3 className="w-5 h-5 mb-1" />
+            <span className="text-[10px] font-medium">Stats</span>
           </button>
 
           <button
@@ -65,8 +65,8 @@ export default function MobileNavigation({ activeTab, onTabChange, isCallActive 
               activeTab === 'dialpad' ? 'text-primary' : 'text-muted-foreground'
             }`}
           >
-            <LayoutGrid className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium">Dialpad</span>
+            <LayoutGrid className="w-5 h-5 mb-1" />
+            <span className="text-[10px] font-medium">Dialpad</span>
           </button>
         </div>
       </div>

@@ -31,7 +31,7 @@ const LoginConflictModal = ({ onCancel, onForceLogin, sessionDuration = '45 minu
             <p className="text-foreground">You are currently logged in on another device.</p>
 
             <div className="bg-muted/50 rounded-lg p-4 border border-border">
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
                 <Clock className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium text-foreground">Active Session Duration:</span>
                 <span className="text-primary font-semibold">{sessionDuration}</span>
