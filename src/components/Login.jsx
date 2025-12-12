@@ -209,6 +209,7 @@ export default function Login() {
       }
 
       if (response.message === 'User already login somewhere else') {
+        toast.error(response.message);
         setShowLoginConflict(true);
         setIsLoading(false);
         return;
