@@ -1,3 +1,4 @@
+import React from 'react';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { HistoryProvider } from '@/context/HistoryContext';
 import { JssipProvider } from '@/context/JssipContext';
@@ -6,6 +7,8 @@ import { Jost } from 'next/font/google';
 import { useRouter } from 'next/router';
 import { Toaster } from 'react-hot-toast';
 import Layout from '@/components/layout/Layout';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import { logError, checkHydrationIssues } from '@/utils/debugUtils';
 
 const jostSans = Jost({
   variable: '--font-jost-sans',
@@ -20,22 +23,48 @@ export default function App({ Component, pageProps }) {
 
   const isPublicPage = publicPages.has(router.pathname);
 
+  // Add global error handlers for unhandled errors
+  React.useEffect(() => {
+    const handleError = (event) => {
+      logError(event.error || new Error(event.message), 'unhandled-error');
+    };
+
+    const handleUnhandledRejection = (event) => {
+      logError(new Error(event.reason?.toString() || 'Unhandled promise rejection'), 'unhandled-rejection');
+    };
+
+    if (typeof window !== 'undefined') {
+      // Check for hydration issues on mount
+      checkHydrationIssues();
+      
+      window.addEventListener('error', handleError);
+      window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+      return () => {
+        window.removeEventListener('error', handleError);
+        window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      };
+    }
+  }, []);
+
   return (
-    <main className={`${jostSans.className} scroll-smooth font-[family-name:var(--font-jost-sans)]`}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <Toaster position="top-right" reverseOrder={false} />
-        {isPublicPage ? (
-          <Component {...pageProps} />
-        ) : (
-          <HistoryProvider>
-            <JssipProvider>
-              <Layout>
-                <Component {...pageProps} />
-              </Layout>
-            </JssipProvider>
-          </HistoryProvider>
-        )}
-      </ThemeProvider>
-    </main>
+    <ErrorBoundary>
+      <main className={`${jostSans.className} scroll-smooth font-[family-name:var(--font-jost-sans)]`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <Toaster position="top-right" reverseOrder={false} />
+          {isPublicPage ? (
+            <Component {...pageProps} />
+          ) : (
+            <HistoryProvider>
+              <JssipProvider>
+                <Layout>
+                  <Component {...pageProps} />
+                </Layout>
+              </JssipProvider>
+            </HistoryProvider>
+          )}
+        </ThemeProvider>
+      </main>
+    </ErrorBoundary>
   );
 }

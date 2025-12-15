@@ -9,19 +9,27 @@ export default function MobileTabsWrapper() {
   const [activeTab, setActiveTab] = useState('leads');
   const [isMobile, setIsMobile] = useState(false);
   const [dialpadOpen, setDialpadOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const { status } = useContext(JssipContext);
 
   // Check if there's an active call
   const isCallActive = status === 'calling' || status === 'conference' || status === 'incoming';
 
   useEffect(() => {
+    // Set client flag first to prevent hydration mismatch
+    setIsClient(true);
+    
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 768);
+      }
     };
 
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkMobile);
+      return () => window.removeEventListener('resize', checkMobile);
+    }
   }, []);
 
   // Listen for dialpad state changes
@@ -82,6 +90,18 @@ export default function MobileTabsWrapper() {
       }
     }
   };
+
+  // Show loading state during SSR and initial hydration
+  if (!isClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // On desktop, always show Dashboard (leads)
   if (!isMobile) {

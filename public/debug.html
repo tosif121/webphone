@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - WebPhone Application</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .error-item {
+            background: #fee;
+            border: 1px solid #fcc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background: #efe;
+            border: 1px solid #cfc;
+            color: #060;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WebPhone Debug Information</h1>
+        <p>This page helps diagnose client-side errors in the WebPhone application.</p>
+        
+        <div id="status"></div>
+        
+        <h2>Actions</h2>
+        <button onclick="checkErrors()">Check Stored Errors</button>
+        <button onclick="clearErrors()">Clear All Errors</button>
+        <button onclick="testLocalStorage()">Test LocalStorage</button>
+        <button onclick="testApplication()">Test Main Application</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function showResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `error-item ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function checkErrors() {
+            clearResults();
+            
+            try {
+                // Check for stored errors
+                const debugErrors = JSON.parse(localStorage.getItem('debugErrors') || '[]');
+                const lastError = localStorage.getItem('lastError');
+                const lastUnhandledError = localStorage.getItem('lastUnhandledError');
+                const lastUnhandledRejection = localStorage.getItem('lastUnhandledRejection');
+                
+                if (debugErrors.length > 0) {
+                    showResult(`<h3>Debug Errors (${debugErrors.length})</h3><pre>${JSON.stringify(debugErrors, null, 2)}</pre>`, 'error-item');
+                }
+                
+                if (lastError) {
+                    showResult(`<h3>Last Error</h3><pre>${lastError}</pre>`, 'error-item');
+                }
+                
+                if (lastUnhandledError) {
+                    showResult(`<h3>Last Unhandled Error</h3><pre>${lastUnhandledError}</pre>`, 'error-item');
+                }
+                
+                if (lastUnhandledRejection) {
+                    showResult(`<h3>Last Unhandled Rejection</h3><pre>${lastUnhandledRejection}</pre>`, 'error-item');
+                }
+                
+                if (!debugErrors.length && !lastError && !lastUnhandledError && !lastUnhandledRejection) {
+                    showResult('No stored errors found.', 'success');
+                }
+                
+            } catch (e) {
+                showResult(`Error checking stored errors: ${e.message}`, 'error-item');
+            }
+        }
+
+        function clearErrors() {
+            try {
+                localStorage.removeItem('debugErrors');
+                localStorage.removeItem('lastError');
+                localStorage.removeItem('lastUnhandledError');
+                localStorage.removeItem('lastUnhandledRejection');
+                showResult('All stored errors cleared.', 'success');
+            } catch (e) {
+                showResult(`Error clearing stored errors: ${e.message}`, 'error-item');
+            }
+        }
+
+        function testLocalStorage() {
+            clearResults();
+            
+            try {
+                const testKey = '__debug_test__';
+                localStorage.setItem(testKey, 'test');
+                const value = localStorage.getItem(testKey);
+                localStorage.removeItem(testKey);
+                
+                if (value === 'test') {
+                    showResult('LocalStorage is working correctly.', 'success');
+                } else {
+                    showResult('LocalStorage test failed - value mismatch.', 'warning');
+                }
+            } catch (e) {
+                showResult(`LocalStorage error: ${e.message}`, 'error-item');
+            }
+        }
+
+        function testApplication() {
+            clearResults();
+            
+            // Test if we can access the main application
+            try {
+                const iframe = document.createElement('iframe');
+                iframe.src = './webphone/v1/';
+                iframe.style.display = 'none';
+                
+                iframe.onload = function() {
+                    showResult('Main application loaded successfully in iframe.', 'success');
+                    document.body.removeChild(iframe);
+                };
+                
+                iframe.onerror = function() {
+                    showResult('Failed to load main application in iframe.', 'error-item');
+                    document.body.removeChild(iframe);
+                };
+                
+                document.body.appendChild(iframe);
+                
+                // Timeout after 10 seconds
+                setTimeout(() => {
+                    if (document.body.contains(iframe)) {
+                        showResult('Application load test timed out after 10 seconds.', 'warning');
+                        document.body.removeChild(iframe);
+                    }
+                }, 10000);
+                
+            } catch (e) {
+                showResult(`Application test error: ${e.message}`, 'error-item');
+            }
+        }
+
+        // Auto-check on page load
+        window.onload = function() {
+            document.getElementById('status').innerHTML = `
+                <div class="error-item success">
+                    <strong>Debug page loaded successfully</strong><br>
+                    User Agent: ${navigator.userAgent}<br>
+                    URL: ${window.location.href}<br>
+                    Timestamp: ${new Date().toISOString()}
+                </div>
+            `;
+            
+            // Auto-check for errors
+            setTimeout(checkErrors, 1000);
+        };
+    </script>
+</body>
+</html>
