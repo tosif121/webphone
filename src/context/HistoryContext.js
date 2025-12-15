@@ -20,9 +20,8 @@ const HistoryContext = createContext({
 });
 
 export const HistoryProvider = ({ children }) => {
-  const callHistory = typeof window !== 'undefined' ? localStorage.getItem('call-history') : null;
-  const initialHistory = callHistory ? JSON.parse(callHistory) : [];
-  const [history, setHistory] = useState(initialHistory);
+  // Initialize with empty array to prevent hydration mismatch
+  const [history, setHistory] = useState([]);
   const [selectedBreak, setSelectedBreak] = useState('Break');
   const [dropCalls, setDropCalls] = useState(false);
   const [callAlert, setCallAlert] = useState(false);
@@ -33,6 +32,20 @@ export const HistoryProvider = ({ children }) => {
   const [campaignMissedCallsLength, setCampaignMissedCallsLength] = useState(0);
   const [scheduleCallsLength, setScheduleCallsLength] = useState(0);
   const [showSecurityAlert, setShowSecurityAlert] = useState(false);
+
+  // Load call history from localStorage on client-side hydration
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const callHistory = localStorage.getItem('call-history');
+        if (callHistory) {
+          setHistory(JSON.parse(callHistory));
+        }
+      } catch (error) {
+        console.error('Error loading call history from localStorage:', error);
+      }
+    }
+  }, []);
 
   // Save call history to localStorage whenever it changes
   useEffect(() => {
