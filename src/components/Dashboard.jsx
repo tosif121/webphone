@@ -636,7 +636,21 @@ function Dashboard() {
         return null;
       })()}
 
-      {/* Disposition modal moved to Layout.jsx for global access */}
+      {formSubmitted && dispositionModal && (
+        <Disposition
+          bridgeID={bridgeID}
+          setDispositionModal={setDispositionModal}
+          userCall={userCall}
+          callType={callType}
+          setCallType={setCallType}
+          phoneNumber={userCall?.contactNumber}
+          setFormSubmitted={setFormSubmitted}
+          fetchLeadsWithDateRange={fetchLeadsWithDateRange}
+          setPhoneNumber={setPhoneNumber}
+          campaignID={userCampaign}
+          user={username}
+        />
+      )}
       <SessionTimeoutModal
         isOpen={showTimeoutModal}
         onClose={closeTimeoutModal}
@@ -666,142 +680,166 @@ function Dashboard() {
           <p className="text-sm text-muted-foreground">Real-time performance metrics and activity tracking</p>
         </div>
         <div className="relative">
-        <div
-          className={`grid grid-cols-3 gap-2 sm:gap-6 transition-all duration-400 ease-in-out ${
-            status !== 'start' ? 'opacity-0 pointer-events-none absolute inset-0' : 'opacity-100'
-          }`}
-        >
-          {activeMainTab === 'allLeads' ? (
-            <>
-              <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">Complete Leads</p>
-                      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">{leadStats.completeCalls}</h2>
+          <div
+            className={`grid grid-cols-3 gap-2 sm:gap-6 transition-all duration-400 ease-in-out ${
+              status !== 'start' ? 'opacity-0 pointer-events-none absolute inset-0' : 'opacity-100'
+            }`}
+          >
+            {activeMainTab === 'allLeads' ? (
+              <>
+                <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">
+                          Complete Leads
+                        </p>
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">
+                          {leadStats.completeCalls}
+                        </h2>
+                      </div>
+                      <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
+                        <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      </div>
                     </div>
-                    <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
-                      <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
-              <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">Total Leads</p>
-                      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">{leadStats.totalCalls}</h2>
+                <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">
+                          Total Leads
+                        </p>
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">
+                          {leadStats.totalCalls}
+                        </h2>
+                      </div>
+                      <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
+                        <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      </div>
                     </div>
-                    <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
-                      <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
-              <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">Pending Leads</p>
-                      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">{leadStats.pendingCalls}</h2>
+                <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">
+                          Pending Leads
+                        </p>
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">
+                          {leadStats.pendingCalls}
+                        </h2>
+                      </div>
+                      <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
+                        <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      </div>
                     </div>
-                    <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
-                      <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <>
+                <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">
+                          Total Calls
+                        </p>
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">
+                          {callStats.totalCalls}
+                        </h2>
+                      </div>
+                      <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
+                        <Phone className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <>
-              <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">Total Calls</p>
-                      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">{callStats.totalCalls}</h2>
-                    </div>
-                    <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
-                      <Phone className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
-              <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">Incoming Calls</p>
-                      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">{callStats.incomingCalls}</h2>
+                <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">
+                          Incoming Calls
+                        </p>
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">
+                          {callStats.incomingCalls}
+                        </h2>
+                      </div>
+                      <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
+                        <PhoneIncoming className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      </div>
                     </div>
-                    <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
-                      <PhoneIncoming className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
-              <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">Outgoing Calls</p>
-                      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">{callStats.outgoingCalls}</h2>
+                <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">
+                          Outgoing Calls
+                        </p>
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">
+                          {callStats.outgoingCalls}
+                        </h2>
+                      </div>
+                      <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
+                        <PhoneForwarded className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      </div>
                     </div>
-                    <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
-                      <PhoneForwarded className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </>
-          )}
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-      <div className="flex gap-6 mt-8 md:flex-row flex-col relative">
-        <div
-          className={`w-full transition-opacity duration-400 ${
-            status !== 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
-          }`}
-        >
-          <LeadAndCallInfoPanel
-            userCall={userCall}
-            handleCall={handleCall}
-            status={status}
-            formSubmitted={formSubmitted}
-            connectionStatus={connectionStatus}
-            dispositionModal={dispositionModal}
-            userCampaign={userCampaign}
-            username={username}
-            token={token}
-            callType={callType}
-            setFormSubmitted={setFormSubmitted}
-          />
-        </div>
+        <div className="flex gap-6 mt-8 md:flex-row flex-col relative">
+          <div
+            className={`w-full transition-opacity duration-400 ${
+              status !== 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
+            }`}
+          >
+            <LeadAndCallInfoPanel
+              userCall={userCall}
+              handleCall={handleCall}
+              status={status}
+              formSubmitted={formSubmitted}
+              connectionStatus={connectionStatus}
+              dispositionModal={dispositionModal}
+              userCampaign={userCampaign}
+              username={username}
+              token={token}
+              callType={callType}
+              setFormSubmitted={setFormSubmitted}
+            />
+          </div>
 
-        <div
-          className={`w-full transition-opacity duration-400 ${
-            status === 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
-          }`}
-        >
-          <LeadCallsTable
-            callDetails={leadsData}
-            apiCallData={apiCallData}
-            handleCall={handleCall}
-            startDate={startDate}
-            setStartDate={setStartDate}
-            endDate={endDate}
-            setEndDate={setEndDate}
-            username={username}
-            token={token}
-            activeMainTab={activeMainTab}
-            setActiveMainTab={setActiveMainTab}
-          />
-        </div>
+          <div
+            className={`w-full transition-opacity duration-400 ${
+              status === 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
+            }`}
+          >
+            <LeadCallsTable
+              callDetails={leadsData}
+              apiCallData={apiCallData}
+              handleCall={handleCall}
+              startDate={startDate}
+              setStartDate={setStartDate}
+              endDate={endDate}
+              setEndDate={setEndDate}
+              username={username}
+              token={token}
+              activeMainTab={activeMainTab}
+              setActiveMainTab={setActiveMainTab}
+            />
+          </div>
         </div>
       </div>
 
