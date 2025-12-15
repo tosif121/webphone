@@ -17,6 +17,17 @@ import {
   ArrowLeft,
   ArrowRight,
   Star,
+  Upload,
+  Clock,
+  Heart,
+  Activity,
+  Stethoscope,
+  Pill,
+  CalendarDays,
+  CreditCard,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -25,39 +36,72 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Progress } from '@/components/ui/progress';
 import toast from 'react-hot-toast';
 
 const iconMap = {
+  // Personal info
   name: User,
   firstname: User,
   lastname: User,
+  patient: User,
+  full: User,
+  
+  // Contact
   email: Mail,
   mail: Mail,
   phone: Phone,
   mobile: Phone,
   contact: Phone,
-  number: Hash,
+  
+  // Medical
+  medical: Stethoscope,
+  health: Heart,
+  symptoms: Activity,
+  medication: Pill,
+  history: FileText,
+  emergency: AlertCircle,
+  
+  // Appointment
+  appointment: CalendarDays,
+  date: Calendar,
+  time: Clock,
+  
+  // Payment
+  insurance: CreditCard,
+  payment: CreditCard,
+  
+  // Location
   address: MapPin,
   state: MapPinned,
   district: Building,
   city: Building2,
   postal: MailOpen,
   pin: MailOpen,
+  
+  // General
   comment: MessageSquare,
   message: MessageSquare,
-  date: Calendar,
+  notes: MessageSquare,
+  number: Hash,
   text: FileText,
   textarea: List,
   select: List,
   checkbox: CheckSquare,
   radio: CheckSquare,
+  file: Upload,
+  rating: Star,
 };
 
 function getFieldIcon(field) {
   const label = field.label?.toLowerCase() || '';
+  const name = field.name?.toLowerCase() || '';
   const type = field.type?.toLowerCase() || '';
+  
+  // Check label first, then name, then type
   for (const key in iconMap) {
-    if (label.includes(key) || type === key) {
+    if (label.includes(key) || name.includes(key) || type === key) {
       const Icon = iconMap[key];
       return <Icon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />;
     }
@@ -68,8 +112,8 @@ function getFieldIcon(field) {
 const RatingField = ({ value, onChange, question, required }) => {
   const [hover, setHover] = useState(0);
   return (
-    <div className="space-y-2 col-span-2">
-      <Label className="text-base font-medium">
+    <div className="space-y-2">
+      <Label className="mb-2 block text-sm font-medium">
         {question}
         {required && <span className="text-red-500 ml-1">*</span>}
       </Label>
@@ -86,11 +130,103 @@ const RatingField = ({ value, onChange, question, required }) => {
             onClick={() => onChange(index + 1)}
             onMouseEnter={() => setHover(index + 1)}
             onMouseLeave={() => setHover(0)}
+            aria-label={`Rate ${index + 1} out of 5`}
           >
             <Star className="w-6 h-6 fill-current" />
           </button>
         ))}
       </div>
+      <p className="text-sm text-muted-foreground">
+        {value ? `${value} out of 5` : 'Click to rate'}
+      </p>
+    </div>
+  );
+};
+
+const FileUploadField = ({ value, onChange, field, required }) => {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState(value || []);
+
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    const newFiles = [...uploadedFiles, ...files];
+    setUploadedFiles(newFiles);
+    onChange(newFiles);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    const newFiles = [...uploadedFiles, ...files];
+    setUploadedFiles(newFiles);
+    onChange(newFiles);
+  };
+
+  const removeFile = (index) => {
+    const newFiles = uploadedFiles.filter((_, i) => i !== index);
+    setUploadedFiles(newFiles);
+    onChange(newFiles);
+  };
+
+  return (
+    <div className="space-y-3">
+      <Label className={`mb-2 block text-sm font-medium ${required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}>
+        {field.label}
+      </Label>
+      
+      <div
+        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+          isDragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
+        }`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragOver(true);
+        }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={handleDrop}
+      >
+        <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+        <p className="text-sm text-muted-foreground mb-2">
+          Drag and drop files here, or click to select
+        </p>
+        <input
+          type="file"
+          multiple
+          onChange={handleFileChange}
+          className="hidden"
+          id={`file-${field.name}`}
+          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => document.getElementById(`file-${field.name}`).click()}
+        >
+          Select Files
+        </Button>
+      </div>
+
+      {uploadedFiles.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Uploaded Files:</p>
+          {uploadedFiles.map((file, index) => (
+            <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
+              <span className="text-sm truncate">{file.name}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => removeFile(index)}
+                className="text-red-500 hover:text-red-700"
+              >
+                Remove
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -115,6 +251,8 @@ export default function DynamicForm({
   const [isInitialized, setIsInitialized] = useState(false);
   const [initialValues, setInitialValues] = useState({});
   const [userModifiedFields, setUserModifiedFields] = useState(new Set());
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const formDataRef = useRef({});
   const currentFormData = localFormData || formState || formDataRef.current;
@@ -132,7 +270,7 @@ export default function DynamicForm({
   const sortedSections = formConfig?.sections ? [...formConfig.sections].sort((a, b) => a.id - b.id) : [];
   const currentSection = sortedSections[currentSectionIndex];
 
-  // ✅ NEW: Get filtered options for cascading dropdowns
+  // Get filtered options for cascading dropdowns
   const getFilteredOptions = useCallback(
     (field) => {
       // If no parentField → top-level field, show all options
@@ -148,7 +286,7 @@ export default function DynamicForm({
         return [];
       }
 
-      // ✅ CRITICAL FIX: Filter with TRIMMED exact string match
+      // Filter with TRIMMED exact string match
       const filtered = (field.options || []).filter((opt) => {
         return opt.parentValue?.trim() === parentValue?.trim();
       });
@@ -158,7 +296,72 @@ export default function DynamicForm({
     [currentFormData]
   );
 
-  const getFinalFormData = () => {
+  // Check if field should be visible based on parent field
+  const isFieldVisible = useCallback((field) => {
+    if (!field.parentField) {
+      return true;
+    }
+
+    const parentValue = currentFormData[field.parentField];
+    if (!parentValue) {
+      return false;
+    }
+
+    // For fields with options, check if any option matches the parent value
+    if (field.options && field.options.length > 0) {
+      return field.options.some(option => option.parentValue === parentValue);
+    }
+
+    return true;
+  }, [currentFormData]);
+
+  // Enhanced validation function
+  const validateSection = useCallback(() => {
+    const sectionErrors = {};
+    const visibleFields = currentSection?.fields?.filter(isFieldVisible) || [];
+
+    visibleFields.forEach(field => {
+      if (field.required) {
+        const value = currentFormData[field.name];
+        
+        if (!value || 
+            (typeof value === 'string' && value.trim() === '') ||
+            (Array.isArray(value) && value.length === 0)) {
+          sectionErrors[field.name] = `${field.label} is required`;
+        }
+      }
+
+      // Additional validation based on field type
+      if (currentFormData[field.name]) {
+        const value = currentFormData[field.name];
+        
+        if (field.type === 'email' && value) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value)) {
+            sectionErrors[field.name] = 'Please enter a valid email address';
+          }
+        }
+        
+        if (field.type === 'phone' && value) {
+          const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+          if (!phoneRegex.test(value.replace(/\s/g, ''))) {
+            sectionErrors[field.name] = 'Please enter a valid phone number';
+          }
+        }
+        
+        if (field.type === 'number' && value) {
+          if (isNaN(value) || value < 0) {
+            sectionErrors[field.name] = 'Please enter a valid number';
+          }
+        }
+      }
+    });
+
+    setErrors(sectionErrors);
+    return Object.keys(sectionErrors).length === 0;
+  }, [currentSection, currentFormData, isFieldVisible]);
+
+  const getFinalFormData = useCallback(() => {
     const finalData = { ...initialValues };
 
     Object.keys(currentFormData).forEach((key) => {
@@ -171,7 +374,7 @@ export default function DynamicForm({
     });
 
     return finalData;
-  };
+  }, [initialValues, currentFormData]);
 
   const cleanupFormDataForPath = (newPath) => {
     const sectionsInPath = new Set(newPath);
@@ -211,7 +414,7 @@ export default function DynamicForm({
     setCurrentFormData((prev) => {
       const newData = { ...prev, [fieldName]: value };
 
-      // ✅ NEW: Clear dependent fields when parent changes
+      // Clear dependent fields when parent changes
       currentSection?.fields.forEach((field) => {
         if (field.parentField === fieldName && newData[field.name]) {
           newData[field.name] = '';
@@ -222,6 +425,15 @@ export default function DynamicForm({
     });
 
     setUserModifiedFields((prev) => new Set([...prev, fieldName]));
+
+    // Clear field error when user starts typing
+    if (errors[fieldName]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
+      });
+    }
   };
 
   const handleInputChange = (e) => {
@@ -234,142 +446,34 @@ export default function DynamicForm({
   };
 
   const isSectionValid = () => {
-    if (!currentSection) {
-      return true;
-    }
-
-    const invalidFields = [];
-    const requiredFields = currentSection.fields.filter((f) => f.required === true);
-
-    for (const field of currentSection.fields) {
-      if (field.required === true) {
-        const value = currentFormData[field.name];
-        const hasInitialValue = initialValues.hasOwnProperty(field.name);
-        const initialValue = initialValues[field.name];
-
-        let isValid = false;
-
-        if (Array.isArray(value)) {
-          isValid = value.length > 0;
-        } else if (typeof value === 'number') {
-          isValid = value > 0;
-        } else if (typeof value === 'boolean') {
-          isValid = value === true;
-        } else if (typeof value === 'string') {
-          isValid = value.trim() !== '';
-        } else {
-          if (hasInitialValue && initialValue !== undefined && initialValue !== null && initialValue !== '') {
-            if (typeof initialValue === 'string') {
-              isValid = initialValue.trim() !== '';
-            } else {
-              isValid = true;
-            }
-          } else {
-            isValid = false;
-          }
-        }
-
-        if (!isValid) {
-          invalidFields.push(field.question || field.label || field.name);
-        }
-      }
-    }
-
-    return invalidFields.length === 0;
+    return validateSection();
   };
 
-  const handleFormSubmit = () => {
-    const isValid = isSectionValid();
-
-    if (!isValid) {
-      const missingFields = [];
-
-      currentSection.fields.forEach((field) => {
-        if (field.required === true) {
-          const value = currentFormData[field.name];
-          const hasInitialValue = initialValues.hasOwnProperty(field.name);
-          const initialValue = initialValues[field.name];
-
-          let isValid = false;
-
-          if (Array.isArray(value)) {
-            isValid = value.length > 0;
-          } else if (typeof value === 'number') {
-            isValid = value > 0;
-          } else if (typeof value === 'boolean') {
-            isValid = value === true;
-          } else if (typeof value === 'string') {
-            isValid = value.trim() !== '';
-          } else {
-            if (hasInitialValue && initialValue !== undefined && initialValue !== null && initialValue !== '') {
-              if (typeof initialValue === 'string') {
-                isValid = initialValue.trim() !== '';
-              } else {
-                isValid = true;
-              }
-            } else {
-              isValid = false;
-            }
-          }
-
-          if (!isValid) {
-            missingFields.push(field.question || field.label || field.name);
-          }
-        }
-      });
-
-      toast.error(`Please fill all required fields: ${missingFields.join(', ')}`, {});
+  const handleFormSubmit = async () => {
+    if (!validateSection()) {
+      toast.error('Please fill in all required fields correctly');
       return;
     }
 
-    const finalData = getFinalFormData();
-
-    if (handleSubmit) {
-      handleSubmit(finalData);
+    setIsSubmitting(true);
+    try {
+      const finalData = getFinalFormData();
+      
+      if (handleSubmit) {
+        await handleSubmit(finalData);
+        toast.success('Form submitted successfully!');
+      }
+    } catch (error) {
+      toast.error('Failed to submit form. Please try again.');
+      console.error('Form submission error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleNext = () => {
-    const isValid = isSectionValid();
-
-    if (!isValid) {
-      const missingFields = [];
-
-      currentSection.fields.forEach((field) => {
-        if (field.required === true) {
-          const value = currentFormData[field.name];
-          const hasInitialValue = initialValues.hasOwnProperty(field.name);
-          const initialValue = initialValues[field.name];
-
-          let isValid = false;
-
-          if (Array.isArray(value)) {
-            isValid = value.length > 0;
-          } else if (typeof value === 'number') {
-            isValid = value > 0;
-          } else if (typeof value === 'boolean') {
-            isValid = value === true;
-          } else if (typeof value === 'string') {
-            isValid = value.trim() !== '';
-          } else {
-            if (hasInitialValue && initialValue !== undefined && initialValue !== null && initialValue !== '') {
-              if (typeof initialValue === 'string') {
-                isValid = initialValue.trim() !== '';
-              } else {
-                isValid = true;
-              }
-            } else {
-              isValid = false;
-            }
-          }
-
-          if (!isValid) {
-            missingFields.push(field.question || field.label || field.name);
-          }
-        }
-      });
-
-      toast.error(`Please fill all required fields: ${missingFields.join(', ')}`, {});
+    if (!validateSection()) {
+      toast.error('Please fill in all required fields correctly');
       return;
     }
 
@@ -536,6 +640,8 @@ export default function DynamicForm({
     }
   }, [status]);
 
+
+
   useEffect(() => {
     const savedState = localStorage.getItem('formNavigationState');
     if (savedState) {
@@ -574,6 +680,8 @@ export default function DynamicForm({
     return initialValues[fieldName] || '';
   };
 
+
+
   if (!formConfig || !currentSection) {
     return (
       <Card className="p-6">
@@ -589,43 +697,49 @@ export default function DynamicForm({
       key={`section-${currentSection?.id}-${currentSectionIndex}`}
       className={`${
         !userCallDialog
-          ? 'backdrop-blur-sm bg-card/80 rounded-lg max-w-2xl mx-auto'
+          ? 'backdrop-blur-sm bg-card/80 rounded-lg max-w-4xl mx-auto'
           : 'bg-transparent border-0 shadow-none p-0 !gap-2 max-h-[32rem] overflow-y-auto'
       }`}
     >
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xl text-primary">{formConfig.formTitle || 'Form'}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-4">
-          <Label htmlFor="contactNumber" className="text-sm font-medium pl-1 mb-1 block">
-            Contact Number
-          </Label>
-          <div className="relative">
-            {getFieldIcon({ label: 'phone' })}
-            <Input
-              id="contactNumber"
-              name="contactNumber"
-              type="tel"
-              value={userCall?.contactNumber || ''}
-              disabled
-              className="pl-10 bg-muted/50 cursor-not-allowed"
-            />
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between mb-4">
+          <CardTitle className="text-2xl text-primary">
+            {formConfig.formTitle || 'Form'}
+          </CardTitle>
+          <div className="text-sm text-muted-foreground">
+            Step {currentSectionIndex + 1} of {sortedSections.length}
           </div>
         </div>
-
+        
+        {sortedSections.length > 1 && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="font-medium">{currentSection?.title}</span>
+              <span>{Math.round(((currentSectionIndex + 1) / sortedSections.length) * 100)}% Complete</span>
+            </div>
+            <Progress value={((currentSectionIndex + 1) / sortedSections.length) * 100} className="h-2" />
+          </div>
+        )}
+      </CardHeader>
+      <CardContent>
         <div className="space-y-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {currentSection.fields.map((field, idx) => {
+              if (!isFieldVisible(field)) {
+                return null;
+              }
+
               const fieldId = `${field.name}-${idx}`;
               const fieldLabel = field.question || field.label || 'Field';
+              const fieldValue = getFieldValue(field.name);
+              const hasError = errors[field.name];
 
               if (field.type === 'textarea') {
                 return (
-                  <div className="relative col-span-2" key={fieldId}>
+                  <div key={fieldId}>
                     <Label
                       htmlFor={fieldId}
-                      className={`mb-2 capitalize block ${
+                      className={`mb-2 block text-sm font-medium ${
                         field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
                       }`}
                     >
@@ -638,32 +752,38 @@ export default function DynamicForm({
                         name={field.name}
                         placeholder={fieldLabel}
                         required={field.required}
-                        value={getFieldValue(field.name)}
+                        value={fieldValue}
                         onChange={handleInputChange}
-                        className="pl-10"
+                        className={`pl-10 ${hasError ? 'border-red-500' : ''}`}
+                        rows={4}
                       />
                     </div>
+                    {hasError && (
+                      <p className="mt-1 text-sm text-red-500" role="alert">
+                        {hasError}
+                      </p>
+                    )}
                   </div>
                 );
               }
 
               if (field.type === 'select') {
-                const fieldValue = getFieldValue(field.name);
-                // ✅ NEW: Get filtered options for cascading
                 const selectOptions = getFilteredOptions(field);
                 const isDisabled = field.parentField && !currentFormData[field.parentField];
 
                 return (
-                  <div className="relative" key={fieldId}>
+                  <div key={fieldId}>
                     <Label
                       htmlFor={fieldId}
-                      className={`mb-2 capitalize block ${
+                      className={`mb-2 block text-sm font-medium ${
                         field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
                       }`}
                     >
                       {fieldLabel}
                       {field.parentField && (
-                        <span className="text-xs text-gray-500 ml-2">(depends on {field.parentField})</span>
+                        <span className="text-xs text-muted-foreground ml-2">
+                          (depends on {field.parentField})
+                        </span>
                       )}
                     </Label>
                     <div className="relative">
@@ -675,14 +795,14 @@ export default function DynamicForm({
                         }}
                         disabled={isDisabled}
                       >
-                        <SelectTrigger className="pl-10" id={fieldId}>
+                        <SelectTrigger className={`pl-10 ${hasError ? 'border-red-500' : ''}`} id={fieldId}>
                           <SelectValue
                             placeholder={
                               isDisabled
                                 ? `Select ${field.parentField} first`
                                 : selectOptions.length === 0
                                 ? 'No options available'
-                                : 'Select an option'
+                                : `Select ${fieldLabel.toLowerCase()}`
                             }
                           />
                         </SelectTrigger>
@@ -695,18 +815,87 @@ export default function DynamicForm({
                         </SelectContent>
                       </Select>
                     </div>
+                    {hasError && (
+                      <p className="mt-1 text-sm text-red-500" role="alert">
+                        {hasError}
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+
+              if (field.type === 'radio') {
+                return (
+                  <div key={fieldId}>
+                    <Label className={`mb-2 block text-sm font-medium ${field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}>
+                      {fieldLabel}
+                    </Label>
+                    <RadioGroup
+                      value={fieldValue}
+                      onValueChange={(value) => handleChange(field.name, value)}
+                      className="space-y-2"
+                    >
+                      {field.options?.map((option, i) => (
+                        <div key={i} className="flex items-center space-x-2">
+                          <RadioGroupItem value={option.value} id={`${fieldId}-${i}`} />
+                          <Label htmlFor={`${fieldId}-${i}`} className="cursor-pointer">
+                            {option.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                    {hasError && (
+                      <p className="mt-1 text-sm text-red-500" role="alert">
+                        {hasError}
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+
+              if (field.type === 'checkbox') {
+                const checkboxValue = Array.isArray(fieldValue) ? fieldValue : [];
+
+                return (
+                  <div key={fieldId}>
+                    <Label className={`mb-2 block text-sm font-medium ${field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}>
+                      {fieldLabel}
+                    </Label>
+                    <div className="space-y-2">
+                      {field.options?.map((option, i) => (
+                        <div key={i} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`${fieldId}-${i}`}
+                            checked={checkboxValue.includes(option.value)}
+                            onCheckedChange={(checked) => {
+                              const newValue = checked
+                                ? [...checkboxValue, option.value]
+                                : checkboxValue.filter(v => v !== option.value);
+                              handleChange(field.name, newValue);
+                            }}
+                          />
+                          <Label htmlFor={`${fieldId}-${i}`} className="cursor-pointer">
+                            {option.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                    {hasError && (
+                      <p className="mt-1 text-sm text-red-500" role="alert">
+                        {hasError}
+                      </p>
+                    )}
                   </div>
                 );
               }
 
               if (field.type === 'multiple-options') {
-                const fieldValue = getFieldValue(field.name);
                 const currentValues = Array.isArray(fieldValue) ? fieldValue : [];
 
                 return (
-                  <div className="space-y-3 col-span-2" key={fieldId}>
+                  <div className="space-y-3" key={fieldId}>
                     <Label
-                      className={`text-base capitalize font-medium ${
+                      className={`mb-2 block text-sm font-medium ${
                         field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
                       }`}
                     >
@@ -734,47 +923,113 @@ export default function DynamicForm({
                         </div>
                       ))}
                     </div>
+                    {hasError && (
+                      <p className="mt-1 text-sm text-red-500" role="alert">
+                        {hasError}
+                      </p>
+                    )}
                   </div>
                 );
               }
 
-              if (field.type === 'checkbox') {
+              if (field.type === 'single-checkbox') {
                 return (
-                  <div className="flex items-center gap-2 col-span-2" key={fieldId}>
+                  <div className="flex items-center gap-2" key={fieldId}>
                     <Checkbox
                       id={field.name}
-                      checked={!!getFieldValue(field.name)}
+                      checked={!!fieldValue}
                       onCheckedChange={(checked) => handleChange(field.name, checked)}
                     />
                     <Label
                       htmlFor={field.name}
-                      className={`cursor-pointer capitalize ${
+                      className={`cursor-pointer text-sm font-medium ${
                         field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
                       }`}
                     >
                       {fieldLabel}
                     </Label>
+                    {hasError && (
+                      <p className="mt-1 text-sm text-red-500" role="alert">
+                        {hasError}
+                      </p>
+                    )}
                   </div>
                 );
               }
 
               if (field.type === 'rating') {
                 return (
-                  <RatingField
-                    key={fieldId}
-                    question={fieldLabel}
-                    required={field.required}
-                    value={getFieldValue(field.name) || 0}
-                    onChange={(newValue) => handleChange(field.name, newValue)}
-                  />
+                  <div key={fieldId}>
+                    <RatingField
+                      question={fieldLabel}
+                      required={field.required}
+                      value={fieldValue || 0}
+                      onChange={(newValue) => handleChange(field.name, newValue)}
+                    />
+                    {hasError && (
+                      <p className="mt-1 text-sm text-red-500" role="alert">
+                        {hasError}
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+
+              if (field.type === 'file') {
+                return (
+                  <div key={fieldId}>
+                    <FileUploadField
+                      field={field}
+                      required={field.required}
+                      value={fieldValue}
+                      onChange={(value) => handleChange(field.name, value)}
+                    />
+                    {hasError && (
+                      <p className="mt-1 text-sm text-red-500" role="alert">
+                        {hasError}
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+
+              if (field.type === 'date') {
+                return (
+                  <div key={fieldId}>
+                    <Label
+                      htmlFor={fieldId}
+                      className={`mb-2 block text-sm font-medium ${
+                        field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
+                      }`}
+                    >
+                      {fieldLabel}
+                    </Label>
+                    <div className="relative">
+                      {getFieldIcon(field)}
+                      <Input
+                        id={fieldId}
+                        name={field.name}
+                        type="date"
+                        required={field.required}
+                        value={fieldValue}
+                        onChange={handleInputChange}
+                        className={`pl-10 ${hasError ? 'border-red-500' : ''}`}
+                      />
+                    </div>
+                    {hasError && (
+                      <p className="mt-1 text-sm text-red-500" role="alert">
+                        {hasError}
+                      </p>
+                    )}
+                  </div>
                 );
               }
 
               return (
-                <div className="relative" key={fieldId}>
+                <div key={fieldId}>
                   <Label
                     htmlFor={fieldId}
-                    className={`mb-2 capitalize block ${
+                    className={`mb-2 block text-sm font-medium ${
                       field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
                     }`}
                   >
@@ -788,30 +1043,51 @@ export default function DynamicForm({
                       type={field.type || 'text'}
                       placeholder={fieldLabel}
                       required={field.required}
-                      value={getFieldValue(field.name)}
+                      value={fieldValue}
                       onChange={handleInputChange}
-                      className="pl-10"
+                      className={`pl-10 ${hasError ? 'border-red-500' : ''}`}
                     />
                   </div>
+                  {hasError && (
+                    <p className="mt-1 text-sm text-red-500" role="alert">
+                      {hasError}
+                    </p>
+                  )}
                 </div>
               );
             })}
           </div>
         </div>
 
-        <div className="flex justify-between items-center my-6">
-          <div>
-            {navigationPath.length > 1 && (
-              <Button variant="outline" onClick={handleBack} className="flex items-center gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </Button>
-            )}
-          </div>
-          <div>
+        <div className="flex justify-between items-center pt-6 border-t">
+          <Button
+            variant="outline"
+            onClick={handleBack}
+            disabled={navigationPath.length <= 1}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Button>
+
+          <div className="flex gap-2">
             {isLastSection ? (
-              <Button onClick={handleFormSubmit} disabled={formSubmitted}>
-                Submit
+              <Button
+                onClick={handleFormSubmit}
+                disabled={isSubmitting || formSubmitted}
+                className="flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Submit Form
+                  </>
+                )}
               </Button>
             ) : showNextButton ? (
               <Button onClick={handleNext} className="flex items-center gap-2">
@@ -819,8 +1095,22 @@ export default function DynamicForm({
                 <ArrowRight className="w-4 h-4" />
               </Button>
             ) : (
-              <Button onClick={handleFormSubmit} disabled={formSubmitted}>
-                Submit
+              <Button
+                onClick={handleFormSubmit}
+                disabled={isSubmitting || formSubmitted}
+                className="flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Submit Form
+                  </>
+                )}
               </Button>
             )}
           </div>

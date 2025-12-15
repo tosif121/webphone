@@ -762,14 +762,60 @@ const useJssip = (isMobile = false) => {
               dialingNumberRef.current = '';
               handleIncomingCall(e.session, e.request); // Your existing auto-answer logic
             } else {
-              if (isMobile) {
-                // Mobile: Show UI with ringtone
-                const incomingNumber = e.request.from._uri._user;
-                setIncomingSession(e.session);
-                setIncomingNumber(incomingNumber);
-                setIsIncomingRinging(true);
-                setStatus('incoming');
-                playRingtone(); // Play ringtone on mobile
+              // Check if this is an autodial call
+              const checkAutodialAndHandle = async () => {
+                // Try multiple sources for call data
+                let callData = currentCallData;
+                
+                // If currentCallData is null, try to get it from ringtone state
+                if (!callData && ringtone && ringtone.length > 0) {
+                  callData = ringtone[0];
+                }
+                
+                // If still no data, refresh and wait briefly
+                if (!callData) {
+                  await checkUserReady();
+                  // Wait a bit for the data to be available
+                  await new Promise(resolve => setTimeout(resolve, 300));
+                  callData = currentCallData || (ringtone && ringtone.length > 0 ? ringtone[0] : null);
+                }
+                
+                const isAutodialCall = callData?.Type === 'autodial';
+                console.log('Autodial check:', { isAutodialCall, callData });
+                
+                if (isMobile && isAutodialCall) {
+                  console.log('Autodial call detected on mobile - skipping IncomingCall UI');
+                  
+                  // Stop any ringtone and clear UI
+                  stopRingtone();
+                  setIsIncomingRinging(false);
+                  setIncomingSession(null);
+                  
+                  // Use the existing answercall function which handles useroncall API
+                  const incomingNumber = e.request.from._uri._user;
+                  await answercall(incomingNumber);
+                  
+                  // Auto-answer the call
+                  handleIncomingCall(e.session, e.request);
+                  return true; // Indicate autodial was handled
+                }
+                
+                return false; // Not autodial or not mobile
+              };
+              
+              // Check for autodial first
+              checkAutodialAndHandle().then(wasAutodial => {
+                if (wasAutodial) return; // Exit if autodial was handled
+                
+                // Continue with normal mobile incoming call flow
+                if (isMobile) {
+                  // Mobile: Show UI with ringtone
+                  const incomingNumber = e.request.from._uri._user;
+                  setIncomingSession(e.session);
+                  setIncomingNumber(incomingNumber);
+                  setIsIncomingRinging(true);
+                  setStatus('incoming');
+                  playRingtone(); // Play ringtone on mobile
                 // Add history and event listeners for mobile...
                 setHistory((prev) => [
                   ...prev,
@@ -812,10 +858,22 @@ const useJssip = (isMobile = false) => {
                   setCallHandled(false);
                   callHandledRef.current = false;
                 });
-              } else {
-                // Desktop: Auto-answer (no UI, no ringtone)
-                handleIncomingCall(e.session, e.request); // Reuse existing auto-answer logic
-              }
+                } else {
+                  // Desktop: Auto-answer (no UI, no ringtone)
+                  handleIncomingCall(e.session, e.request); // Reuse existing auto-answer logic
+                }
+              }).catch(error => {
+                console.error('Error in autodial check:', error);
+                // Fallback to normal incoming call flow on error
+                if (isMobile) {
+                  const incomingNumber = e.request.from._uri._user;
+                  setIncomingSession(e.session);
+                  setIncomingNumber(incomingNumber);
+                  setIsIncomingRinging(true);
+                  setStatus('incoming');
+                  playRingtone();
+                }
+              });
             }
           } else {
             // Handle normal outgoing calls (when direction is actually "outgoing")
