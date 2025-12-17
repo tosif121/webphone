@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import Dashboard from './Dashboard';
 import AgentDashboard from './AgentDashboard';
 import MobileNavigation from './MobileNavigation';
 
 export default function MobileTabsWrapper() {
-  const [activeTab, setActiveTab] = useState('leads');
+  const [activeTab, setActiveTab] = useState('stats');
   const [isMobile, setIsMobile] = useState(false);
   const [dialpadOpen, setDialpadOpen] = useState(false);
 
@@ -49,13 +48,6 @@ export default function MobileTabsWrapper() {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('openDialpadRecents'));
       }
-    } else if (tab === 'leads') {
-      setActiveTab('leads');
-      setDialpadOpen(false);
-      // Close dialpad if open
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('closeDialpad'));
-      }
     } else if (tab === 'stats') {
       setActiveTab('stats');
       setDialpadOpen(false);
@@ -73,9 +65,9 @@ export default function MobileTabsWrapper() {
     }
   };
 
-  // On desktop, always show Dashboard (leads)
+  // On desktop, always show AgentDashboard (stats)
   if (!isMobile) {
-    return <Dashboard />;
+    return <AgentDashboard />;
   }
 
   // On mobile, show tabs
@@ -85,12 +77,11 @@ export default function MobileTabsWrapper() {
       <MobileNavigation activeTab={activeTab} onTabChange={handleTabChange} />
       
       {/* Content Area with padding for header and bottom nav */}
-      {/* Only show content area for leads and stats tabs, dialpad and recents are handled by DraggableWebPhone */}
-      {(activeTab === 'leads' || activeTab === 'stats') && (
+      {/* Only show content area for stats tab, dialpad and recents are handled by DraggableWebPhone */}
+      {activeTab === 'stats' && (
         <div className="flex-1 overflow-y-auto">
           <div className="p-4">
-            {activeTab === 'leads' && <Dashboard />}
-            {activeTab === 'stats' && <AgentDashboard />}
+            <AgentDashboard />
           </div>
         </div>
       )}

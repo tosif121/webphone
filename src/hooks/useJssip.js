@@ -153,8 +153,8 @@ const useJssip = (isMobile = false) => {
   } = monitoring;
 
   useEffect(() => {
-    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-    setOrigin(originWithoutProtocol);
+      const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+      setOrigin(originWithoutProtocol);
   }, []);
 
   useEffect(() => {
@@ -499,7 +499,16 @@ const useJssip = (isMobile = false) => {
   var options = {
     eventHandlers: eventHandlers,
     mediaConstraints: {
-      audio: {
+      audio: isMobile ? {
+        // Mobile-optimized audio constraints for earpiece/headset
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: 1,
+        sampleRate: 16000,
+        // iOS-specific optimizations
+        ...(selectedDeviceId && { deviceId: { exact: selectedDeviceId } })
+      } : {
         mandatory: {
           echoCancellation: true,
           googEchoCancellation: true,
@@ -568,6 +577,10 @@ const useJssip = (isMobile = false) => {
         incomingSession.connection.addEventListener('addstream', (event) => {
           if (audioRef.current) {
             audioRef.current.srcObject = event.stream;
+            // Set audio output to earpiece for mobile devices
+            if (isMobile && audioRef.current.setSinkId) {
+              audioRef.current.setSinkId('default').catch(console.warn);
+            }
           }
         });
 
@@ -684,14 +697,9 @@ const useJssip = (isMobile = false) => {
           const message = e.request.body;
           console.log('Message event:', message);
 
-          // ✅ Check for force login request
-          if (message.includes('force_login_request') || message.includes('Force Login Request')) {
-            console.log('Force login request detected in message');
-            // Dispatch custom event that Layout can listen to
-            window.dispatchEvent(new CustomEvent('forceLoginRequest', { detail: { message } }));
-          }
+
           // ✅ Check for conference messages (connected/disconnected)
-          else if (/customer host channel (connected|di[s]?connected)/i.test(message)) {
+          if (/customer host channel (connected|di[s]?connected)/i.test(message)) {
             handleConferenceMessage(message);
           }
           // ✅ Check if customer/agent channel answered (both enable Add Call button)
@@ -826,6 +834,10 @@ const useJssip = (isMobile = false) => {
             e.session.connection.addEventListener('addstream', (event) => {
               if (audioRef.current) {
                 audioRef.current.srcObject = event.stream;
+                // Set audio output to earpiece for mobile devices
+                if (isMobile && audioRef.current.setSinkId) {
+                  audioRef.current.setSinkId('default').catch(console.warn);
+                }
               }
             });
 
@@ -888,6 +900,10 @@ const useJssip = (isMobile = false) => {
       session.connection.addEventListener('addstream', (event) => {
         if (audioRef.current) {
           audioRef.current.srcObject = event.stream;
+          // Set audio output to earpiece for mobile devices
+          if (isMobile && audioRef.current.setSinkId) {
+            audioRef.current.setSinkId('default').catch(console.warn);
+          }
         }
       });
 
@@ -914,13 +930,37 @@ const useJssip = (isMobile = false) => {
 
     const enumerateDevices = async () => {
       try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Request audio permissions with mobile-optimized constraints
+        const constraints = {
+          audio: isMobile ? {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            // Prefer earpiece/headset for mobile
+            channelCount: 1,
+            sampleRate: 16000
+          } : true
+        };
+        
+        await navigator.mediaDevices.getUserMedia(constraints);
         const devices = await navigator.mediaDevices.enumerateDevices();
         const audioDevices = devices.filter((device) => device.kind === 'audioinput');
         setDevices(audioDevices);
 
         if (audioDevices.length > 0) {
-          setSelectedDeviceId(audioDevices[0].deviceId);
+          // For mobile, prefer headset/earpiece devices
+          let preferredDevice = audioDevices[0];
+          if (isMobile) {
+            const headsetDevice = audioDevices.find(device => 
+              device.label.toLowerCase().includes('headset') || 
+              device.label.toLowerCase().includes('earpiece') ||
+              device.label.toLowerCase().includes('bluetooth')
+            );
+            if (headsetDevice) {
+              preferredDevice = headsetDevice;
+            }
+          }
+          setSelectedDeviceId(preferredDevice.deviceId);
         }
       } catch (error) {
         console.error('Error enumerating devices:', error);

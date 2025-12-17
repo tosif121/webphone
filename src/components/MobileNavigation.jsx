@@ -1,4 +1,4 @@
-import { History, LayoutGrid, BarChart3, Grid3x3, PhoneCall } from 'lucide-react';
+import { History, BarChart3, Grid3x3, PhoneCall } from 'lucide-react';
 
 export default function MobileNavigation({ activeTab, onTabChange }) {
   const handleTabChange = (tab) => {
@@ -12,8 +12,6 @@ export default function MobileNavigation({ activeTab, onTabChange }) {
     switch (activeTab) {
       case 'recents':
         return 'Call History';
-      case 'leads':
-        return 'Agent Panel';
       case 'stats':
         return 'Agent Dashboard';
       case 'dialpad':
@@ -38,15 +36,7 @@ export default function MobileNavigation({ activeTab, onTabChange }) {
             <span className="text-[10px] font-medium">Recents</span>
           </button>
 
-          <button
-            onClick={() => handleTabChange('leads')}
-            className={`flex flex-col items-center justify-center flex-1 py-2 px-3 rounded-lg transition-colors ${
-              activeTab === 'leads' ? 'text-primary' : 'text-muted-foreground'
-            }`}
-          >
-            <LayoutGrid className="w-5 h-5 mb-1" />
-            <span className="text-[10px] font-medium">Leads</span>
-          </button>
+
 
           <button
             onClick={() => handleTabChange('stats')}

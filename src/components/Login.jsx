@@ -16,8 +16,8 @@ import {
   Calendar,
 } from 'lucide-react';
 
-import { LoginConflictModal, TimerWaitingModal } from './ForceLoginModals';
-import HistoryContext from '@/context/HistoryContext';
+
+
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,7 @@ import axios from 'axios';
 
 export default function Login() {
   const router = useRouter();
-  const { showSecurityAlert, setShowSecurityAlert } = useContext(HistoryContext);
+
   
   const [validationErrors, setValidationErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -46,14 +46,9 @@ export default function Login() {
     type: 'expired',
   });
 
-  const [showLoginConflict, setShowLoginConflict] = useState(false);
-  const [showTimerWaiting, setShowTimerWaiting] = useState(false);
-  const [sessionDuration, setSessionDuration] = useState('45 minutes');
 
-  // Log showSecurityAlert for debugging
-  useEffect(() => {
-    console.log('showSecurityAlert in Login:', showSecurityAlert);
-  }, [showSecurityAlert]);
+
+
 
   const handleUsernameChange = (e) => {
     const value = e.target.value.replace(/\s+/g, '');
@@ -214,8 +209,7 @@ export default function Login() {
       }
 
       if (response.message === 'User already login somewhere else') {
-        console.log('User already logged in elsewhere - showing Login Conflict modal');
-        setShowLoginConflict(true);
+        toast.error('User already logged in elsewhere. Please try again later.');
         setIsLoading(false);
         return;
       }
@@ -300,87 +294,51 @@ export default function Login() {
     await performLogin();
   };
 
-  // Check for auto-login on component mount
+  // Check for existing token or auto-login on component mount
   useEffect(() => {
+    // First check if user already has a valid token (in case they landed directly on login page)
     const token = localStorage.getItem('token');
     const userLoggedOut = localStorage.getItem('userLoggedOut');
+    
+    if (token && !userLoggedOut) {
+      try {
+        const parsedToken = JSON.parse(token);
+        if (parsedToken && parsedToken.userData) {
+          // User is already logged in, redirect immediately
+          router.push('/webphone/v1');
+          return;
+        }
+      } catch (error) {
+        // Invalid token, continue with login flow
+        localStorage.removeItem('token');
+      }
+    }
+
+    // If not logged in, check for auto-login credentials
     const savedUsername = localStorage.getItem('savedUsername');
     const savedPassword = localStorage.getItem('savedPassword');
 
     // Check if it's a mobile device
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    // If user has valid token and didn't manually logout, redirect to webphone
-    if (token && !userLoggedOut) {
-      try {
-        const parsedToken = JSON.parse(token);
-        if (parsedToken) {
-          router.push('webphone/v1');
-          return;
-        }
-      } catch (error) {
-        // Invalid token, continue with login flow
-      }
-    }
-
-    // If user logged out manually, clear the logout flag and show login form
-    if (userLoggedOut) {
-      localStorage.removeItem('userLoggedOut');
-    }
-
-    // Auto-login directly on mobile if we have saved credentials and user didn't manually logout
-    if (savedUsername && savedPassword && !userLoggedOut && isMobile) {
+    // Auto-login directly on mobile if we have saved credentials
+    if (savedUsername && savedPassword && isMobile && !userLoggedOut) {
       setUsername(savedUsername);
       setPassword(savedPassword);
-      // Trigger auto-login after a short delay to ensure state is set
-      setTimeout(() => {
-        handleAutoLogin();
-      }, 100);
+      setIsLoading(true);
+      setLoaderMessage('Signing you in...');
+      // Trigger auto-login immediately for faster experience
+      handleAutoLogin();
     }
   }, [router]);
 
-  const handleForceLogin = () => {
-    console.log('Force Login clicked - closing Login Conflict modal, showing Timer modal');
-    setShowLoginConflict(false);
-    setShowTimerWaiting(true);
-    
-    // Auto-close timer modal after 5 seconds and retry login
-    setTimeout(() => {
-      console.log('Timer completed - closing Timer modal, retrying login');
-      setShowTimerWaiting(false);
-      // Here you would make the force login API call
-      toast.success('Force login request sent');
-      // Retry the login after force login request
-      performLogin();
-    }, 5000);
-  };
 
-  // Log modal states for debugging
-  useEffect(() => {
-    console.log('Login Modal States:', {
-      showLoginConflict,
-      showTimerWaiting,
-      showSecurityAlert
-    });
-  }, [showLoginConflict, showTimerWaiting, showSecurityAlert]);
+
+
 
   return (
     <>
-      {/* Login Conflict Modal */}
-      {showLoginConflict && (
-        <LoginConflictModal
-          onCancel={() => {
-            console.log('Login Conflict modal cancelled');
-            setShowLoginConflict(false);
-            setIsLoading(false);
-          }}
-          onForceLogin={handleForceLogin}
-          sessionDuration={sessionDuration}
-        />
-      )}
 
-      {/* Timer Waiting Modal */}
-      {showTimerWaiting && <TimerWaitingModal />}
 
       <Dialog open={subscriptionDialog.isOpen} onOpenChange={() => {}} modal={true}>
         <DialogContent

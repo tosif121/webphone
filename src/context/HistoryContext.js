@@ -32,7 +32,7 @@ export const HistoryProvider = ({ children }) => {
   const [password, setPassword] = useState('');
   const [campaignMissedCallsLength, setCampaignMissedCallsLength] = useState(0);
   const [scheduleCallsLength, setScheduleCallsLength] = useState(0);
-  const [showSecurityAlert, setShowSecurityAlert] = useState(false);
+
 
   // Save call history to localStorage whenever it changes
   useEffect(() => {
@@ -81,8 +81,6 @@ export const HistoryProvider = ({ children }) => {
         setCampaignMissedCallsLength,
         scheduleCallsLength,
         setScheduleCallsLength,
-        showSecurityAlert,
-        setShowSecurityAlert,
       }}
     >
       {children}

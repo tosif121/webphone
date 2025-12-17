@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Phone, Delete, ArrowLeft, Clock } from 'lucide-react';
 import useFormatPhoneNumber from '../hooks/useFormatPhoneNumber';
 import KeyPad from './KeyPad';
@@ -18,7 +18,7 @@ const CallConference = ({
   const formatPhoneNumber = useFormatPhoneNumber();
 
   // Detect mobile screen size
-  useState(() => {
+  useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 640px)');
     setIsMobile(mediaQuery.matches);
 
@@ -71,9 +71,23 @@ const CallConference = ({
               if (input.length <= 12) setConferenceNumber(input);
             }}
             onKeyDown={handleKeyDown}
+            readOnly={isMobile}
             placeholder="Conference number"
             className="w-full text-4xl md:text-2xl font-normal text-center bg-transparent border-none focus:border-none outline-none py-0 pr-8 text-foreground placeholder:text-muted-foreground/50 transition-all"
             aria-label="Conference number"
+            onTouchStart={(e) => {
+              // Prevent mobile keyboard from appearing on touch
+              if (isMobile) {
+                e.preventDefault();
+                e.target.blur();
+              }
+            }}
+            onFocus={(e) => {
+              // Prevent mobile keyboard on focus
+              if (isMobile) {
+                e.target.blur();
+              }
+            }}
           />
           {conferenceNumber && (
             <button

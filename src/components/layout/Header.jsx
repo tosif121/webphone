@@ -194,7 +194,7 @@ export default function Header() {
 
   return (
     <header className="w-full bg-white dark:bg-background shadow-md border-b border-border sticky top-0 z-40">
-      <div className="container mx-auto flex items-center justify-between h-16 px-4">
+      <div className="container mx-auto flex items-center justify-between h-16 px-4 mt-4">
         {/* Logo and Brand */}
         <Link href={'/'} className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center shadow-sm">
@@ -342,28 +342,26 @@ export default function Header() {
         </div>
 
         {/* Mobile Menu Button */}
-        <div className="flex md:hidden items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleMobileMenu}
-            className="p-2 transition-transform duration-200 hover:scale-105"
-          >
-            <div className="relative w-5 h-5">
+        <div className="flex md:hidden items-center">
+          <>
+            <div
+              className="relative w-5 h-5 transition-transform duration-200 hover:scale-105"
+              onClick={toggleMobileMenu}
+            >
               <Menu
                 className={cn(
-                  'w-5 h-5 absolute inset-0 transition-all duration-300 ease-in-out',
+                  'w-6 h-6 absolute inset-0 transition-all duration-300 ease-in-out',
                   mobileMenuOpen ? 'opacity-0 rotate-90 scale-75' : 'opacity-100 rotate-0 scale-100'
                 )}
               />
               <X
                 className={cn(
-                  'w-5 h-5 absolute inset-0 transition-all duration-300 ease-in-out',
+                  'w-6 h-6 absolute inset-0 transition-all duration-300 ease-in-out',
                   mobileMenuOpen ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-75'
                 )}
               />
             </div>
-          </Button>
+          </>
         </div>
       </div>
 
@@ -377,7 +375,7 @@ export default function Header() {
         {/* Overlay */}
         <div
           className={cn(
-            'absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ease-in-out',
+            'absolute inset-0 dark:bg-black/10 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ease-in-out',
             mobileMenuOpen ? 'opacity-100' : 'opacity-0'
           )}
           onClick={() => setMobileMenuOpen(false)}
@@ -394,7 +392,7 @@ export default function Header() {
           aria-modal="true"
           role="dialog"
         >
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full mt-6">
             {/* Header with close button */}
             <div className="flex items-center justify-between p-4 border-b bg-muted/30">
               <div className="flex items-center gap-3">
@@ -497,7 +495,7 @@ export default function Header() {
               <div className="py-3 border-t">
                 <ThemeToggle />
               </div>
-              <div className="p-4 border-t bg-muted/30">
+              <div className="p-4 border-t">
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
