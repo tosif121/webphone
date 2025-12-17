@@ -195,7 +195,7 @@ function Dashboard() {
       } catch (e) {
         console.error('Invalid token JSON in localStorage:', e);
         localStorage.removeItem('token');
-        router.push('/webphone/v1/login');
+        router.push('/webphone/mobile/login');
       }
     }
   }, []); // Remove router dependency to prevent re-runs
@@ -372,10 +372,10 @@ function Dashboard() {
     try {
       const parsedToken = JSON.parse(storedToken);
       if (!parsedToken) {
-        router.push('/webphone/v1/login');
+        router.push('/webphone/mobile/login');
       }
     } catch (error) {
-      router.push('/webphone/v1/login');
+      router.push('/webphone/mobile/login');
     }
   }, [router]);
 

@@ -221,7 +221,7 @@ const useJssip = (isMobile = false) => {
       }
     });
 
-    window.location.href = '/webphone/v1/login';
+    window.location.href = '/webphone/mobile/login';
   };
 
   const withTimeout = (promise, timeoutMs) =>
@@ -417,7 +417,7 @@ const useJssip = (isMobile = false) => {
       addTimeout('network');
     } else if (err.response?.status === 401 && status === 'start' && !dispositionModal) {
       // Handle auth errors
-      window.location.href = '/webphone/v1';
+      window.location.href = '/webphone/mobile';
       toast.error('Session expired. Please log in again.');
 
       if (session && session.status < 6) {

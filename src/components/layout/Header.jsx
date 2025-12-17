@@ -96,7 +96,7 @@ export default function Header() {
         });
         toast.success('Logged out successfully');
         setUserMenuOpen(false);
-        window.location.href = '/webphone/v1/login';
+        window.location.href = '/webphone/mobile/login';
       } catch (error) {
         console.error('Error during logout:', error);
 
@@ -114,7 +114,7 @@ export default function Header() {
         });
         toast.error('Logged out (some cleanup operations failed)');
         setUserMenuOpen(false);
-        window.location.href = '/webphone/v1/login';
+        window.location.href = '/webphone/mobile/login';
       }
     }
   };
@@ -170,18 +170,18 @@ export default function Header() {
 
   const navLinks = [
     {
-      href: '/webphone/v1',
+      href: '/webphone/mobile',
       name: 'Agent Panel',
       icon: <Phone className="w-4 h-4" />,
     },
     {
-      href: '/webphone/v1/agent-dashboard',
+      href: '/webphone/mobile/agent-dashboard',
       name: 'Agent Dashboard',
       icon: <LayoutDashboard className="w-4 h-4" />,
       desktopOnly: true, // Only show on desktop
     },
     {
-      href: '/webphone/v1/system-monitoring',
+      href: '/webphone/mobile/system-monitoring',
       name: 'System Monitoring',
       icon: <MonitorCog className="w-4 h-4" />,
     },
@@ -207,7 +207,7 @@ export default function Header() {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-4">
-          {pathname !== '/webphone/v1/agent-dashboard' && pathname !== '/webphone/v1/system-monitoring' && (
+          {pathname !== '/webphone/mobile/agent-dashboard' && pathname !== '/webphone/mobile/system-monitoring' && (
             <>
               <nav className="flex gap-2">
                 <Button
@@ -435,7 +435,7 @@ export default function Header() {
               </div>
 
               {/* Missed Calls & BreakDropdown */}
-              {pathname !== '/webphone/v1/agent-dashboard' && pathname !== '/webphone/v1/system-monitoring' && (
+              {pathname !== '/webphone/mobile/agent-dashboard' && pathname !== '/webphone/mobile/system-monitoring' && (
                 <div className="space-y-3">
                   <button
                     onClick={() => {
