@@ -9,7 +9,7 @@ const SubscriptionExpired = () => {
   const router = useRouter();
 
   const handleBackToLogin = () => {
-    router.push('/login');
+    window.location.href = '/mobile/login';
   };
 
   return (

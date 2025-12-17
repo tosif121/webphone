@@ -392,6 +392,7 @@ export default function Layout({ children }) {
 
     // Enhanced call state monitoring for disconnect detection
     let callStateMonitor = null;
+    let ringingStateMonitor = null;
     let lastCallStateReport = Date.now();
     
     const startCallStateMonitoring = () => {
@@ -471,6 +472,87 @@ export default function Layout({ children }) {
       }, 2000); // Check every 2 seconds
     };
     
+    // Listen for incoming call events to immediately report ringing state
+    const handleIncomingCallEvent = (event) => {
+      console.log('Layout: Incoming call event detected');
+      if (window.ReactNativeWebView?.postMessage) {
+        // Immediately report incoming ringing state
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            type: 'isIncomingRinging',
+            value: true,
+            timestamp: Date.now(),
+          })
+        );
+        
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            type: 'call_status',
+            status: 'incoming_ringing',
+            timestamp: Date.now(),
+          })
+        );
+        
+        console.log('Layout: Immediately reported incoming call state to React Native');
+      }
+    };
+    
+    // Listen for various incoming call indicators
+    if (typeof window !== 'undefined') {
+      // Listen for custom events
+      window.addEventListener('incomingCall', handleIncomingCallEvent);
+      window.addEventListener('callStateChange', handleIncomingCallEvent);
+      
+      // Monitor for changes in isIncomingRinging and other call state indicators
+      let previousRingingState = window.isIncomingRinging;
+      let previousIncomingSession = incomingSession;
+      
+      ringingStateMonitor = setInterval(() => {
+        let stateChanged = false;
+        
+        // Check isIncomingRinging changes
+        if (window.isIncomingRinging !== previousRingingState) {
+          console.log('Layout: isIncomingRinging state changed to:', window.isIncomingRinging);
+          previousRingingState = window.isIncomingRinging;
+          stateChanged = true;
+        }
+        
+        // Check incomingSession changes
+        if (incomingSession !== previousIncomingSession) {
+          console.log('Layout: incomingSession changed:', !!incomingSession);
+          previousIncomingSession = incomingSession;
+          stateChanged = true;
+        }
+        
+        // Report state changes immediately
+        if (stateChanged && window.ReactNativeWebView?.postMessage) {
+          // Report isIncomingRinging state
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({
+              type: 'isIncomingRinging',
+              value: Boolean(window.isIncomingRinging || (incomingSession && isIncomingRinging)),
+              timestamp: Date.now(),
+            })
+          );
+          
+          // If ringing stopped, also report call status
+          if (!window.isIncomingRinging && !incomingSession) {
+            setTimeout(() => {
+              window.ReactNativeWebView.postMessage(
+                JSON.stringify({
+                  type: 'call_status',
+                  status: 'idle',
+                  timestamp: Date.now(),
+                })
+              );
+            }, 50);
+          }
+          
+          console.log('Layout: Reported state change - isIncomingRinging:', Boolean(window.isIncomingRinging), 'incomingSession:', !!incomingSession);
+        }
+      }, 200); // Check every 200ms for faster response
+    }
+    
     // Start monitoring when there's an incoming session
     if (incomingSession || isIncomingRinging) {
       startCallStateMonitoring();
@@ -498,6 +580,17 @@ export default function Layout({ children }) {
       if (callStateMonitor) {
         clearInterval(callStateMonitor);
         callStateMonitor = null;
+      }
+      
+      // Clean up ringing state monitor
+      if (ringingStateMonitor) {
+        clearInterval(ringingStateMonitor);
+      }
+      
+      // Remove event listeners
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('incomingCall', handleIncomingCallEvent);
+        window.removeEventListener('callStateChange', handleIncomingCallEvent);
       }
       
       if (originalAnswerIncomingCall) {

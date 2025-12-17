@@ -84,11 +84,27 @@ export default function LeadAndCallInfoPanel({
           return retryRes;
         } catch (refreshErr) {
           console.error('Token refresh failed:', refreshErr);
+          
+          // Delete Firebase token first
+          const token = localStorage.getItem('token');
+          if (token) {
+            try {
+              await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+            } catch (error) {
+              console.error('Error deleting Firebase token:', error);
+            }
+          }
+
           localStorage.removeItem('token');
           localStorage.removeItem('savedUsername');
           localStorage.removeItem('savedPassword');
           localStorage.removeItem('call-history');
           localStorage.removeItem('phoneShow');
+          localStorage.removeItem('phoneUserToggled');
           localStorage.removeItem('formNavigationState');
           localStorage.removeItem('selectedBreak');
           Object.keys(localStorage).forEach((key) => {

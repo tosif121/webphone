@@ -23,11 +23,11 @@ export default function Index() {
         // Don't redirect, just render the main component
         return;
       } else {
-        router.replace('/login');
+        window.location.href = '/mobile/login';
       }
     } catch (error) {
       console.error('Error parsing token:', error);
-      router.replace('/login');
+      window.location.href = '/mobile/login';
     }
   }, [isClient, router]);
 

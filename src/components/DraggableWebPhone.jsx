@@ -88,6 +88,7 @@ export default function DraggableWebPhone() {
   const router = useRouter();
   const [audioSrc, setAudioSrc] = useState('');
   const [phoneShow, setPhoneShow] = useState(false);
+  const [userToggledPhone, setUserToggledPhone] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [seeLogs, setSeeLogs] = useState(false);
   const [phonePosition, setPhonePosition] = useState('right');
@@ -154,6 +155,7 @@ export default function DraggableWebPhone() {
       const savedDraggable = localStorage.getItem('phoneDraggable');
       const savedRndState = localStorage.getItem('phoneRndState');
       const savedShow = localStorage.getItem('phoneShow');
+      const savedUserToggled = localStorage.getItem('phoneUserToggled');
 
       // Load phoneShow state from localStorage, default to true on desktop
       if (!effectiveIsMobile) {
@@ -162,6 +164,11 @@ export default function DraggableWebPhone() {
         } else {
           setPhoneShow(true);
         }
+      }
+
+      // Load user toggle preference
+      if (savedUserToggled !== null) {
+        setUserToggledPhone(JSON.parse(savedUserToggled));
       }
 
       if (savedPosition && (savedPosition === 'left' || savedPosition === 'right')) {
@@ -187,16 +194,19 @@ export default function DraggableWebPhone() {
         localStorage.setItem('phoneDraggable', JSON.stringify(isDraggable));
         localStorage.setItem('phoneRndState', JSON.stringify(rndState));
         localStorage.setItem('phoneShow', JSON.stringify(phoneShow));
+        localStorage.setItem('phoneUserToggled', JSON.stringify(userToggledPhone));
       } catch (error) {
         console.warn('Failed to save phone settings to localStorage:', error);
       }
     }
-  }, [phonePosition, isDraggable, rndState, phoneShow, isHydrated]);
+  }, [phonePosition, isDraggable, rndState, phoneShow, userToggledPhone, isHydrated]);
 
   // Auto-show on incoming call
   useEffect(() => {
     if (isIncomingRinging) {
       setPhoneShow(true);
+      // Reset user toggle flag when call starts
+      setUserToggledPhone(false);
     }
   }, [isIncomingRinging]);
 
@@ -204,6 +214,8 @@ export default function DraggableWebPhone() {
   useEffect(() => {
     if (status === 'calling') {
       setPhoneShow(true);
+      // Reset user toggle flag when call starts
+      setUserToggledPhone(false);
     }
   }, [status]);
 
@@ -222,11 +234,22 @@ export default function DraggableWebPhone() {
     };
 
     const handleCloseDialpad = () => {
-      console.log('Close dialpad event received. Status:', status, 'Session:', !!session);
+      console.log('Close dialpad event received. Status:', status, 'Session:', !!session, 'UserToggled:', userToggledPhone);
       // Only close if not in an active call
       if (status === 'start' || !session) {
-        console.log('Closing dialpad');
-        setPhoneShow(false);
+        if (effectiveIsMobile) {
+          console.log('Closing dialpad on mobile');
+          setPhoneShow(false);
+        } else {
+          // On desktop, respect user's manual toggle preference
+          if (!userToggledPhone) {
+            console.log('Auto-closing dialpad on desktop (no user preference)');
+            setPhoneShow(false);
+          } else {
+            console.log('Keeping dialpad open on desktop (user toggled)');
+            // Don't auto-hide if user has manually toggled the phone
+          }
+        }
       } else {
         console.log('Cannot close dialpad - call in progress');
       }
@@ -241,7 +264,7 @@ export default function DraggableWebPhone() {
       window.removeEventListener('openDialpadRecents', handleOpenDialpadRecents);
       window.removeEventListener('closeDialpad', handleCloseDialpad);
     };
-  }, [status, session]);
+  }, [status, session, userToggledPhone, effectiveIsMobile]);
 
   // Notify when dialpad opens/closes
   useEffect(() => {
@@ -431,7 +454,10 @@ export default function DraggableWebPhone() {
             type="button"
             size="sm"
             className="rounded-full w-12 h-12 hover:scale-105 transition-transform"
-            onClick={() => setPhoneShow((prev) => !prev)}
+            onClick={() => {
+              setPhoneShow((prev) => !prev);
+              setUserToggledPhone(true);
+            }}
             aria-label={phoneShow ? 'Hide phone interface' : 'Show phone interface'}
           >
             {!phoneShow ? <PhoneOff className="h-5 w-5" /> : <Phone className="h-5 w-5" />}

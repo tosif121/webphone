@@ -194,8 +194,21 @@ function Dashboard() {
         }
       } catch (e) {
         console.error('Invalid token JSON in localStorage:', e);
+        
+        // Delete Firebase token first
+        const token = localStorage.getItem('token');
+        if (token) {
+          axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }).catch(error => {
+            console.error('Error deleting Firebase token:', error);
+          });
+        }
+
         localStorage.removeItem('token');
-        router.push('/login');
+        window.location.href = '/mobile/login';
       }
     }
   }, []); // Remove router dependency to prevent re-runs
@@ -235,31 +248,95 @@ function Dashboard() {
     };
 
     window.answerIncomingCall = function () {
+      console.log('Dashboard: answerIncomingCall called');
+      
       if (answerIncomingCall && typeof answerIncomingCall === 'function' && incomingSession) {
         answerIncomingCall();
       } else if (originalAnswerIncomingCall && typeof originalAnswerIncomingCall === 'function') {
         originalAnswerIncomingCall();
       }
-      window.ReactNativeWebView?.postMessage(
-        JSON.stringify({
-          type: 'call_status',
-          status: 'accepted',
-        })
-      );
+      
+      // Report multiple status updates to ensure ringtone stops
+      if (window.ReactNativeWebView?.postMessage) {
+        // Report call accepted
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            type: 'call_status',
+            status: 'accepted',
+            timestamp: Date.now(),
+          })
+        );
+        
+        // Report isIncomingRinging false to stop ringtone
+        setTimeout(() => {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({
+              type: 'isIncomingRinging',
+              value: false,
+              timestamp: Date.now(),
+            })
+          );
+        }, 50);
+        
+        // Report in_call status
+        setTimeout(() => {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({
+              type: 'call_status',
+              status: 'in_call',
+              timestamp: Date.now(),
+            })
+          );
+        }, 100);
+        
+        console.log('Dashboard: Reported call accepted and ringtone stop');
+      }
     };
 
     window.rejectIncomingCall = function () {
+      console.log('Dashboard: rejectIncomingCall called');
+      
       if (rejectIncomingCall && typeof rejectIncomingCall === 'function') {
         rejectIncomingCall();
       } else if (originalRejectIncomingCall && typeof originalRejectIncomingCall === 'function') {
         originalRejectIncomingCall();
       }
-      window.ReactNativeWebView?.postMessage(
-        JSON.stringify({
-          type: 'call_status',
-          status: 'declined',
-        })
-      );
+      
+      // Report multiple status updates to ensure ringtone stops
+      if (window.ReactNativeWebView?.postMessage) {
+        // Report call declined
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            type: 'call_status',
+            status: 'declined',
+            timestamp: Date.now(),
+          })
+        );
+        
+        // Report isIncomingRinging false to stop ringtone
+        setTimeout(() => {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({
+              type: 'isIncomingRinging',
+              value: false,
+              timestamp: Date.now(),
+            })
+          );
+        }, 50);
+        
+        // Report idle status
+        setTimeout(() => {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({
+              type: 'call_status',
+              status: 'idle',
+              timestamp: Date.now(),
+            })
+          );
+        }, 100);
+        
+        console.log('Dashboard: Reported call declined and ringtone stop');
+      }
     };
 
     return () => {
@@ -372,10 +449,10 @@ function Dashboard() {
     try {
       const parsedToken = JSON.parse(storedToken);
       if (!parsedToken) {
-        router.push('/login');
+        window.location.href = '/mobile/login';
       }
     } catch (error) {
-      router.push('/login');
+      window.location.href = '/mobile/login';
     }
   }, [router]);
 

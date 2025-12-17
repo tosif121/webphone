@@ -206,13 +206,29 @@ const useJssip = (isMobile = false) => {
     }, 500);
   };
 
-  const closeTimeoutModal = () => {
+  const closeTimeoutModal = async () => {
     setShowTimeoutModal(false);
+    
+    // Delete Firebase token first
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } catch (error) {
+        console.error('Error deleting Firebase token:', error);
+      }
+    }
+
     localStorage.removeItem('token');
     localStorage.removeItem('savedUsername');
     localStorage.removeItem('savedPassword');
     localStorage.removeItem('call-history');
     localStorage.removeItem('phoneShow');
+    localStorage.removeItem('phoneUserToggled');
     localStorage.removeItem('formNavigationState');
     localStorage.removeItem('selectedBreak');
     Object.keys(localStorage).forEach((key) => {
@@ -221,7 +237,7 @@ const useJssip = (isMobile = false) => {
       }
     });
 
-    window.location.href = '/login';
+    window.location.href = '/mobile/login';
   };
 
   const withTimeout = (promise, timeoutMs) =>
@@ -562,6 +578,7 @@ const useJssip = (isMobile = false) => {
   const answerIncomingCall = async () => {
     if (incomingSession) {
       try {
+        console.log('useJssip: answerIncomingCall called');
         stopRingtone(); // Stop ringtone when call is answered
         setCallHandled(true);
         callHandledRef.current = true;
@@ -572,6 +589,30 @@ const useJssip = (isMobile = false) => {
         setStatus('calling');
         setCallType('incoming');
         reset();
+        
+        // Report to React Native that call was answered and ringtone should stop
+        if (window.ReactNativeWebView?.postMessage) {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({
+              type: 'call_status',
+              status: 'accepted',
+              timestamp: Date.now(),
+            })
+          );
+          
+          // Also report isIncomingRinging false
+          setTimeout(() => {
+            window.ReactNativeWebView.postMessage(
+              JSON.stringify({
+                type: 'isIncomingRinging',
+                value: false,
+                timestamp: Date.now(),
+              })
+            );
+          }, 50);
+          
+          console.log('useJssip: Reported call answered to React Native');
+        }
 
         // Set up audio stream
         incomingSession.connection.addEventListener('addstream', (event) => {
@@ -598,6 +639,7 @@ const useJssip = (isMobile = false) => {
   };
 
   const rejectIncomingCall = () => {
+    console.log('useJssip: rejectIncomingCall called');
     stopRingtone();
 
     if (incomingSession && incomingSession.status < 6) {
@@ -615,6 +657,41 @@ const useJssip = (isMobile = false) => {
     ]);
 
     setDispositionModal(false);
+    
+    // Report to React Native that call was declined and ringtone should stop
+    if (window.ReactNativeWebView?.postMessage) {
+      window.ReactNativeWebView.postMessage(
+        JSON.stringify({
+          type: 'call_status',
+          status: 'declined',
+          timestamp: Date.now(),
+        })
+      );
+      
+      // Also report isIncomingRinging false
+      setTimeout(() => {
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            type: 'isIncomingRinging',
+            value: false,
+            timestamp: Date.now(),
+          })
+        );
+      }, 50);
+      
+      // Report idle status
+      setTimeout(() => {
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            type: 'call_status',
+            status: 'idle',
+            timestamp: Date.now(),
+          })
+        );
+      }, 100);
+      
+      console.log('useJssip: Reported call declined to React Native');
+    }
   };
 
   useEffect(() => {

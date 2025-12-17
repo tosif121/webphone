@@ -87,6 +87,7 @@ export default function Header() {
         localStorage.removeItem('savedPassword');
         localStorage.removeItem('call-history');
         localStorage.removeItem('phoneShow');
+        localStorage.removeItem('phoneUserToggled');
         localStorage.removeItem('formNavigationState');
         localStorage.removeItem('selectedBreak');
         Object.keys(localStorage).forEach((key) => {
@@ -96,7 +97,7 @@ export default function Header() {
         });
         toast.success('Logged out successfully');
         setUserMenuOpen(false);
-        window.location.href = '/login';
+        window.location.href = '/mobile/login';
       } catch (error) {
         console.error('Error during logout:', error);
 
@@ -105,6 +106,7 @@ export default function Header() {
         localStorage.removeItem('savedPassword');
         localStorage.removeItem('call-history');
         localStorage.removeItem('phoneShow');
+        localStorage.removeItem('phoneUserToggled');
         localStorage.removeItem('formNavigationState');
         localStorage.removeItem('selectedBreak');
         Object.keys(localStorage).forEach((key) => {
@@ -114,7 +116,7 @@ export default function Header() {
         });
         toast.error('Logged out (some cleanup operations failed)');
         setUserMenuOpen(false);
-        window.location.href = '/login';
+        window.location.href = '/mobile/login';
       }
     }
   };

@@ -80,13 +80,28 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
     }
   };
 
-  const handleGoToLogin = () => {
+  const handleGoToLogin = async () => {
     if (typeof window !== 'undefined') {
+      // Delete Firebase token first
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        } catch (error) {
+          console.error('Error deleting Firebase token:', error);
+        }
+      }
+
       localStorage.removeItem('token');
       localStorage.removeItem('savedUsername');
       localStorage.removeItem('savedPassword');
       localStorage.removeItem('call-history');
       localStorage.removeItem('phoneShow');
+      localStorage.removeItem('phoneUserToggled');
       localStorage.removeItem('formNavigationState');
       localStorage.removeItem('selectedBreak');
       Object.keys(localStorage).forEach((key) => {
@@ -94,7 +109,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
           localStorage.removeItem(key);
         }
       });
-      window.location.href = '/login';
+      window.location.href = '/mobile/login';
     }
   };
 
