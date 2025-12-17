@@ -390,10 +390,115 @@ export default function Layout({ children }) {
 
     console.log('Layout: Window functions set up successfully');
 
+    // Enhanced call state monitoring for disconnect detection
+    let callStateMonitor = null;
+    let lastCallStateReport = Date.now();
+    
+    const startCallStateMonitoring = () => {
+      if (callStateMonitor) {
+        clearInterval(callStateMonitor);
+      }
+      
+      console.log('Layout: Starting enhanced call state monitoring');
+      
+      callStateMonitor = setInterval(() => {
+        try {
+          let currentCallState = 'idle';
+          let hasActiveCall = false;
+          
+          // Check multiple indicators of call state
+          if (incomingSession) {
+            if (incomingSession.isInProgress && incomingSession.isInProgress()) {
+              currentCallState = 'incoming_ringing';
+              hasActiveCall = true;
+            } else if (incomingSession.isEstablished && incomingSession.isEstablished()) {
+              currentCallState = 'in_call';
+              hasActiveCall = true;
+            } else if (incomingSession.isEnded && incomingSession.isEnded()) {
+              currentCallState = 'idle';
+              hasActiveCall = false;
+            }
+          }
+          
+          // Check if there's an active outgoing session
+          if (window.session) {
+            if (window.session.isEstablished && window.session.isEstablished()) {
+              currentCallState = 'in_call';
+              hasActiveCall = true;
+            } else if (window.session.isInProgress && window.session.isInProgress()) {
+              currentCallState = 'calling';
+              hasActiveCall = true;
+            }
+          }
+          
+          // Check global call state indicators
+          if (window.isIncomingRinging === true) {
+            currentCallState = 'incoming_ringing';
+            hasActiveCall = true;
+          }
+          
+          // Report current state to React Native
+          if (window.ReactNativeWebView?.postMessage) {
+            const now = Date.now();
+            
+            // Report call state every 5 seconds or when state changes
+            if (now - lastCallStateReport > 5000) {
+              window.ReactNativeWebView.postMessage(
+                JSON.stringify({
+                  type: 'call_state_heartbeat',
+                  status: currentCallState,
+                  hasActiveCall: hasActiveCall,
+                  timestamp: now,
+                })
+              );
+              
+              // Also report isIncomingRinging state
+              window.ReactNativeWebView.postMessage(
+                JSON.stringify({
+                  type: 'isIncomingRinging',
+                  value: currentCallState === 'incoming_ringing',
+                  timestamp: now,
+                })
+              );
+              
+              lastCallStateReport = now;
+              console.log('Layout: Call state heartbeat:', currentCallState, 'hasActiveCall:', hasActiveCall);
+            }
+          }
+        } catch (error) {
+          console.error('Layout: Error in call state monitoring:', error);
+        }
+      }, 2000); // Check every 2 seconds
+    };
+    
+    // Start monitoring when there's an incoming session
+    if (incomingSession || isIncomingRinging) {
+      startCallStateMonitoring();
+    }
+    
+    // Monitor for changes in incoming session
+    const originalIncomingSession = incomingSession;
+    if (originalIncomingSession !== incomingSession) {
+      if (incomingSession) {
+        startCallStateMonitoring();
+      } else {
+        if (callStateMonitor) {
+          clearInterval(callStateMonitor);
+          callStateMonitor = null;
+        }
+      }
+    }
+
     // Cleanup function
     return () => {
       console.log('Layout: Cleaning up window functions');
       delete window.onReactNativeMessage;
+      
+      // Clean up call state monitoring
+      if (callStateMonitor) {
+        clearInterval(callStateMonitor);
+        callStateMonitor = null;
+      }
       
       if (originalAnswerIncomingCall) {
         window.answerIncomingCall = originalAnswerIncomingCall;

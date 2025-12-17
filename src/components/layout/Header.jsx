@@ -96,7 +96,7 @@ export default function Header() {
         });
         toast.success('Logged out successfully');
         setUserMenuOpen(false);
-        window.location.href = '/webphone/mobile/login';
+        window.location.href = '/mobile/login';
       } catch (error) {
         console.error('Error during logout:', error);
 
@@ -114,7 +114,7 @@ export default function Header() {
         });
         toast.error('Logged out (some cleanup operations failed)');
         setUserMenuOpen(false);
-        window.location.href = '/webphone/mobile/login';
+        window.location.href = '/mobile/login';
       }
     }
   };
