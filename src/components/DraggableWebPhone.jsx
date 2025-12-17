@@ -234,7 +234,14 @@ export default function DraggableWebPhone() {
     };
 
     const handleCloseDialpad = () => {
-      console.log('Close dialpad event received. Status:', status, 'Session:', !!session, 'UserToggled:', userToggledPhone);
+      console.log(
+        'Close dialpad event received. Status:',
+        status,
+        'Session:',
+        !!session,
+        'UserToggled:',
+        userToggledPhone
+      );
       // Only close if not in an active call
       if (status === 'start' || !session) {
         if (effectiveIsMobile) {
@@ -498,7 +505,7 @@ export default function DraggableWebPhone() {
       )}
 
       {/* Phone Interface */}
-      {!dispositionModal && phoneShow && (
+      {phoneShow && (
         <>
           {effectiveIsMobile ? (
             // Mobile: Full screen with padding for header and bottom nav from MobileNavigation

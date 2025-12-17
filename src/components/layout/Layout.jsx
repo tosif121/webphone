@@ -155,7 +155,7 @@ export default function Layout({ children }) {
   // Auto-disposition on mobile when call ends
   useEffect(() => {
     const autoDispositionOnMobile = async () => {
-      if (isMobile && dispositionModal && bridgeID && username) {
+      if (dispositionModal && bridgeID && username) {
         try {
           console.log('📱 Mobile: Auto-disposing call...');
 
@@ -211,7 +211,7 @@ export default function Layout({ children }) {
   // Expose answerIncomingCall to window object for React Native integration
   useEffect(() => {
     console.log('Layout: Setting up window.answerIncomingCall');
-    
+
     // Store original function if it exists
     const originalAnswerIncomingCall = window.answerIncomingCall;
     const originalRejectIncomingCall = window.rejectIncomingCall;
@@ -246,11 +246,11 @@ export default function Layout({ children }) {
       console.log('Layout: answerIncomingCall available:', typeof answerIncomingCall);
       console.log('Layout: incomingSession available:', !!incomingSession);
       console.log('Layout: isIncomingRinging:', isIncomingRinging);
-      
+
       if (answerIncomingCall && typeof answerIncomingCall === 'function' && incomingSession) {
         console.log('Layout: Executing answerIncomingCall');
         answerIncomingCall();
-        
+
         // Immediately notify React Native that call was answered to stop ringtone
         if (window.ReactNativeWebView?.postMessage) {
           // Send multiple status updates to ensure ringtone stops
@@ -261,7 +261,7 @@ export default function Layout({ children }) {
               timestamp: Date.now(),
             })
           );
-          
+
           // Also send isIncomingRinging false to ensure ringtone stops
           setTimeout(() => {
             window.ReactNativeWebView.postMessage(
@@ -272,7 +272,7 @@ export default function Layout({ children }) {
               })
             );
           }, 50);
-          
+
           // Send in_call status after a short delay
           setTimeout(() => {
             window.ReactNativeWebView.postMessage(
@@ -298,7 +298,7 @@ export default function Layout({ children }) {
       console.log('Layout: rejectIncomingCall available:', typeof rejectIncomingCall);
       console.log('Layout: incomingSession available:', !!incomingSession);
       console.log('Layout: isIncomingRinging:', isIncomingRinging);
-      
+
       // Try to reject the call - don't require incomingSession for decline
       if (rejectIncomingCall && typeof rejectIncomingCall === 'function') {
         console.log('Layout: Executing rejectIncomingCall');
@@ -308,7 +308,7 @@ export default function Layout({ children }) {
         } catch (error) {
           console.error('Layout: Error executing rejectIncomingCall:', error);
         }
-        
+
         // Immediately notify React Native that call was declined to stop ringtone
         if (window.ReactNativeWebView?.postMessage) {
           // Send multiple status updates to ensure ringtone stops
@@ -319,7 +319,7 @@ export default function Layout({ children }) {
               timestamp: Date.now(),
             })
           );
-          
+
           // Also send isIncomingRinging false to ensure ringtone stops
           setTimeout(() => {
             window.ReactNativeWebView.postMessage(
@@ -330,7 +330,7 @@ export default function Layout({ children }) {
               })
             );
           }, 50);
-          
+
           // Send idle status after a short delay
           setTimeout(() => {
             window.ReactNativeWebView.postMessage(
@@ -350,7 +350,7 @@ export default function Layout({ children }) {
         } catch (error) {
           console.error('Layout: Error executing original rejectIncomingCall:', error);
         }
-        
+
         // Still report decline status
         if (window.ReactNativeWebView?.postMessage) {
           window.ReactNativeWebView.postMessage(
@@ -363,7 +363,7 @@ export default function Layout({ children }) {
         }
       } else {
         console.warn('Layout: No rejectIncomingCall function available');
-        
+
         // Even if no function is available, report decline to stop ringtone
         if (window.ReactNativeWebView?.postMessage) {
           console.log('Layout: Reporting decline status as fallback');
@@ -374,7 +374,7 @@ export default function Layout({ children }) {
               timestamp: Date.now(),
             })
           );
-          
+
           setTimeout(() => {
             window.ReactNativeWebView.postMessage(
               JSON.stringify({
@@ -394,19 +394,19 @@ export default function Layout({ children }) {
     let callStateMonitor = null;
     let ringingStateMonitor = null;
     let lastCallStateReport = Date.now();
-    
+
     const startCallStateMonitoring = () => {
       if (callStateMonitor) {
         clearInterval(callStateMonitor);
       }
-      
+
       console.log('Layout: Starting enhanced call state monitoring');
-      
+
       callStateMonitor = setInterval(() => {
         try {
           let currentCallState = 'idle';
           let hasActiveCall = false;
-          
+
           // Check multiple indicators of call state
           if (incomingSession) {
             if (incomingSession.isInProgress && incomingSession.isInProgress()) {
@@ -420,7 +420,7 @@ export default function Layout({ children }) {
               hasActiveCall = false;
             }
           }
-          
+
           // Check if there's an active outgoing session
           if (window.session) {
             if (window.session.isEstablished && window.session.isEstablished()) {
@@ -431,17 +431,17 @@ export default function Layout({ children }) {
               hasActiveCall = true;
             }
           }
-          
+
           // Check global call state indicators
           if (window.isIncomingRinging === true) {
             currentCallState = 'incoming_ringing';
             hasActiveCall = true;
           }
-          
+
           // Report current state to React Native
           if (window.ReactNativeWebView?.postMessage) {
             const now = Date.now();
-            
+
             // Report call state every 5 seconds or when state changes
             if (now - lastCallStateReport > 5000) {
               window.ReactNativeWebView.postMessage(
@@ -452,7 +452,7 @@ export default function Layout({ children }) {
                   timestamp: now,
                 })
               );
-              
+
               // Also report isIncomingRinging state
               window.ReactNativeWebView.postMessage(
                 JSON.stringify({
@@ -461,7 +461,7 @@ export default function Layout({ children }) {
                   timestamp: now,
                 })
               );
-              
+
               lastCallStateReport = now;
               console.log('Layout: Call state heartbeat:', currentCallState, 'hasActiveCall:', hasActiveCall);
             }
@@ -471,7 +471,7 @@ export default function Layout({ children }) {
         }
       }, 2000); // Check every 2 seconds
     };
-    
+
     // Listen for incoming call events to immediately report ringing state
     const handleIncomingCallEvent = (event) => {
       console.log('Layout: Incoming call event detected');
@@ -484,7 +484,7 @@ export default function Layout({ children }) {
             timestamp: Date.now(),
           })
         );
-        
+
         window.ReactNativeWebView.postMessage(
           JSON.stringify({
             type: 'call_status',
@@ -492,38 +492,38 @@ export default function Layout({ children }) {
             timestamp: Date.now(),
           })
         );
-        
+
         console.log('Layout: Immediately reported incoming call state to React Native');
       }
     };
-    
+
     // Listen for various incoming call indicators
     if (typeof window !== 'undefined') {
       // Listen for custom events
       window.addEventListener('incomingCall', handleIncomingCallEvent);
       window.addEventListener('callStateChange', handleIncomingCallEvent);
-      
+
       // Monitor for changes in isIncomingRinging and other call state indicators
       let previousRingingState = window.isIncomingRinging;
       let previousIncomingSession = incomingSession;
-      
+
       ringingStateMonitor = setInterval(() => {
         let stateChanged = false;
-        
+
         // Check isIncomingRinging changes
         if (window.isIncomingRinging !== previousRingingState) {
           console.log('Layout: isIncomingRinging state changed to:', window.isIncomingRinging);
           previousRingingState = window.isIncomingRinging;
           stateChanged = true;
         }
-        
+
         // Check incomingSession changes
         if (incomingSession !== previousIncomingSession) {
           console.log('Layout: incomingSession changed:', !!incomingSession);
           previousIncomingSession = incomingSession;
           stateChanged = true;
         }
-        
+
         // Report state changes immediately
         if (stateChanged && window.ReactNativeWebView?.postMessage) {
           // Report isIncomingRinging state
@@ -534,7 +534,7 @@ export default function Layout({ children }) {
               timestamp: Date.now(),
             })
           );
-          
+
           // If ringing stopped, also report call status
           if (!window.isIncomingRinging && !incomingSession) {
             setTimeout(() => {
@@ -547,17 +547,22 @@ export default function Layout({ children }) {
               );
             }, 50);
           }
-          
-          console.log('Layout: Reported state change - isIncomingRinging:', Boolean(window.isIncomingRinging), 'incomingSession:', !!incomingSession);
+
+          console.log(
+            'Layout: Reported state change - isIncomingRinging:',
+            Boolean(window.isIncomingRinging),
+            'incomingSession:',
+            !!incomingSession
+          );
         }
       }, 200); // Check every 200ms for faster response
     }
-    
+
     // Start monitoring when there's an incoming session
     if (incomingSession || isIncomingRinging) {
       startCallStateMonitoring();
     }
-    
+
     // Monitor for changes in incoming session
     const originalIncomingSession = incomingSession;
     if (originalIncomingSession !== incomingSession) {
@@ -575,24 +580,24 @@ export default function Layout({ children }) {
     return () => {
       console.log('Layout: Cleaning up window functions');
       delete window.onReactNativeMessage;
-      
+
       // Clean up call state monitoring
       if (callStateMonitor) {
         clearInterval(callStateMonitor);
         callStateMonitor = null;
       }
-      
+
       // Clean up ringing state monitor
       if (ringingStateMonitor) {
         clearInterval(ringingStateMonitor);
       }
-      
+
       // Remove event listeners
       if (typeof window !== 'undefined') {
         window.removeEventListener('incomingCall', handleIncomingCallEvent);
         window.removeEventListener('callStateChange', handleIncomingCallEvent);
       }
-      
+
       if (originalAnswerIncomingCall) {
         window.answerIncomingCall = originalAnswerIncomingCall;
       } else {
