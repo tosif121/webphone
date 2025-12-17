@@ -307,9 +307,9 @@ export default function DraggableWebPhone() {
     if (tab === 'recents') {
       setSeeLogs(true);
     } else if (tab === 'leads') {
-      router.push('/webphone/mobile');
+      router.push('/');
     } else if (tab === 'stats') {
-      router.push('/webphone/mobile/agent-dashboard');
+      router.push('/agent-dashboard');
     } else if (tab === 'dialpad') {
       setSeeLogs(false);
     }

@@ -94,7 +94,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
           localStorage.removeItem(key);
         }
       });
-      window.location.href = '/mobile/login';
+      window.location.href = '/login';
     }
   };
 

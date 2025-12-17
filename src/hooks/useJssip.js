@@ -221,7 +221,7 @@ const useJssip = (isMobile = false) => {
       }
     });
 
-    window.location.href = '/webphone/mobile/login';
+    window.location.href = '/login';
   };
 
   const withTimeout = (promise, timeoutMs) =>
@@ -417,7 +417,7 @@ const useJssip = (isMobile = false) => {
       addTimeout('network');
     } else if (err.response?.status === 401 && status === 'start' && !dispositionModal) {
       // Handle auth errors
-      window.location.href = '/webphone/mobile';
+      window.location.href = '/';
       toast.error('Session expired. Please log in again.');
 
       if (session && session.status < 6) {
@@ -631,7 +631,7 @@ const useJssip = (isMobile = false) => {
             console.error('WebSocket connection died unexpectedly');
             toast.error('Connection lost');
             // localStorage.clear();
-            window.location.href = '/webphone/v1';
+            window.location.href = '/';
           }
         };
 
@@ -639,7 +639,7 @@ const useJssip = (isMobile = false) => {
           console.error('WebSocket error:', error);
           toast.error('Connection failed');
           // localStorage.clear();
-          window.location.href = '/webphone/v1';
+          window.location.href = '/';
         };
 
         var configuration = {

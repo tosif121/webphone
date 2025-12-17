@@ -96,7 +96,7 @@ export default function Header() {
         });
         toast.success('Logged out successfully');
         setUserMenuOpen(false);
-        window.location.href = '/mobile/login';
+        window.location.href = '/login';
       } catch (error) {
         console.error('Error during logout:', error);
 
@@ -114,7 +114,7 @@ export default function Header() {
         });
         toast.error('Logged out (some cleanup operations failed)');
         setUserMenuOpen(false);
-        window.location.href = '/mobile/login';
+        window.location.href = '/login';
       }
     }
   };
@@ -170,18 +170,18 @@ export default function Header() {
 
   const navLinks = [
     {
-      href: '/webphone/mobile',
+      href: '/',
       name: 'Agent Panel',
       icon: <Phone className="w-4 h-4" />,
     },
     {
-      href: '/webphone/mobile/agent-dashboard',
+      href: '/agent-dashboard',
       name: 'Agent Dashboard',
       icon: <LayoutDashboard className="w-4 h-4" />,
       desktopOnly: true, // Only show on desktop
     },
     {
-      href: '/webphone/mobile/system-monitoring',
+      href: '/system-monitoring',
       name: 'System Monitoring',
       icon: <MonitorCog className="w-4 h-4" />,
     },
@@ -207,7 +207,7 @@ export default function Header() {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-4">
-          {pathname !== '/webphone/mobile/agent-dashboard' && pathname !== '/webphone/mobile/system-monitoring' && (
+          {pathname !== '/agent-dashboard' && pathname !== '/system-monitoring' && (
             <>
               <nav className="flex gap-2">
                 <Button
@@ -435,7 +435,7 @@ export default function Header() {
               </div>
 
               {/* Missed Calls & BreakDropdown */}
-              {pathname !== '/webphone/mobile/agent-dashboard' && pathname !== '/webphone/mobile/system-monitoring' && (
+              {pathname !== '/agent-dashboard' && pathname !== '/system-monitoring' && (
                 <div className="space-y-3">
                   <button
                     onClick={() => {

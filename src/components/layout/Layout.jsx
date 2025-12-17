@@ -139,7 +139,7 @@ export default function Layout({ children }) {
     }
   };
 
-  const hiddenPhoneRoutes = ['/webphone/mobile/agent-dashboard', '/webphone/mobile/system-monitoring'];
+  const hiddenPhoneRoutes = ['/agent-dashboard', '/system-monitoring'];
   const shouldShowPhone = !hiddenPhoneRoutes.includes(router.pathname);
 
   // Listen for form submission from LeadAndCallInfoPanel

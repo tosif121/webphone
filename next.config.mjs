@@ -1,18 +1,24 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: false,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   assetPrefix: '/mobile',
   basePath: '/mobile',
   devIndicators: false,
   output: 'export',
   distDir: 'out',
+
+  reactStrictMode: false,
+
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
+  trailingSlash: false,
+
   images: {
     unoptimized: true,
   },
-  trailingSlash: true,
+
+  poweredByHeader: false,
 };
 
 export default nextConfig;
