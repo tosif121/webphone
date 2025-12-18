@@ -24,12 +24,14 @@ import toast from 'react-hot-toast';
 import ThemeToggle from './ThemeToggle';
 import BreakDropdown from '../BreakDropdown';
 import HistoryContext from '@/context/HistoryContext';
+import { useAuth } from '@/context/AuthContext';
 import axios from 'axios';
 
 export default function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState(null);
+  const { logout } = useAuth();
   const {
     setDropCalls,
     dropCalls,
@@ -82,7 +84,7 @@ export default function Header() {
           });
         }
 
-        localStorage.removeItem('token');
+        // Clear additional app-specific data
         localStorage.removeItem('savedUsername');
         localStorage.removeItem('savedPassword');
         localStorage.removeItem('call-history');
@@ -95,13 +97,16 @@ export default function Header() {
             localStorage.removeItem(key);
           }
         });
+        
         toast.success('Logged out successfully');
         setUserMenuOpen(false);
-        window.location.href = '/mobile/login';
+        
+        // Use AuthContext logout which handles token removal and redirect
+        logout();
       } catch (error) {
         console.error('Error during logout:', error);
 
-        localStorage.removeItem('token');
+        // Clear additional app-specific data even on error
         localStorage.removeItem('savedUsername');
         localStorage.removeItem('savedPassword');
         localStorage.removeItem('call-history');
@@ -114,9 +119,12 @@ export default function Header() {
             localStorage.removeItem(key);
           }
         });
+        
         toast.error('Logged out (some cleanup operations failed)');
         setUserMenuOpen(false);
-        window.location.href = '/mobile/login';
+        
+        // Use AuthContext logout which handles token removal and redirect
+        logout();
       }
     }
   };

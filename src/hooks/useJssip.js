@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useContext, useCallback } from 'react';
 import HistoryContext from '../context/HistoryContext';
+import { useAuth } from '../context/AuthContext';
 import { useStopwatch } from 'react-timer-hook';
 import JsSIP from 'jssip';
 import axios from 'axios';
@@ -12,6 +13,7 @@ import { useJssipMonitoring } from './jssip/useJssipMonitoring';
 
 const useJssip = (isMobile = false) => {
   const { setHistory, username, password, setSelectedBreak, selectedBreak } = useContext(HistoryContext);
+  const { logout } = useAuth();
   const state = useJssipState();
   const utils = useJssipUtils(state);
   const conference = useJssipConference(state, utils);
@@ -223,7 +225,7 @@ const useJssip = (isMobile = false) => {
       }
     }
 
-    localStorage.removeItem('token');
+    // Clear additional app-specific data
     localStorage.removeItem('savedUsername');
     localStorage.removeItem('savedPassword');
     localStorage.removeItem('call-history');
@@ -237,7 +239,8 @@ const useJssip = (isMobile = false) => {
       }
     });
 
-    window.location.href = '/mobile/login';
+    // Use AuthContext logout which handles token removal and redirect
+    logout();
   };
 
   const withTimeout = (promise, timeoutMs) =>

@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { useAuth } from '@/context/AuthContext';
 
 import {
   Eye,
@@ -30,6 +31,7 @@ import axios from 'axios';
 
 export default function Login() {
   const router = useRouter();
+  const { login: authLogin, isAuthenticated } = useAuth();
 
   
   const [validationErrors, setValidationErrors] = useState({});
@@ -240,6 +242,9 @@ export default function Login() {
       // Remove logout flag since user successfully logged in
       localStorage.removeItem('userLoggedOut');
 
+      // Update auth context
+      authLogin(response);
+
       if (differenceInDays < 0) {
         const daysExpired = Math.abs(differenceInDays);
 
@@ -296,24 +301,15 @@ export default function Login() {
 
   // Check for existing token or auto-login on component mount
   useEffect(() => {
-    // First check if user already has a valid token (in case they landed directly on login page)
-    const token = localStorage.getItem('token');
-    const userLoggedOut = localStorage.getItem('userLoggedOut');
-    
-    if (token && !userLoggedOut) {
-      try {
-        const parsedToken = JSON.parse(token);
-        if (parsedToken && parsedToken.userData) {
-          // User is already logged in, redirect immediately
-          router.push('/');
-          return;
-        }
-      } catch (error) {
-        // Invalid token, continue with login flow
-        localStorage.removeItem('token');
-      }
+    // If already authenticated, redirect immediately
+    if (isAuthenticated) {
+      router.push('/');
+      return;
     }
 
+    // Check if user manually logged out
+    const userLoggedOut = localStorage.getItem('userLoggedOut');
+    
     // If not logged in, check for auto-login credentials
     const savedUsername = localStorage.getItem('savedUsername');
     const savedPassword = localStorage.getItem('savedPassword');
@@ -330,7 +326,7 @@ export default function Login() {
       // Trigger auto-login immediately for faster experience
       handleAutoLogin();
     }
-  }, [router]);
+  }, [router, isAuthenticated]);
 
 
 
