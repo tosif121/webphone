@@ -1,13 +1,9 @@
-import { useEffect } from 'react';
-import MobileTabsWrapper from '@/components/MobileTabsWrapper';
+import React from 'react'
 
-export default function Home() {
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      window.location.href = '/mobile/login';
-    }
-  }, []);
-
-  return <MobileTabsWrapper />;
+function index() {
+  return (
+    <div>index</div>
+  )
 }
+
+export default index
