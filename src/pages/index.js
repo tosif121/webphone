@@ -1,3 +1,4 @@
+import MobileTabsWrapper from '@/components/MobileTabsWrapper';
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 
