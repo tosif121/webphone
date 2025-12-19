@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  basePath: '/mobile',
   reactStrictMode: false,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   devIndicators: false,
   output: 'export',
   distDir: 'out',
