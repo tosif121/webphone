@@ -171,6 +171,62 @@ export default function Login() {
     await performLogin(savedUsername, savedPassword);
   };
 
+  // Delete existing Firebase token before login with enhanced handling
+  const deleteExistingFirebaseToken = async () => {
+    try {
+      const existingToken = localStorage.getItem('token');
+      if (existingToken) {
+        const parsedToken = JSON.parse(existingToken);
+        const token = parsedToken.token || parsedToken;
+        
+        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        console.log('Existing Firebase token deleted successfully');
+      }
+    } catch (error) {
+      // Don't fail login if Firebase token deletion fails
+      // This is expected if the token is invalid or expired
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        console.log('Firebase token deletion failed due to auth error - this is expected for stale tokens');
+      } else {
+        console.warn('Failed to delete existing Firebase token:', error);
+      }
+    }
+  };
+
+  // Force cleanup all Firebase tokens for a user (handles app reinstall scenario)
+  const forceCleanupUserFirebaseTokens = async (username, authToken) => {
+    try {
+      console.log('Attempting force cleanup of Firebase tokens for user:', username);
+      
+      await axios.post(
+        `${window.location.origin}/cleanupUserFirebaseTokens`,
+        { username },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+      
+      console.log('Force cleanup successful for user:', username);
+      return true;
+    } catch (error) {
+      // If endpoint doesn't exist (404), that's okay - server might handle it differently
+      if (error.response?.status === 404) {
+        console.log('Force cleanup endpoint not available - server may handle cleanup automatically');
+        return false;
+      }
+      
+      console.warn('Force cleanup failed:', error);
+      return false;
+    }
+  };
+
   // Perform the actual login logic
   const performLogin = async (usernameParam, passwordParam) => {
     const loginUsername = usernameParam || username;
@@ -192,6 +248,9 @@ export default function Login() {
     }
 
     try {
+      // Delete existing Firebase token before login
+      await deleteExistingFirebaseToken();
+
       const { data: response } = await axios.post(
         `${window.location.origin}/userlogin/${loginUsername}`,
         { username: loginUsername, password: loginPassword },
@@ -241,6 +300,26 @@ export default function Login() {
 
       // Remove logout flag since user successfully logged in
       localStorage.removeItem('userLoggedOut');
+
+      // ENHANCED: Try force cleanup for fresh logins (handles app reinstall scenario)
+      const authToken = response.token;
+      if (authToken && loginUsername) {
+        const cleanupSuccess = await forceCleanupUserFirebaseTokens(loginUsername, authToken);
+        if (cleanupSuccess) {
+          console.log('Successfully cleaned up old Firebase tokens for user');
+        }
+      }
+
+      // Notify React Native about successful login so it can refresh Firebase token
+      if (window.ReactNativeWebView?.postMessage) {
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            type: 'token',
+            token: JSON.stringify(response),
+            timestamp: Date.now(),
+          })
+        );
+      }
 
       // Update auth context
       authLogin(response);

@@ -211,6 +211,16 @@ const useJssip = (isMobile = false) => {
   const closeTimeoutModal = async () => {
     setShowTimeoutModal(false);
     
+    // Notify React Native about logout
+    if (window.ReactNativeWebView?.postMessage) {
+      window.ReactNativeWebView.postMessage(
+        JSON.stringify({
+          type: 'logout',
+          timestamp: Date.now(),
+        })
+      );
+    }
+    
     // Delete Firebase token first
     const token = localStorage.getItem('token');
     if (token) {
@@ -374,6 +384,16 @@ const useJssip = (isMobile = false) => {
 
   const handleLogout = async (token, message) => {
     try {
+      // Notify React Native about logout
+      if (window.ReactNativeWebView?.postMessage) {
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            type: 'logout',
+            timestamp: Date.now(),
+          })
+        );
+      }
+
       if (token) {
         await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
           headers: {
@@ -682,7 +702,7 @@ const useJssip = (isMobile = false) => {
         );
       }, 50);
       
-      // Report idle status
+      // Report idle status to ensure cleanup
       setTimeout(() => {
         window.ReactNativeWebView.postMessage(
           JSON.stringify({
@@ -858,6 +878,19 @@ const useJssip = (isMobile = false) => {
                 setIsIncomingRinging(true);
                 setStatus('incoming');
                 playRingtone(); // Play ringtone on mobile
+                
+                // Notify React Native that incoming call is ringing
+                if (window.ReactNativeWebView?.postMessage) {
+                  window.ReactNativeWebView.postMessage(
+                    JSON.stringify({
+                      type: 'isIncomingRinging',
+                      value: true,
+                      timestamp: Date.now(),
+                    })
+                  );
+                  console.log('Notified React Native: incoming call ringing');
+                }
+                
                 // Add history and event listeners for mobile...
                 setHistory((prev) => [
                   ...prev,
@@ -884,6 +917,30 @@ const useJssip = (isMobile = false) => {
                   setDispositionModal(callHandledRef.current);
                   setCallHandled(false);
                   callHandledRef.current = false;
+                  
+                  // Notify React Native to stop ringing
+                  if (window.ReactNativeWebView?.postMessage) {
+                    window.ReactNativeWebView.postMessage(
+                      JSON.stringify({
+                        type: 'isIncomingRinging',
+                        value: false,
+                        timestamp: Date.now(),
+                      })
+                    );
+                    console.log('Notified React Native: stop ringing (ended)');
+                  }
+                  
+                  // Report missed call to React Native
+                  if (window.ReactNativeWebView?.postMessage) {
+                    window.ReactNativeWebView.postMessage(
+                      JSON.stringify({
+                        type: 'call_status',
+                        status: 'missed',
+                        timestamp: Date.now(),
+                      })
+                    );
+                    console.log('Reported missed call to React Native');
+                  }
                 });
 
                 e.session.on('failed', () => {
@@ -899,6 +956,30 @@ const useJssip = (isMobile = false) => {
                   setDispositionModal(callHandledRef.current);
                   setCallHandled(false);
                   callHandledRef.current = false;
+                  
+                  // Notify React Native to stop ringing
+                  if (window.ReactNativeWebView?.postMessage) {
+                    window.ReactNativeWebView.postMessage(
+                      JSON.stringify({
+                        type: 'isIncomingRinging',
+                        value: false,
+                        timestamp: Date.now(),
+                      })
+                    );
+                    console.log('Notified React Native: stop ringing (failed)');
+                  }
+                  
+                  // Report failed call to React Native
+                  if (window.ReactNativeWebView?.postMessage) {
+                    window.ReactNativeWebView.postMessage(
+                      JSON.stringify({
+                        type: 'call_status',
+                        status: 'failed',
+                        timestamp: Date.now(),
+                      })
+                    );
+                    console.log('Reported failed call to React Native');
+                  }
                 });
               } else {
                 // Desktop: Auto-answer (no UI, no ringtone)
@@ -945,6 +1026,18 @@ const useJssip = (isMobile = false) => {
               setStatus('start');
               setIsCallended(true);
               setConferenceNumber('');
+              
+              // Report outgoing call ended to React Native
+              if (window.ReactNativeWebView?.postMessage) {
+                window.ReactNativeWebView.postMessage(
+                  JSON.stringify({
+                    type: 'call_status',
+                    status: 'ended',
+                    timestamp: Date.now(),
+                  })
+                );
+                console.log('Reported outgoing call ended to React Native');
+              }
             });
 
             e.session.on('failed', () => {
@@ -956,6 +1049,18 @@ const useJssip = (isMobile = false) => {
                 ...prev.slice(0, -1),
                 { ...prev[prev.length - 1], status: 'Fail', start: 0, end: 0 },
               ]);
+              
+              // Report outgoing call failed to React Native
+              if (window.ReactNativeWebView?.postMessage) {
+                window.ReactNativeWebView.postMessage(
+                  JSON.stringify({
+                    type: 'call_status',
+                    status: 'failed',
+                    timestamp: Date.now(),
+                  })
+                );
+                console.log('Reported outgoing call failed to React Native');
+              }
             });
           }
         });
@@ -995,6 +1100,18 @@ const useJssip = (isMobile = false) => {
         setIsCallended(true);
         setConferenceNumber('');
         setDispositionModal(true);
+        
+        // Report call ended to React Native
+        if (window.ReactNativeWebView?.postMessage) {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({
+              type: 'call_status',
+              status: 'ended',
+              timestamp: Date.now(),
+            })
+          );
+          console.log('Reported call ended to React Native');
+        }
       });
 
       session.once('failed', () => {
@@ -1005,6 +1122,18 @@ const useJssip = (isMobile = false) => {
         pause();
         setStatus('start');
         setDispositionModal(false);
+        
+        // Report call failed to React Native
+        if (window.ReactNativeWebView?.postMessage) {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({
+              type: 'call_status',
+              status: 'failed',
+              timestamp: Date.now(),
+            })
+          );
+          console.log('Reported call failed to React Native');
+        }
       });
     };
 

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import axios from 'axios';
 
 const AuthContext = createContext();
 
@@ -49,8 +50,38 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Notify React Native about logout
+    if (window.ReactNativeWebView?.postMessage) {
+      window.ReactNativeWebView.postMessage(
+        JSON.stringify({
+          type: 'logout',
+          timestamp: Date.now(),
+        })
+      );
+    }
+
+    // Delete Firebase token before clearing local storage
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const parsedToken = JSON.parse(token);
+        const authToken = parsedToken.token || parsedToken;
+        
+        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+        console.log('Firebase token deleted during logout');
+      }
+    } catch (error) {
+      console.warn('Failed to delete Firebase token during logout:', error);
+    }
+
+    // Clear local storage and state
     localStorage.removeItem('token');
+    localStorage.setItem('userLoggedOut', 'true'); // Mark as manually logged out
     setIsAuthenticated(false);
     setUser(null);
     window.location.href = '/login';
