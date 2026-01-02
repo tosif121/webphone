@@ -1,7 +1,5 @@
 // Service Worker for handling notifications
 self.addEventListener('notificationclick', function(event) {
-  console.log('SW: Notification clicked:', event);
-  
   event.notification.close();
   
   // Default click - focus the window
@@ -17,16 +15,16 @@ self.addEventListener('notificationclick', function(event) {
 
 // Handle notification close
 self.addEventListener('notificationclose', function(event) {
-  console.log('SW: Notification closed:', event);
+  // Notification closed
 });
 
 // Handle service worker activation
 self.addEventListener('activate', function(event) {
-  console.log('SW: Service Worker activated');
+  // Service Worker activated
 });
 
 // Handle service worker installation
 self.addEventListener('install', function(event) {
-  console.log('SW: Service Worker installed');
+  // Service Worker installed
   self.skipWaiting();
 });

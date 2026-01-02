@@ -286,7 +286,6 @@ export const useJssipConference = (state, utils) => {
   // ✅ NEW: Auto reqUnHold when participant disconnects
   useEffect(() => {
     if (hasParticipants === 'Conference disconnected') {
-      console.log('first-----------------');
       setCallConference(false);
       setConferenceNumber('');
       setConferenceStatus(false);

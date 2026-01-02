@@ -682,11 +682,9 @@ const useJssip = (isMobile = false) => {
 
         ua.on('newMessage', (e) => {
           const message = e.request.body;
-          console.log('Message event:', message);
 
           // ✅ Check for force login request
           if (message.includes('force_login_request') || message.includes('Force Login Request')) {
-            console.log('Force login request detected in message');
             // Dispatch custom event that Layout can listen to
             window.dispatchEvent(new CustomEvent('forceLoginRequest', { detail: { message } }));
           }

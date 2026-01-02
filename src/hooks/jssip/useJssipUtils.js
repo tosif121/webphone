@@ -324,13 +324,7 @@ export const useJssipUtils = (state) => {
     }
   };
 
-  // Expose test function to window for debugging
-  useEffect(() => {
-    window.testNotification = testNotification;
-    return () => {
-      delete window.testNotification;
-    };
-  }, []);
+
 
   return {
     playRingtone,
