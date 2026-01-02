@@ -760,6 +760,11 @@ const useJssip = (isMobile = false) => {
 
             if (isActuallyOutgoing) {
               dialingNumberRef.current = '';
+              
+              // Even for outgoing calls, check if user is away and show notification
+              const incomingNumber = e.request.from._uri._user;
+              setInNotification(incomingNumber);
+              
               handleIncomingCall(e.session, e.request); // Your existing auto-answer logic
             } else {
               // Check if this is an autodial call
@@ -781,10 +786,8 @@ const useJssip = (isMobile = false) => {
                 }
                 
                 const isAutodialCall = callData?.Type === 'autodial';
-                console.log('Autodial check:', { isAutodialCall, callData });
                 
                 if (isMobile && isAutodialCall) {
-                  console.log('Autodial call detected on mobile - skipping IncomingCall UI');
                   
                   // Stop any ringtone and clear UI
                   stopRingtone();
@@ -793,6 +796,10 @@ const useJssip = (isMobile = false) => {
                   
                   // Use the existing answercall function which handles useroncall API
                   const incomingNumber = e.request.from._uri._user;
+                  
+                  // Always trigger notification check (will only show if user is away)
+                  setInNotification(incomingNumber);
+                  
                   await answercall(incomingNumber);
                   
                   // Auto-answer the call
@@ -815,6 +822,10 @@ const useJssip = (isMobile = false) => {
                   setIncomingNumber(incomingNumber);
                   setIsIncomingRinging(true);
                   setStatus('incoming');
+                  
+                  // Trigger web notification (will check if user is away)
+                  setInNotification(incomingNumber);
+                  
                   playRingtone(); // Play ringtone on mobile
                 // Add history and event listeners for mobile...
                 setHistory((prev) => [
@@ -859,8 +870,14 @@ const useJssip = (isMobile = false) => {
                   callHandledRef.current = false;
                 });
                 } else {
-                  // Desktop: Auto-answer (no UI, no ringtone)
-                  handleIncomingCall(e.session, e.request); // Reuse existing auto-answer logic
+                  // Desktop: Check if user is away and show notification before auto-answer
+                  const incomingNumber = e.request.from._uri._user;
+                  
+                  // Always trigger notification check (will only show if user is away)
+                  setInNotification(incomingNumber);
+                  
+                  // Auto-answer the call (existing logic)
+                  handleIncomingCall(e.session, e.request);
                 }
               }).catch(error => {
                 console.error('Error in autodial check:', error);
@@ -871,6 +888,10 @@ const useJssip = (isMobile = false) => {
                   setIncomingNumber(incomingNumber);
                   setIsIncomingRinging(true);
                   setStatus('incoming');
+                  
+                  // Trigger web notification (will check if user is away)
+                  setInNotification(incomingNumber);
+                  
                   playRingtone();
                 }
               });

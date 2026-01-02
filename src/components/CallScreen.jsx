@@ -427,7 +427,6 @@ const CallScreen = ({
                     disabled={!isCustomerAnswered || isMerged}
                   />
                 )}
-                {console.log(isCustomerAnswered, 'isCustomerAnswered')}
                 <ControlButton
                   buttonId="record-button"
                   onClick={!isRecording ? startRecording : stopRecording}

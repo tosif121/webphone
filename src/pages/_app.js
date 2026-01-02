@@ -23,6 +23,19 @@ export default function App({ Component, pageProps }) {
 
   const isPublicPage = publicPages.has(router.pathname);
 
+  // Register service worker for notifications
+  React.useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(registration) {
+          console.log('Service Worker registered successfully:', registration);
+        })
+        .catch(function(error) {
+          console.log('Service Worker registration failed:', error);
+        });
+    }
+  }, []);
+
   // Add global error handlers for unhandled errors
   React.useEffect(() => {
     const handleError = (event) => {

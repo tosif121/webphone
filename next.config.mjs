@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  basePath: '/mobile',
   reactStrictMode: false,
   devIndicators: false,
   output: 'export',

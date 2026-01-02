@@ -321,7 +321,6 @@ export default function DraggableWebPhone() {
         effectiveIsMobile ? 'w-full h-full flex flex-col justify-center' : 'webphone-drag-handle w-full h-full'
       }
     >
-      {console.log(isIncomingRinging, 'isIncomingRinging')}
       {effectiveIsMobile && isIncomingRinging && (
         <IncomingCall
           incomingNumber={incomingNumber}
