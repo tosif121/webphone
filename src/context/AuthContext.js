@@ -15,7 +15,7 @@ export function AuthProvider({ children }) {
   const checkAuth = () => {
     try {
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         setIsAuthenticated(false);
         setIsLoading(false);
@@ -23,7 +23,7 @@ export function AuthProvider({ children }) {
       }
 
       const parsed = JSON.parse(token);
-      
+
       if (parsed && parsed.userData) {
         setIsAuthenticated(true);
         setUser(parsed.userData);
@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
       setIsAuthenticated(false);
       localStorage.removeItem('token');
     }
-    
+
     setIsLoading(false);
   };
 
@@ -67,7 +67,7 @@ export function AuthProvider({ children }) {
       if (token) {
         const parsedToken = JSON.parse(token);
         const authToken = parsedToken.token || parsedToken;
-        
+
         await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -84,7 +84,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('userLoggedOut', 'true'); // Mark as manually logged out
     setIsAuthenticated(false);
     setUser(null);
-    window.location.href = '/login';
+    window.location.href = '/mobile/login';
   };
 
   const value = {
@@ -93,14 +93,10 @@ export function AuthProvider({ children }) {
     user,
     login,
     logout,
-    checkAuth
+    checkAuth,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
