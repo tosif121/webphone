@@ -9,8 +9,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  trailingSlash: true,
-  skipTrailingSlashRedirect: true,
+  trailingSlash: false,
 };
 
 export default nextConfig;
