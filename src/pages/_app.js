@@ -19,18 +19,19 @@ const jostSans = Jost({
 export default function App({ Component, pageProps }) {
   const router = useRouter();
 
-  const publicPages = new Set(['/webphone/v1/login', '/webphone/v1/subscription-expired', '/404']);
+  const publicPages = new Set(['/login', '/subscription-expired', '/404']);
 
   const isPublicPage = publicPages.has(router.pathname);
 
   // Register service worker for notifications
   React.useEffect(() => {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(function(registration) {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then(function (registration) {
           // Service Worker registered successfully
         })
-        .catch(function(error) {
+        .catch(function (error) {
           // Service Worker registration failed
         });
     }
@@ -49,7 +50,7 @@ export default function App({ Component, pageProps }) {
     if (typeof window !== 'undefined') {
       // Check for hydration issues on mount
       checkHydrationIssues();
-      
+
       window.addEventListener('error', handleError);
       window.addEventListener('unhandledrejection', handleUnhandledRejection);
 

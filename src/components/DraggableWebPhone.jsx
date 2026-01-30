@@ -300,19 +300,6 @@ export default function DraggableWebPhone() {
     }
   };
 
-  // Handle tab navigation
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    if (tab === 'recents') {
-      setSeeLogs(true);
-    } else if (tab === 'leads') {
-      router.push('/webphone/v1');
-    } else if (tab === 'stats') {
-      router.push('/webphone/v1/agent-dashboard');
-    } else if (tab === 'dialpad') {
-      setSeeLogs(false);
-    }
-  };
 
   // Render phone content
   const renderPhoneContent = () => (

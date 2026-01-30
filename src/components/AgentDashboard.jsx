@@ -28,9 +28,8 @@ const statusColor = {
 
 const StatusBadge = ({ status }) => (
   <div
-    className={`inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-300 hover:scale-105 shadow-lg ${
-      statusColor[status] || statusColor.default
-    }`}
+    className={`inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-300 hover:scale-105 shadow-lg ${statusColor[status] || statusColor.default
+      }`}
   >
     <div className="w-1.5 h-1.5 bg-white/90 rounded-full mr-2 animate-pulse"></div>
     <span className="truncate">{status}</span>

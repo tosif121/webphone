@@ -255,7 +255,7 @@ export default function Login() {
         toast.error(toastMessage);
         toast.success('Login successfully');
         setIsLoading(false);
-        await router.push('webphone/v1');
+        await router.push('/');
       } else if (differenceInDays < 3) {
         setSubscriptionDialog({
           isOpen: true,
@@ -268,11 +268,11 @@ export default function Login() {
         toast.error('Your subscription is about to expire. Please renew soon!');
         toast.success('Login successfully');
         setIsLoading(false);
-        await router.push('webphone/v1');
+        await router.push('/');
       } else {
         toast.success('Login successfully');
         setIsLoading(false);
-        await router.push('webphone/v1');
+        await router.push('/');
       }
     } catch (error) {
       // Axios error handling
@@ -310,7 +310,7 @@ export default function Login() {
       try {
         const parsedToken = JSON.parse(token);
         if (parsedToken) {
-          router.push('webphone/v1');
+          router.push('/');
           return;
         }
       } catch (error) {
@@ -365,7 +365,7 @@ export default function Login() {
       {/* Timer Waiting Modal */}
       {showTimerWaiting && <TimerWaitingModal />}
 
-      <Dialog open={subscriptionDialog.isOpen} onOpenChange={() => {}} modal={true}>
+      <Dialog open={subscriptionDialog.isOpen} onOpenChange={() => { }} modal={true}>
         <DialogContent
           className="w-[95%] max-w-lg md:max-w-xl lg:max-w-2xl bg-card/95 [&>button]:hidden backdrop-blur-md border shadow-2xl z-50 mx-auto my-auto p-4 sm:p-6 md:p-8 overflow-y-auto max-h-[90vh]"
           onEscapeKeyDown={(e) => e.preventDefault()}
@@ -387,9 +387,8 @@ export default function Login() {
             </DialogTitle>
             <DialogDescription className="text-sm sm:text-base mt-2 text-muted-foreground text-center">
               {subscriptionDialog.type === 'expiring'
-                ? `Your subscription expires in ${subscriptionDialog.daysExpired} day${
-                    subscriptionDialog.daysExpired !== 1 ? 's' : ''
-                  }`
+                ? `Your subscription expires in ${subscriptionDialog.daysExpired} day${subscriptionDialog.daysExpired !== 1 ? 's' : ''
+                }`
                 : loaderMessage}
             </DialogDescription>
           </DialogHeader>

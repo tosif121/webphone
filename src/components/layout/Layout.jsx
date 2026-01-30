@@ -86,7 +86,7 @@ export default function Layout({ children }) {
       if (isMobile && dispositionModal && status === 'start' && bridgeID && username) {
         try {
           console.log('📱 Mobile: Auto-disposing call...');
-          
+
           const requestBody = {
             bridgeID,
             Disposition: 'Auto Disposed',
@@ -101,10 +101,10 @@ export default function Layout({ children }) {
           if (response.data.success) {
             console.log('✅ Mobile: Auto disposition successful');
             // toast.success('Call disposed automatically');
-            
+
             // Refresh leads
             fetchLeadsWithDateRange();
-            
+
             // Close disposition modal
             setDispositionModal(false);
             setPhoneNumber('');
@@ -115,7 +115,7 @@ export default function Layout({ children }) {
           }
         } catch (error) {
           console.error('❌ Mobile: Auto disposition error:', error);
-          
+
           // If it's a 400 error, just close the modal silently
           if (error.response?.status === 400) {
             setDispositionModal(false);

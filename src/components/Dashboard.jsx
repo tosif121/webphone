@@ -202,7 +202,7 @@ function Dashboard() {
       } catch (e) {
         console.error('Invalid token JSON in localStorage:', e);
         localStorage.removeItem('token');
-        router.push('/webphone/v1/login');
+        router.push('/login');
       }
     }
   }, []); // Remove router dependency to prevent re-runs
@@ -379,10 +379,10 @@ function Dashboard() {
     try {
       const parsedToken = JSON.parse(storedToken);
       if (!parsedToken) {
-        router.push('/webphone/v1/login');
+        router.push('/login');
       }
     } catch (error) {
-      router.push('/webphone/v1/login');
+      router.push('/login');
     }
   }, [router]);
 
@@ -681,9 +681,8 @@ function Dashboard() {
         </div>
         <div className="relative">
           <div
-            className={`grid grid-cols-3 gap-2 sm:gap-6 transition-all duration-400 ease-in-out ${
-              status !== 'start' ? 'opacity-0 pointer-events-none absolute inset-0' : 'opacity-100'
-            }`}
+            className={`grid grid-cols-3 gap-2 sm:gap-6 transition-all duration-400 ease-in-out ${status !== 'start' ? 'opacity-0 pointer-events-none absolute inset-0' : 'opacity-100'
+              }`}
           >
             {activeMainTab === 'allLeads' ? (
               <>
@@ -802,9 +801,8 @@ function Dashboard() {
         </div>
         <div className="flex gap-6 mt-8 md:flex-row flex-col relative">
           <div
-            className={`w-full transition-opacity duration-400 ${
-              status !== 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
-            }`}
+            className={`w-full transition-opacity duration-400 ${status !== 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
+              }`}
           >
             <LeadAndCallInfoPanel
               userCall={userCall}
@@ -822,9 +820,8 @@ function Dashboard() {
           </div>
 
           <div
-            className={`w-full transition-opacity duration-400 ${
-              status === 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
-            }`}
+            className={`w-full transition-opacity duration-400 ${status === 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
+              }`}
           >
             <LeadCallsTable
               callDetails={leadsData}

@@ -104,8 +104,8 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
   const isForceLogout = userLogin === true;
 
   // ✅ NEW: Check if error requires manual login
-  const requiresManualLogin = 
-    error.includes('Please login manually') || 
+  const requiresManualLogin =
+    error.includes('Please login manually') ||
     error.includes('Invalid credentials') ||
     error.includes('User not found') ||
     error.includes('No saved credentials found');
@@ -182,11 +182,11 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
                   Go to Login
                 </Button>
               )}
-              
+
               {/* Show "Re-Connect" button */}
-              <Button 
-                onClick={handleReLogin} 
-                disabled={isLoading || requiresManualLogin} 
+              <Button
+                onClick={handleReLogin}
+                disabled={isLoading || requiresManualLogin}
                 className="flex-1"
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

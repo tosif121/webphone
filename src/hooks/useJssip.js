@@ -258,9 +258,9 @@ const useJssip = (isMobile = false) => {
         axios.post(
           `${window.location.origin}/userconnection`,
           { user: username },
-          { headers: { 'Content-Type': 'application/json' } }
+          { headers: { 'Content-Type': 'application/json' } },
         ),
-        3000
+        3000,
       );
 
       const data = response.data;
@@ -520,7 +520,7 @@ const useJssip = (isMobile = false) => {
           headers: {
             'Content-Type': 'application/json',
           },
-        }
+        },
       );
 
       if (response.status === 200) {
@@ -654,7 +654,7 @@ const useJssip = (isMobile = false) => {
               } else {
                 console.error(
                   `[Re-apply Break] Backend responded with status ${response.status} for break re-application.`,
-                  response.data
+                  response.data,
                 );
                 localStorage.removeItem('selectedBreak');
                 Object.keys(localStorage).forEach((key) => {
@@ -758,141 +758,142 @@ const useJssip = (isMobile = false) => {
 
             if (isActuallyOutgoing) {
               dialingNumberRef.current = '';
-              
+
               // Even for outgoing calls, check if user is away and show notification
               const incomingNumber = e.request.from._uri._user;
               setInNotification(incomingNumber);
-              
+
               handleIncomingCall(e.session, e.request); // Your existing auto-answer logic
             } else {
               // Check if this is an autodial call
               const checkAutodialAndHandle = async () => {
                 // Try multiple sources for call data
                 let callData = currentCallData;
-                
+
                 // If currentCallData is null, try to get it from ringtone state
                 if (!callData && ringtone && ringtone.length > 0) {
                   callData = ringtone[0];
                 }
-                
+
                 // If still no data, refresh and wait briefly
                 if (!callData) {
                   await checkUserReady();
                   // Wait a bit for the data to be available
-                  await new Promise(resolve => setTimeout(resolve, 300));
+                  await new Promise((resolve) => setTimeout(resolve, 300));
                   callData = currentCallData || (ringtone && ringtone.length > 0 ? ringtone[0] : null);
                 }
-                
+
                 const isAutodialCall = callData?.Type === 'autodial';
-                
+
                 if (isMobile && isAutodialCall) {
-                  
                   // Stop any ringtone and clear UI
                   stopRingtone();
                   setIsIncomingRinging(false);
                   setIncomingSession(null);
-                  
+
                   // Use the existing answercall function which handles useroncall API
                   const incomingNumber = e.request.from._uri._user;
-                  
+
                   // Always trigger notification check (will only show if user is away)
                   setInNotification(incomingNumber);
-                  
+
                   await answercall(incomingNumber);
-                  
+
                   // Auto-answer the call
                   handleIncomingCall(e.session, e.request);
                   return true; // Indicate autodial was handled
                 }
-                
+
                 return false; // Not autodial or not mobile
               };
-              
+
               // Check for autodial first
-              checkAutodialAndHandle().then(wasAutodial => {
-                if (wasAutodial) return; // Exit if autodial was handled
-                
-                // Continue with normal mobile incoming call flow
-                if (isMobile) {
-                  // Mobile: Show UI with ringtone
-                  const incomingNumber = e.request.from._uri._user;
-                  setIncomingSession(e.session);
-                  setIncomingNumber(incomingNumber);
-                  setIsIncomingRinging(true);
-                  setStatus('incoming');
-                  
-                  // Trigger web notification (will check if user is away)
-                  setInNotification(incomingNumber);
-                  
-                  playRingtone(); // Play ringtone on mobile
-                // Add history and event listeners for mobile...
-                setHistory((prev) => [
-                  ...prev,
-                  {
-                    phoneNumber: incomingNumber,
-                    type: 'incoming',
-                    status: 'Ringing',
-                    start: new Date().getTime(),
-                    startTime: new Date(),
-                  },
-                ]);
+              checkAutodialAndHandle()
+                .then((wasAutodial) => {
+                  if (wasAutodial) return; // Exit if autodial was handled
 
-                e.session.on('ended', () => {
-                  stopRingtone();
-                  checkUserReady();
-                  setIncomingSession(null);
-                  setIsIncomingRinging(false);
-                  setStatus('start');
-                  setIsCustomerAnswered(false);
-                  setHistory((prev) => [
-                    ...prev.slice(0, -1),
-                    { ...prev[prev.length - 1], status: 'Missed', end: new Date().getTime() },
-                  ]);
-                  setDispositionModal(callHandledRef.current);
-                  setCallHandled(false);
-                  callHandledRef.current = false;
-                });
+                  // Continue with normal mobile incoming call flow
+                  if (isMobile) {
+                    // Mobile: Show UI with ringtone
+                    const incomingNumber = e.request.from._uri._user;
+                    setIncomingSession(e.session);
+                    setIncomingNumber(incomingNumber);
+                    setIsIncomingRinging(true);
+                    setStatus('incoming');
 
-                e.session.on('failed', () => {
-                  stopRingtone();
-                  checkUserReady();
-                  setIncomingSession(null);
-                  setIsIncomingRinging(false);
-                  setStatus('start');
-                  setHistory((prev) => [
-                    ...prev.slice(0, -1),
-                    { ...prev[prev.length - 1], status: 'Failed', end: new Date().getTime() },
-                  ]);
-                  setDispositionModal(callHandledRef.current);
-                  setCallHandled(false);
-                  callHandledRef.current = false;
+                    // Trigger web notification (will check if user is away)
+                    setInNotification(incomingNumber);
+
+                    playRingtone(); // Play ringtone on mobile
+                    // Add history and event listeners for mobile...
+                    setHistory((prev) => [
+                      ...prev,
+                      {
+                        phoneNumber: incomingNumber,
+                        type: 'incoming',
+                        status: 'Ringing',
+                        start: new Date().getTime(),
+                        startTime: new Date(),
+                      },
+                    ]);
+
+                    e.session.on('ended', () => {
+                      stopRingtone();
+                      checkUserReady();
+                      setIncomingSession(null);
+                      setIsIncomingRinging(false);
+                      setStatus('start');
+                      setIsCustomerAnswered(false);
+                      setHistory((prev) => [
+                        ...prev.slice(0, -1),
+                        { ...prev[prev.length - 1], status: 'Missed', end: new Date().getTime() },
+                      ]);
+                      setDispositionModal(callHandledRef.current);
+                      setCallHandled(false);
+                      callHandledRef.current = false;
+                    });
+
+                    e.session.on('failed', () => {
+                      stopRingtone();
+                      checkUserReady();
+                      setIncomingSession(null);
+                      setIsIncomingRinging(false);
+                      setStatus('start');
+                      setHistory((prev) => [
+                        ...prev.slice(0, -1),
+                        { ...prev[prev.length - 1], status: 'Failed', end: new Date().getTime() },
+                      ]);
+                      setDispositionModal(callHandledRef.current);
+                      setCallHandled(false);
+                      callHandledRef.current = false;
+                    });
+                  } else {
+                    // Desktop: Check if user is away and show notification before auto-answer
+                    const incomingNumber = e.request.from._uri._user;
+
+                    // Always trigger notification check (will only show if user is away)
+                    setInNotification(incomingNumber);
+
+                    // Auto-answer the call (existing logic)
+                    handleIncomingCall(e.session, e.request);
+                  }
+                })
+                .catch((error) => {
+                  console.error('Error in autodial check:', error);
+                  // Fallback to normal incoming call flow on error
+                  if (isMobile) {
+                    const incomingNumber = e.request.from._uri._user;
+                    setIncomingSession(e.session);
+                    setIncomingNumber(incomingNumber);
+                    setIsIncomingRinging(true);
+                    setStatus('incoming');
+
+                    // Trigger web notification (will check if user is away)
+                    setInNotification(incomingNumber);
+
+                    playRingtone();
+                  }
                 });
-                } else {
-                  // Desktop: Check if user is away and show notification before auto-answer
-                  const incomingNumber = e.request.from._uri._user;
-                  
-                  // Always trigger notification check (will only show if user is away)
-                  setInNotification(incomingNumber);
-                  
-                  // Auto-answer the call (existing logic)
-                  handleIncomingCall(e.session, e.request);
-                }
-              }).catch(error => {
-                console.error('Error in autodial check:', error);
-                // Fallback to normal incoming call flow on error
-                if (isMobile) {
-                  const incomingNumber = e.request.from._uri._user;
-                  setIncomingSession(e.session);
-                  setIncomingNumber(incomingNumber);
-                  setIsIncomingRinging(true);
-                  setStatus('incoming');
-                  
-                  // Trigger web notification (will check if user is away)
-                  setInNotification(incomingNumber);
-                  
-                  playRingtone();
-                }
-              });
             }
           } else {
             // Handle normal outgoing calls (when direction is actually "outgoing")
@@ -1096,7 +1097,7 @@ const useJssip = (isMobile = false) => {
             'X-User-ID': username,
           },
           timeout: 10000, // 10 second timeout
-        }
+        },
       );
 
       // ✅ 7. Check response for errors even if status is 200
@@ -1205,7 +1206,7 @@ const useJssip = (isMobile = false) => {
               headers: {
                 'Content-Type': 'application/json',
               },
-            }
+            },
           );
           setIsHeld(false);
           setIsCallended(false);

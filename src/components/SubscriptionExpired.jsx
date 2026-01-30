@@ -9,7 +9,7 @@ const SubscriptionExpired = () => {
   const router = useRouter();
 
   const handleBackToLogin = () => {
-    router.push('/webphone/v1/login');
+    router.push('/login');
   };
 
   return (

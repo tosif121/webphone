@@ -71,60 +71,56 @@ export const useJssipUtils = (state) => {
     if (document.hidden) {
       return true;
     }
-    
+
     // Check if window is not focused
     if (!document.hasFocus()) {
       return true;
     }
-    
+
     // Check visibility state
     if (document.visibilityState === 'hidden') {
       return true;
     }
-    
+
     return false;
   }
 
   // Enhanced notification function that checks user presence
   function notifyMeIfAway() {
     // Ensure inNotification is a string for checking
-    const notificationValue = Array.isArray(inNotification) 
-      ? inNotification.join(', ') 
-      : String(inNotification || '');
-    
+    const notificationValue = Array.isArray(inNotification) ? inNotification.join(', ') : String(inNotification || '');
+
     // Check if this is a forced test notification
     const isForceTest = notificationValue.startsWith('FORCE_TEST:') || notificationValue.startsWith('Test:');
     if (isForceTest) {
       notifyMe();
       return true;
     }
-    
+
     // Always show notification if user is away from website
     if (isUserAway()) {
       notifyMe();
       return true;
     }
-    
+
     // For mobile devices, always show notification regardless of focus
     const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     if (isMobileDevice) {
       notifyMe();
       return true;
     }
-    
+
     return false;
   }
 
   function createNotification() {
     // Ensure inNotification is a string and clean it for display
-    const notificationValue = Array.isArray(inNotification) 
-      ? inNotification.join(', ') 
-      : String(inNotification || '');
-    
+    const notificationValue = Array.isArray(inNotification) ? inNotification.join(', ') : String(inNotification || '');
+
     const displayNumber = notificationValue.replace('FORCE_TEST:', '').replace('Away Test: ', '').replace('Test:', '');
-    
+
     let notificationShown = false;
-    
+
     // Set a timeout to ensure we always show a notification
     const fallbackTimeout = setTimeout(() => {
       if (!notificationShown) {
@@ -132,33 +128,36 @@ export const useJssipUtils = (state) => {
         notificationShown = true;
       }
     }, 2000); // 2 second timeout
-    
+
     // Try to use Service Worker notification first
     if ('serviceWorker' in navigator && 'showNotification' in ServiceWorkerRegistration.prototype) {
-      navigator.serviceWorker.ready.then(registration => {
-        if (notificationShown) return; // Don't show if fallback already triggered
-        
-        return registration.showNotification('Incoming Call', {
-          body: `Incoming call from ${displayNumber}`,
-          icon: '/badge.png',
-          badge: '/badge.png',
-          vibrate: [200, 100, 200],
-          tag: 'incoming-call',
-          renotify: true,
-          requireInteraction: true,
-          silent: false // Use system notification sound
-        });
-      }).then(() => {
-        clearTimeout(fallbackTimeout);
-        notificationShown = true;
-      }).catch(error => {
-        console.error('Service Worker notification failed:', error);
-        if (!notificationShown) {
-          createRegularNotification(displayNumber);
+      navigator.serviceWorker.ready
+        .then((registration) => {
+          if (notificationShown) return; // Don't show if fallback already triggered
+
+          return registration.showNotification('Incoming Call', {
+            body: `Incoming call from ${displayNumber}`,
+            icon: '/badge.png',
+            badge: '/badge.png',
+            vibrate: [200, 100, 200],
+            tag: 'incoming-call',
+            renotify: true,
+            requireInteraction: true,
+            silent: false, // Use system notification sound
+          });
+        })
+        .then(() => {
+          clearTimeout(fallbackTimeout);
           notificationShown = true;
-        }
-        clearTimeout(fallbackTimeout);
-      });
+        })
+        .catch((error) => {
+          console.error('Service Worker notification failed:', error);
+          if (!notificationShown) {
+            createRegularNotification(displayNumber);
+            notificationShown = true;
+          }
+          clearTimeout(fallbackTimeout);
+        });
     } else {
       clearTimeout(fallbackTimeout);
       createRegularNotification(displayNumber);
@@ -175,7 +174,7 @@ export const useJssipUtils = (state) => {
       tag: 'incoming-call',
       renotify: true,
       requireInteraction: true,
-      silent: false // Use system notification sound
+      silent: false, // Use system notification sound
     };
 
     try {
@@ -185,7 +184,7 @@ export const useJssipUtils = (state) => {
         event.preventDefault();
         window.focus();
         notification.close();
-        
+
         // Try to bring the window to front
         if (window.parent) {
           window.parent.focus();
@@ -295,23 +294,22 @@ export const useJssipUtils = (state) => {
             tag: 'test-notification',
             requireInteraction: true,
             silent: false, // Use system notification sound
-            vibrate: [200, 100, 200]
+            vibrate: [200, 100, 200],
           });
-          
+
           testNotif.onclick = () => {
             window.focus();
             testNotif.close();
           };
-          
+
           setTimeout(() => {
             testNotif.close();
           }, 5000);
-          
         } catch (error) {
           console.error('Error creating test notification:', error);
         }
       } else if (Notification.permission === 'default') {
-        Notification.requestPermission().then(permission => {
+        Notification.requestPermission().then((permission) => {
           if (permission === 'granted') {
             testNotification(); // Retry after permission granted
           }
@@ -323,8 +321,6 @@ export const useJssipUtils = (state) => {
       console.error('Notifications not supported');
     }
   };
-
-
 
   return {
     playRingtone,

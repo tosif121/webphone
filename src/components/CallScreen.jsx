@@ -466,7 +466,7 @@ const CallScreen = ({
                   }}
                   aria-label="Close Keypad"
                 >
-                  <XCircle size={isMobile ? 24 : 16}  className={isHovered ? 'text-destructive' : ''} />
+                  <XCircle size={isMobile ? 24 : 16} className={isHovered ? 'text-destructive' : ''} />
                 </button>
                 <KeyPad setPhoneNumber={setCurrNum} />
               </div>
