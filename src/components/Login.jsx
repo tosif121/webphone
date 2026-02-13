@@ -193,7 +193,7 @@ export default function Login() {
       const { data: response } = await axios.post(
         `${window.location.origin}/userlogin/${loginUsername}`,
         { username: loginUsername, password: loginPassword },
-        { headers: { 'Content-Type': 'application/json' } }
+        { headers: { 'Content-Type': 'application/json' } },
       );
 
       if (!response) {
@@ -365,7 +365,7 @@ export default function Login() {
       {/* Timer Waiting Modal */}
       {showTimerWaiting && <TimerWaitingModal />}
 
-      <Dialog open={subscriptionDialog.isOpen} onOpenChange={() => { }} modal={true}>
+      <Dialog open={subscriptionDialog.isOpen} onOpenChange={() => {}} modal={true}>
         <DialogContent
           className="w-[95%] max-w-lg md:max-w-xl lg:max-w-2xl bg-card/95 [&>button]:hidden backdrop-blur-md border shadow-2xl z-50 mx-auto my-auto p-4 sm:p-6 md:p-8 overflow-y-auto max-h-[90vh]"
           onEscapeKeyDown={(e) => e.preventDefault()}
@@ -387,8 +387,9 @@ export default function Login() {
             </DialogTitle>
             <DialogDescription className="text-sm sm:text-base mt-2 text-muted-foreground text-center">
               {subscriptionDialog.type === 'expiring'
-                ? `Your subscription expires in ${subscriptionDialog.daysExpired} day${subscriptionDialog.daysExpired !== 1 ? 's' : ''
-                }`
+                ? `Your subscription expires in ${subscriptionDialog.daysExpired} day${
+                    subscriptionDialog.daysExpired !== 1 ? 's' : ''
+                  }`
                 : loaderMessage}
             </DialogDescription>
           </DialogHeader>

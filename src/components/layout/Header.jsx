@@ -170,18 +170,18 @@ export default function Header() {
 
   const navLinks = [
     {
-      href: '/webphone/v1',
+      href: '/',
       name: 'Agent Panel',
       icon: <Phone className="w-4 h-4" />,
     },
     {
-      href: '/webphone/v1/agent-dashboard',
+      href: '/agent-dashboard',
       name: 'Agent Dashboard',
       icon: <LayoutDashboard className="w-4 h-4" />,
       desktopOnly: true, // Only show on desktop
     },
     {
-      href: '/webphone/v1/system-monitoring',
+      href: '/system-monitoring',
       name: 'System Monitoring',
       icon: <MonitorCog className="w-4 h-4" />,
     },
@@ -207,7 +207,7 @@ export default function Header() {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-4">
-          {pathname !== '/webphone/v1/agent-dashboard' && pathname !== '/webphone/v1/system-monitoring' && (
+          {pathname !== '/agent-dashboard' && pathname !== '/system-monitoring' && (
             <>
               <nav className="flex gap-2">
                 <Button
@@ -267,7 +267,7 @@ export default function Header() {
               <ChevronDown
                 className={cn(
                   'w-4 h-4 transition-transform duration-200 text-muted-foreground',
-                  userMenuOpen && 'rotate-180'
+                  userMenuOpen && 'rotate-180',
                 )}
               />
             </Button>
@@ -311,7 +311,7 @@ export default function Header() {
                         onClick={() => setUserMenuOpen(false)}
                         className={cn(
                           'flex items-center gap-3 px-4 py-2 my-2 text-sm transition-colors',
-                          isActive ? 'bg-accent text-accent-foreground' : 'text-foreground hover:bg-accent'
+                          isActive ? 'bg-accent text-accent-foreground' : 'text-foreground hover:bg-accent',
                         )}
                       >
                         {link.icon}
@@ -351,13 +351,13 @@ export default function Header() {
               <Menu
                 className={cn(
                   'w-6 h-6 absolute inset-0 transition-all duration-300 ease-in-out',
-                  mobileMenuOpen ? 'opacity-0 rotate-90 scale-75' : 'opacity-100 rotate-0 scale-100'
+                  mobileMenuOpen ? 'opacity-0 rotate-90 scale-75' : 'opacity-100 rotate-0 scale-100',
                 )}
               />
               <X
                 className={cn(
                   'w-6 h-6 absolute inset-0 transition-all duration-300 ease-in-out',
-                  mobileMenuOpen ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-75'
+                  mobileMenuOpen ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-75',
                 )}
               />
             </div>
@@ -369,14 +369,14 @@ export default function Header() {
       <div
         className={cn(
           'fixed inset-0 z-50 md:hidden transition-all duration-300 ease-in-out',
-          mobileMenuOpen ? 'visible' : 'invisible'
+          mobileMenuOpen ? 'visible' : 'invisible',
         )}
       >
         {/* Overlay */}
         <div
           className={cn(
             'absolute inset-0 dark:bg-black/10 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ease-in-out',
-            mobileMenuOpen ? 'opacity-100' : 'opacity-0'
+            mobileMenuOpen ? 'opacity-100' : 'opacity-0',
           )}
           onClick={() => setMobileMenuOpen(false)}
           aria-label="Close menu overlay"
@@ -386,7 +386,7 @@ export default function Header() {
         <div
           className={cn(
             'absolute top-0 left-0 h-full w-4/5 max-w-sm bg-background shadow-2xl transform transition-transform duration-300 ease-in-out',
-            mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+            mobileMenuOpen ? 'translate-x-0' : '-translate-x-full',
           )}
           tabIndex={-1}
           aria-modal="true"
@@ -435,7 +435,7 @@ export default function Header() {
               </div>
 
               {/* Missed Calls & BreakDropdown */}
-              {pathname !== '/webphone/v1/agent-dashboard' && pathname !== '/webphone/v1/system-monitoring' && (
+              {pathname !== '/agent-dashboard' && pathname !== '/system-monitoring' && (
                 <div className="space-y-3">
                   <button
                     onClick={() => {
@@ -446,7 +446,7 @@ export default function Header() {
                       'relative flex items-center gap-2 w-full px-4 py-2 rounded-lg font-medium border transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
                       dropCalls
                         ? 'bg-primary text-primary-foreground'
-                        : 'text-secondary-foreground hover:bg-secondary/80'
+                        : 'text-secondary-foreground hover:bg-secondary/80',
                     )}
                     aria-label="Show Missed Calls"
                     type="button"
@@ -478,7 +478,7 @@ export default function Header() {
                           'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group',
                           isActive
                             ? 'bg-primary text-primary-foreground shadow-sm'
-                            : 'hover:bg-accent hover:translate-x-1'
+                            : 'hover:bg-accent hover:translate-x-1',
                         )}
                         style={{
                           transitionDelay: `${index * 50}ms`,

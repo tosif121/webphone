@@ -44,7 +44,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
         {
           headers: { 'Content-Type': 'application/json' },
           timeout: 10000,
-        }
+        },
       );
 
       if (response && (response.success || response.token || response.message === 'Login successful')) {
@@ -184,11 +184,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
               )}
 
               {/* Show "Re-Connect" button */}
-              <Button
-                onClick={handleReLogin}
-                disabled={isLoading || requiresManualLogin}
-                className="flex-1"
-              >
+              <Button onClick={handleReLogin} disabled={isLoading || requiresManualLogin} className="flex-1">
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isLoading ? 'Re-connecting...' : 'Re-Connect'}
               </Button>

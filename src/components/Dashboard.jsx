@@ -215,7 +215,7 @@ function Dashboard() {
             type: 'token',
             token: token,
             timestamp: Date.now(),
-          })
+          }),
         );
       }
     } catch (e) {
@@ -251,7 +251,7 @@ function Dashboard() {
         JSON.stringify({
           type: 'call_status',
           status: 'accepted',
-        })
+        }),
       );
     };
 
@@ -265,7 +265,7 @@ function Dashboard() {
         JSON.stringify({
           type: 'call_status',
           status: 'declined',
-        })
+        }),
       );
     };
 
@@ -292,7 +292,7 @@ function Dashboard() {
           JSON.stringify({
             type: 'isIncomingRinging',
             value: isIncomingRinging,
-          })
+          }),
         );
       }
     };
@@ -410,7 +410,7 @@ function Dashboard() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const leads = response.data.data || [];
@@ -448,7 +448,7 @@ function Dashboard() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const calls = response.data.result || [];
@@ -681,8 +681,9 @@ function Dashboard() {
         </div>
         <div className="relative">
           <div
-            className={`grid grid-cols-3 gap-2 sm:gap-6 transition-all duration-400 ease-in-out ${status !== 'start' ? 'opacity-0 pointer-events-none absolute inset-0' : 'opacity-100'
-              }`}
+            className={`grid grid-cols-3 gap-2 sm:gap-6 transition-all duration-400 ease-in-out ${
+              status !== 'start' ? 'opacity-0 pointer-events-none absolute inset-0' : 'opacity-100'
+            }`}
           >
             {activeMainTab === 'allLeads' ? (
               <>
@@ -801,8 +802,9 @@ function Dashboard() {
         </div>
         <div className="flex gap-6 mt-8 md:flex-row flex-col relative">
           <div
-            className={`w-full transition-opacity duration-400 ${status !== 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
-              }`}
+            className={`w-full transition-opacity duration-400 ${
+              status !== 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
+            }`}
           >
             <LeadAndCallInfoPanel
               userCall={userCall}
@@ -820,8 +822,9 @@ function Dashboard() {
           </div>
 
           <div
-            className={`w-full transition-opacity duration-400 ${status === 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
-              }`}
+            className={`w-full transition-opacity duration-400 ${
+              status === 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
+            }`}
           >
             <LeadCallsTable
               callDetails={leadsData}

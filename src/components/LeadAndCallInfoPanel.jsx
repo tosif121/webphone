@@ -132,7 +132,7 @@ export default function LeadAndCallInfoPanel({
         const res = await fetchWithTokenRetry(
           `${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`,
           token,
-          refreshToken
+          refreshToken,
         );
 
         const forms = res.data.agentWebForm || [];
@@ -231,7 +231,7 @@ export default function LeadAndCallInfoPanel({
         const res = await fetchWithTokenRetry(
           `${window.location.origin}/getDynamicFormData/${formId}`,
           token,
-          refreshToken
+          refreshToken,
         );
 
         const formConfigData = res.data.result;
@@ -275,7 +275,7 @@ export default function LeadAndCallInfoPanel({
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const leads = response.data.data || [];
@@ -308,7 +308,7 @@ export default function LeadAndCallInfoPanel({
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const calls = response.data.result || [];
@@ -382,7 +382,7 @@ export default function LeadAndCallInfoPanel({
             const lowerFieldName = fieldName.toLowerCase();
             const userCallKeys = Object.keys(userCall);
             const matchedKey = userCallKeys.find((key) => key.toLowerCase() === lowerFieldName);
-            initialFormData[fieldName] = matchedKey !== undefined ? userCall[matchedKey] ?? '' : '';
+            initialFormData[fieldName] = matchedKey !== undefined ? (userCall[matchedKey] ?? '') : '';
           });
         });
       } else {
@@ -556,7 +556,7 @@ export default function LeadAndCallInfoPanel({
     if (!filteredMappedLeadsForPanel || filteredMappedLeadsForPanel.length === 0) return null;
 
     const sortedLeads = [...filteredMappedLeadsForPanel].sort(
-      (a, b) => moment(b.uploadDate).valueOf() - moment(a.uploadDate).valueOf()
+      (a, b) => moment(b.uploadDate).valueOf() - moment(a.uploadDate).valueOf(),
     );
     return sortedLeads[0];
   }, [filteredMappedLeadsForPanel]);
@@ -582,7 +582,7 @@ export default function LeadAndCallInfoPanel({
     if (!filteredApiCallDataForPanel || filteredApiCallDataForPanel.length === 0) return null;
 
     const sortedCalls = [...filteredApiCallDataForPanel].sort(
-      (a, b) => moment(b.startTime).valueOf() - moment(a.startTime).valueOf()
+      (a, b) => moment(b.startTime).valueOf() - moment(a.startTime).valueOf(),
     );
     return sortedCalls[0];
   }, [filteredApiCallDataForPanel]);
@@ -655,7 +655,7 @@ export default function LeadAndCallInfoPanel({
         { label: 'City', value: currentLead.city || '-', key: 'city' },
         { label: 'State', value: currentLead.state || '-', key: 'state' },
         { label: 'Postal Code', value: currentLead.postalCode || '-', key: 'postalCode' },
-        { label: 'Country', value: currentLead.country || '-', key: 'country' }
+        { label: 'Country', value: currentLead.country || '-', key: 'country' },
       );
     }
 
@@ -814,7 +814,7 @@ export default function LeadAndCallInfoPanel({
 
     // Collect lead history
     const filteredLeadHistoryItems = mappedLeads.filter(
-      (lead) => String(lead.phone || '').replace(/^\+91/, '') === normalizedContactNumber
+      (lead) => String(lead.phone || '').replace(/^\+91/, '') === normalizedContactNumber,
     );
 
     if (filteredLeadHistoryItems && filteredLeadHistoryItems.length > 0) {
@@ -847,7 +847,7 @@ export default function LeadAndCallInfoPanel({
         if (mainCallDate.isBetween(moment(startDate).startOf('day'), moment(endDate).endOf('day'), null, '[]')) {
           if (
             !historyItems.some(
-              (h) => h.startTime === call.startTime && (h.Caller === call.Caller || h.dialNumber === call.dialNumber)
+              (h) => h.startTime === call.startTime && (h.Caller === call.Caller || h.dialNumber === call.dialNumber),
             )
           ) {
             historyItems.push({ ...call, _isApiHistory: true });
@@ -1029,7 +1029,7 @@ export default function LeadAndCallInfoPanel({
                     <div className="w-auto flex justify-end">
                       <DateRangePicker
                         key={`panel-date-picker-${moment(startDate).format('YYYY-MM-DD')}-${moment(endDate).format(
-                          'YYYY-MM-DD'
+                          'YYYY-MM-DD',
                         )}`}
                         onDateChange={([start, end]) => {
                           setStartDate(start);
@@ -1096,7 +1096,7 @@ export default function LeadAndCallInfoPanel({
               <div className="sm:w-auto flex justify-end">
                 <DateRangePicker
                   key={`panel-date-picker-${moment(startDate).format('YYYY-MM-DD')}-${moment(endDate).format(
-                    'YYYY-MM-DD'
+                    'YYYY-MM-DD',
                   )}`}
                   onDateChange={([start, end]) => {
                     setStartDate(start);

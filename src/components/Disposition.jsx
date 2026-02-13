@@ -190,7 +190,7 @@ const Disposition = ({
         dispoData.map((item) => ({
           action: item.value,
           label: item.label,
-        }))
+        })),
       );
       setShouldShowModal(true);
       setIsAutoDispositionComplete(true);
@@ -330,7 +330,7 @@ const Disposition = ({
         return;
       }
     },
-    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully, setDispositionModal]
+    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully, setDispositionModal],
   );
 
   // Enhanced X button click handler
@@ -367,7 +367,7 @@ const Disposition = ({
       // If action is selected but not submitted, show warning
       toast.error('Please submit the disposition before closing');
     },
-    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully, setDispositionModal]
+    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully, setDispositionModal],
   );
 
   // Prevent ESC key from closing modal
@@ -396,7 +396,7 @@ const Disposition = ({
         }
       }
     },
-    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully, setDispositionModal]
+    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully, setDispositionModal],
   );
 
   // Add event listener for ESC key
@@ -505,7 +505,7 @@ const Disposition = ({
       hasSubmittedSuccessfully,
       fetchLeadsWithDateRange,
       setCallType,
-    ]
+    ],
   );
 
   const handleCallbackSubmit = useCallback(
@@ -548,7 +548,7 @@ const Disposition = ({
       setCallbackDialogOpen(false);
       submitForm(callbackData);
     },
-    [selectedAction, followUpDate, followUpTime, followUpDetails, submitForm]
+    [selectedAction, followUpDate, followUpTime, followUpDetails, submitForm],
   );
 
   // Don't render anything if modal shouldn't be shown

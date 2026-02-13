@@ -28,8 +28,9 @@ const statusColor = {
 
 const StatusBadge = ({ status }) => (
   <div
-    className={`inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-300 hover:scale-105 shadow-lg ${statusColor[status] || statusColor.default
-      }`}
+    className={`inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-300 hover:scale-105 shadow-lg ${
+      statusColor[status] || statusColor.default
+    }`}
   >
     <div className="w-1.5 h-1.5 bg-white/90 rounded-full mr-2 animate-pulse"></div>
     <span className="truncate">{status}</span>
@@ -88,6 +89,7 @@ export default function AgentDashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [showActivityModal, setShowActivityModal] = useState(false);
+  const [includeBreakTime, setIncludeBreakTime] = useState(false);
   const {
     ringtone,
     conferenceStatus,
@@ -160,7 +162,7 @@ export default function AgentDashboard() {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${tokenData.token}`,
             },
-          }
+          },
         );
         if (isMounted && response.data) {
           processData(response.data);
@@ -177,6 +179,17 @@ export default function AgentDashboard() {
       isMounted = false;
     };
   }, []);
+
+  // Recalculate timeStats when includeBreakTime changes
+  useEffect(() => {
+    if (dashboardData.activityData.length > 0) {
+      const activityDurations = calculateActivityDurations(dashboardData.activityData, includeBreakTime);
+      setDashboardData((prev) => ({
+        ...prev,
+        timeStats: activityDurations,
+      }));
+    }
+  }, [includeBreakTime]);
 
   const processData = (rawData) => {
     if (!rawData.DataArray?.length) return;
@@ -242,7 +255,9 @@ export default function AgentDashboard() {
       <div className="space-y-8">
         <div className="text-center sm:text-start px-4 sm:px-0">
           <h1 className="text-xl sm:text-2xl font-bold text-primary mb-2">Agent Dashboard</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Real-time performance metrics and activity tracking</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Real-time performance metrics and activity tracking
+          </p>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-0">
@@ -303,7 +318,18 @@ export default function AgentDashboard() {
                       <div className="p-2 bg-secondary-foreground/10 rounded-xl">
                         <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-secondary-foreground" />
                       </div>
-                      <span className="font-semibold text-secondary-foreground text-xs sm:text-sm">Total Login Time</span>
+                      <span className="font-semibold text-secondary-foreground text-xs sm:text-sm">
+                        Total Login Time
+                      </span>
+                      <label className="flex items-center gap-1.5 ml-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={includeBreakTime}
+                          onChange={(e) => setIncludeBreakTime(e.target.checked)}
+                          className="w-3.5 h-3.5 rounded border-secondary-foreground/40 accent-primary cursor-pointer"
+                        />
+                        <span className="text-xs text-secondary-foreground/80">Include Break</span>
+                      </label>
                     </div>
                     <div className="text-lg sm:text-xl font-bold text-secondary-foreground">
                       {dashboardData.timeStats.totalLoginTime}
@@ -410,8 +436,6 @@ export default function AgentDashboard() {
           </DialogContent>
         </Dialog>
       </div>
-
-
     </>
   );
 }

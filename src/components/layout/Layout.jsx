@@ -93,10 +93,7 @@ export default function Layout({ children }) {
             autoDialDisabled: false,
           };
 
-          const response = await axios.post(
-            `${window.location.origin}/user/disposition${username}`,
-            requestBody
-          );
+          const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
 
           if (response.data.success) {
             console.log('✅ Mobile: Auto disposition successful');
@@ -139,7 +136,7 @@ export default function Layout({ children }) {
     }
   };
 
-  const hiddenPhoneRoutes = ['/webphone/v1/agent-dashboard', '/webphone/v1/system-monitoring'];
+  const hiddenPhoneRoutes = ['/agent-dashboard', '/system-monitoring'];
   const shouldShowPhone = !hiddenPhoneRoutes.includes(router.pathname) && !showSecurityAlert;
 
   const handleAllowForceLogin = () => {

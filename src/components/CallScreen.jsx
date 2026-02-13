@@ -217,7 +217,7 @@ const CallScreen = ({
             Authorization: `Bearer ${parsedData?.accessToken}`,
             'Content-Type': 'application/json',
           },
-        }
+        },
       );
 
       if (response.data.success) {
@@ -277,8 +277,8 @@ const CallScreen = ({
         if (processingRef.current.has(buttonId) || disabled || !onClick) {
           console.log(
             `🚫 Button ${buttonId} click ignored - processing: ${processingRef.current.has(
-              buttonId
-            )}, disabled: ${disabled}`
+              buttonId,
+            )}, disabled: ${disabled}`,
           );
           return;
         }
@@ -304,7 +304,7 @@ const CallScreen = ({
           }, debounceTime);
         }
       },
-      [onClick, disabled, buttonId, debounceTime, title]
+      [onClick, disabled, buttonId, debounceTime, title],
     );
 
     return (
@@ -419,12 +419,11 @@ const CallScreen = ({
                 ) : (
                   <ControlButton
                     buttonId="add-call-button"
-                    disabled={!session}
+                    disabled={!session || !isCustomerAnswered || isMerged}
                     onClick={() => setCallConference?.(true)}
                     icon={<UserPlus size={isMobile ? 24 : 16} />}
                     title="Add Call"
                     debounceTime={500}
-                    disabled={!isCustomerAnswered || isMerged}
                   />
                 )}
                 <ControlButton

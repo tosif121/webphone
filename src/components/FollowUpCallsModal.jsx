@@ -54,7 +54,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
         toast.error('Request failed. Please try again.');
       }
     },
-    [username]
+    [username],
   );
 
   return (
@@ -86,9 +86,10 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
               <button
                 key={tab.key}
                 className={`flex-1 py-3 text-sm font-semibold border-b-2 transition-colors
-                  ${activeTab === tab.key
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                  ${
+                    activeTab === tab.key
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
                   }
                 `}
                 onClick={() => setActiveTab(tab.key)}
@@ -114,10 +115,11 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                     <li
                       key={call.id}
                       className={`group relative overflow-hidden rounded-lg border border-border bg-card p-3 shadow-sm transition-all duration-300 hover:bg-accent hover:border-accent
-                      ${call.isAlert
+                      ${
+                        call.isAlert
                           ? 'ring-2 ring-green-400 animate-pulse animate-duration-700 bg-green-50/80 dark:bg-green-900/30 dark:ring-green-500'
                           : 'dark:bg-card/80'
-                        }
+                      }
                     `}
                     >
                       <div className="relative flex items-center justify-between">
@@ -148,10 +150,11 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                         <Button
                           size="icon"
                           className={`w-8 h-8 rounded-full text-white shadow-md ml-2
-                          ${call.isAlert
+                          ${
+                            call.isAlert
                               ? 'bg-green-600 dark:bg-green-700 animate-bounce'
                               : 'bg-green-600 hover:bg-green-700 focus-visible:ring-green-500 dark:bg-green-700 dark:hover:bg-green-800'
-                            }
+                          }
                         `}
                           onClick={() => initiateCall(call.phoneNumber)}
                           disabled={!call.phoneNumber}

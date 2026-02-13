@@ -56,7 +56,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
         toast.error('Request failed. Please try again.');
       }
     },
-    [username, userCampaign]
+    [username, userCampaign],
   );
 
   const sortedEntries = Object.entries(groupedCalls).sort((a, b) => b[1].latestTime - a[1].latestTime);

@@ -10,7 +10,7 @@ export const msToHMS = (duration) => {
 };
 
 // Calculate activity durations from filtered data
-export const calculateActivityDurations = (filterData) => {
+export const calculateActivityDurations = (filterData, includeBreakTime = false) => {
   const summary = {
     waitingForCall: 0,
     onCall: 0,
@@ -38,8 +38,9 @@ export const calculateActivityDurations = (filterData) => {
     }
   }
 
-  // Calculate total login time
-  summary.totalLoginTime = summary.waitingForCall + summary.onCall + summary.disposition;
+  // Calculate total login time (optionally include break time)
+  summary.totalLoginTime =
+    summary.waitingForCall + summary.onCall + summary.disposition + (includeBreakTime ? summary.break : 0);
 
   // Convert all durations to HMS format
   return {

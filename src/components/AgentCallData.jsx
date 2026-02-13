@@ -110,7 +110,7 @@ export default function AgentCallData() {
       escapeCsvField(row.anstime ? moment(row.anstime).format('DD-MMM-YYYY HH:mm:ss A') : '-'),
       escapeCsvField(row.hanguptime ? moment(row.hanguptime).format('DD-MMM-YYYY HH:mm:ss A') : '-'),
       escapeCsvField(
-        row.hanguptime && row.startTime ? moment.utc(row.hanguptime - row.startTime).format('HH:mm:ss') : '00:00:00'
+        row.hanguptime && row.startTime ? moment.utc(row.hanguptime - row.startTime).format('HH:mm:ss') : '00:00:00',
       ),
       escapeCsvField(row.Type),
       escapeCsvField(row.Disposition || 'No Disposition'),
@@ -196,7 +196,7 @@ export default function AgentCallData() {
             <td>${moment(row.startTime).format('DD-MMM-YYYY HH:mm:ss A')}</td>
             <td>${row.anstime ? moment(row.anstime).format('DD-MMM-YYYY HH:mm:ss A') : '-'}</td>
           </tr>
-        `
+        `,
           )
           .join('');
 
@@ -221,14 +221,15 @@ export default function AgentCallData() {
             (row) => `
           <tr>
             <td>${row.hanguptime ? moment(row.hanguptime).format('DD-MMM-YYYY HH:mm:ss A') : '-'}</td>
-            <td>${row.hanguptime && row.startTime
+            <td>${
+              row.hanguptime && row.startTime
                 ? moment.utc((row.hanguptime - row.startTime) * 1000).format('HH:mm:ss')
                 : '00:00:00'
-              }</td>
+            }</td>
             <td>${sanitizeHtml(row.Type)}</td>
             <td>${sanitizeHtml(row.Disposition || 'No Disposition')}</td>
           </tr>
-        `
+        `,
           )
           .join('');
 
@@ -329,7 +330,7 @@ export default function AgentCallData() {
           headers: {
             'Content-Type': 'application/json',
           },
-        }
+        },
       );
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
@@ -438,17 +439,18 @@ export default function AgentCallData() {
           <button
             onClick={() => handlePlayAudio(row.original.bridgeID)}
             disabled={!row.original.bridgeID}
-            className={`p-2 rounded transition-colors ${row.original.bridgeID
+            className={`p-2 rounded transition-colors ${
+              row.original.bridgeID
                 ? 'bg-green-500 text-white hover:bg-green-600'
                 : 'bg-gray-400 text-gray-200 cursor-not-allowed'
-              }`}
+            }`}
           >
             <Headphones size={16} />
           </button>
         ),
       },
     ],
-    [handlePlayAudio]
+    [handlePlayAudio],
   );
 
   return (

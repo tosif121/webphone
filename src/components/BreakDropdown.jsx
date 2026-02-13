@@ -247,7 +247,11 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
   return (
     <>
       {isOnBreak ? (
-        <Button variant="default" className="w-full sm:text-base text-sm md:w-auto gap-2 font-medium justify-baseline" onClick={removeBreak}>
+        <Button
+          variant="default"
+          className="w-full sm:text-base text-sm md:w-auto gap-2 font-medium justify-baseline"
+          onClick={removeBreak}
+        >
           {selectedBreakObj?.icon ? <selectedBreakObj.icon className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
           <span>{selectedBreakObj?.label}</span>
           <span className="flex items-center gap-1 ml-2 text-xs">
