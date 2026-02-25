@@ -186,7 +186,7 @@ export default function Header() {
       icon: <MonitorCog className="w-4 h-4" />,
     },
     {
-      href: `${window.location.origin}/webphone/login`,
+      href: `${typeof window !== 'undefined' ? window.location.origin : ''}/webphone/login`,
       name: 'Stable Version',
       icon: <Settings className="w-4 h-4" />,
     },
