@@ -12,6 +12,26 @@ export default function WebRTCStats({ peerConnection }) {
   const [jitter, setJitter] = useState(null);
   const [latency, setLatency] = useState(null);
   const [packetLoss, setPacketLoss] = useState(null);
+  const [icmp, setIcmp] = useState(null);
+
+  useEffect(() => {
+    const checkIcmp = async () => {
+      try {
+        const start = performance.now();
+        await fetch(window.location.origin, { method: 'HEAD', cache: 'no-store' });
+        const duration = performance.now() - start;
+        setIcmp(duration.toFixed(0));
+      } catch (error) {
+        setIcmp(navigator.connection?.rtt || null);
+      }
+    };
+
+    // Check ICMP ping every 5 seconds
+    const interval = setInterval(checkIcmp, 5000);
+    checkIcmp();
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!peerConnection) return;
@@ -66,6 +86,10 @@ export default function WebRTCStats({ peerConnection }) {
     return (
       <div>
         <div>
+          <strong>ICMP:</strong>
+          <span className="ms-1">{icmp !== null ? `${icmp}ms` : 'N/A'}</span>
+        </div>
+        <div>
           <strong>L:</strong>
           <span className="ms-1">{latency !== null ? `${latency}ms` : 'N/A'}</span>
         </div>
@@ -83,7 +107,7 @@ export default function WebRTCStats({ peerConnection }) {
 
   return (
     <div className="justify-between items-center w-full my-2 md:flex hidden">
-      <div className='text-primary text-xs'> {time}</div>
+      <div className="text-primary text-xs"> {time}</div>
 
       <div className="flex flex-col items-center relative group">
         <div className="flex items-end h-4 gap-1">

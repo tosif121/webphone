@@ -186,7 +186,7 @@ export default function Header() {
       icon: <MonitorCog className="w-4 h-4" />,
     },
     {
-      href: '${window.location.origin}/webphone/login',
+      href: `${window.location.origin}/webphone/login`,
       name: 'Stable Version',
       icon: <Settings className="w-4 h-4" />,
     },
@@ -194,7 +194,7 @@ export default function Header() {
 
   return (
     <header className="w-full bg-white dark:bg-background shadow-md border-b border-border sticky top-0 z-40">
-      <div className="container mx-auto flex items-center justify-between h-16 px-4 mt-4">
+      <div className="container mx-auto flex items-center justify-between h-16 px-4">
         {/* Logo and Brand */}
         <Link href={'/'} className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center shadow-sm">

@@ -58,7 +58,7 @@ const NetworkQualityBars = ({ signalStrength = 4, networkQuality = 'unknown', cl
             className={`w-1.5 rounded-sm transition-all duration-300 ${getBarColor(
               index,
               signalStrength,
-              networkQuality
+              networkQuality,
             )}`}
             style={{ height: `${(index + 1) * 25}%` }}
             aria-label={`Signal bar ${index + 1} of 4 ${index < signalStrength ? 'active' : 'inactive'}`}
@@ -83,6 +83,7 @@ const SystemFailureMonitors = () => {
   const [refreshInterval, setRefreshInterval] = useState(2000);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [icmpLatency, setIcmpLatency] = useState(null);
   const { showTimeoutModal, setShowTimeoutModal, handleLoginSuccess, closeTimeoutModal, userLogin, timeoutMessage } =
     useContext(JssipContext);
   const [frozenData, setFrozenData] = useState(null);
@@ -217,6 +218,27 @@ const SystemFailureMonitors = () => {
     }
   }, [autoRefresh, uaStatus, connectionStatus, monitoringData, frozenData]);
 
+  // ICMP Ping Polling
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const checkIcmp = async () => {
+      try {
+        const start = performance.now();
+        await fetch(window.location.origin, { method: 'HEAD', cache: 'no-store' });
+        const duration = performance.now() - start;
+        setIcmpLatency(duration.toFixed(0));
+      } catch (error) {
+        setIcmpLatency(navigator.connection?.rtt !== undefined ? navigator.connection.rtt : null);
+      }
+    };
+
+    const interval = setInterval(checkIcmp, 5000);
+    checkIcmp();
+
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
+
   const getCurrentData = useCallback(() => {
     if (!autoRefresh && frozenData) {
       return frozenData;
@@ -335,10 +357,10 @@ const SystemFailureMonitors = () => {
           systemAnalysis.wsHealth === 'healthy'
             ? 'healthy'
             : systemAnalysis.wsConnected
-            ? 'healthy'
-            : ua.isConnected
-            ? 'healthy'
-            : 'critical',
+              ? 'healthy'
+              : ua.isConnected
+                ? 'healthy'
+                : 'critical',
         details:
           systemAnalysis.wsHealth === 'healthy' || systemAnalysis.wsConnected || ua.isConnected
             ? `Active connection (${webSocketState})`
@@ -350,10 +372,10 @@ const SystemFailureMonitors = () => {
           systemAnalysis.sipHealth === 'healthy'
             ? 'healthy'
             : systemAnalysis.isUARegistered
-            ? 'healthy'
-            : ua.isRegistered
-            ? 'healthy'
-            : 'critical',
+              ? 'healthy'
+              : ua.isRegistered
+                ? 'healthy'
+                : 'critical',
         details:
           systemAnalysis.sipHealth === 'healthy' || systemAnalysis.isUARegistered || ua.isRegistered
             ? `Registered (expires: ${
@@ -367,8 +389,8 @@ const SystemFailureMonitors = () => {
         details: ua.transport?.connected
           ? 'Transport connected'
           : ua.transport?.connecting
-          ? 'Transport connecting...'
-          : 'Transport disconnected',
+            ? 'Transport connecting...'
+            : 'Transport disconnected',
       },
       {
         component: 'Keep-Alive Messages',
@@ -384,10 +406,10 @@ const SystemFailureMonitors = () => {
           networkQuality.quality === 'Excellent'
             ? 'healthy'
             : networkQuality.quality === 'Good'
-            ? 'healthy'
-            : networkQuality.quality === 'Fair'
-            ? 'warning'
-            : 'critical',
+              ? 'healthy'
+              : networkQuality.quality === 'Fair'
+                ? 'warning'
+                : 'critical',
         details: `${networkQuality.quality} (${
           monitoring.networkInfo?.effectiveType?.toUpperCase() || 'Unknown'
         }, RTT: ${Math.round(monitoring.networkInfo?.rtt || 0)}ms)`,
@@ -397,8 +419,21 @@ const SystemFailureMonitors = () => {
         status: timeoutCount > 5 ? 'critical' : timeoutCount > 0 ? 'warning' : 'healthy',
         details: `${timeoutCount} timeout events detected`,
       },
+      {
+        component: 'ICMP Latency (Ping)',
+        status:
+          icmpLatency === null ? 'warning' : icmpLatency < 100 ? 'healthy' : icmpLatency < 250 ? 'warning' : 'critical',
+        details: icmpLatency !== null ? `${icmpLatency}ms to origin server` : 'Ping unavailable',
+      },
     ];
-  }, [getCurrentData, isKeepAliveHealthy, getTimeSinceLastKeepAlive, getWebSocketReadyState, getNetworkQuality]);
+  }, [
+    getCurrentData,
+    isKeepAliveHealthy,
+    getTimeSinceLastKeepAlive,
+    getWebSocketReadyState,
+    getNetworkQuality,
+    icmpLatency,
+  ]);
 
   const calculateSystemHealth = useCallback(() => {
     const currentData = getCurrentData();
@@ -416,10 +451,10 @@ const SystemFailureMonitors = () => {
         component.status === 'critical'
           ? 'critical'
           : component.status === 'warning'
-          ? 'warning'
-          : component.status === 'healthy'
-          ? 'success'
-          : 'info';
+            ? 'warning'
+            : component.status === 'healthy'
+              ? 'success'
+              : 'info';
 
       entries.push({
         id: `live_${component.component.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}_${Math.random()}`,
@@ -526,7 +561,7 @@ const SystemFailureMonitors = () => {
   const systemHealthScore = useMemo(() => calculateSystemHealth(), [calculateSystemHealth]);
   const criticalIssues = useMemo(
     () => currentComponents.filter((c) => c.status === 'critical').length,
-    [currentComponents]
+    [currentComponents],
   );
 
   const { totalLiveEntries, totalSuccessEvents, totalWarningEvents, totalFailureEvents } = useMemo(
@@ -536,7 +571,7 @@ const SystemFailureMonitors = () => {
       totalWarningEvents: unifiedMonitoringData.filter((entry) => entry.entryType === 'Warning Event').length,
       totalFailureEvents: unifiedMonitoringData.filter((entry) => entry.entryType === 'Failure Event').length,
     }),
-    [unifiedMonitoringData]
+    [unifiedMonitoringData],
   );
 
   const getFilteredData = useCallback(() => {
@@ -933,8 +968,8 @@ const SystemFailureMonitors = () => {
               getNetworkQuality().quality === 'Good'
                 ? 'border-l-green-500'
                 : getNetworkQuality().quality === 'Fair'
-                ? 'border-l-yellow-500'
-                : 'border-l-red-500'
+                  ? 'border-l-yellow-500'
+                  : 'border-l-red-500'
             }
           />
 
@@ -957,8 +992,8 @@ const SystemFailureMonitors = () => {
               systemHealthScore > 80
                 ? 'border-l-green-500'
                 : systemHealthScore > 50
-                ? 'border-l-yellow-500'
-                : 'border-l-red-500'
+                  ? 'border-l-yellow-500'
+                  : 'border-l-red-500'
             }
           />
         </div>
