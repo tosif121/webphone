@@ -320,7 +320,7 @@ function Dashboard() {
 
   const fetchUserMissedCalls = async () => {
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/usermissedCalls/${username}`);
+      const response = await axios.post(`${window.location.origin}/usermissedCalls/${username}`);
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
@@ -332,7 +332,7 @@ function Dashboard() {
 
   const fetchAdminUser = async () => {
     try {
-      const response = await axios.get(`https://esamwad.iotcom.io/users/${adminUser}`, {
+      const response = await axios.get(`${window.location.origin}/users/${adminUser}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -355,7 +355,7 @@ function Dashboard() {
       // Check the conditions first
       if (userCampaign === currentCallData?.campaign && connectionStatus === 'NOT_INUSE' && queueDetails?.length > 0) {
         try {
-          const { data } = await axios.post(`https://esamwad.iotcom.io/user/agentAvailable/${username}`);
+          const { data } = await axios.post(`${window.location.origin}/user/agentAvailable/${username}`);
 
           if (data.message === 'User is not live.') {
             toast.error('You are not available for calls. Please make yourself available to handle conference calls.');
@@ -399,7 +399,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/leadswithdaterange`,
+        `${window.location.origin}/leadswithdaterange`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -437,7 +437,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/callDataByAgent`,
+        `${window.location.origin}/callDataByAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,

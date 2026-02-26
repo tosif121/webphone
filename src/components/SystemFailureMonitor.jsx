@@ -96,6 +96,8 @@ const SystemFailureMonitors = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [icmpLatency, setIcmpLatency] = useState(null);
+  const lastBackendTimeRef = React.useRef(null);
+  const [networkOffsets, setNetworkOffsets] = useState({ transfer: 0, interval: 0 });
   const { showTimeoutModal, setShowTimeoutModal, handleLoginSuccess, closeTimeoutModal, userLogin, timeoutMessage } =
     useContext(JssipContext);
   const [frozenData, setFrozenData] = useState(null);
@@ -265,7 +267,7 @@ const SystemFailureMonitors = () => {
 
   // ICMP Ping Polling
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (!autoRefresh || !troubleshootingMode) return;
 
     const checkIcmp = async () => {
       const now = new Date();
@@ -287,10 +289,24 @@ const SystemFailureMonitors = () => {
 
       try {
         const start = performance.now();
-        await fetch(window.location.origin, { method: 'HEAD', cache: 'no-store' });
+        const response = await fetch(window.location.origin, { method: 'HEAD', cache: 'no-store' });
+        const frontendReceiveTime = Date.now();
         const duration = performance.now() - start;
         const latency = parseInt(duration.toFixed(0), 10);
         const rtt = navigator.connection?.rtt !== undefined ? navigator.connection.rtt : null;
+
+        const serverDateHeader = response.headers.get('Date');
+        if (serverDateHeader) {
+          const backendTime = new Date(serverDateHeader).getTime();
+          const transferTime = Math.abs(frontendReceiveTime - backendTime);
+
+          let serverInterval = 0;
+          if (lastBackendTimeRef.current) {
+            serverInterval = backendTime - lastBackendTimeRef.current;
+          }
+          lastBackendTimeRef.current = backendTime;
+          setNetworkOffsets({ transfer: transferTime, interval: serverInterval });
+        }
 
         setIcmpLatency(latency);
         setLatencyHistory((prev) => {
@@ -526,91 +542,22 @@ const SystemFailureMonitors = () => {
   }, [getCurrentData]);
 
   const generateUnifiedMonitoringEntries = useCallback(() => {
-    const timestamp = new Date().toISOString();
-    const currentComponents = buildCurrentComponentStatus();
-    const entries = [];
     const currentData = getCurrentData();
+    const serverEvents = currentData.monitoringData.systemEvents || [];
 
-    currentComponents.forEach((component) => {
-      const severity =
-        component.status === 'critical'
-          ? 'critical'
-          : component.status === 'warning'
-            ? 'warning'
-            : component.status === 'healthy'
-              ? 'success'
-              : 'info';
-
-      entries.push({
-        id: `live_${component.component.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}_${Math.random()}`,
-        timestamp,
-        entryType: 'Live Status',
-        component: component.component,
-        status: component.status,
-        severity,
-        description: `Current status: ${component.details}`,
-        systemHealth: calculateSystemHealth(),
-        keepAliveHealth: calculateKeepAliveHealth(),
-        webSocketConnected: currentData.monitoringData.systemAnalysis?.wsConnected || currentData.uaStatus.isConnected,
-        sipRegistered: currentData.monitoringData.systemAnalysis?.isUARegistered || currentData.uaStatus.isRegistered,
-        webSocketState: getWebSocketReadyState(),
-        timeoutCount: currentData.monitoringData.timeoutArray?.length || 0,
-        avgResponseTime: currentData.monitoringData.performanceMetrics?.averageResponseTime || 0,
-        networkType: currentData.monitoringData.networkInfo?.effectiveType || 'unknown',
-        signalStrength: currentData.monitoringData.systemAnalysis?.signalStrength || 1,
-        networkQuality: currentData.monitoringData.systemAnalysis?.networkQuality || 'unknown',
-      });
-
-      let eventType, eventDescription;
-      switch (component.status) {
-        case 'healthy':
-          eventType = 'Success Event';
-          eventDescription = `SUCCESS: ${component.component} - ${component.details}`;
-          break;
-        case 'warning':
-          eventType = 'Warning Event';
-          eventDescription = `WARNING: ${component.component} - ${component.details}`;
-          break;
-        case 'critical':
-          eventType = 'Failure Event';
-          eventDescription = `CRITICAL: ${component.component} - ${component.details}`;
-          break;
-        default:
-          eventType = 'Status Event';
-          eventDescription = `STATUS: ${component.component} - ${component.details}`;
-      }
-
-      entries.push({
-        id: `event_${eventType.toLowerCase().replace(/\s+/g, '_')}_${component.component
-          .toLowerCase()
-          .replace(/\s+/g, '_')}_${Date.now()}_${Math.random()}`,
-        timestamp,
-        entryType: eventType,
-        component: component.component,
-        status: component.status,
-        severity,
-        description: eventDescription,
-        systemHealth: calculateSystemHealth(),
-        keepAliveHealth: calculateKeepAliveHealth(),
-        webSocketConnected: currentData.monitoringData.systemAnalysis?.wsConnected || currentData.uaStatus.isConnected,
-        sipRegistered: currentData.monitoringData.systemAnalysis?.isUARegistered || currentData.uaStatus.isRegistered,
-        webSocketState: getWebSocketReadyState(),
-        timeoutCount: currentData.monitoringData.timeoutArray?.length || 0,
-        avgResponseTime: currentData.monitoringData.performanceMetrics?.averageResponseTime || 0,
-        networkType: currentData.monitoringData.networkInfo?.effectiveType || 'unknown',
-        signalStrength: currentData.monitoringData.systemAnalysis?.signalStrength || 1,
-        networkQuality: currentData.monitoringData.systemAnalysis?.networkQuality || 'unknown',
-      });
-    });
-
-    return entries;
-  }, [
-    buildCurrentComponentStatus,
-    calculateSystemHealth,
-    calculateKeepAliveHealth,
-    getCurrentData,
-    getWebSocketReadyState,
-  ]);
+    // Only map genuine system events to the timeline to reduce UI bloat.
+    return serverEvents
+      .map((event) => ({
+        id: event.id || `event_${event.type}_${event.timestamp}_${Math.random()}`,
+        timestamp: new Date(event.timestamp).toISOString(),
+        entryType: event.type === 'error' ? 'Failure Event' : 'Success Event',
+        component: event.component || 'System',
+        status: event.type === 'error' ? 'critical' : 'healthy',
+        severity: event.type === 'error' ? 'critical' : 'success',
+        description: event.description || event.message,
+      }))
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  }, [getCurrentData]);
 
   const safelyUpdateMonitoringData = useCallback((updateFn) => {
     try {
@@ -820,67 +767,6 @@ const SystemFailureMonitors = () => {
         </span>
       ),
     },
-    {
-      header: 'System Health',
-      accessorKey: 'systemHealth',
-      cell: ({ row }) => (
-        <div className="flex items-center">
-          <Progress value={row.original.systemHealth} className="w-16 h-2 mr-2" />
-          <span className={`text-sm ${row.original.systemHealth < 50 ? 'text-destructive' : 'text-green-600'}`}>
-            {row.original.systemHealth}%
-          </span>
-        </div>
-      ),
-    },
-    {
-      header: 'Network Signal',
-      accessorKey: 'signalStrength',
-      cell: ({ row }) => (
-        <NetworkQualityBars
-          signalStrength={row.original.signalStrength || 1}
-          networkQuality={row.original.networkQuality || 'unknown'}
-        />
-      ),
-    },
-    {
-      header: 'WebSocket Status',
-      accessorKey: 'webSocketConnected',
-      cell: ({ row }) => (
-        <Badge
-          className={
-            row.original.webSocketConnected
-              ? 'bg-green-50 text-green-700 border-green-200'
-              : 'bg-destructive/10 text-destructive border-destructive/20'
-          }
-        >
-          {row.original.webSocketConnected ? 'Connected' : 'Disconnected'}
-        </Badge>
-      ),
-    },
-    {
-      header: 'SIP Registration',
-      accessorKey: 'sipRegistered',
-      cell: ({ row }) => (
-        <Badge
-          className={
-            row.original.sipRegistered
-              ? 'bg-green-50 text-green-700 border-green-200'
-              : 'bg-destructive/10 text-destructive border-destructive/20'
-          }
-        >
-          {row.original.sipRegistered ? 'Registered' : 'Failed'}
-        </Badge>
-      ),
-    },
-    {
-      header: 'Response Time',
-      accessorKey: 'avgResponseTime',
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {row.original.avgResponseTime ? `${row.original.avgResponseTime.toFixed(0)}ms` : 'N/A'}
-        </span>
-      ),
-    },
   ];
 
   useEffect(() => {
@@ -898,14 +784,14 @@ const SystemFailureMonitors = () => {
   }, []);
 
   useEffect(() => {
-    if (!mounted || !autoRefresh) return;
+    if (!mounted || !autoRefresh || !troubleshootingMode) return;
 
     const timeUpdateInterval = setInterval(() => {
       handleManualRefresh();
     }, 5000); // Assuming a default refreshInterval of 5000ms if not defined elsewhere
 
     return () => clearInterval(timeUpdateInterval);
-  }, [mounted, autoRefresh, handleManualRefresh]);
+  }, [mounted, autoRefresh, handleManualRefresh, troubleshootingMode]);
 
   if (!mounted) {
     return (
@@ -917,6 +803,30 @@ const SystemFailureMonitors = () => {
             <p className="text-sm text-muted-foreground mt-2">Initializing real-time monitoring system...</p>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (!troubleshootingMode) {
+    return (
+      <div className="space-y-6 pt-12 pb-6 px-6 max-w-2xl mx-auto">
+        <Card className="shadow-lg border-primary/20 bg-card">
+          <CardHeader className="text-center space-y-4">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Activity className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl font-bold">Network Monitoring is Disabled</CardTitle>
+            <CardDescription className="text-base">
+              The real-time network dashboard is currently inactive to save resources.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center space-y-4 pb-8">
+            <p className="text-sm text-muted-foreground">
+              To view active network stats, system health, and history, please enable <strong>Troubleshoot Mode</strong>{' '}
+              from the user profile dropdown or mobile menu in the top navigation bar.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -1056,6 +966,18 @@ const SystemFailureMonitors = () => {
                   ? 'border-l-yellow-500'
                   : 'border-l-red-500'
             }
+            subStats={[
+              {
+                icon: <Globe className="h-3 w-3 text-blue-500" />,
+                value: `${networkOffsets.transfer}ms`,
+                label: 'TS Offset',
+              },
+              {
+                icon: <Activity className="h-3 w-3 text-purple-500" />,
+                value: `${networkOffsets.interval}ms`,
+                label: 'Arrival Int',
+              },
+            ]}
           />
 
           <StatCard

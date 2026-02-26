@@ -88,7 +88,7 @@ export default function Header() {
       if (checked) {
         toast.success('Troubleshooting Mode enabled. Network graph will now persist.');
       } else {
-        toast('Troubleshooting Mode disabled.', { icon: 'ℹ️' });
+        toast.success('Troubleshooting Mode disabled.');
       }
 
       // Dispatch storage event manually to sync across hooks/tabs
@@ -105,7 +105,7 @@ export default function Header() {
     if (typeof window !== 'undefined') {
       try {
         if (token) {
-          await axios.delete(`https://esamwad.iotcom.io/deleteFirebaseToken`, {
+          await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },

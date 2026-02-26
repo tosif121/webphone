@@ -152,10 +152,10 @@ const useJssip = (isMobile = false) => {
     logSystemEvent,
   } = monitoring;
 
-  // useEffect(() => {
-  //   const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-  //   setOrigin(originWithoutProtocol);
-  // }, []);
+  useEffect(() => {
+    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    setOrigin(originWithoutProtocol);
+  }, []);
 
   useEffect(() => {
     const handleBeforeUnload = (event) => {
@@ -228,7 +228,10 @@ const useJssip = (isMobile = false) => {
     Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))]);
 
   const addTimeout = (type) => {
-    setTimeoutArray((prev) => [...prev, type]);
+    setTimeoutArray((prev) => {
+      const updated = [...prev, { type, timestamp: new Date().getTime() }];
+      return updated.length > 50 ? updated.slice(updated.length - 50) : updated;
+    });
   };
 
   // In useJssip.js
@@ -256,7 +259,7 @@ const useJssip = (isMobile = false) => {
 
       const response = await withTimeout(
         axios.post(
-          `https://esamwad.iotcom.io/userconnection`,
+          `${window.location.origin}/userconnection`,
           { user: username },
           { headers: { 'Content-Type': 'application/json' } },
         ),
@@ -356,7 +359,7 @@ const useJssip = (isMobile = false) => {
   const handleLogout = async (token, message) => {
     try {
       if (token) {
-        await axios.delete(`https://esamwad.iotcom.io/deleteFirebaseToken`, {
+        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -514,7 +517,7 @@ const useJssip = (isMobile = false) => {
   const answercall = async (incomingNumber = null) => {
     try {
       const response = await axios.post(
-        `https://esamwad.iotcom.io/useroncall/${username}`,
+        `${window.location.origin}/useroncall/${username}`,
         {},
         {
           headers: {
@@ -617,16 +620,12 @@ const useJssip = (isMobile = false) => {
           if (!event.wasClean) {
             console.error('WebSocket connection died unexpectedly');
             toast.error('Connection lost');
-            // localStorage.clear();
-            window.location.href = '/webphone/v1';
           }
         };
 
         socket.onerror = function (error) {
           console.error('WebSocket error:', error);
           toast.error('Connection failed');
-          // localStorage.clear();
-          window.location.href = '/webphone/v1';
         };
 
         var configuration = {
@@ -646,7 +645,7 @@ const useJssip = (isMobile = false) => {
             try {
               await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
 
-              const response = await axios.post(`https://esamwad.iotcom.io/user/breakuser:${username}`, {
+              const response = await axios.post(`${window.location.origin}/user/breakuser:${username}`, {
                 breakType: storedBreak,
               });
               if (response.status === 200) {
@@ -733,23 +732,17 @@ const useJssip = (isMobile = false) => {
         ua.on('registrationFailed', (data) => {
           console.error('Registration failed:', data);
           toast.error('Registration failed');
-          // localStorage.clear();
-          // window.location.href = '/webphone/v1';
         });
 
         ua.on('stopped', (e) => {
           console.error('stopped', e);
           // Add logout behavior for stopped event
           toast.error('Connection stopped');
-          // localStorage.clear();
-          // window.location.href = '/webphone/v1';
         });
 
         ua.on('disconnected', (e) => {
           console.error('UA disconnected', e);
           toast.error('Connection lost');
-          // localStorage.clear();
-          // window.location.href = '/webphone/v1';
         });
         ua.on('newRTCSession', function (e) {
           if (e.session.direction === 'incoming') {
@@ -1086,7 +1079,7 @@ const useJssip = (isMobile = false) => {
 
       // ✅ 6. Make the API call to dial number
       const response = await axios.post(
-        `https://esamwad.iotcom.io/dialnumber`,
+        `${window.location.origin}/dialnumber`,
         {
           caller: username,
           receiver: targetNumber,
@@ -1200,7 +1193,7 @@ const useJssip = (isMobile = false) => {
       if (isCallended) {
         try {
           await axios.post(
-            `https://esamwad.iotcom.io/user/callended${username}`,
+            `${window.location.origin}/user/callended${username}`,
             {},
             {
               headers: {

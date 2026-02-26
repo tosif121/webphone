@@ -159,11 +159,11 @@ export const useJssipMonitoring = (state, utils) => {
     }
 
     const recentErrors = systemEvents.filter(
-      (event) => event.type === 'error' && now - event.timestamp < recentTimeWindow
+      (event) => event.type === 'error' && now - event.timestamp < recentTimeWindow,
     ).length;
 
     const recentSuccesses = systemEvents.filter(
-      (event) => event.type === 'success' && now - event.timestamp < recentTimeWindow
+      (event) => event.type === 'success' && now - event.timestamp < recentTimeWindow,
     ).length;
 
     const lastKeepAlive =
@@ -235,7 +235,7 @@ export const useJssipMonitoring = (state, utils) => {
         details,
       };
 
-      setSystemEvents((prev) => [...prev, event].slice(-500));
+      setSystemEvents((prev) => [...prev, event].slice(-50));
 
       if (type === 'success') setSuccessCount((prev) => prev + 1);
       if (type === 'error') {
@@ -243,7 +243,7 @@ export const useJssipMonitoring = (state, utils) => {
         setLastError(event);
       }
     },
-    [setSystemEvents, setSuccessCount, setErrorCount, setLastError]
+    [setSystemEvents, setSuccessCount, setErrorCount, setLastError],
   );
 
   useEffect(() => {
@@ -370,7 +370,7 @@ export const useJssipMonitoring = (state, utils) => {
       storeInLocalStorage('monitoring_data', {
         timeoutArray,
         messageDifference,
-        systemEvents: systemEvents.slice(-100),
+        systemEvents: systemEvents.slice(-50),
         performanceMetrics: {
           lastKeepAlive:
             messageDifference.length > 0 ? messageDifference[messageDifference.length - 1]?.messageTime : null,

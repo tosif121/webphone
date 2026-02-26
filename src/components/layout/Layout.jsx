@@ -93,7 +93,7 @@ export default function Layout({ children }) {
             autoDialDisabled: false,
           };
 
-          const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody);
+          const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
 
           if (response.data.success) {
             console.log('✅ Mobile: Auto disposition successful');
