@@ -7,6 +7,15 @@ import { Button } from '@/components/ui/button';
 import { JssipContext } from '@/context/JssipContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+} from 'recharts';
+import {
   AlertTriangle,
   Wifi,
   WifiOff,
@@ -80,10 +89,10 @@ const SystemFailureMonitors = () => {
   const [viewMode, setViewMode] = useState('all');
   const [filterSeverity, setFilterSeverity] = useState('all');
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState(2000);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [icmpLatency, setIcmpLatency] = useState(null);
+  const [latencyHistory, setLatencyHistory] = useState([]);
   const { showTimeoutModal, setShowTimeoutModal, handleLoginSuccess, closeTimeoutModal, userLogin, timeoutMessage } =
     useContext(JssipContext);
   const [frozenData, setFrozenData] = useState(null);
@@ -223,13 +232,32 @@ const SystemFailureMonitors = () => {
     if (!autoRefresh) return;
 
     const checkIcmp = async () => {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+
       try {
         const start = performance.now();
         await fetch(window.location.origin, { method: 'HEAD', cache: 'no-store' });
         const duration = performance.now() - start;
-        setIcmpLatency(duration.toFixed(0));
+        const latency = parseInt(duration.toFixed(0), 10);
+
+        setIcmpLatency(latency);
+        setLatencyHistory((prev) => {
+          const updated = [...prev, { time: timeStr, ping: latency }];
+          return updated.length > 30 ? updated.slice(updated.length - 30) : updated;
+        });
       } catch (error) {
-        setIcmpLatency(navigator.connection?.rtt !== undefined ? navigator.connection.rtt : null);
+        const rttFallback = navigator.connection?.rtt !== undefined ? navigator.connection.rtt : null;
+        setIcmpLatency(rttFallback);
+        setLatencyHistory((prev) => {
+          const updated = [...prev, { time: timeStr, ping: rttFallback || 0 }];
+          return updated.length > 30 ? updated.slice(updated.length - 30) : updated;
+        });
       }
     };
 
@@ -817,10 +845,10 @@ const SystemFailureMonitors = () => {
 
     const timeUpdateInterval = setInterval(() => {
       handleManualRefresh();
-    }, refreshInterval);
+    }, 5000); // Assuming a default refreshInterval of 5000ms if not defined elsewhere
 
     return () => clearInterval(timeUpdateInterval);
-  }, [mounted, autoRefresh, refreshInterval, handleManualRefresh]);
+  }, [mounted, autoRefresh, handleManualRefresh]);
 
   if (!mounted) {
     return (
@@ -1065,17 +1093,68 @@ const SystemFailureMonitors = () => {
           </CardContent>
         </Card>
 
-        {/* Data Table */}
+        {/* Network Metrics Real-time Graph */}
+        <Card className="shadow-sm border-gray-200 mt-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Activity className="w-5 h-5 text-primary" />
+              Network Latency History
+            </CardTitle>
+            <CardDescription>Live ping ICMP measurements to the origin server (last 30 intervals)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 w-full mt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={latencyHistory} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="time"
+                    tick={{ fontSize: 12, fill: '#6b7280' }}
+                    tickLine={false}
+                    axisLine={{ stroke: '#e5e7eb' }}
+                    minTickGap={20}
+                  />
+                  <YAxis
+                    domain={[0, 'auto']}
+                    tick={{ fontSize: 12, fill: '#6b7280' }}
+                    tickLine={false}
+                    axisLine={{ stroke: '#e5e7eb' }}
+                    tickFormatter={(value) => `${value}ms`}
+                    width={45}
+                  />
+                  <RechartsTooltip
+                    contentStyle={{
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    }}
+                    labelStyle={{ fontWeight: 'bold', color: '#374151', marginBottom: '4px' }}
+                    formatter={(value) => [`${value} ms`, 'Ping Latency']}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="ping"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2.5}
+                    dot={false}
+                    activeDot={{ r: 6, strokeWidth: 0, fill: 'hsl(var(--primary))' }}
+                    animationDuration={300}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Data Table Area */}
         <Card className="bg-card">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg font-bold text-primary">Network Monitoring Data</CardTitle>
-                <CardDescription>
-                  Live network status updates and events - {filteredData.length} entries shown
-                  {filteredData.length >= MAX_DISPLAY_RECORDS && ` (limited to ${MAX_DISPLAY_RECORDS})`}
-                </CardDescription>
-              </div>
+          <CardHeader className="pb-2 border-b">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+              <CardTitle className="text-lg font-bold text-primary">Network Monitoring Data</CardTitle>
+              <CardDescription>
+                Live network status updates and events - {filteredData.length} entries shown
+                {filteredData.length >= MAX_DISPLAY_RECORDS && ` (limited to ${MAX_DISPLAY_RECORDS})`}
+              </CardDescription>
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
