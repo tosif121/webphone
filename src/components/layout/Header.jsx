@@ -17,8 +17,11 @@ import {
   PhoneForwarded,
   PhoneMissed,
   MonitorCog,
+  Activity,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import toast from 'react-hot-toast';
 
 import ThemeToggle from './ThemeToggle';
@@ -44,6 +47,7 @@ export default function Header() {
   const [username, setUsername] = useState('Guest');
   const [userId, setUserId] = useState('N/A');
   const [campaignName, setCampaignName] = useState('N/A');
+  const [troubleshootingMode, setTroubleshootingMode] = useState(false);
 
   const userMenuRef = useRef(null);
 
@@ -69,7 +73,33 @@ export default function Header() {
         setToken('');
       }
     }
+
+    // Initialize Troubleshooting Mode
+    const savedMode = typeof window !== 'undefined' ? localStorage.getItem('jssip_troubleshooting_mode') : false;
+    if (savedMode === 'true') {
+      setTroubleshootingMode(true);
+    }
   }, []);
+
+  const handleTroubleshootingToggle = (checked) => {
+    setTroubleshootingMode(checked);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('jssip_troubleshooting_mode', checked.toString());
+      if (checked) {
+        toast.success('Troubleshooting Mode enabled. Network graph will now persist.');
+      } else {
+        toast('Troubleshooting Mode disabled.', { icon: 'ℹ️' });
+      }
+
+      // Dispatch storage event manually to sync across hooks/tabs
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'jssip_troubleshooting_mode',
+          newValue: checked.toString(),
+        }),
+      );
+    }
+  };
 
   const handleLogout = async () => {
     if (typeof window !== 'undefined') {
@@ -326,6 +356,29 @@ export default function Header() {
                   <ThemeToggle />
                 </div>
 
+                {/* Troubleshooting Mode Toggle */}
+                <div
+                  className="py-3 px-4 flex items-center justify-between border-t cursor-pointer hover:bg-accent/50 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTroubleshootingToggle(!troubleshootingMode);
+                  }}
+                >
+                  <Label
+                    htmlFor="troubleshooting-mode"
+                    className="text-sm cursor-pointer ml-1 select-none flex items-center gap-2"
+                  >
+                    <Activity className="w-4 h-4 text-primary" />
+                    Troubleshoot Mode
+                  </Label>
+                  <Switch
+                    id="troubleshooting-mode"
+                    checked={troubleshootingMode}
+                    onCheckedChange={handleTroubleshootingToggle}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+
                 {/* Logout */}
                 <div className="py-2 border-t">
                   <button
@@ -494,6 +547,25 @@ export default function Header() {
               {/* Theme Toggle */}
               <div className="py-3 border-t">
                 <ThemeToggle />
+              </div>
+
+              {/* Troubleshooting Mode Toggle */}
+              <div
+                className="py-3 px-4 mx-2 flex items-center justify-between border border-border/50 rounded-lg bg-muted/30 cursor-pointer"
+                onClick={() => handleTroubleshootingToggle(!troubleshootingMode)}
+              >
+                <Label
+                  htmlFor="mobile-troubleshoot-mode"
+                  className="text-sm cursor-pointer select-none flex items-center gap-2"
+                >
+                  <Activity className="w-4 h-4 text-primary" />
+                  Troubleshoot Mode
+                </Label>
+                <Switch
+                  id="mobile-troubleshoot-mode"
+                  checked={troubleshootingMode}
+                  onCheckedChange={handleTroubleshootingToggle}
+                />
               </div>
               <div className="p-4 border-t">
                 <button

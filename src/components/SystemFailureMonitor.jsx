@@ -8,13 +8,16 @@ import { JssipContext } from '@/context/JssipContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip,
+  Legend,
 } from 'recharts';
+import toast from 'react-hot-toast';
 import {
   AlertTriangle,
   Wifi,
@@ -89,10 +92,10 @@ const SystemFailureMonitors = () => {
   const [viewMode, setViewMode] = useState('all');
   const [filterSeverity, setFilterSeverity] = useState('all');
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState(2000);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [icmpLatency, setIcmpLatency] = useState(null);
-  const [latencyHistory, setLatencyHistory] = useState([]);
   const { showTimeoutModal, setShowTimeoutModal, handleLoginSuccess, closeTimeoutModal, userLogin, timeoutMessage } =
     useContext(JssipContext);
   const [frozenData, setFrozenData] = useState(null);
@@ -153,6 +156,39 @@ const SystemFailureMonitors = () => {
     }, [key, autoRefresh]);
 
     return storedValue;
+  };
+
+  const troubleshootingMode =
+    useLocalStorageSync('jssip_troubleshooting_mode', false) === 'true' ||
+    useLocalStorageSync('jssip_troubleshooting_mode', false) === true;
+
+  // Custom hook for latency history syncing across tabs and mode toggle
+  const [latencyHistory, setLatencyHistory] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const isModeActive = localStorage.getItem('jssip_troubleshooting_mode') === 'true';
+      if (isModeActive) {
+        const stored = localStorage.getItem('jssip_latency_history');
+        if (stored) {
+          try {
+            return JSON.parse(stored);
+          } catch (e) {}
+        }
+      }
+    }
+    return [];
+  });
+
+  // Sync state change to localStorage
+  useEffect(() => {
+    if (troubleshootingMode) {
+      localStorage.setItem('jssip_latency_history', JSON.stringify(latencyHistory));
+    }
+  }, [latencyHistory, troubleshootingMode]);
+
+  const clearGraphHistory = () => {
+    setLatencyHistory([]);
+    localStorage.removeItem('jssip_latency_history');
+    toast.success('Network graph history cleared.');
   };
 
   const uaStatus = useLocalStorageSync('jssip_ua_status', {
@@ -233,31 +269,50 @@ const SystemFailureMonitors = () => {
 
     const checkIcmp = async () => {
       const now = new Date();
+      // Keep precise time for the tooltips, short time for the axis
       const timeStr = now.toLocaleTimeString('en-US', {
         hour12: false,
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
       });
+      const preciseTime = now.toLocaleTimeString('en-US', {
+        hour12: true,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        fractionalSecondDigits: 3,
+      });
+      const maxDataPoints = troubleshootingMode ? 100 : 30;
 
       try {
         const start = performance.now();
         await fetch(window.location.origin, { method: 'HEAD', cache: 'no-store' });
         const duration = performance.now() - start;
         const latency = parseInt(duration.toFixed(0), 10);
+        const rtt = navigator.connection?.rtt !== undefined ? navigator.connection.rtt : null;
 
         setIcmpLatency(latency);
         setLatencyHistory((prev) => {
-          const updated = [...prev, { time: timeStr, ping: latency }];
-          return updated.length > 30 ? updated.slice(updated.length - 30) : updated;
+          const updated = [...prev, { preciseTime, time: timeStr, ping: latency, rtt, isError: false }];
+          return updated.length > maxDataPoints ? updated.slice(updated.length - maxDataPoints) : updated;
         });
+
+        if (troubleshootingMode && latency > 250) {
+          toast.error(`High Network Latency Detected: ${latency}ms`);
+        }
       } catch (error) {
-        const rttFallback = navigator.connection?.rtt !== undefined ? navigator.connection.rtt : null;
+        const rttFallback = navigator.connection?.rtt !== undefined ? navigator.connection.rtt : 0;
         setIcmpLatency(rttFallback);
+
         setLatencyHistory((prev) => {
-          const updated = [...prev, { time: timeStr, ping: rttFallback || 0 }];
-          return updated.length > 30 ? updated.slice(updated.length - 30) : updated;
+          const updated = [...prev, { preciseTime, time: timeStr, ping: rttFallback, rtt: rttFallback, isError: true }];
+          return updated.length > maxDataPoints ? updated.slice(updated.length - maxDataPoints) : updated;
         });
+
+        if (troubleshootingMode) {
+          toast.error(`Network ICMP Ping Failed. RTT Fallback: ${rttFallback}ms`);
+        }
       }
     };
 
@@ -265,7 +320,7 @@ const SystemFailureMonitors = () => {
     checkIcmp();
 
     return () => clearInterval(interval);
-  }, [autoRefresh]);
+  }, [autoRefresh, troubleshootingMode]);
 
   const getCurrentData = useCallback(() => {
     if (!autoRefresh && frozenData) {
@@ -435,9 +490,11 @@ const SystemFailureMonitors = () => {
             ? 'healthy'
             : networkQuality.quality === 'Good'
               ? 'healthy'
-              : networkQuality.quality === 'Fair'
-                ? 'warning'
-                : 'critical',
+                ? 'healthy'
+                : networkQuality.quality === 'Fair'
+                  ? 'warning'
+                  : 'critical'
+              : 'critical',
         details: `${networkQuality.quality} (${
           monitoring.networkInfo?.effectiveType?.toUpperCase() || 'Unknown'
         }, RTT: ${Math.round(monitoring.networkInfo?.rtt || 0)}ms)`,
@@ -1094,18 +1151,30 @@ const SystemFailureMonitors = () => {
         </Card>
 
         {/* Network Metrics Real-time Graph */}
-        <Card className="shadow-sm border-gray-200 mt-6">
+        <Card className="shadow-sm border-gray-200 mt-6 relative">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <Activity className="w-5 h-5 text-primary" />
-              Network Latency History
-            </CardTitle>
-            <CardDescription>Live ping ICMP measurements to the origin server (last 30 intervals)</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-primary" />
+                  Network Latency History
+                </CardTitle>
+                <CardDescription>
+                  {troubleshootingMode ? 'Troubleshooting Mode active.' : ''} ICMP measurements to origin server.
+                </CardDescription>
+              </div>
+              {troubleshootingMode && latencyHistory.length > 0 && (
+                <Button variant="outline" size="sm" onClick={clearGraphHistory} className="h-8">
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Clear Graph
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="h-64 w-full mt-2">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={latencyHistory} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <BarChart data={latencyHistory} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                   <XAxis
                     dataKey="time"
@@ -1128,19 +1197,27 @@ const SystemFailureMonitors = () => {
                       border: '1px solid #e5e7eb',
                       boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                     }}
-                    labelStyle={{ fontWeight: 'bold', color: '#374151', marginBottom: '4px' }}
-                    formatter={(value) => [`${value} ms`, 'Ping Latency']}
+                    labelStyle={{ fontWeight: 'bold', color: '#374151', marginBottom: '8px' }}
+                    labelFormatter={(label, payload) => {
+                      if (payload && payload.length > 0) {
+                        return `Time: ${payload[0].payload.preciseTime || label}`;
+                      }
+                      return label;
+                    }}
                   />
-                  <Line
-                    type="monotone"
-                    dataKey="ping"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2.5}
-                    dot={false}
-                    activeDot={{ r: 6, strokeWidth: 0, fill: 'hsl(var(--primary))' }}
-                    animationDuration={300}
-                  />
-                </LineChart>
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Bar dataKey="ping" name="ICMP Ping" radius={[2, 2, 0, 0]}>
+                    {latencyHistory.map((entry, index) => {
+                      let barColor = '#10b981'; // green
+                      if (entry.isError || entry.ping > 250)
+                        barColor = '#ef4444'; // red
+                      else if (entry.ping > 100) barColor = '#f59e0b'; // yellow
+
+                      return <Cell key={`cell-${index}`} fill={barColor} />;
+                    })}
+                  </Bar>
+                  <Bar dataKey="rtt" name="Browser RTT" fill="#6366f1" radius={[2, 2, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
