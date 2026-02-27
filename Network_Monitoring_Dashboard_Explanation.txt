@@ -4,17 +4,32 @@ The Network Monitoring Dashboard (implemented in `SystemFailureMonitor.jsx`) is 
 
 Here is a breakdown of the main components and metrics tracked:
 
-1. KEY STATUS INDICATORS (Top Cards)
-These represent the real-time condition of core communication layers:
-- WebSocket Connection: Shows if the socket connection to the telephony server is 'healthy', 'warning', or 'critical', and displays its state (e.g., OPEN, CONNECTING, CLOSED).
-- SIP Registration: Monitors if the User Agent (UA) is properly registered with the SIP server and shows its expiry time.
-- UA Transport Layer: Indicates the physical transport layer connectivity state (Connected vs Disconnected).
-- Keep-Alive Messages: Tracks the time elapsed since the last keep-alive heartbeat message from the server to ensure the connection hasn't silently died.
-- Network Quality: Assesses the client's network condition using metrics like RTT (Round Trip Time), Effective Type (e.g., 4g, 3g), and signal strength. Also includes direct Packet Time measurements:
-  * TS Offset: The one-way transfer time (latency) calculated as the delta between the backend timestamp and the frontend receive timestamp.
-  * Arrival Int: The gap between consecutive backend timestamps to monitor upstream network delay or server lag (should map tightly to the 5-second polling interval).
-- System Timeouts: Counts the recent timeout events. High timeout counts indicate instability.
-- ICMP Latency (Ping): Tracks the round-trip latency (ping) between the client and the origin server using lightweight periodic requests, allowing direct insight into local internet stability.
+1. KEY STATUS INDICATORS (Network Component Status)
+These represent the real-time condition of core communication layers, breaking down exactly where a failure is happening across the entire communication stack:
+
+- WebSocket Connection: Shows if the physical socket connection to the telephony server established. Status includes 'healthy', 'warning', or 'critical', and displays its state (e.g., OPEN, CONNECTING, CLOSED).
+  * Reason for Critical: The server is down, firewall is blocking wss:// traffic, or DNS failed to resolve. If this is down, absolutely nothing else will work.
+
+- SIP Registration: Even if the WebSocket is open, this monitors if the UserAgent is properly authenticated and registered with the SIP server to place calls. Shows its expiry time.
+  * Reason for Critical: Invalid password, wrong campaign credentials, or the Asterisk/SIP backend rejected the user's registration. 
+
+- UA Transport Layer: Indicates the physical transport layer connectivity state of the `jssip` WebRTC engine (Connected vs Disconnected). Monitors if it is successfully transmitting WebRTC data back and forth.
+  * Reason for Critical: The browser cut off the WebRTC pipe (often happens if a laptop sleeps, a mobile browser throttles background tabs, or IceCandidates fail to exchange).
+
+- Keep-Alive Messages: Tracks the time elapsed since the last keep-alive heartbeat message from the server (using exact background timestamps). A healthy status requires a message within the last 14 seconds.
+  * Reason for Critical: The SIP server is silently lagging, dropping packets, or computationally overloaded. The physical socket might say "Open", but the server isn't actually responding.
+
+- Network Quality: Assesses if an issue is caused by the agent's weak local WiFi or a poor 4G connection before data even reaches the server. Uses metrics like RTT (Round Trip Time), Effective Type (e.g., 4g, 3g), and signal strength.
+  * Reason for Critical: The agent is physically too far from their router, on a degraded 3G cellular network, or downloading large files that saturate their bandwidth.
+  * Additional Packet Time metrics:
+    - TS Offset: One-way transfer time (latency) calculated as the difference between the backend timestamp and the frontend receive timestamp.
+    - Arrival Int: Gap between consecutive backend timestamps. Deviations from the strict 5s polling interval point directly to server lag or upstream network congestion.
+
+- System Timeouts: Counts recent timeout events. 
+  * Reason for Critical: The agent's browser tried to send API/SIP requests, but the server never responded in time. Indicates severe intermittent internet drops or server overload.
+
+- ICMP Latency (Ping): Tracks round-trip latency (ping) between the client and the origin server using lightweight periodic HTTP requests, enabling direct insight into local internet stability.
+  * Reason for Critical/Warning: Ping times exceeding 250ms indicate severe network congestion, VPN interference, or routing issues between the agent's ISP and your data center.
   * Technical Implementation:
     - HTTP HEAD Request: Since web browsers restrict native low-level ICMP network packets for security reasons, it emulates the behavior using the Javascript HTTP `fetch` API.
     - Every 5 seconds, it sends a `HEAD` request to the web server root (`window.location.origin`). This is lightweight—it asks the server for the headers but not the body content.

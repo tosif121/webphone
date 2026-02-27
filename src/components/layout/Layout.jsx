@@ -201,8 +201,10 @@ export default function Layout({ children }) {
         <Footer />
       </div>
 
-      {/* Phone UI - conditionally rendered WITHOUT wrapper - Hidden when Security Alert is shown */}
-      {shouldShowPhone && <DraggableWebPhone />}
+      {/* Phone UI - ALWAYS mounted to keep SIP connection and Monitoring alive, visually hidden when not needed */}
+      <div style={{ display: shouldShowPhone ? 'block' : 'none' }}>
+        <DraggableWebPhone />
+      </div>
 
       {/* Persistent audio - ALWAYS mounted, never unmounts */}
       <audio ref={audioRef} autoPlay playsInline style={{ display: 'none' }} />

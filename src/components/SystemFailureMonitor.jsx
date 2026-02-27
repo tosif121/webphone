@@ -382,7 +382,6 @@ const SystemFailureMonitors = () => {
 
     const lastMessage = data.messageDifference[data.messageDifference.length - 1];
     if (!lastMessage || !lastMessage.messageTime) return false;
-
     return Date.now() - lastMessage.messageTime < 14000;
   }, [getCurrentData]);
 
@@ -462,8 +461,8 @@ const SystemFailureMonitors = () => {
                 : 'critical',
         details:
           systemAnalysis.wsHealth === 'healthy' || systemAnalysis.wsConnected || ua.isConnected
-            ? `Active connection (${webSocketState})`
-            : `Connection failed (${webSocketState})`,
+            ? `Active connection (${webSocketState}). Server is reachable.`
+            : `Connection failed (${webSocketState}). Possible firewall, DNS, or server down issue.`,
       },
       {
         component: 'SIP Registration',
@@ -479,25 +478,28 @@ const SystemFailureMonitors = () => {
           systemAnalysis.sipHealth === 'healthy' || systemAnalysis.isUARegistered || ua.isRegistered
             ? `Registered (expires: ${
                 ua.registrator?.expires ? new Date(ua.registrator.expires * 1000).toLocaleTimeString() : 'N/A'
-              })`
-            : 'Registration failed',
+              }). Authenticated successfully.`
+            : 'Registration failed. Check campaign credentials or backend Asterisk status.',
       },
       {
         component: 'UA Transport Layer',
         status: ua.transport?.connected ? 'healthy' : ua.transport?.connecting ? 'warning' : 'critical',
         details: ua.transport?.connected
-          ? 'Transport connected'
+          ? 'Transport connected. WebRTC channel is open.'
           : ua.transport?.connecting
-            ? 'Transport connecting...'
-            : 'Transport disconnected',
+            ? 'Transport connecting... Waiting for WebRTC bridge.'
+            : 'Transport disconnected. Browser may be throttling background tabs or WebRTC pipe closed.',
       },
       {
         component: 'Keep-Alive Messages',
         status: isKeepAliveHealthy() ? 'healthy' : 'critical',
         details:
           monitoring.messageDifference && monitoring.messageDifference.length > 0
-            ? `Last message: ${getTimeSinceLastKeepAlive()}s ago`
-            : 'No keep-alive data available',
+            ? `Last message: ${getTimeSinceLastKeepAlive()}s ago.` +
+              (isKeepAliveHealthy()
+                ? ' Server is responding on time.'
+                : ' Server is lagging or dropping background packets.')
+            : 'No keep-alive data available. Server heartbeat missing.',
       },
       {
         component: 'Network Quality',
@@ -506,25 +508,34 @@ const SystemFailureMonitors = () => {
             ? 'healthy'
             : networkQuality.quality === 'Good'
               ? 'healthy'
-                ? 'healthy'
-                : networkQuality.quality === 'Fair'
-                  ? 'warning'
-                  : 'critical'
-              : 'critical',
+              : networkQuality.quality === 'Fair'
+                ? 'warning'
+                : 'critical',
         details: `${networkQuality.quality} (${
           monitoring.networkInfo?.effectiveType?.toUpperCase() || 'Unknown'
-        }, RTT: ${Math.round(monitoring.networkInfo?.rtt || 0)}ms)`,
+        }, RTT: ${Math.round(monitoring.networkInfo?.rtt || 0)}ms). ${
+          networkQuality.quality === 'Excellent' || networkQuality.quality === 'Good'
+            ? 'Local WiFi/network is stable.'
+            : 'Weak local WiFi or poor cellular connection detected.'
+        }`,
       },
       {
         component: 'System Timeouts',
         status: timeoutCount > 5 ? 'critical' : timeoutCount > 0 ? 'warning' : 'healthy',
-        details: `${timeoutCount} timeout events detected`,
+        details: `${timeoutCount} timeout events detected. ${
+          timeoutCount > 0 ? 'Browser is failing to reach the server in time.' : 'No recent dropped requests.'
+        }`,
       },
       {
         component: 'ICMP Latency (Ping)',
         status:
           icmpLatency === null ? 'warning' : icmpLatency < 100 ? 'healthy' : icmpLatency < 250 ? 'warning' : 'critical',
-        details: icmpLatency !== null ? `${icmpLatency}ms to origin server` : 'Ping unavailable',
+        details:
+          icmpLatency !== null
+            ? `${icmpLatency}ms to origin server. ${
+                icmpLatency < 250 ? 'Speed is optimal.' : 'High congestion or VPN interference detected.'
+              }`
+            : 'Ping unavailable. Network route may be blocked.',
       },
     ];
   }, [
