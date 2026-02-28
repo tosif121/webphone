@@ -1,69 +1,70 @@
-Network Monitoring Dashboard - Explanation & Overview
+Network Monitoring Dashboard - Explanation & Overview (Hinglish)
 
-The Network Monitoring Dashboard (implemented in `SystemFailureMonitor.jsx`) is a real-time tracking tool for JsSIP network reliability. It aggregates data from multiple sources (like Local Storage events via the BroadcastChannel API) to provide a unified view of the application's connection health, WebSocket reliability, and overall network performance.
+Network Monitoring Dashboard (`SystemFailureMonitor.jsx` mein banaya gaya) ek real-time tracking tool hai JsSIP network ki reliability measure karne ke liye. Yeh alag-alag sources (jaise Local Storage events BroadcastChannel API ke through) se data jama karta hai taaki application ki connection health, WebSocket reliability, aur overall network performance ka ek single view mil sake.
 
-Here is a breakdown of the main components and metrics tracked:
+Neeche main components aur track kiye gaye metrics ki detailed explanation hai:
 
 1. KEY STATUS INDICATORS (Network Component Status)
-These represent the real-time condition of core communication layers, breaking down exactly where a failure is happening across the entire communication stack:
+Yeh core communication layers ki real-time condition dikhate hain, jisse exactly pata chalta hai ki poore communication stack mein failure kahan ho raha hai:
 
-- WebSocket Connection: Shows if the physical socket connection to the telephony server established. Status includes 'healthy', 'warning', or 'critical', and displays its state (e.g., OPEN, CONNECTING, CLOSED).
-  * Reason for Critical: The server is down, firewall is blocking wss:// traffic, or DNS failed to resolve. If this is down, absolutely nothing else will work.
+- WebSocket Connection: Yeh batata hai ki kya telephony server ke saath physical socket connection ban gaya hai ya nahi. Status mein 'healthy', 'warning', ya 'critical' aata hai, aur iski state dikhti hai (e.g., OPEN, CONNECTING, CLOSED).
+  * Reason for Critical: Server down hai, firewall wss:// traffic block kar rahi hai, ya DNS resolve fail ho gaya hai. Agar yeh down hai, toh absolutely kuch bhi aur kaam nahi karega.
 
-- SIP Registration: Even if the WebSocket is open, this monitors if the UserAgent is properly authenticated and registered with the SIP server to place calls. Shows its expiry time.
-  * Reason for Critical: Invalid password, wrong campaign credentials, or the Asterisk/SIP backend rejected the user's registration. 
+- SIP Registration: Agar WebSocket open bhi hai, toh yeh monitor karta hai ki kya UserAgent properly authenticated aur registered hai SIP server ke saath calls karne ke liye. Yeh iska expiry time bhi dikhata hai.
+  * Reason for Critical: Invalid password, wrong campaign credentials, ya phir Asterisk/SIP backend ne user ki registration reject kar di hai.
 
-- UA Transport Layer: Indicates the physical transport layer connectivity state of the `jssip` WebRTC engine (Connected vs Disconnected). Monitors if it is successfully transmitting WebRTC data back and forth.
-  * Reason for Critical: The browser cut off the WebRTC pipe (often happens if a laptop sleeps, a mobile browser throttles background tabs, or IceCandidates fail to exchange).
+- UA Transport Layer: Yeh `jssip` WebRTC engine ki physical transport layer connectivity state batata hai (Connected vs Disconnected). Yeh monitor karta hai ki kya yeh WebRTC data successfully transmit kar pa raha hai dono taraf.
+  * Reason for Critical: Browser ne WebRTC pipe cut kar di hai (aksar tab hota hai jab laptop sleep pe chala jaye, mobile browser background tabs ko throttle kare, ya IceCandidates exchange hone mein fail ho jayein).
 
-- Keep-Alive Messages: Tracks the time elapsed since the last keep-alive heartbeat message from the server (using exact background timestamps). A healthy status requires a message within the last 14 seconds.
-  * Reason for Critical: The SIP server is silently lagging, dropping packets, or computationally overloaded. The physical socket might say "Open", but the server isn't actually responding.
+- Keep-Alive Messages: Yeh server se aaye last keep-alive heartbeat message ke baad beeta hua time track karta hai (exact background timestamps use karke). Ek healthy status ke liye zaruri hai ki message pichle 14 seconds ke andar aaya ho. (Kaise calculate hota hai: `Date.now() - lastMessage.messageTime < 14000`)
+  * Reason for Critical: SIP server silently lag kar raha hai, packets drop kar raha hai, ya overloaded hai. Physical socket shayad "Open" dikhaye, par server actually respond nahi kar raha hota.
 
-- Network Quality: Assesses if an issue is caused by the agent's weak local WiFi or a poor 4G connection before data even reaches the server. Uses metrics like RTT (Round Trip Time), Effective Type (e.g., 4g, 3g), and signal strength.
-  * Reason for Critical: The agent is physically too far from their router, on a degraded 3G cellular network, or downloading large files that saturate their bandwidth.
+- Network Quality: Yeh check karta hai ki kya issue agent ke weak local WiFi ya poor 4G connection ki wajah se hai, isse pehle ki data server tak pahuche. Yeh metrics use karta hai jaise RTT (Round Trip Time), Effective Type (e.g., 4g, 3g), aur signal strength.
+  * Reason for Critical: Agent shayad apne router se physically bohot door hai, kisi degraded 3G cellular network par hai, ya badi files download kar raha hai jo bandwidth ko consume kar rahi hain.
   * Additional Packet Time metrics:
-    - TS Offset: One-way transfer time (latency) calculated as the difference between the backend timestamp and the frontend receive timestamp.
-    - Arrival Int: Gap between consecutive backend timestamps. Deviations from the strict 5s polling interval point directly to server lag or upstream network congestion.
+    - TS Offset: One-way transfer time (latency) jo backend timestamp aur frontend ke receive timestamp ke beech ka difference calculate karke nikalta hai. (Kaise banaya: `frontendReceiveTime - backendTime`)
+    - Arrival Int: Lagatar aane wale backend timestamps ke beech ka gap. Agar yeh strict 5s polling interval se alag aata hai, toh yeh directly server lag ya upstream network congestion ki taraf ishara karta hai.
 
-- System Timeouts: Counts recent timeout events. 
-  * Reason for Critical: The agent's browser tried to send API/SIP requests, but the server never responded in time. Indicates severe intermittent internet drops or server overload.
+- System Timeouts: Yeh recent timeout events ko count karta hai.
+  * Reason for Critical: Agent ke browser ne API/SIP requests bhejne ki koshish ki, par server ne time par respond nahi kiya. Yeh severe intermittent internet drops ya server overload ko indicate karta hai.
 
-- ICMP Latency (Ping): Tracks round-trip latency (ping) between the client and the origin server using lightweight periodic HTTP requests, enabling direct insight into local internet stability.
-  * Reason for Critical/Warning: Ping times exceeding 250ms indicate severe network congestion, VPN interference, or routing issues between the agent's ISP and your data center.
-  * Technical Implementation:
-    - HTTP HEAD Request: Since web browsers restrict native low-level ICMP network packets for security reasons, it emulates the behavior using the Javascript HTTP `fetch` API.
-    - Every 5 seconds, it sends a `HEAD` request to the web server root (`window.location.origin`). This is lightweight—it asks the server for the headers but not the body content.
-    - It bypasses the browser cache by appending the `{ cache: 'no-store' }` flag so the browser makes an actual round-trip to the network instead of serving a localized memory file.
-    - It uses `performance.now()` before and after the request resolves. The difference between those two times is the true server round-trip latency in milliseconds.
-    - Timestamp Difference Calculation (Network Time): Network metrics can also be triangulated by comparing packet timestamps. 
-        * Packet 1: To calculate the one-way network transfer time, compare the timestamp generated by the backend when the packet was created against the frontend timestamp when the packet was received.
-        * Packet 2: To detect packet drops or server lag, compare the current backend timestamp against the previous packet's backend timestamp. Since polling occurs on a strict interval (e.g. 5 seconds), this difference should closely match the interval (5 seconds). Deviations indicate server instability or upstream network delays.
-    - Fallback RTT (Network Information API): If the server doesn't respond to the `HEAD` request (meaning the server went offline or the ping dropped), it immediately falls back to invoking `navigator.connection.rtt`. `navigator.connection` is a native Javascript Browser API that returns the connection's estimated round-trip-time (RTT). The browser implicitly calculates this value in the background based on active TCP connections.
+- ICMP Latency (Ping): Yeh client aur origin server ke beech ka round-trip latency (ping) track karta hai lightweight periodic HTTP requests ka use karke, jisse local internet stability ka direct insight milta hai.
+  * Reason for Critical/Warning: Agar ping times 250ms se zyada hain toh yeh indicate karta hai severe network congestion, VPN interference, ya agent ke ISP aur aapke data center ke beech routing issues.
+  * Technical Implementation & Calculation:
+    - Browser Security Bypass: Modern web browsers native low-level ICMP network packets ko block kar dete hain. Isliye, hum Javascript HTTP `fetch` API se ek "fake ping" emulate karte hain.
+    - Stopwatch Technique (`performance.now()`): Hum request bhejne se theek pehle `const start = performance.now();` start krte hain. Yeh ek high-precision timer hai.
+    - HTTP HEAD Request: Har 5 seconds mein, ek `HEAD` request web server ke root (`window.location.origin`) par bheji jati hai. Yeh fast hoti hai kyunki yeh sirf headers maangti hai, body ka content nahi.
+    - No Cache (`cache: 'no-store'`): Yeh flag ensure karta hai ki browser seedha network pe jaye aur cache use na kare.
+    - Latency Calculation: Jaise hi response aata hai, hum `duration = performance.now() - start` karte hain. Yeh final duration (in milliseconds) humari actual ICMP Ping Latency hoti hai.
+    - Fallback RTT (Network Information API): Agar server `HEAD` request par respond na kare (jaise server offline ho ya ping drop ho jaye), toh hum turant `navigator.connection.rtt` API par fall back karte hain. Yeh browser ki native API hai jo connection ka estimated round-trip-time (RTT) return karti hai.
+      * Passive vs Active (Ping vs RTT): Ping actively naye packets (`fetch`) bhejta hai ek instantaneous "right now" exact measurement lane ke liye. Jabki RTT passively browser background mein calculate karta hai recent TCP connection times ko average karke.
+      * Security Rounding in RTT: Browser intentionally is RTT value ko nearest 25 milliseconds ke multiple (e.g. 50, 75, 100) par round off kar deta hai taaki malicious websites se user tracking/fingerprinting ko roka ja sake.
+
 2. SYSTEM HEALTH SCORE
-A calculated percentage score (e.g., 95%) determining the overall health index based on the stability of WebSockets, SIP Registration, and Network Speed.
+Yeh ek calculated percentage score hai (e.g., 95%) jo WebSockets, SIP Registration, aur Network Speed ki stability ke basis par overall health index determine karta hai.
 
 3. SUMMARY STATS (Event Counts)
-The dashboard keeps historical logs of system conditions, grouped into:
+Yeh dashboard system conditions ke historical logs rakhta hai, jo in groups mein hote hain:
 - Live Entries: Current snapshot metrics.
-- Success Events: Instances where a critical component fully succeeded.
-- Warning Events: Suboptimal conditions that aren't critical failures yet (e.g., Fair network quality).
-- Failure Events: Complete connection drops or component failures (critical).
+- Success Events: Wo instances jahan ek critical component puri tarah succeed hua.
+- Warning Events: Suboptimal conditions jo abhi critical failures nahi hain (e.g., Fair network quality).
+- Failure Events: Complete connection drops ya component failures (critical).
 
 4. DETAILED DATA TABLE
-Provides a deep-dive, historical view of every network event with columns for:
-- Timestamp: When the event occurred.
-- Event Type & Network Component: Which piece of the architecture was affected (e.g., Live Status of SIP Registration).
-- Status & Severity: Categorized as healthy, warning, success, info, or critical.
-- Description: Human-readable message explaining the status.
-- Response Time: The average latency or response time in milliseconds.
+Yeh har network event ka ek deep-dive, historical view provide karta hai in columns ke sath:
+- Timestamp: Event kab hua.
+- Event Type & Network Component: Architecture ka kaunsa hissa affect hua (e.g., Live Status of SIP Registration).
+- Status & Severity: Categorized as healthy, warning, success, info, ya critical.
+- Description: Status ko samjhane wala aasan (human-readable) message.
+- Response Time: Average latency ya response time milliseconds mein.
 
 5. DASHBOARD CONTROLS
-- Pause/Resume Auto-Refresh: "Freeze" the live data to investigate an issue without the dashboard constantly jumping.
-- Refresh Rate Control: Dropdown to modify how quickly the UI polls the LocalStorage data (e.g., every 1s, 2s, 5s).
-- View Modes (Live / History): Toggle between current diagnostics and past events.
-- Filters: Filter by severity (Critical, Warning, Success, Info).
-- Export Data: Download the current and historical monitoring logs as a `.json` file for deeper debugging.
-- Clear Data: Flush the local monitoring storage logs.
+- Pause/Resume Auto-Refresh: Live data ko "Freeze" karna taaki dashboard ke hile bina issue ko investigate kiya ja sake.
+- Refresh Rate Control: Dropdown jo modify karta hai ki UI kitni jaldi LocalStorage data (e.g., har 1s, 2s, 5s mein) poll karegi.
+- View Modes (Live / History): Current diagnostics aur past events ke beech toggle karna.
+- Filters: Severity (Critical, Warning, Success, Info) ke hisaab se unko filter karna.
+- Export Data: Download current aur historical monitoring logs ek `.json` file mein deeper debugging ke liye.
+- Clear Data: Local monitoring storage logs ko flush/clear karna.
 
 SUMMARY
-This dashboard is designed to instantly notify agents and administrators of exactly where a communication failure is happening (e.g., weak local WiFi vs. a dropped WebSocket vs. an expired SIP Registration), reducing downtime and accelerating troubleshooting.
+Yeh dashboard isliye design kiya gaya hai taaki agents aur administrators ko immediately notify kiya ja sake ki exactly communication failure kahan ho raha hai (e.g., weak local WiFi vs. ek dropped WebSocket vs. ek expired SIP Registration), jisse downtime reduce ho aur troubleshooting tez ho sake.
