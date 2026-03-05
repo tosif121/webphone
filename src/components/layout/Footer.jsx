@@ -1,6 +1,6 @@
 import React from 'react';
 
-const WEB_VERSION = '0.2.20';
+const WEB_VERSION = '0.2.21';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -11,9 +11,7 @@ const Footer = () => {
         <p className="text-sm">
           &copy; {currentYear} <span className="font-semibold text-primary">iotcom.io</span>. All rights reserved.
         </p>
-        <span className="text-xs text-muted-foreground">
-          version {WEB_VERSION}
-        </span>
+        <span className="text-xs text-muted-foreground">version {WEB_VERSION}</span>
       </div>
     </footer>
   );

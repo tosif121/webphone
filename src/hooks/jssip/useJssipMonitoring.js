@@ -1,680 +1,423 @@
-// hooks/jssip/useJssipMonitoring.js
-import { useEffect, useCallback, useContext } from 'react';
-import HistoryContext from '../../context/HistoryContext';
+import { useEffect, useRef, useCallback } from 'react';
 
+// ─────────────────────────────────────────────────────────────
+// Storage keys — single source of truth
+// ─────────────────────────────────────────────────────────────
+export const MONITORING_KEYS = {
+  UA_STATUS: 'jssip_ua_status',
+  CONNECTION_STATUS: 'jssip_connection_status',
+  MONITORING_DATA: 'jssip_monitoring_data',
+  TROUBLESHOOTING_MODE: 'jssip_troubleshooting_mode',
+};
+
+// ─────────────────────────────────────────────────────────────
+// Helper: derive network quality from RTT
+// ─────────────────────────────────────────────────────────────
+const deriveNetworkQuality = (rtt) => {
+  if (rtt === null || rtt === undefined) return 'unknown';
+  if (rtt < 50) return 'excellent';
+  if (rtt < 150) return 'good';
+  if (rtt < 300) return 'fair';
+  return 'poor';
+};
+
+// ─────────────────────────────────────────────────────────────
+// Helper: derive signal strength (1–4) from network quality
+// ─────────────────────────────────────────────────────────────
+const deriveSignalStrength = (quality) => {
+  switch (quality) {
+    case 'excellent':
+      return 4;
+    case 'good':
+      return 3;
+    case 'fair':
+      return 2;
+    case 'poor':
+      return 1;
+    default:
+      return 1;
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// Helper: safe localStorage write
+// ─────────────────────────────────────────────────────────────
+const writeStorage = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    // Broadcast to other tabs
+    if (typeof BroadcastChannel !== 'undefined') {
+      const bc = new BroadcastChannel('jssip-sync');
+      bc.postMessage({ key, value });
+      bc.close();
+    }
+  } catch (e) {
+    console.warn('[useJssipMonitoring] localStorage write failed:', e);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// Helper: safe localStorage read
+// ─────────────────────────────────────────────────────────────
+const readStorage = (key) => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : null;
+  } catch {
+    return null;
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// useJssipMonitoring
+// Call this hook inside useJssip and pass (state, utils).
+// It owns all localStorage writes for the monitoring dashboard.
+// ─────────────────────────────────────────────────────────────
 export const useJssipMonitoring = (state, utils) => {
-  const { username } = useContext(HistoryContext);
   const {
     ua,
-    status,
-    connectionStatus,
-    messageDifference,
     timeoutArray,
+    messageDifference,
     systemEvents,
     setSystemEvents,
     networkHealth,
     setNetworkHealth,
-    lastError,
-    setLastError,
     successCount,
     setSuccessCount,
     errorCount,
     setErrorCount,
-    lastLoggedUAState,
-    setLastLoggedUAState,
-    session,
-    userLogin,
-    showTimeoutModal,
-    origin,
-    isConnectionLost,
   } = state;
 
-  const { storeInLocalStorage, getFromLocalStorage } = utils;
+  // Internal refs — avoid stale closures in interval callbacks
+  const connectedAtRef = useRef(null); // timestamp when WS connected
+  const uaRef = useRef(null); // latest ua instance
+  const timeoutArrayRef = useRef([]);
+  const messageDiffRef = useRef([]);
+  const systemEventsRef = useRef([]);
+  const successCountRef = useRef(0);
+  const errorCountRef = useRef(0);
 
-  const calculateAverageResponseTime = useCallback(() => {
-    if (messageDifference.length < 2) return 0;
-    const intervals = [];
-    for (let i = 1; i < messageDifference.length; i++) {
-      const interval = messageDifference[i].messageTime - messageDifference[i - 1].messageTime;
-      intervals.push(interval);
-    }
-    return intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length;
+  // Keep refs in sync with state
+  useEffect(() => {
+    uaRef.current = ua;
+  }, [ua]);
+  useEffect(() => {
+    timeoutArrayRef.current = timeoutArray;
+  }, [timeoutArray]);
+  useEffect(() => {
+    messageDiffRef.current = messageDifference;
   }, [messageDifference]);
+  useEffect(() => {
+    systemEventsRef.current = systemEvents;
+  }, [systemEvents]);
+  useEffect(() => {
+    successCountRef.current = successCount;
+  }, [successCount]);
+  useEffect(() => {
+    errorCountRef.current = errorCount;
+  }, [errorCount]);
 
-  const calculateConnectionUptime = useCallback(() => {
-    const sessionStart = getFromLocalStorage('session_start') || Date.now();
-    return Date.now() - sessionStart;
-  }, [getFromLocalStorage]);
-
-  const isUARegistered = useCallback(() => {
-    if (!ua) return false;
-
-    try {
-      if (typeof ua.isRegistered === 'function') {
-        return ua.isRegistered();
-      }
-    } catch (e) {
-      // fallback
-    }
-
-    if (ua.registrator && ua.registrator.registered === true) {
-      return true;
-    }
-
-    const hasRecentKeepAlive =
-      messageDifference.length > 0 && Date.now() - messageDifference[messageDifference.length - 1]?.messageTime < 30000;
-
-    return hasRecentKeepAlive;
-  }, [ua, messageDifference]);
-
-  const getWebSocketStatus = useCallback(() => {
-    if (!ua) {
-      return { connected: false, readyState: null, status: 'no_ua' };
-    }
-
-    let socket = null;
-
-    if (ua.transport && ua.transport.socket) {
-      socket = ua.transport.socket;
-    } else if (ua.transport && ua.transport.connection) {
-      socket = ua.transport.connection;
-    } else if (ua._transport && ua._transport.socket) {
-      socket = ua._transport.socket;
-    }
-
-    if (!socket) {
-      const isRegistered = isUARegistered();
-      if (isRegistered) {
-        return { connected: true, readyState: 1, status: 'connected_inferred' };
-      }
-      return { connected: false, readyState: null, status: 'no_socket' };
-    }
-
-    let readyState = socket.readyState;
-
-    if (readyState === undefined || readyState === null) {
-      const isRegistered = isUARegistered();
-      const hasRecentKeepAlive =
-        messageDifference.length > 0 &&
-        Date.now() - messageDifference[messageDifference.length - 1]?.messageTime < 30000;
-
-      if (isRegistered && hasRecentKeepAlive) {
-        readyState = WebSocket.OPEN;
-      } else if (isRegistered) {
-        readyState = WebSocket.OPEN;
-      } else {
-        readyState = WebSocket.CLOSED;
-      }
-    }
-
-    const connected = readyState === WebSocket.OPEN;
-
-    return { connected, readyState, status: connected ? 'connected' : 'disconnected' };
-  }, [ua, isUARegistered, messageDifference]);
-
-  const analyzeSystemHealth = useCallback(() => {
-    const now = Date.now();
-    const recentTimeWindow = 5 * 60 * 1000;
-
-    const isRegistered = isUARegistered();
-    const wsStatus = getWebSocketStatus();
-
-    const hasRecentKeepAlive =
-      messageDifference.length > 0 && now - messageDifference[messageDifference.length - 1]?.messageTime < 30000;
-
-    const wsHealth = wsStatus.connected || (isRegistered && hasRecentKeepAlive) ? 'healthy' : 'critical';
-    const sipHealth = isRegistered ? 'healthy' : 'critical';
-    const networkOnline = navigator.onLine;
-
-    const connection = navigator.connection;
-    const networkRtt = connection?.rtt || 0;
-    const networkDownlink = connection?.downlink || 0;
-    const effectiveType = connection?.effectiveType || 'unknown';
-
-    let networkQuality = 'poor';
-    let signalStrength = 1;
-
-    if (effectiveType === '4g' || effectiveType === '3g') {
-      if (effectiveType === '4g' && networkRtt < 100 && networkDownlink > 3) {
-        networkQuality = 'excellent';
-        signalStrength = 4;
-      } else if (effectiveType === '4g' && networkRtt < 150) {
-        networkQuality = 'good';
-        signalStrength = 3;
-      } else if (effectiveType === '3g' || networkRtt < 300) {
-        networkQuality = 'fair';
-        signalStrength = 2;
-      }
-    } else {
-      if (networkRtt < 50 && networkDownlink > 10) {
-        networkQuality = 'excellent';
-        signalStrength = 4;
-      } else if (networkRtt < 100 && networkDownlink > 5) {
-        networkQuality = 'good';
-        signalStrength = 3;
-      } else if (networkRtt < 200 && networkDownlink > 2) {
-        networkQuality = 'fair';
-        signalStrength = 2;
-      }
-    }
-
-    const recentErrors = systemEvents.filter(
-      (event) => event.type === 'error' && now - event.timestamp < recentTimeWindow,
-    ).length;
-
-    const recentSuccesses = systemEvents.filter(
-      (event) => event.type === 'success' && now - event.timestamp < recentTimeWindow,
-    ).length;
-
-    const lastKeepAlive =
-      messageDifference.length > 0 ? messageDifference[messageDifference.length - 1]?.messageTime : null;
-    const keepAliveHealth = lastKeepAlive && now - lastKeepAlive < 15000;
-
-    const recentTimeouts = timeoutArray.filter((timeout) => {
-      if (!timeout.timestamp) return false;
-      const timeoutTime = new Date(timeout.timestamp);
-      const windowStart = new Date(now - 30000);
-      return timeoutTime > windowStart;
-    });
-
-    if (recentTimeouts.length >= 3) signalStrength = Math.max(signalStrength - 2, 1);
-    else if (recentTimeouts.length === 2) signalStrength = Math.max(signalStrength - 1, 1);
-    else if (recentTimeouts.length === 1) signalStrength = Math.max(signalStrength - 1, 2);
-
-    let overallHealth = 100;
-
-    if (!ua) {
-      overallHealth = 25;
-    } else if (isRegistered && (wsStatus.connected || hasRecentKeepAlive)) {
-      overallHealth = 100;
-      if (!keepAliveHealth && messageDifference.length > 0) overallHealth -= 5;
-      if (recentErrors > recentSuccesses) overallHealth -= 5;
-      if (networkQuality === 'poor') overallHealth -= 10;
-      else if (networkQuality === 'fair') overallHealth -= 5;
-    } else if (isRegistered && !wsStatus.connected && !hasRecentKeepAlive) {
-      overallHealth = 60;
-    } else if (!isRegistered && (wsStatus.connected || hasRecentKeepAlive)) {
-      overallHealth = 50;
-    } else {
-      overallHealth = 30;
-    }
-
-    if (!networkOnline) overallHealth = Math.min(overallHealth, 25);
-    overallHealth = Math.max(0, Math.min(100, overallHealth));
-
-    return {
-      overallHealth,
-      wsHealth,
-      sipHealth,
-      networkOnline,
-      networkQuality,
-      networkType: effectiveType,
-      networkRtt,
-      networkDownlink,
-      keepAliveHealth,
-      recentErrors,
-      recentSuccesses,
-      signalStrength,
-      recentTimeouts: recentTimeouts.length,
-      lastKeepAlive: lastKeepAlive ? new Date(lastKeepAlive).toISOString() : null,
-      isUARegistered: isRegistered,
-      wsConnected: wsStatus.connected || (isRegistered && hasRecentKeepAlive),
-      wsReadyState: wsStatus.readyState,
-      hasRecentKeepAlive,
-    };
-  }, [ua, isUARegistered, getWebSocketStatus, systemEvents, messageDifference, timeoutArray]);
+  // ── Helpers exposed to useJssip ──────────────────────────────────────
 
   const logSystemEvent = useCallback(
-    (type, category, message, details = {}) => {
+    (type, component, description) => {
       const event = {
-        id: `${Date.now()}_${Math.random()}`,
+        id: `evt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        type, // 'error' | 'success' | 'info'
+        component,
+        description,
         timestamp: Date.now(),
-        type,
-        category,
-        message,
-        details,
       };
-
-      setSystemEvents((prev) => [...prev, event].slice(-50));
-
-      if (type === 'success') setSuccessCount((prev) => prev + 1);
-      if (type === 'error') {
-        setErrorCount((prev) => prev + 1);
-        setLastError(event);
-      }
+      setSystemEvents((prev) => {
+        const updated = [...prev, event].slice(-200); // keep last 200
+        systemEventsRef.current = updated;
+        return updated;
+      });
+      return event;
     },
-    [setSystemEvents, setSuccessCount, setErrorCount, setLastError],
+    [setSystemEvents],
   );
 
-  useEffect(() => {
-    if (!ua) return;
+  const isUARegistered = useCallback(() => {
+    const u = uaRef.current;
+    if (!u) return false;
+    try {
+      return u.isRegistered();
+    } catch {
+      return false;
+    }
+  }, []);
 
+  const getWebSocketStatus = useCallback(() => {
+    const u = uaRef.current;
+    if (!u?.transport) return { connected: false, connecting: false, readyState: null };
+    try {
+      return {
+        connected: u.transport.isConnected(),
+        connecting: u.transport.isConnecting(),
+        readyState: u.transport.socket?.readyState ?? null,
+      };
+    } catch {
+      return { connected: false, connecting: false, readyState: null };
+    }
+  }, []);
+
+  const calculateConnectionUptime = useCallback(() => {
+    if (!connectedAtRef.current) return 0;
+    return Date.now() - connectedAtRef.current;
+  }, []);
+
+  const calculateAverageResponseTime = useCallback(() => {
+    const msgs = messageDiffRef.current;
+    if (msgs.length < 2) return 0;
+    const diffs = [];
+    for (let i = 1; i < msgs.length; i++) {
+      diffs.push(msgs[i].messageTime - msgs[i - 1].messageTime);
+    }
+    return Math.round(diffs.reduce((a, b) => a + b, 0) / diffs.length);
+  }, []);
+
+  const analyzeSystemHealth = useCallback(() => {
     const wsStatus = getWebSocketStatus();
     const registered = isUARegistered();
+    const timeouts = timeoutArrayRef.current;
+    const msgs = messageDiffRef.current;
+    const navConn = navigator.connection || {};
+    const rtt = navConn.rtt ?? null;
+    const netQuality = deriveNetworkQuality(rtt);
+    const signalStr = deriveSignalStrength(netQuality);
 
-    const currentState = {
+    // Keep-alive freshness
+    const lastMsg = msgs[msgs.length - 1];
+    const keepAliveOk = lastMsg ? Date.now() - lastMsg.messageTime < 14000 : false;
+    const recentTimeouts = timeouts.filter((t) => Date.now() - t.timestamp < 60000).length;
+
+    // Score: each component worth 20 points
+    let score = 0;
+    if (wsStatus.connected) score += 20;
+    if (registered) score += 20;
+    if (wsStatus.connected) score += 10; // transport bonus
+    if (keepAliveOk) score += 20;
+    if (netQuality === 'excellent' || netQuality === 'good') score += 20;
+    else if (netQuality === 'fair') score += 10;
+    if (recentTimeouts === 0) score += 10;
+    else if (recentTimeouts <= 2) score += 5;
+
+    const wsHealth = wsStatus.connected ? 'healthy' : 'critical';
+    const sipHealth = registered ? 'healthy' : 'critical';
+
+    return {
+      overallHealth: Math.min(100, score),
+      wsHealth,
+      sipHealth,
+      networkOnline: navigator.onLine,
+      networkQuality: netQuality,
+      signalStrength: signalStr,
+      recentTimeouts,
+      wsConnected: wsStatus.connected,
+      isUARegistered: registered,
+    };
+  }, [getWebSocketStatus, isUARegistered]);
+
+  // ── Core write function ───────────────────────────────────────────────
+  // Called on every meaningful event and also on a 3-second interval
+  const flushToStorage = useCallback(() => {
+    const u = uaRef.current;
+    const wsStatus = getWebSocketStatus();
+    const registered = isUARegistered();
+    const uptime = calculateConnectionUptime();
+    const avgResp = calculateAverageResponseTime();
+    const analysis = analyzeSystemHealth();
+    const navConn = navigator.connection || {};
+    const rtt = navConn.rtt ?? null;
+    const timeouts = timeoutArrayRef.current;
+    const msgs = messageDiffRef.current;
+    const events = systemEventsRef.current;
+
+    // ── jssip_ua_status ──────────────────────────────────────────────
+    writeStorage(MONITORING_KEYS.UA_STATUS, {
+      isConnected: wsStatus.connected,
       isRegistered: registered,
-      socketReadyState: wsStatus.readyState,
-      socketConnected: wsStatus.connected,
-      connectionStatus,
-      hasSocket: !!ua?.transport?.socket,
-      hasKeepAlive: messageDifference.length > 0,
-      uaStarted: ua._state === 'started',
-    };
+      isStarted: u ? (u.isStarted?.() ?? false) : false,
+      transport: {
+        connected: wsStatus.connected,
+        connecting: wsStatus.connecting,
+        readyState: wsStatus.readyState,
+      },
+      registrator: {
+        registered: registered,
+        expires: u?._registrator?._expires ?? null,
+      },
+      systemHealth: {
+        overallHealth: analysis.overallHealth,
+        signalStrength: analysis.signalStrength,
+      },
+      signalStrength: analysis.signalStrength,
+    });
 
-    const stateSignature = JSON.stringify(currentState);
+    // ── jssip_connection_status ──────────────────────────────────────
+    writeStorage(MONITORING_KEYS.CONNECTION_STATUS, {
+      isConnectionLost: !wsStatus.connected,
+      networkStatus: navigator.onLine,
+      socketState: wsStatus.readyState,
+      lastConnectionCheck: Date.now(),
+      systemHealth: {
+        overallHealth: analysis.overallHealth,
+        networkQuality: analysis.networkQuality,
+      },
+      networkHealth: analysis.networkQuality,
+      signalStrength: analysis.signalStrength,
+      uaRegistered: registered,
+      origin: 'esamwad.iotcom.io',
+    });
 
-    if (lastLoggedUAState !== stateSignature) {
-      setLastLoggedUAState(stateSignature);
+    // ── jssip_monitoring_data ────────────────────────────────────────
+    const totalCalls = successCountRef.current + errorCountRef.current;
+    const successRate = totalCalls > 0 ? successCountRef.current / totalCalls : 0;
+    const errorRate = totalCalls > 0 ? errorCountRef.current / totalCalls : 0;
 
-      const timeoutId = setTimeout(() => {
-        const systemHealth = analyzeSystemHealth();
-
-        storeInLocalStorage('ua_status', {
-          isConnected: wsStatus.connected,
-          isRegistered: registered,
-          isStarted: ua._state === 'started',
-          transport: {
-            connected: ua?.transport?.connected || false,
-            connecting: ua?.transport?.connecting || false,
-            readyState: wsStatus.readyState,
-          },
-          registrator: {
-            registered: registered,
-            expires: ua?.registrator?.expires || null,
-          },
-          systemHealth,
-          signalStrength: systemHealth.signalStrength,
-        });
-
-        if (registered && wsStatus.connected) {
-          logSystemEvent('success', 'system', 'UA fully operational - registered and connected', {
-            socketReadyState: wsStatus.readyState,
-            uaState: ua._state,
-            keepAliveCount: messageDifference.length,
-          });
-        } else if (registered && !wsStatus.connected) {
-          logSystemEvent('warning', 'system', 'UA registered but WebSocket not connected', {
-            socketReadyState: wsStatus.readyState,
-            registered: registered,
-          });
-        } else if (!registered && wsStatus.connected) {
-          logSystemEvent('info', 'system', 'UA WebSocket connected but not registered yet', {
-            socketReadyState: wsStatus.readyState,
-            uaState: ua._state,
-            connectionStatus,
-          });
-        }
-      }, 2000);
-
-      return () => clearTimeout(timeoutId);
-    }
+    writeStorage(MONITORING_KEYS.MONITORING_DATA, {
+      timeoutArray: timeouts,
+      messageDifference: msgs,
+      systemEvents: events,
+      performanceMetrics: {
+        averageResponseTime: avgResp,
+        connectionUptime: uptime,
+        timeoutCount: timeouts.length,
+        lastKeepAlive: msgs[msgs.length - 1]?.messageTime ?? null,
+        systemHealth: analysis.overallHealth,
+        errorRate,
+        successRate,
+      },
+      networkInfo: {
+        effectiveType: navConn.effectiveType ?? 'unknown',
+        downlink: navConn.downlink ?? null,
+        rtt,
+        online: navigator.onLine,
+        quality: analysis.networkQuality,
+        signalStrength: analysis.signalStrength,
+      },
+      systemAnalysis: analysis,
+    });
   }, [
-    ua,
-    ua?._state,
-    connectionStatus,
-    messageDifference.length,
-    lastLoggedUAState,
-    isUARegistered,
     getWebSocketStatus,
-    storeInLocalStorage,
-    analyzeSystemHealth,
-    logSystemEvent,
-    setLastLoggedUAState,
-  ]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      const connectionHealth = analyzeSystemHealth();
-
-      storeInLocalStorage('connection_status', {
-        connectionStatus,
-        isConnectionLost,
-        userLogin,
-        showTimeoutModal,
-        origin,
-        lastConnectionCheck: Date.now(),
-        networkStatus: navigator.onLine,
-        socketState: getWebSocketStatus().readyState,
-        systemHealth: connectionHealth,
-        networkHealth: connectionHealth.networkQuality,
-        errorCount,
-        successCount,
-        lastError,
-        signalStrength: connectionHealth.signalStrength,
-        uaRegistered: isUARegistered(),
-      });
-    }, 5000);
-
-    return () => clearTimeout(timeoutId);
-  }, [
-    connectionStatus,
-    isConnectionLost,
-    userLogin,
-    showTimeoutModal,
-    origin,
-    errorCount,
-    successCount,
-    lastError,
-    session,
     isUARegistered,
-    getWebSocketStatus,
-    storeInLocalStorage,
-    analyzeSystemHealth,
-  ]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      const systemHealth = analyzeSystemHealth();
-
-      storeInLocalStorage('monitoring_data', {
-        timeoutArray,
-        messageDifference,
-        systemEvents: systemEvents.slice(-50),
-        performanceMetrics: {
-          lastKeepAlive:
-            messageDifference.length > 0 ? messageDifference[messageDifference.length - 1]?.messageTime : null,
-          timeoutCount: timeoutArray.length,
-          averageResponseTime: calculateAverageResponseTime(),
-          connectionUptime: calculateConnectionUptime(),
-          systemHealth: systemHealth.overallHealth,
-          errorRate: systemEvents.length > 0 ? (errorCount / systemEvents.length) * 100 : 0,
-          successRate: systemEvents.length > 0 ? (successCount / systemEvents.length) * 100 : 0,
-        },
-        networkInfo: {
-          effectiveType: navigator.connection?.effectiveType || 'unknown',
-          downlink: navigator.connection?.downlink || null,
-          rtt: navigator.connection?.rtt || null,
-          online: navigator.onLine,
-          quality: systemHealth.networkQuality,
-          signalStrength: systemHealth.signalStrength,
-        },
-        systemAnalysis: systemHealth,
-      });
-    }, 10000);
-
-    return () => clearTimeout(timeoutId);
-  }, [
-    timeoutArray.length,
-    messageDifference.length,
-    systemEvents.length,
-    errorCount,
-    successCount,
-    storeInLocalStorage,
-    analyzeSystemHealth,
-    calculateAverageResponseTime,
     calculateConnectionUptime,
+    calculateAverageResponseTime,
+    analyzeSystemHealth,
   ]);
 
+  // ── Periodic flush (every 3 seconds) ─────────────────────────────────
   useEffect(() => {
-    const handleOnline = () => {
-      logSystemEvent('success', 'network', 'Internet connection restored', {
-        downlink: navigator.connection?.downlink || 'unknown',
-        rtt: navigator.connection?.rtt || 'unknown',
-      });
-    };
+    const id = setInterval(flushToStorage, 3000);
+    return () => clearInterval(id);
+  }, [flushToStorage]);
 
-    const handleOffline = () => {
-      logSystemEvent('error', 'network', 'Internet connection lost', {
-        lastOnline: new Date().toISOString(),
-      });
-    };
+  // ── Flush immediately whenever key state changes ──────────────────────
+  useEffect(() => {
+    flushToStorage();
+  }, [ua, timeoutArray, messageDifference, flushToStorage]);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [logSystemEvent]);
-
+  // ── Track UA events directly to set connectedAt and log events ────────
   useEffect(() => {
     if (!ua) return;
 
-    const handleRegisteredEvent = () => {
-      logSystemEvent('success', 'sip', 'SIP registration successful via ua.on event', {
-        timestamp: new Date().toISOString(),
-      });
+    const onConnected = () => {
+      connectedAtRef.current = Date.now();
+      setSuccessCount((n) => n + 1);
+      logSystemEvent('success', 'WebSocket', 'WebSocket connected to server');
+      flushToStorage();
     };
 
-    const handleRegistrationFailedEvent = () => {
-      logSystemEvent('error', 'sip', 'SIP registration failed via ua.on event', {
-        timestamp: new Date().toISOString(),
-      });
+    const onDisconnected = () => {
+      setErrorCount((n) => n + 1);
+      logSystemEvent('error', 'WebSocket', 'WebSocket disconnected from server');
+      flushToStorage();
     };
 
-    const handleStoppedEvent = () => {
-      logSystemEvent('error', 'websocket', 'UA stopped via ua.on event', {
-        timestamp: new Date().toISOString(),
-      });
+    const onRegistered = () => {
+      setSuccessCount((n) => n + 1);
+      logSystemEvent('success', 'SIP Registration', 'UA registered successfully');
+      flushToStorage();
     };
 
-    const handleDisconnectedEvent = () => {
-      logSystemEvent('error', 'websocket', 'UA disconnected via ua.on event', {
-        timestamp: new Date().toISOString(),
-      });
+    const onUnregistered = () => {
+      logSystemEvent('info', 'SIP Registration', 'UA unregistered');
+      flushToStorage();
     };
 
-    const handleNewMessageEvent = () => {
-      logSystemEvent('success', 'keep_alive', 'Keep-alive message received via ua.on event', {
-        timestamp: new Date().toISOString(),
-      });
+    const onRegistrationFailed = (e) => {
+      setErrorCount((n) => n + 1);
+      logSystemEvent('error', 'SIP Registration', `Registration failed: ${e?.cause ?? 'unknown'}`);
+      flushToStorage();
     };
 
-    ua.on('registered', handleRegisteredEvent);
-    ua.on('registrationFailed', handleRegistrationFailedEvent);
-    ua.on('stopped', handleStoppedEvent);
-    ua.on('disconnected', handleDisconnectedEvent);
-    ua.on('newMessage', handleNewMessageEvent);
+    const onNewMessage = () => {
+      flushToStorage();
+    };
+
+    ua.on('connected', onConnected);
+    ua.on('disconnected', onDisconnected);
+    ua.on('registered', onRegistered);
+    ua.on('unregistered', onUnregistered);
+    ua.on('registrationFailed', onRegistrationFailed);
+    ua.on('newMessage', onNewMessage);
+
+    // Also track transport-level WebSocket events
+    if (ua.transport) {
+      try {
+        ua.transport.on('connected', onConnected);
+        ua.transport.on('disconnected', onDisconnected);
+      } catch {
+        // JsSIP transport may not support .on() in all versions
+      }
+    }
 
     return () => {
-      if (ua) {
-        ua.off('registered', handleRegisteredEvent);
-        ua.off('registrationFailed', handleRegistrationFailedEvent);
-        ua.off('stopped', handleStoppedEvent);
-        ua.off('disconnected', handleDisconnectedEvent);
-        ua.off('newMessage', handleNewMessageEvent);
+      try {
+        ua.off('connected', onConnected);
+        ua.off('disconnected', onDisconnected);
+        ua.off('registered', onRegistered);
+        ua.off('unregistered', onUnregistered);
+        ua.off('registrationFailed', onRegistrationFailed);
+        ua.off('newMessage', onNewMessage);
+      } catch {
+        // ignore cleanup errors on unmount
       }
     };
-  }, [ua, logSystemEvent]);
+  }, [ua, flushToStorage, logSystemEvent, setSuccessCount, setErrorCount]);
 
+  // ── Network Information API — flush on change ─────────────────────────
   useEffect(() => {
-    if (timeoutArray.length > 0) {
-      const latestTimeout = timeoutArray[timeoutArray.length - 1];
-      logSystemEvent('warning', 'timeout', `Timeout event detected: ${latestTimeout.type}`, {
-        timeoutType: latestTimeout.type,
-        totalTimeouts: timeoutArray.length,
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }, [timeoutArray.length, logSystemEvent]);
+    const conn = navigator.connection;
+    if (!conn) return;
+    const onChange = () => flushToStorage();
+    conn.addEventListener('change', onChange);
+    return () => conn.removeEventListener('change', onChange);
+  }, [flushToStorage]);
 
+  // ── online / offline events ───────────────────────────────────────────
   useEffect(() => {
-    if (!ua?.transport?.socket) return;
-
-    const checkWebSocketState = () => {
-      const socket = ua.transport.socket;
-      const currentState = socket.readyState;
-      const prevState = socket._prevReadyState;
-
-      if (prevState !== currentState) {
-        socket._prevReadyState = currentState;
-
-        let stateText = 'UNKNOWN';
-        let eventType = 'info';
-
-        switch (currentState) {
-          case 0:
-            stateText = 'CONNECTING';
-            eventType = 'info';
-            break;
-          case 1:
-            stateText = 'OPEN';
-            eventType = 'success';
-            break;
-          case 2:
-            stateText = 'CLOSING';
-            eventType = 'warning';
-            break;
-          case 3:
-            stateText = 'CLOSED';
-            eventType = 'error';
-            break;
-        }
-
-        logSystemEvent(eventType, 'websocket', `WebSocket state changed to ${stateText}`, {
-          readyState: currentState,
-          previousState: prevState,
-          timestamp: new Date().toISOString(),
-        });
-      }
+    const onOnline = () => {
+      logSystemEvent('success', 'Network', 'Browser came online');
+      flushToStorage();
     };
-
-    const interval = setInterval(checkWebSocketState, 10000);
-    return () => clearInterval(interval);
-  }, [ua?.transport?.socket, logSystemEvent]);
-
-  useEffect(() => {
-    const checkSystemReadiness = () => {
-      const wsStatus = getWebSocketStatus();
-      const registered = isUARegistered();
-      const isNetworkOnline = navigator.onLine;
-
-      const hasRecentKeepAlive =
-        messageDifference.length > 0
-          ? Date.now() - messageDifference[messageDifference.length - 1].messageTime < 15000
-          : true;
-
-      const systemReady = wsStatus.connected && registered && isNetworkOnline;
-
-      if (!ua) {
-        logSystemEvent('info', 'system', 'Waiting for UA initialization', { connectionStatus });
-      } else if (!registered) {
-        logSystemEvent('info', 'system', 'UA initialized, waiting for SIP registration', {
-          hasUA: !!ua,
-          uaState: ua._state,
-          hasSocket: !!ua?.transport?.socket,
-          connectionStatus,
-        });
-      } else if (systemReady) {
-        logSystemEvent('success', 'system', 'System fully operational', { allSystemsGo: true });
-      }
+    const onOffline = () => {
+      logSystemEvent('error', 'Network', 'Browser went offline');
+      flushToStorage();
     };
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, [flushToStorage, logSystemEvent]);
 
-    const readinessInterval = setInterval(checkSystemReadiness, 60000);
-    return () => clearInterval(readinessInterval);
-  }, [ua, ua?._state, messageDifference.length, connectionStatus, isUARegistered, getWebSocketStatus, logSystemEvent]);
-
+  // ── Initial flush on mount ────────────────────────────────────────────
   useEffect(() => {
-    const logInterval = setInterval(() => {
-      const wsStatus = getWebSocketStatus();
-      const registered = isUARegistered();
-      const hasRecentKeepAlive =
-        messageDifference.length > 0 &&
-        Date.now() - messageDifference[messageDifference.length - 1]?.messageTime < 30000;
-
-      let wsStateText = 'Not Connected';
-      let wsStateIcon = '❌';
-
-      if (!ua) {
-        wsStateText = 'UA Not Initialized';
-        wsStateIcon = '⏸️';
-      } else if (!ua?.transport?.socket && !wsStatus.connected) {
-        wsStateText = 'No Socket';
-        wsStateIcon = '❌';
-      } else if (!registered) {
-        wsStateText = 'Socket Ready, Not Registered';
-        wsStateIcon = '🔄';
-      } else if (registered && hasRecentKeepAlive) {
-        wsStateText = 'CONNECTED & ACTIVE (inferred)';
-        wsStateIcon = '✅';
-      } else if (wsStatus.connected) {
-        wsStateText = 'OPEN & REGISTERED';
-        wsStateIcon = '✅';
-      } else if (registered) {
-        wsStateText = 'REGISTERED (socket status unclear)';
-        wsStateIcon = '⚠️';
-      } else {
-        switch (wsStatus.readyState) {
-          case 0:
-            wsStateText = 'CONNECTING';
-            wsStateIcon = '🔄';
-            break;
-          case 2:
-            wsStateText = 'CLOSING';
-            wsStateIcon = '⚠️';
-            break;
-          case 3:
-            wsStateText = 'CLOSED';
-            wsStateIcon = '❌';
-            break;
-          default:
-            wsStateText = `UNKNOWN(${wsStatus.readyState})`;
-            wsStateIcon = '❓';
-        }
-      }
-
-      let sipStateText = 'NOT_INITIALIZED';
-      let sipStateIcon = '⏸️';
-
-      if (!ua) {
-        sipStateText = 'UA Not Initialized';
-        sipStateIcon = '⏸️';
-      } else if (registered) {
-        sipStateText = 'REGISTERED & ACTIVE';
-        sipStateIcon = '✅';
-      } else if (ua && ua._state) {
-        sipStateText = `UA READY (${ua._state})`;
-        sipStateIcon = '🔄';
-      }
-
-      let connectionIcon = '❓';
-      switch (connectionStatus) {
-        case 'CONNECTED':
-          connectionIcon = '🟢';
-          break;
-        case 'CONNECTING':
-          connectionIcon = '🔄';
-          break;
-        case 'NOT_INUSE':
-          connectionIcon = '⚪';
-          break;
-        case 'INUSE':
-          connectionIcon = '🟡';
-          break;
-        case 'Disposition':
-          connectionIcon = '📞';
-          break;
-        default:
-          connectionIcon = '❓';
-      }
-
-      const currentHealth = analyzeSystemHealth();
-      let healthIcon = '💚';
-      if (currentHealth.overallHealth < 30) healthIcon = '❤️';
-      else if (currentHealth.overallHealth < 60) healthIcon = '💛';
-      else if (currentHealth.overallHealth < 80) healthIcon = '🧡';
-
-      if (messageDifference.length > 0) {
-        const lastMessage = messageDifference[messageDifference.length - 1];
-        const timeSinceLastMessage = Date.now() - lastMessage.messageTime;
-      }
-    }, 30000);
-
-    return () => clearInterval(logInterval);
-  }, [
-    ua,
-    ua?._state,
-    connectionStatus,
-    timeoutArray.length,
-    messageDifference,
-    successCount,
-    errorCount,
-    isUARegistered,
-    getWebSocketStatus,
-    analyzeSystemHealth,
-  ]);
+    flushToStorage();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     calculateAverageResponseTime,
