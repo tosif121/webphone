@@ -1,4 +1,8 @@
-import SystemFailureMonitor from '@/components/SystemFailureMonitor';
+import dynamic from 'next/dynamic';
+
+const SystemFailureMonitor = dynamic(() => import('@/components/SystemFailureMonitor'), {
+  ssr: false,
+});
 
 export default function SystemFailureMonitorPage() {
   return (

@@ -55,7 +55,7 @@ const MAX_LATENCY_TROUBLESHOOT = 100;
 const PING_INTERVAL_MS = 5000;
 const HIGH_LATENCY_MS = 250;
 const KEEP_ALIVE_STALE_MS = 14000;
-const PING_URL = `${window.location.origin}/`;
+const getPingUrl = () => (typeof window !== 'undefined' ? `${window.location.origin}/` : 'https://esamwad.iotcom.io/');
 const BROADCAST_CHANNEL = 'jssip-sync';
 
 // ── Default shapes ───────────────────────────────────────────────────────────
@@ -343,7 +343,7 @@ const SystemFailureMonitors = () => {
       const maxPts = troubleshootingMode ? MAX_LATENCY_TROUBLESHOOT : MAX_LATENCY_DEFAULT;
       try {
         const start = performance.now();
-        await fetch(`${PING_URL}?_cb=${Math.random().toString(36).slice(2)}`, {
+        await fetch(`${getPingUrl()}?_cb=${Math.random().toString(36).slice(2)}`, {
           method: 'HEAD',
           cache: 'no-store',
           mode: 'no-cors',
