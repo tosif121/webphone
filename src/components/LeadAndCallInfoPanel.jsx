@@ -60,7 +60,7 @@ export default function LeadAndCallInfoPanel({
             throw new Error('No saved credentials found');
           }
 
-          const refreshRes = await axios.post('${window.location.origin}/api/applogin', {
+          const refreshRes = await axios.post('https://esamwad.iotcom.io/api/applogin', {
             username: savedUsername,
             password: savedPassword,
           });
@@ -130,7 +130,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`,
+          `https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`,
           token,
           refreshToken,
         );
@@ -229,7 +229,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `${window.location.origin}/getDynamicFormData/${formId}`,
+          `https://esamwad.iotcom.io/getDynamicFormData/${formId}`,
           token,
           refreshToken,
         );
@@ -264,7 +264,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/leadswithdaterange`,
+        `https://esamwad.iotcom.io/leadswithdaterange`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -297,7 +297,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/callDataByAgent`,
+        `https://esamwad.iotcom.io/callDataByAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -446,7 +446,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -511,7 +511,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -975,12 +975,47 @@ export default function LeadAndCallInfoPanel({
                         </div>
                       )}
 
-                      {historyItem.Disposition && (
-                        <div className="flex items-center gap-2">
-                          <Info size={16} className="text-muted-foreground" />
-                          <span className="text-sm">{historyItem.Disposition}</span>
-                        </div>
-                      )}
+                      {/* Tagging Details */}
+                      <div className="mt-2 pt-2 border-t border-border/50 space-y-1.5">
+                        {historyItem.Disposition && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Disposition:</span>
+                            <Badge variant="outline" className="text-xs font-medium">
+                              {historyItem.Disposition}
+                            </Badge>
+                          </div>
+                        )}
+                        {historyItem.hangupcause && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Hangup Cause:</span>
+                            <span className="text-xs font-medium">{historyItem.hangupcause}</span>
+                          </div>
+                        )}
+                        {historyItem.hanguptime && historyItem.startTime && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Duration:</span>
+                            <span className="text-xs font-medium">
+                              {moment.utc(historyItem.hanguptime - historyItem.startTime).format('HH:mm:ss')}
+                            </span>
+                          </div>
+                        )}
+                        {historyItem.anstime && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Answer Time:</span>
+                            <span className="text-xs font-medium">
+                              {typeof historyItem.anstime === 'number'
+                                ? moment(historyItem.anstime).format('hh:mm:ss A')
+                                : historyItem.anstime}
+                            </span>
+                          </div>
+                        )}
+                        {historyItem.campaign && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Campaign:</span>
+                            <span className="text-xs font-medium capitalize">{historyItem.campaign}</span>
+                          </div>
+                        )}
+                      </div>
                     </>
                   )}
                 </div>

@@ -283,7 +283,7 @@ export default function LeadCallsTable({
         },
       },
     ],
-    [handleCall]
+    [handleCall],
   );
 
   const apiInfoColumns = useMemo(() => {
@@ -350,6 +350,19 @@ export default function LeadCallsTable({
           );
         },
       },
+      {
+        accessorKey: 'Disposition',
+        header: 'Disposition',
+        cell: ({ row }) => {
+          const disposition = row.original.Disposition;
+          if (!disposition) return <span className="text-muted-foreground text-xs">-</span>;
+          return (
+            <Badge variant="outline" className="text-xs font-medium">
+              {disposition}
+            </Badge>
+          );
+        },
+      },
     ];
   }, [handleCall]);
 
@@ -401,7 +414,7 @@ export default function LeadCallsTable({
           { label: 'City', value: selectedRow.city || '-', key: 'city' },
           { label: 'State', value: selectedRow.state || '-', key: 'state' },
           { label: 'Postal Code', value: selectedRow.postalCode || '-', key: 'postalCode' },
-          { label: 'Country', value: selectedRow.country || '-', key: 'country' }
+          { label: 'Country', value: selectedRow.country || '-', key: 'country' },
         );
       }
 
@@ -643,12 +656,48 @@ export default function LeadCallsTable({
                           <span className="text-sm font-mono">{String(historyItem.Caller).replace(/^\+91/, '')}</span>
                         </div>
                       )}
-                      {historyItem.Disposition && (
-                        <div className="flex items-center gap-2">
-                          <Info size={16} className="text-muted-foreground" />
-                          <span className="text-sm">{historyItem.Disposition}</span>
-                        </div>
-                      )}
+
+                      {/* Tagging Details */}
+                      <div className="mt-2 pt-2 border-t border-border/50 space-y-1.5">
+                        {historyItem.Disposition && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Disposition:</span>
+                            <Badge variant="outline" className="text-xs font-medium">
+                              {historyItem.Disposition}
+                            </Badge>
+                          </div>
+                        )}
+                        {historyItem.hangupcause && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Hangup Cause:</span>
+                            <span className="text-xs font-medium">{historyItem.hangupcause}</span>
+                          </div>
+                        )}
+                        {historyItem.hanguptime && historyItem.startTime && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Duration:</span>
+                            <span className="text-xs font-medium">
+                              {moment.utc(historyItem.hanguptime - historyItem.startTime).format('HH:mm:ss')}
+                            </span>
+                          </div>
+                        )}
+                        {historyItem.anstime && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Answer Time:</span>
+                            <span className="text-xs font-medium">
+                              {typeof historyItem.anstime === 'number'
+                                ? moment(historyItem.anstime).format('hh:mm:ss A')
+                                : historyItem.anstime}
+                            </span>
+                          </div>
+                        )}
+                        {historyItem.campaign && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Campaign:</span>
+                            <span className="text-xs font-medium capitalize">{historyItem.campaign}</span>
+                          </div>
+                        )}
+                      </div>
                     </>
                   )}
                 </div>
@@ -664,8 +713,8 @@ export default function LeadCallsTable({
     <div className="flex flex-col lg:flex-row transition-all duration-300 ease-in-out gap-4 lg:gap-0">
       <Card
         className={`transition-all duration-300 ease-in-out ${
-          expand 
-            ? 'lg:w-1/3 w-full h-max opacity-100 translate-x-0 block' 
+          expand
+            ? 'lg:w-1/3 w-full h-max opacity-100 translate-x-0 block'
             : 'w-0 h-0 opacity-0 lg:-translate-x-full overflow-hidden hidden lg:block'
         }`}
       >
@@ -724,7 +773,9 @@ export default function LeadCallsTable({
         </CardContent>
       </Card>
 
-      <Card className={`transition-all duration-500 ease-in-out h-max ${expand ? 'lg:w-2/3 w-full lg:ms-5' : 'w-full'}`}>
+      <Card
+        className={`transition-all duration-500 ease-in-out h-max ${expand ? 'lg:w-2/3 w-full lg:ms-5' : 'w-full'}`}
+      >
         <CardContent>
           <Tabs
             value={activeMainTab}

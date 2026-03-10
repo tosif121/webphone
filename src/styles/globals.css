@@ -234,6 +234,8 @@ select:-webkit-autofill:focus {
   margin-right: 10px !important;
 }
 
+.dark .react-datepicker-time__header,
+.dark .react-datepicker__time-list-item,
 .dark .react-datepicker__header,
 .dark .react-datepicker__current-month,
 .dark .react-datepicker__day-name {
@@ -241,16 +243,15 @@ select:-webkit-autofill:focus {
   background-color: #333 !important;
 }
 
-
 .dark .react-datepicker__day-name,
 .dark .react-datepicker__day,
 .dark .react-datepicker__time-name {
   color: #fff;
 }
-.dark .react-datepicker__day:not([aria-disabled="true"]):hover,
-.dark .react-datepicker__month-text:not([aria-disabled="true"]):hover,
-.dark .react-datepicker__quarter-text:not([aria-disabled="true"]):hover,
-.dark .react-datepicker__year-text:not([aria-disabled="true"]):hover {
+.dark .react-datepicker__day:not([aria-disabled='true']):hover,
+.dark .react-datepicker__month-text:not([aria-disabled='true']):hover,
+.dark .react-datepicker__quarter-text:not([aria-disabled='true']):hover,
+.dark .react-datepicker__year-text:not([aria-disabled='true']):hover {
   background-color: #000;
   color: #fff;
 }
