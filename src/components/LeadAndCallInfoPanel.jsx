@@ -2,13 +2,26 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import moment from 'moment';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { User, Info, Phone, History, UserCog, Clock } from 'lucide-react';
+import {
+  User,
+  Info,
+  Phone,
+  History,
+  UserCog,
+  Clock,
+  PhoneCall,
+  PhoneIncoming,
+  PhoneOutgoing,
+  Timer,
+  Tag,
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Button } from './ui/button';
 import { AlertDialog, AlertDialogContent } from './ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import DynamicForm from './DynamicForm';
 import UserCall from './UserCall';
 import DateRangePicker from './DateRangePicker';
@@ -39,6 +52,9 @@ export default function LeadAndCallInfoPanel({
   const [loading, setLoading] = useState(false);
   const [formConfig, setFormConfig] = useState(null);
   const [formId, setFormId] = useState(null);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
+  const [conversationDetails, setConversationDetails] = useState([]);
+  const [loadingConversation, setLoadingConversation] = useState(false);
 
   const fetchWithTokenRetry = async (url, token, refreshToken, config = {}) => {
     // Use token if available, otherwise use refreshToken
@@ -60,7 +76,7 @@ export default function LeadAndCallInfoPanel({
             throw new Error('No saved credentials found');
           }
 
-          const refreshRes = await axios.post('https://esamwad.iotcom.io/api/applogin', {
+          const refreshRes = await axios.post('${window.location.origin}/api/applogin', {
             username: savedUsername,
             password: savedPassword,
           });
@@ -130,7 +146,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`,
+          `${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`,
           token,
           refreshToken,
         );
@@ -229,7 +245,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `https://esamwad.iotcom.io/getDynamicFormData/${formId}`,
+          `${window.location.origin}/getDynamicFormData/${formId}`,
           token,
           refreshToken,
         );
@@ -264,7 +280,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/leadswithdaterange`,
+        `${window.location.origin}/leadswithdaterange`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -297,7 +313,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/callDataByAgent`,
+        `${window.location.origin}/callDataByAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -446,7 +462,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -511,7 +527,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -807,6 +823,53 @@ export default function LeadAndCallInfoPanel({
     );
   };
 
+  // Fetch conversations for a contact number from the API
+  const handleHistoryCardClick = async (historyItem) => {
+    setSelectedHistoryItem(historyItem);
+    setConversationDetails([]);
+    setLoadingConversation(true);
+
+    const contactNumber = String(
+      historyItem.Caller || historyItem.dialNumber || historyItem.phone || historyItem.contactNumber || '',
+    ).replace(/^\+91/, '');
+
+    if (!contactNumber) {
+      setLoadingConversation(false);
+      return;
+    }
+
+    try {
+      const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
+      const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
+
+      const response = await axios.get(`${window.location.origin}/fetchConversationsAgent`, {
+        params: { startDate: formattedStartDate, endDate: formattedEndDate, agentName: username },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.data?.success && response.data.result) {
+        console.log('--- FETCH CONVERSATIONS DEBUG ---');
+        console.log('Target Contact Number:', contactNumber);
+        console.log('Raw API Response Data:', response.data.result);
+
+        // We assume the API returns conversations ONLY for this user/agent
+        // We will just display all results the backend returns for this timeframe.
+        const matched = [...response.data.result];
+
+        console.log('Displaying all returned Conversations:', matched);
+        console.log('---------------------------------');
+
+        // Sort by createdAt descending (most recent first)
+        matched.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        setConversationDetails(matched);
+      }
+    } catch (err) {
+      console.error('Error fetching conversations:', err);
+    } finally {
+      setLoadingConversation(false);
+    }
+  };
+
   // Render history tab
   const renderHistoryTab = () => {
     const normalizedContactNumber = String(userCall?.contactNumber || '').replace(/^\+91/, '');
@@ -894,136 +957,204 @@ export default function LeadAndCallInfoPanel({
     }
 
     return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <History size={16} className="text-muted-foreground" />
-          <span className="text-sm font-medium">Call History ({uniqueHistory.length})</span>
-        </div>
+      <>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+            <History size={16} className="text-muted-foreground" />
+            <span className="text-sm font-medium">Call History ({uniqueHistory.length})</span>
+          </div>
 
-        <div className="space-y-3 max-h-[32rem] overflow-y-auto">
-          {uniqueHistory.map((historyItem, index) => (
-            <Card key={index} className="border-l-4 border-l-primary/30">
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  {historyItem._isLeadHistory ? (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <User size={16} className="text-muted-foreground" />
-                          <span className="font-medium">{historyItem.name || '-'}</span>
+          <div className="space-y-3 max-h-[32rem] overflow-y-auto">
+            {uniqueHistory.map((historyItem, index) => (
+              <Card
+                key={index}
+                className="border-l-4 border-l-primary/30 cursor-pointer hover:shadow-md hover:border-l-primary/60 transition-all duration-200"
+                onClick={() => handleHistoryCardClick(historyItem)}
+              >
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    {historyItem._isLeadHistory ? (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <User size={16} className="text-muted-foreground" />
+                            <span className="font-medium">{historyItem.name || '-'}</span>
+                          </div>
+                          <Badge
+                            variant={historyItem.status === 'Complete' ? 'default' : 'secondary'}
+                            className={
+                              historyItem.status === 'Complete'
+                                ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                            }
+                          >
+                            {historyItem.status}
+                          </Badge>
                         </div>
-                        <Badge
-                          variant={historyItem.status === 'Complete' ? 'default' : 'secondary'}
-                          className={
-                            historyItem.status === 'Complete'
-                              ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                              : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                          }
-                        >
-                          {historyItem.status}
-                        </Badge>
-                      </div>
 
-                      <div className="flex items-center gap-2">
-                        <Clock size={16} className="text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">
-                          {historyItem.uploadDate ? moment(historyItem.uploadDate).format('DD MMM YYYY, hh:mm A') : '-'}
-                        </span>
-                      </div>
-
-                      {historyItem.phone && (
                         <div className="flex items-center gap-2">
-                          <Phone size={16} className="text-muted-foreground" />
-                          <span className="text-sm font-mono">{historyItem.phone}</span>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <User size={16} className="text-muted-foreground" />
-                          <span className="font-medium">{historyItem.agent || '-'}</span>
-                        </div>
-                        <Badge
-                          variant={historyItem.Type?.toLowerCase() === 'incoming' ? 'default' : 'secondary'}
-                          className={
-                            historyItem.Type?.toLowerCase() === 'incoming'
-                              ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                              : 'bg-purple-100 text-purple-800 hover:bg-purple-200'
-                          }
-                        >
-                          {(historyItem.Type === 'incoming' && 'Incoming') || 'Outgoing'}
-                        </Badge>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Clock size={16} className="text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">
-                          {historyItem.startTime
-                            ? moment(historyItem.startTime).format('DD MMM YYYY, hh:mm:ss A')
-                            : '-'}
-                        </span>
-                      </div>
-
-                      {(historyItem.Caller || historyItem.dialNumber) && (
-                        <div className="flex items-center gap-2">
-                          <Phone size={16} className="text-muted-foreground" />
-                          <span className="text-sm font-mono">
-                            {String(historyItem.Caller || historyItem.dialNumber).replace(/^\+91/, '')}
+                          <Clock size={16} className="text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            {historyItem.uploadDate
+                              ? moment(historyItem.uploadDate).format('DD MMM YYYY, hh:mm A')
+                              : '-'}
                           </span>
                         </div>
-                      )}
 
-                      {/* Tagging Details */}
-                      <div className="mt-2 pt-2 border-t border-border/50 space-y-1.5">
-                        {historyItem.Disposition && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Disposition:</span>
-                            <Badge variant="outline" className="text-xs font-medium">
-                              {historyItem.Disposition}
-                            </Badge>
+                        {historyItem.phone && (
+                          <div className="flex items-center gap-2">
+                            <Phone size={16} className="text-muted-foreground" />
+                            <span className="text-sm font-mono">{historyItem.phone}</span>
                           </div>
                         )}
-                        {historyItem.hangupcause && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Hangup Cause:</span>
-                            <span className="text-xs font-medium">{historyItem.hangupcause}</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <User size={16} className="text-muted-foreground" />
+                            <span className="font-medium">{historyItem.agent || '-'}</span>
                           </div>
-                        )}
-                        {historyItem.hanguptime && historyItem.startTime && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Duration:</span>
-                            <span className="text-xs font-medium">
-                              {moment.utc(historyItem.hanguptime - historyItem.startTime).format('HH:mm:ss')}
+                          <Badge
+                            variant={historyItem.Type?.toLowerCase() === 'incoming' ? 'default' : 'secondary'}
+                            className={
+                              historyItem.Type?.toLowerCase() === 'incoming'
+                                ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                                : 'bg-purple-100 text-purple-800 hover:bg-purple-200'
+                            }
+                          >
+                            {(historyItem.Type === 'incoming' && 'Incoming') || 'Outgoing'}
+                          </Badge>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Clock size={16} className="text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            {historyItem.startTime
+                              ? moment(historyItem.startTime).format('DD MMM YYYY, hh:mm:ss A')
+                              : '-'}
+                          </span>
+                        </div>
+
+                        {(historyItem.Caller || historyItem.dialNumber) && (
+                          <div className="flex items-center gap-2">
+                            <Phone size={16} className="text-muted-foreground" />
+                            <span className="text-sm font-mono">
+                              {String(historyItem.Caller || historyItem.dialNumber).replace(/^\+91/, '')}
                             </span>
                           </div>
                         )}
-                        {historyItem.anstime && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Answer Time:</span>
-                            <span className="text-xs font-medium">
-                              {typeof historyItem.anstime === 'number'
-                                ? moment(historyItem.anstime).format('hh:mm:ss A')
-                                : historyItem.anstime}
-                            </span>
-                          </div>
-                        )}
-                        {historyItem.campaign && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Campaign:</span>
-                            <span className="text-xs font-medium capitalize">{historyItem.campaign}</span>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
-      </div>
+
+        {/* Conversations Detail Dialog */}
+        <Dialog
+          open={!!selectedHistoryItem}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedHistoryItem(null);
+              setConversationDetails([]);
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Info size={18} />
+                Conversation Details
+              </DialogTitle>
+            </DialogHeader>
+            {loadingConversation ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading conversations...</span>
+              </div>
+            ) : conversationDetails.length > 0 ? (
+              <div className="space-y-4">
+                {conversationDetails.map((conv, idx) => {
+                  const skipKeys = new Set([
+                    '_id',
+                    'id',
+                    '__v',
+                    'formId',
+                    'formID',
+                    'userId',
+                    'adminuser',
+                    'isDeleted',
+                    'isFresh',
+                  ]);
+
+                  const formatLabel = (key) => {
+                    return key
+                      .replace(/([A-Z])/g, ' $1')
+                      .replace(/_/g, ' ')
+                      .replace(/^./, (s) => s.toUpperCase())
+                      .trim();
+                  };
+
+                  const formatValue = (key, value) => {
+                    if (value === null || value === undefined || value === '') return null;
+                    const k = key.toLowerCase();
+                    if (k === 'createdat' || k.includes('date') || k.includes('time')) {
+                      const m = moment(value);
+                      if (m.isValid()) return m.format('DD MMM YYYY, hh:mm:ss A');
+                    }
+                    if (typeof value === 'object') return JSON.stringify(value);
+                    return String(value);
+                  };
+
+                  const entries = Object.entries(conv)
+                    .filter(([key, value]) => {
+                      if (skipKeys.has(key)) return false;
+                      if (key.startsWith('_')) return false;
+                      if (value === null || value === undefined || value === '') return false;
+                      if (typeof value === 'object') return false;
+                      return true;
+                    })
+                    .map(([key, value]) => ({
+                      key,
+                      label: formatLabel(key),
+                      value: formatValue(key, value),
+                    }))
+                    .filter((entry) => entry.value !== null);
+
+                  return (
+                    <div key={conv._id || idx}>
+                      {conversationDetails.length > 1 && (
+                        <div className="text-xs font-semibold text-muted-foreground mb-2 bg-muted/50 px-2 py-1 rounded">
+                          Conversation {idx + 1}
+                        </div>
+                      )}
+                      <div className="space-y-0">
+                        {entries.map((entry) => (
+                          <div
+                            key={entry.key}
+                            className="flex items-start justify-between py-2 border-b border-border/30 last:border-0"
+                          >
+                            <span className="text-sm text-muted-foreground min-w-[120px] shrink-0">{entry.label}</span>
+                            <span className="text-sm font-medium text-right break-all max-w-[60%]">{entry.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {idx < conversationDetails.length - 1 && <Separator className="my-3" />}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No conversation data found for this contact.
+              </p>
+            )}
+          </DialogContent>
+        </Dialog>
+      </>
     );
   };
 

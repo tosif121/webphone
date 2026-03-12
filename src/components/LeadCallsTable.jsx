@@ -8,6 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import DateRangePicker from './DateRangePicker';
+import axios from 'axios';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/dialog';
 
 const mapLeadData = (rawData) => {
   if (!Array.isArray(rawData)) rawData = [rawData];
@@ -96,6 +104,8 @@ export default function LeadCallsTable({
   apiCallData,
   activeMainTab,
   setActiveMainTab,
+  username,
+  token,
 }) {
   const [filter, setFilter] = useState('All');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -104,6 +114,9 @@ export default function LeadCallsTable({
   const [activeSidebarTab, setActiveSidebarTab] = useState('details');
   const dropdownRef = useRef(null);
   const [callTypeFilter, setCallTypeFilter] = useState('All');
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
+  const [conversationDetails, setConversationDetails] = useState([]);
+  const [loadingConversation, setLoadingConversation] = useState(false);
 
   useEffect(() => {
     const handler = (e) => {
@@ -577,6 +590,51 @@ export default function LeadCallsTable({
 
     const isLeadDataHistory = 'lastDialedStatus' in selectedRow.history[0];
 
+    const handleHistoryCardClick = async (historyItem) => {
+      setSelectedHistoryItem(historyItem);
+      setConversationDetails([]);
+      setLoadingConversation(true);
+
+      const contactNumber = String(
+        historyItem.phone_number || historyItem.phone || historyItem.Caller || historyItem.dialNumber || historyItem.contactNumber || ''
+      ).replace(/^\+91/, '');
+
+      if (!contactNumber) {
+        setLoadingConversation(false);
+        return;
+      }
+
+      try {
+        const tokenData = localStorage.getItem('token');
+        let tokenStr = token || null; // use prop token if available
+        if (!tokenStr && tokenData) {
+          const parsedData = JSON.parse(tokenData);
+          tokenStr = parsedData.token || parsedData.accessToken;
+        }
+
+        const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
+        const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
+
+        const response = await axios.get(
+          `${window.location.origin}/fetchConversationsAgent`,
+          {
+            params: { startDate: formattedStartDate, endDate: formattedEndDate, agentName: username },
+            headers: { Authorization: `Bearer ${tokenStr}` },
+          }
+        );
+
+        if (response.data?.success && response.data.result) {
+          const matched = [...response.data.result];
+          matched.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          setConversationDetails(matched);
+        }
+      } catch (err) {
+        console.error('Error fetching conversations:', err);
+      } finally {
+        setLoadingConversation(false);
+      }
+    };
+
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2 mb-4">
@@ -586,7 +644,11 @@ export default function LeadCallsTable({
 
         <div className="space-y-3 max-h-[32rem] overflow-y-auto">
           {selectedRow.history.map((historyItem, index) => (
-            <Card key={index} className="border-l-4 border-l-primary/30">
+            <Card
+              key={index}
+              className="border-l-4 border-l-primary/30 cursor-pointer hover:shadow-md hover:border-l-primary/60 transition-all duration-200"
+              onClick={() => handleHistoryCardClick(historyItem)}
+            >
               <CardContent className="p-4">
                 <div className="space-y-3">
                   {isLeadDataHistory ? (
@@ -657,47 +719,7 @@ export default function LeadCallsTable({
                         </div>
                       )}
 
-                      {/* Tagging Details */}
-                      <div className="mt-2 pt-2 border-t border-border/50 space-y-1.5">
-                        {historyItem.Disposition && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Disposition:</span>
-                            <Badge variant="outline" className="text-xs font-medium">
-                              {historyItem.Disposition}
-                            </Badge>
-                          </div>
-                        )}
-                        {historyItem.hangupcause && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Hangup Cause:</span>
-                            <span className="text-xs font-medium">{historyItem.hangupcause}</span>
-                          </div>
-                        )}
-                        {historyItem.hanguptime && historyItem.startTime && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Duration:</span>
-                            <span className="text-xs font-medium">
-                              {moment.utc(historyItem.hanguptime - historyItem.startTime).format('HH:mm:ss')}
-                            </span>
-                          </div>
-                        )}
-                        {historyItem.anstime && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Answer Time:</span>
-                            <span className="text-xs font-medium">
-                              {typeof historyItem.anstime === 'number'
-                                ? moment(historyItem.anstime).format('hh:mm:ss A')
-                                : historyItem.anstime}
-                            </span>
-                          </div>
-                        )}
-                        {historyItem.campaign && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Campaign:</span>
-                            <span className="text-xs font-medium capitalize">{historyItem.campaign}</span>
-                          </div>
-                        )}
-                      </div>
+
                     </>
                   )}
                 </div>
@@ -908,6 +930,92 @@ export default function LeadCallsTable({
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Conversations Detail Dialog */}
+      <Dialog open={!!selectedHistoryItem} onOpenChange={(open) => { if (!open) { setSelectedHistoryItem(null); setConversationDetails([]); } }}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info size={18} />
+              Conversation Details
+            </DialogTitle>
+          </DialogHeader>
+          {loadingConversation ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+              <span className="ml-2 text-sm text-muted-foreground">Loading conversations...</span>
+            </div>
+          ) : conversationDetails.length > 0 ? (
+            <div className="space-y-4">
+              {conversationDetails.map((conv, idx) => {
+                const skipKeys = new Set([
+                  '_id', 'id', '__v', 'formId', 'formID', 'userId', 'adminuser',
+                  'isDeleted', 'isFresh',
+                ]);
+
+                const formatLabel = (key) => {
+                  return key
+                    .replace(/([A-Z])/g, ' $1')
+                    .replace(/_/g, ' ')
+                    .replace(/^./, (s) => s.toUpperCase())
+                    .trim();
+                };
+
+                const formatValue = (key, value) => {
+                  if (value === null || value === undefined || value === '') return null;
+                  const k = key.toLowerCase();
+                  if (k === 'createdat' || k.includes('date') || k.includes('time')) {
+                    const m = moment(value);
+                    if (m.isValid()) return m.format('DD MMM YYYY, hh:mm:ss A');
+                  }
+                  if (typeof value === 'object') return JSON.stringify(value);
+                  return String(value);
+                };
+
+                const entries = Object.entries(conv)
+                  .filter(([key, value]) => {
+                    if (skipKeys.has(key)) return false;
+                    if (key.startsWith('_')) return false;
+                    if (value === null || value === undefined || value === '') return false;
+                    if (typeof value === 'object') return false;
+                    return true;
+                  })
+                  .map(([key, value]) => ({
+                    key,
+                    label: formatLabel(key),
+                    value: formatValue(key, value),
+                  }))
+                  .filter((entry) => entry.value !== null);
+
+                return (
+                  <div key={conv._id || idx}>
+                    {conversationDetails.length > 1 && (
+                      <div className="text-xs font-semibold text-muted-foreground mb-2 bg-muted/50 px-2 py-1 rounded">
+                        Conversation {idx + 1}
+                      </div>
+                    )}
+                    <div className="space-y-0">
+                      {entries.map((entry) => (
+                        <div key={entry.key} className="flex items-start justify-between py-2 border-b border-border/30 last:border-0">
+                          <span className="text-sm text-muted-foreground min-w-[120px] shrink-0">
+                            {entry.label}
+                          </span>
+                          <span className="text-sm font-medium text-right break-all max-w-[60%]">
+                            {entry.value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {idx < conversationDetails.length - 1 && <Separator className="my-3" />}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">No conversation data found for this contact.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
