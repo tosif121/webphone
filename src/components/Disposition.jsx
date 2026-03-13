@@ -17,6 +17,26 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import moment from 'moment';
 
+const formatDate = (date) => {
+  if (!date) return '';
+  const d = new Date(date);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const formatTime = (date) => {
+  if (!date) return '';
+  const d = new Date(date);
+  let h = d.getHours();
+  const m = String(d.getMinutes()).padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  h = h ? h : 12;
+  return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+};
+
 const Disposition = ({
   bridgeID,
   setDispositionModal,
@@ -438,12 +458,15 @@ const Disposition = ({
               comment: callbackData.details,
               user: user,
               campaignID: campaignID,
+              phoneNumber: phoneNumber,
             };
           } else {
             requestBody.followUpDisposition = {
-              date: followUpDate,
-              time: followUpTime,
+              date: formatDate(followUpDate),
+              time: formatTime(followUpTime),
               comment: followUpDetails,
+              user: user,
+              campaignID: campaignID,
               phoneNumber: phoneNumber,
             };
           }

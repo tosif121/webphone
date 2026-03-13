@@ -60,7 +60,10 @@ export default function Callback({
     followUpDate.getMonth() === now.getMonth() &&
     followUpDate.getFullYear() === now.getFullYear();
 
-  const minTime = isToday ? getNextQuarterHour(now) : new Date(0, 0, 0, 0, 0, 0);
+  const d = new Date(now);
+  d.setSeconds(0);
+  d.setMilliseconds(0);
+  const minTime = isToday ? d : new Date(0, 0, 0, 0, 0, 0);
   const maxTime = new Date(0, 0, 0, 23, 59, 59);
 
   useEffect(() => {
@@ -130,15 +133,14 @@ export default function Callback({
                   onChange={setFollowUpTime}
                   showTimeSelect
                   showTimeSelectOnly
-                  timeIntervals={15}
+                  timeIntervals={1}
                   minTime={minTime}
                   maxTime={maxTime}
                   timeCaption="Time"
                   dateFormat="hh:mm aa"
                   className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   placeholderText="Select time"
-                  // onFocus={(e) => e.target.blur()}
-                  // onKeyDown={handleKeyDown}
+                  autoComplete="off"
                 />
               </div>
             </div>

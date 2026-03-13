@@ -9,13 +9,7 @@ import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import DateRangePicker from './DateRangePicker';
 import axios from 'axios';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 
 const mapLeadData = (rawData) => {
   if (!Array.isArray(rawData)) rawData = [rawData];
@@ -596,7 +590,12 @@ export default function LeadCallsTable({
       setLoadingConversation(true);
 
       const contactNumber = String(
-        historyItem.phone_number || historyItem.phone || historyItem.Caller || historyItem.dialNumber || historyItem.contactNumber || ''
+        historyItem.phone_number ||
+          historyItem.phone ||
+          historyItem.Caller ||
+          historyItem.dialNumber ||
+          historyItem.contactNumber ||
+          '',
       ).replace(/^\+91/, '');
 
       if (!contactNumber) {
@@ -615,13 +614,10 @@ export default function LeadCallsTable({
         const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
         const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
-        const response = await axios.get(
-          `${window.location.origin}/fetchConversationsAgent`,
-          {
-            params: { startDate: formattedStartDate, endDate: formattedEndDate, agentName: username },
-            headers: { Authorization: `Bearer ${tokenStr}` },
-          }
-        );
+        const response = await axios.get(`${window.location.origin}/fetchConversationsAgent`, {
+          params: { startDate: formattedStartDate, endDate: formattedEndDate, agentName: username },
+          headers: { Authorization: `Bearer ${tokenStr}` },
+        });
 
         if (response.data?.success && response.data.result) {
           const matched = [...response.data.result];
@@ -718,8 +714,6 @@ export default function LeadCallsTable({
                           <span className="text-sm font-mono">{String(historyItem.Caller).replace(/^\+91/, '')}</span>
                         </div>
                       )}
-
-
                     </>
                   )}
                 </div>
@@ -932,7 +926,15 @@ export default function LeadCallsTable({
       </Card>
 
       {/* Conversations Detail Dialog */}
-      <Dialog open={!!selectedHistoryItem} onOpenChange={(open) => { if (!open) { setSelectedHistoryItem(null); setConversationDetails([]); } }}>
+      <Dialog
+        open={!!selectedHistoryItem}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedHistoryItem(null);
+            setConversationDetails([]);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -949,8 +951,15 @@ export default function LeadCallsTable({
             <div className="space-y-4">
               {conversationDetails.map((conv, idx) => {
                 const skipKeys = new Set([
-                  '_id', 'id', '__v', 'formId', 'formID', 'userId', 'adminuser',
-                  'isDeleted', 'isFresh',
+                  '_id',
+                  'id',
+                  '__v',
+                  'formId',
+                  'formID',
+                  'userId',
+                  'adminuser',
+                  'isDeleted',
+                  'isFresh',
                 ]);
 
                 const formatLabel = (key) => {
@@ -996,13 +1005,12 @@ export default function LeadCallsTable({
                     )}
                     <div className="space-y-0">
                       {entries.map((entry) => (
-                        <div key={entry.key} className="flex items-start justify-between py-2 border-b border-border/30 last:border-0">
-                          <span className="text-sm text-muted-foreground min-w-[120px] shrink-0">
-                            {entry.label}
-                          </span>
-                          <span className="text-sm font-medium text-right break-all max-w-[60%]">
-                            {entry.value}
-                          </span>
+                        <div
+                          key={entry.key}
+                          className="flex items-start justify-between py-2 border-b border-border/30 last:border-0"
+                        >
+                          <span className="text-sm text-muted-foreground min-w-[120px] shrink-0">{entry.label}</span>
+                          <span className="text-sm font-medium text-right break-all max-w-[60%]">{entry.value}</span>
                         </div>
                       ))}
                     </div>
@@ -1012,7 +1020,9 @@ export default function LeadCallsTable({
               })}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">No conversation data found for this contact.</p>
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No conversation data found for this contact.
+            </p>
           )}
         </DialogContent>
       </Dialog>
