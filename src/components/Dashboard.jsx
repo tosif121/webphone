@@ -1,5 +1,5 @@
 import HistoryContext from '@/context/HistoryContext';
-import React, { useContext, useEffect, useRef, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import LeadAndCallInfoPanel from './LeadAndCallInfoPanel';
 import Disposition from './Disposition';
 import { JssipContext } from '@/context/JssipContext';
@@ -27,6 +27,9 @@ import {
   Navigation,
   PhoneIncoming,
   List,
+  SkipForward,
+  RefreshCcw,
+  Lock,
 } from 'lucide-react';
 import CallbackForm from './CallbackForm';
 import { useRouter } from 'next/router';
@@ -94,6 +97,13 @@ function Dashboard() {
     currentCallData,
     hasParticipants,
     timeoutMessage,
+    activeLead,
+    setActiveLead,
+    leadLockToken,
+    setLeadLockToken,
+    agentLifecycle,
+    setAgentLifecycle,
+    activeCallContext,
   } = useContext(JssipContext);
 
   const {
@@ -129,6 +139,9 @@ function Dashboard() {
   const [selectedDate, setSelectedDate] = useState('');
   const [token, setToken] = useState('');
   const [loading, setLoading] = useState(true);
+  const [leadViewMode, setLeadViewMode] = useState('smart');
+  const [smartLeadLoading, setSmartLeadLoading] = useState(false);
+  const [smartLeadError, setSmartLeadError] = useState('');
 
   const [startDate, setStartDate] = useState(moment().subtract(24, 'hours').format('YYYY-MM-DD'));
   const [endDate, setEndDate] = useState(moment().format('YYYY-MM-DD'));
@@ -147,6 +160,75 @@ function Dashboard() {
   });
 
   const [formSubmitted, setFormSubmitted] = useState(false);
+
+  const getAuthHeaders = useCallback(
+    (extraHeaders = {}) =>
+      token
+        ? {
+            Authorization: `Bearer ${token}`,
+            ...extraHeaders,
+          }
+        : extraHeaders,
+    [token],
+  );
+
+  const fetchNextLead = useCallback(async () => {
+    if (!token || !username || !userCampaign) {
+      return null;
+    }
+
+    setSmartLeadLoading(true);
+    setSmartLeadError('');
+    try {
+      const response = await axios.post(
+        `${window.location.origin}/lead/next`,
+        {},
+        {
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        },
+      );
+
+      const nextLead = response.data?.result || null;
+      setActiveLead(nextLead);
+      setLeadLockToken(nextLead?.lockToken || '');
+      setAgentLifecycle(nextLead ? 'lead_locked' : 'idle');
+      return nextLead;
+    } catch (error) {
+      const message = error.response?.data?.message || error.message || 'No lead available right now.';
+      setSmartLeadError(message);
+      setActiveLead(null);
+      setLeadLockToken('');
+      setAgentLifecycle('idle');
+      return null;
+    } finally {
+      setSmartLeadLoading(false);
+    }
+  }, [getAuthHeaders, setActiveLead, setAgentLifecycle, setLeadLockToken, token, userCampaign, username]);
+
+  const handleSkipLead = useCallback(async () => {
+    if (!activeLead?.leadId || !leadLockToken) {
+      return;
+    }
+
+    try {
+      await axios.post(
+        `${window.location.origin}/lead/skip`,
+        {
+          leadId: activeLead.leadId,
+          lockToken: leadLockToken,
+        },
+        {
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        },
+      );
+      setActiveLead(null);
+      setLeadLockToken('');
+      setAgentLifecycle('idle');
+      void fetchNextLead();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to skip lead.');
+    }
+  }, [activeLead?.leadId, fetchNextLead, getAuthHeaders, leadLockToken, setActiveLead, setAgentLifecycle, setLeadLockToken]);
 
   // Listen for refresh leads event from Layout (after disposition submission)
   useEffect(() => {
@@ -206,6 +288,33 @@ function Dashboard() {
       }
     }
   }, []); // Remove router dependency to prevent re-runs
+
+  useEffect(() => {
+    if (!token || !username || !userCampaign) {
+      return;
+    }
+
+    if (leadViewMode !== 'smart' || status !== 'start' || dispositionModal || selectedBreak !== 'Break') {
+      return;
+    }
+
+    if (activeLead?.leadId || agentLifecycle === 'dialing' || agentLifecycle === 'on_call' || agentLifecycle === 'disposition') {
+      return;
+    }
+
+    void fetchNextLead();
+  }, [
+    token,
+    username,
+    userCampaign,
+    leadViewMode,
+    status,
+    dispositionModal,
+    selectedBreak,
+    activeLead?.leadId,
+    agentLifecycle,
+    fetchNextLead,
+  ]);
 
   useEffect(() => {
     try {
@@ -319,8 +428,19 @@ function Dashboard() {
   }, [ringtone, username]);
 
   const fetchUserMissedCalls = async () => {
+    if (!token || !username) {
+      setUsermissedCalls([]);
+      return;
+    }
+
     try {
-      const response = await axios.post(`${window.location.origin}/usermissedCalls/${username}`);
+      const response = await axios.post(
+        `${window.location.origin}/usermissedCalls/${username}`,
+        {},
+        {
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        },
+      );
       if (response.data) {
         setUsermissedCalls(response.data.result || []);
       }
@@ -330,32 +450,18 @@ function Dashboard() {
     }
   };
 
-  const fetchAdminUser = async () => {
-    try {
-      const response = await axios.get(`${window.location.origin}/users/${adminUser}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const filteredData = response.data.result?.filter((item) => item.Status === 'NOT_INUSE');
-    } catch (error) {
-      toast.error('Failed to fetch admin user.');
-      console.error('Error fetching admin user:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (info) {
-      fetchAdminUser();
-    }
-  }, [info]);
-
   useEffect(() => {
     const checkUserAvailability = async () => {
       // Check the conditions first
       if (userCampaign === currentCallData?.campaign && connectionStatus === 'NOT_INUSE' && queueDetails?.length > 0) {
         try {
-          const { data } = await axios.post(`${window.location.origin}/user/agentAvailable/${username}`);
+          const { data } = await axios.post(
+            `${window.location.origin}/user/agentAvailable/${username}`,
+            {},
+            {
+              headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+            },
+          );
 
           if (data.message === 'User is not live.') {
             toast.error('You are not available for calls. Please make yourself available to handle conference calls.');
@@ -372,7 +478,7 @@ function Dashboard() {
     };
 
     checkUserAvailability();
-  }, [userCampaign, currentCallData, queueDetails, connectionStatus, username]);
+  }, [connectionStatus, currentCallData, getAuthHeaders, queueDetails, userCampaign, username]);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
@@ -390,9 +496,9 @@ function Dashboard() {
     if (!userCampaign || !username || !token || !startDate || !endDate) return;
     fetchLeadsWithDateRange();
     fetchCallDataByAgent();
-  }, [startDate, endDate, userCampaign, username, token]);
+  }, [endDate, fetchCallDataByAgent, fetchLeadsWithDateRange, startDate, token, userCampaign, username]);
 
-  const fetchLeadsWithDateRange = async () => {
+  const fetchLeadsWithDateRange = useCallback(async () => {
     setLoading(true);
     try {
       const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
@@ -404,12 +510,9 @@ function Dashboard() {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
           campaignID: userCampaign,
-          user: username,
         },
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         },
       );
 
@@ -428,9 +531,9 @@ function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [endDate, getAuthHeaders, startDate, userCampaign]);
 
-  const fetchCallDataByAgent = async () => {
+  const fetchCallDataByAgent = useCallback(async () => {
     setLoading(true);
     try {
       const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
@@ -441,13 +544,9 @@ function Dashboard() {
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
-          agentName: username,
         },
         {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         },
       );
 
@@ -466,7 +565,7 @@ function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [endDate, getAuthHeaders, startDate]);
 
   const mapLeadData = (rawData) => {
     if (!Array.isArray(rawData)) rawData = [rawData];
@@ -558,6 +657,89 @@ function Dashboard() {
     };
   }, []);
 
+  const activeLeadNumber = useMemo(
+    () =>
+      String(
+        activeLead?.number ||
+          activeLead?.phone ||
+          activeLead?.phone_number ||
+          activeLead?.contactNumber ||
+          '',
+      )
+        .replace(/^\+91/, '')
+        .trim(),
+    [activeLead],
+  );
+
+  const smartLeadSummary = useMemo(
+    () => [
+      {
+        label: 'Lead ID',
+        value: activeLead?.leadId ?? '-',
+      },
+      {
+        label: 'Retry',
+        value: activeLead?.retryCount ?? 0,
+      },
+      {
+        label: 'State',
+        value: activeLead?.leadState || 'new',
+      },
+      {
+        label: 'Locked',
+        value: leadLockToken ? 'Yes' : 'No',
+      },
+    ],
+    [activeLead, leadLockToken],
+  );
+
+  const handleDialAction = useCallback(
+    async (phoneNumberToDial, sourceLead = null) => {
+      const normalizedPhoneNumber = String(phoneNumberToDial || '').replace(/^\+91/, '').trim();
+      if (!normalizedPhoneNumber) {
+        toast.error('Lead number is missing.');
+        return;
+      }
+
+      let lockedLead = sourceLead;
+      let nextLockToken = leadLockToken;
+
+      if (sourceLead?.leadId && token) {
+        try {
+          const response = await axios.post(
+            `${window.location.origin}/lead/lock`,
+            {
+              leadId: sourceLead.leadId,
+              lockToken: sourceLead.lockToken || leadLockToken || undefined,
+            },
+            {
+              headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+            },
+          );
+          lockedLead = response.data?.result || sourceLead;
+          nextLockToken = lockedLead?.lockToken || nextLockToken;
+          setActiveLead(lockedLead);
+          setLeadLockToken(nextLockToken || '');
+          setAgentLifecycle('lead_locked');
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Unable to lock this lead.');
+          return;
+        }
+      }
+
+      handleCall(
+        normalizedPhoneNumber,
+        lockedLead
+          ? {
+              lead: lockedLead,
+              leadLockToken: nextLockToken,
+            }
+          : undefined,
+      );
+    },
+    [getAuthHeaders, handleCall, leadLockToken, setActiveLead, setAgentLifecycle, setLeadLockToken, token],
+  );
+
   return (
     <>
       <audio ref={endCallAudioRef} preload="auto" style={{ display: 'none' }} src={endCallAudioBase64} />
@@ -644,11 +826,17 @@ function Dashboard() {
           callType={callType}
           setCallType={setCallType}
           phoneNumber={userCall?.contactNumber}
+          formSubmitted={formSubmitted}
           setFormSubmitted={setFormSubmitted}
           fetchLeadsWithDateRange={fetchLeadsWithDateRange}
           setPhoneNumber={setPhoneNumber}
           campaignID={userCampaign}
           user={username}
+          activeLead={activeLead}
+          leadLockToken={leadLockToken}
+          setActiveLead={setActiveLead}
+          setLeadLockToken={setLeadLockToken}
+          setAgentLifecycle={setAgentLifecycle}
         />
       )}
       <SessionTimeoutModal
@@ -664,6 +852,7 @@ function Dashboard() {
           campaignMissedCallsLength={campaignMissedCallsLength}
           setDropCalls={setDropCalls}
           username={username}
+          token={token}
         />
       )}
       {callAlert && (
@@ -672,6 +861,7 @@ function Dashboard() {
           scheduleCallsLength={scheduleCallsLength}
           setCallAlert={setCallAlert}
           username={username}
+          token={token}
         />
       )}
       <div>
@@ -808,7 +998,7 @@ function Dashboard() {
           >
             <LeadAndCallInfoPanel
               userCall={userCall}
-              handleCall={handleCall}
+              handleCall={handleDialAction}
               status={status}
               formSubmitted={formSubmitted}
               connectionStatus={connectionStatus}
@@ -818,6 +1008,7 @@ function Dashboard() {
               token={token}
               callType={callType}
               setFormSubmitted={setFormSubmitted}
+              activeCallContext={activeCallContext}
             />
           </div>
 
@@ -826,19 +1017,120 @@ function Dashboard() {
               status === 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
             }`}
           >
-            <LeadCallsTable
-              callDetails={leadsData}
-              apiCallData={apiCallData}
-              handleCall={handleCall}
-              startDate={startDate}
-              setStartDate={setStartDate}
-              endDate={endDate}
-              setEndDate={setEndDate}
-              username={username}
-              token={token}
-              activeMainTab={activeMainTab}
-              setActiveMainTab={setActiveMainTab}
-            />
+            <div className="flex items-center justify-end gap-2 mb-4">
+              <Button
+                type="button"
+                variant={leadViewMode === 'smart' ? 'default' : 'outline'}
+                size="sm"
+                className="gap-2"
+                onClick={() => setLeadViewMode('smart')}
+              >
+                <Lock className="w-4 h-4" />
+                Smart Dial
+              </Button>
+              <Button
+                type="button"
+                variant={leadViewMode === 'list' ? 'default' : 'outline'}
+                size="sm"
+                className="gap-2"
+                onClick={() => setLeadViewMode('list')}
+              >
+                <List className="w-4 h-4" />
+                List Mode
+              </Button>
+            </div>
+
+            {leadViewMode === 'smart' && activeMainTab === 'allLeads' ? (
+              <Card className="overflow-hidden border-l-4 border-l-primary">
+                <CardContent className="p-5 sm:p-6">
+                  <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="space-y-4 flex-1">
+                      <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                        <Lock className="w-4 h-4" />
+                        Smart Dial Mode
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-foreground">
+                          {activeLead?.name || activeLead?.fullName || 'Next Lead'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {activeLeadNumber || smartLeadError || (smartLeadLoading ? 'Fetching the next eligible lead...' : 'No lead available right now.')}
+                        </p>
+                      </div>
+
+                      {activeLead ? (
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                          {smartLeadSummary.map((item) => (
+                            <div key={item.label} className="rounded-lg border bg-muted/40 px-3 py-2">
+                              <div className="text-xs text-muted-foreground">{item.label}</div>
+                              <div className="text-sm font-semibold text-foreground mt-1">{item.value}</div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 px-4 py-6 text-sm text-muted-foreground">
+                          {smartLeadLoading ? 'Locking the next lead for this agent...' : smartLeadError || 'No eligible lead is currently available for this campaign.'}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row lg:flex-col gap-3 lg:min-w-[220px]">
+                      <Button
+                        type="button"
+                        className="gap-2"
+                        disabled={!activeLeadNumber || !leadLockToken || smartLeadLoading || !['lead_locked', 'idle'].includes(agentLifecycle)}
+                        onClick={() => {
+                          if (!activeLeadNumber) return;
+                          handleDialAction(activeLeadNumber, activeLead);
+                        }}
+                      >
+                        <Phone className="w-4 h-4" />
+                        Dial
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="gap-2"
+                        disabled={!activeLead?.leadId || !leadLockToken || smartLeadLoading || agentLifecycle !== 'lead_locked'}
+                        onClick={handleSkipLead}
+                      >
+                        <SkipForward className="w-4 h-4" />
+                        Skip
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="gap-2"
+                        disabled={smartLeadLoading || !['idle', 'lead_locked'].includes(agentLifecycle)}
+                        onClick={() => {
+                          setActiveLead(null);
+                          setLeadLockToken('');
+                          setAgentLifecycle('idle');
+                          void fetchNextLead();
+                        }}
+                      >
+                        <RefreshCcw className="w-4 h-4" />
+                        Refresh Lead
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <LeadCallsTable
+                callDetails={leadsData}
+                apiCallData={apiCallData}
+                handleCall={handleDialAction}
+                startDate={startDate}
+                setStartDate={setStartDate}
+                endDate={endDate}
+                setEndDate={setEndDate}
+                username={username}
+                token={token}
+                activeMainTab={activeMainTab}
+                setActiveMainTab={setActiveMainTab}
+              />
+            )}
           </div>
         </div>
       </div>

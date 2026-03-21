@@ -243,6 +243,8 @@ export default function DynamicForm({
   setLocalFormData,
   status,
   connectionStatus,
+  draftStorageKey,
+  isManualEntry = false,
 }) {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [visitedSections, setVisitedSections] = useState([]);
@@ -267,8 +269,87 @@ export default function DynamicForm({
       }
     });
 
-  const sortedSections = formConfig?.sections ? [...formConfig.sections].sort((a, b) => a.id - b.id) : [];
+  const sortedSections = formConfig?.sections
+    ? [...formConfig.sections].sort((a, b) => Number(a.id || 0) - Number(b.id || 0))
+    : [];
   const currentSection = sortedSections[currentSectionIndex];
+  const navigationStorageKey = draftStorageKey ? `formNavigationState:${draftStorageKey}` : 'formNavigationState';
+  const callerNumberValue = isManualEntry
+    ? currentFormData.contactNumber || ''
+    : userCall?.contactNumber || currentFormData.contactNumber || '';
+
+  const getFieldSystemRole = useCallback((field) => {
+    if (field?.systemField === 'callerNumber' || field?.systemField === 'alternateNumber') {
+      return field.systemField;
+    }
+
+    const normalizedName = String(field?.name || '').trim().toLowerCase();
+    const normalizedLabel = String(field?.label || '').trim().toLowerCase();
+
+    if (
+      normalizedName === 'contactnumber' ||
+      normalizedName === 'callernumber' ||
+      normalizedName === 'mobile_no' ||
+      normalizedName === 'mobileno' ||
+      normalizedName === 'number' ||
+      normalizedLabel.includes('caller number') ||
+      normalizedLabel.includes('mobile no') ||
+      normalizedLabel === 'mobile'
+    ) {
+      return 'callerNumber';
+    }
+
+    if (
+      normalizedName === 'alternatenumber' ||
+      normalizedName === 'alternate_number' ||
+      normalizedLabel.includes('alternate')
+    ) {
+      return 'alternateNumber';
+    }
+
+    return undefined;
+  }, []);
+
+  const getSystemFieldValue = useCallback(
+    (field) => {
+      const role = getFieldSystemRole(field);
+
+      if (role === 'callerNumber') {
+        return isManualEntry ? currentFormData.contactNumber || '' : userCall?.contactNumber || '';
+      }
+
+      if (role === 'alternateNumber') {
+        return currentFormData[field.name] || userCall?.alternateNumber || '';
+      }
+
+      return undefined;
+    },
+    [currentFormData, getFieldSystemRole, userCall],
+  );
+
+  const matchesFieldVisibility = useCallback(
+    (field) => {
+      if (!field.parentField) {
+        return true;
+      }
+
+      const parentValue = currentFormData[field.parentField];
+      if (!parentValue) {
+        return false;
+      }
+
+      const visibilityValues = Array.isArray(field.visibilityValues)
+        ? field.visibilityValues.map((value) => String(value || '').trim()).filter(Boolean)
+        : [];
+
+      if (visibilityValues.length === 0) {
+        return true;
+      }
+
+      return visibilityValues.some((value) => value === String(parentValue).trim());
+    },
+    [currentFormData]
+  );
 
   // Get filtered options for cascading dropdowns
   const getFilteredOptions = useCallback(
@@ -286,6 +367,11 @@ export default function DynamicForm({
         return [];
       }
 
+      const hasScopedOptions = (field.options || []).some((opt) => opt.parentValue?.trim());
+      if (!hasScopedOptions) {
+        return field.options || [];
+      }
+
       // Filter with TRIMMED exact string match
       const filtered = (field.options || []).filter((opt) => {
         return opt.parentValue?.trim() === parentValue?.trim();
@@ -297,28 +383,17 @@ export default function DynamicForm({
   );
 
   // Check if field should be visible based on parent field
-  const isFieldVisible = useCallback((field) => {
-    if (!field.parentField) {
-      return true;
-    }
-
-    const parentValue = currentFormData[field.parentField];
-    if (!parentValue) {
-      return false;
-    }
-
-    // For fields with options, check if any option matches the parent value
-    if (field.options && field.options.length > 0) {
-      return field.options.some(option => option.parentValue === parentValue);
-    }
-
-    return true;
-  }, [currentFormData]);
+  const isFieldVisible = useCallback((field) => matchesFieldVisibility(field), [matchesFieldVisibility]);
 
   // Enhanced validation function
   const validateSection = useCallback(() => {
     const sectionErrors = {};
-    const visibleFields = currentSection?.fields?.filter(isFieldVisible) || [];
+    const visibleFields =
+      currentSection?.fields?.filter((field) => isFieldVisible(field) && getFieldSystemRole(field) !== 'callerNumber') || [];
+
+    if (!callerNumberValue || !String(callerNumberValue).trim()) {
+      sectionErrors.contactNumber = 'Caller number is required';
+    }
 
     visibleFields.forEach(field => {
       if (field.required) {
@@ -359,7 +434,7 @@ export default function DynamicForm({
 
     setErrors(sectionErrors);
     return Object.keys(sectionErrors).length === 0;
-  }, [currentSection, currentFormData, isFieldVisible]);
+  }, [callerNumberValue, currentSection, currentFormData, getFieldSystemRole, isFieldVisible, matchesFieldVisibility]);
 
   const getFinalFormData = useCallback(() => {
     const finalData = { ...initialValues };
@@ -373,8 +448,20 @@ export default function DynamicForm({
       }
     });
 
+    if (callerNumberValue) {
+      finalData.contactNumber = callerNumberValue;
+    }
+
+    sortedSections.forEach((section) => {
+      section.fields?.forEach((field) => {
+        if (getFieldSystemRole(field) === 'callerNumber' && callerNumberValue) {
+          finalData[field.name] = callerNumberValue;
+        }
+      });
+    });
+
     return finalData;
-  }, [initialValues, currentFormData]);
+  }, [callerNumberValue, getFieldSystemRole, initialValues, currentFormData, sortedSections]);
 
   const cleanupFormDataForPath = (newPath) => {
     const sectionsInPath = new Set(newPath);
@@ -411,6 +498,14 @@ export default function DynamicForm({
   };
 
   const handleChange = (fieldName, value) => {
+    const lockedCallerField = currentSection?.fields?.find(
+      (field) => field.name === fieldName && getFieldSystemRole(field) === 'callerNumber'
+    );
+
+    if (lockedCallerField) {
+      return;
+    }
+
     setCurrentFormData((prev) => {
       const newData = { ...prev, [fieldName]: value };
 
@@ -601,6 +696,8 @@ export default function DynamicForm({
     currentSection?.nextSection === 'submit';
 
   const showNextButton = sortedSections.length > 1 && !isLastSection;
+  const renderableFields =
+    currentSection?.fields?.filter((field) => isFieldVisible(field) && getFieldSystemRole(field) !== 'callerNumber') || [];
 
   useEffect(() => {
     if (userCall && formConfig?.sections && !isInitialized) {
@@ -609,6 +706,13 @@ export default function DynamicForm({
 
       formConfig.sections.forEach((section) => {
         section.fields.forEach((field) => {
+          const systemValue = getSystemFieldValue(field);
+          if (systemValue !== undefined && systemValue !== '') {
+            initialData[field.name] = systemValue;
+            initialVals[field.name] = systemValue;
+            return;
+          }
+
           const keyMatch = Object.keys(userCall).find((key) => key.toLowerCase() === field.name.toLowerCase());
           if (keyMatch && userCall[keyMatch] !== undefined && userCall[keyMatch] !== '') {
             const value = userCall[keyMatch];
@@ -624,26 +728,24 @@ export default function DynamicForm({
       setCurrentFormData((prev) => ({ ...initialData, ...prev }));
       setIsInitialized(true);
     }
-  }, [userCall, formConfig, isInitialized]);
+  }, [userCall, formConfig, isInitialized, getSystemFieldValue, userModifiedFields]);
 
   useEffect(() => {
-    if (status === 'calling' || connectionStatus === 'Disposition') {
-      setCurrentSectionIndex(0);
-      setVisitedSections([]);
-      setIsFormComplete(false);
-      setNavigationPath([0]);
-      setIsInitialized(false);
-      setInitialValues({});
-      setUserModifiedFields(new Set());
-      formDataRef.current = {};
-      localStorage.removeItem('formNavigationState');
-    }
-  }, [status]);
+    setCurrentSectionIndex(0);
+    setVisitedSections([]);
+    setIsFormComplete(false);
+    setNavigationPath([0]);
+    setIsInitialized(false);
+    setInitialValues({});
+    setUserModifiedFields(new Set());
+    formDataRef.current = {};
+    setErrors({});
+  }, [draftStorageKey]);
 
 
 
   useEffect(() => {
-    const savedState = localStorage.getItem('formNavigationState');
+    const savedState = localStorage.getItem(navigationStorageKey);
     if (savedState) {
       try {
         const parsedState = JSON.parse(savedState);
@@ -658,7 +760,7 @@ export default function DynamicForm({
         console.warn('Failed to parse saved form state:', error);
       }
     }
-  }, []);
+  }, [navigationStorageKey]);
 
   useEffect(() => {
     const stateToSave = {
@@ -669,10 +771,17 @@ export default function DynamicForm({
       userModifiedFields: Array.from(userModifiedFields),
     };
 
-    localStorage.setItem('formNavigationState', JSON.stringify(stateToSave));
-  }, [currentSectionIndex, navigationPath, visitedSections, isFormComplete, userModifiedFields]);
+    localStorage.setItem(navigationStorageKey, JSON.stringify(stateToSave));
+  }, [currentSectionIndex, isFormComplete, navigationPath, navigationStorageKey, userModifiedFields, visitedSections]);
 
   const getFieldValue = (fieldName) => {
+    const matchedField = currentSection?.fields?.find((field) => field.name === fieldName);
+    const systemValue = matchedField ? getSystemFieldValue(matchedField) : undefined;
+
+    if (systemValue !== undefined && systemValue !== '') {
+      return systemValue;
+    }
+
     if (currentFormData.hasOwnProperty(fieldName)) {
       const value = currentFormData[fieldName];
       return value !== undefined && value !== null ? value : '';
@@ -723,16 +832,33 @@ export default function DynamicForm({
       </CardHeader>
       <CardContent>
         <div className="space-y-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {currentSection.fields.map((field, idx) => {
-              if (!isFieldVisible(field)) {
-                return null;
-              }
+          <div className="rounded-lg border bg-muted/25 p-4">
+            <Label className="mb-2 block text-sm font-medium">Caller Number</Label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              <Input
+                value={callerNumberValue}
+                disabled={!isManualEntry}
+                onChange={(event) => handleChange('contactNumber', event.target.value)}
+                className={`${isManualEntry ? '' : 'cursor-not-allowed bg-muted/60'} pl-10`}
+                aria-label="Caller Number"
+              />
+            </div>
+            {errors.contactNumber && (
+              <p className="mt-1 text-sm text-red-500" role="alert">
+                {errors.contactNumber}
+              </p>
+            )}
+          </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {renderableFields.map((field, idx) => {
               const fieldId = `${field.name}-${idx}`;
               const fieldLabel = field.question || field.label || 'Field';
               const fieldValue = getFieldValue(field.name);
               const hasError = errors[field.name];
+              const fieldSystemRole = getFieldSystemRole(field);
+              const isLockedCallerField = fieldSystemRole === 'callerNumber';
 
               if (field.type === 'textarea') {
                 return (
@@ -825,6 +951,7 @@ export default function DynamicForm({
               }
 
               if (field.type === 'radio') {
+                const radioOptions = getFilteredOptions(field);
                 return (
                   <div key={fieldId}>
                     <Label className={`mb-2 block text-sm font-medium ${field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}>
@@ -835,7 +962,7 @@ export default function DynamicForm({
                       onValueChange={(value) => handleChange(field.name, value)}
                       className="space-y-2"
                     >
-                      {field.options?.map((option, i) => (
+                      {radioOptions.map((option, i) => (
                         <div key={i} className="flex items-center space-x-2">
                           <RadioGroupItem value={option.value} id={`${fieldId}-${i}`} />
                           <Label htmlFor={`${fieldId}-${i}`} className="cursor-pointer">
@@ -855,6 +982,7 @@ export default function DynamicForm({
 
               if (field.type === 'checkbox') {
                 const checkboxValue = Array.isArray(fieldValue) ? fieldValue : [];
+                const checkboxOptions = getFilteredOptions(field);
 
                 return (
                   <div key={fieldId}>
@@ -862,7 +990,7 @@ export default function DynamicForm({
                       {fieldLabel}
                     </Label>
                     <div className="space-y-2">
-                      {field.options?.map((option, i) => (
+                      {checkboxOptions.map((option, i) => (
                         <div key={i} className="flex items-center space-x-2">
                           <Checkbox
                             id={`${fieldId}-${i}`}
@@ -1034,6 +1162,16 @@ export default function DynamicForm({
                     }`}
                   >
                     {fieldLabel}
+                    {fieldSystemRole === 'callerNumber' && (
+                      <span className="ml-2 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
+                        Locked Caller
+                      </span>
+                    )}
+                    {fieldSystemRole === 'alternateNumber' && (
+                      <span className="ml-2 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+                        Alternate Number
+                      </span>
+                    )}
                   </Label>
                   <div className="relative">
                     {getFieldIcon(field)}
@@ -1041,11 +1179,12 @@ export default function DynamicForm({
                       id={fieldId}
                       name={field.name}
                       type={field.type || 'text'}
-                      placeholder={fieldLabel}
+                      placeholder={isLockedCallerField ? 'Auto-filled from caller number' : fieldLabel}
                       required={field.required}
                       value={fieldValue}
                       onChange={handleInputChange}
-                      className={`pl-10 ${hasError ? 'border-red-500' : ''}`}
+                      disabled={isLockedCallerField}
+                      className={`pl-10 ${hasError ? 'border-red-500' : ''} ${isLockedCallerField ? 'bg-muted/60 cursor-not-allowed' : ''}`}
                     />
                   </div>
                   {hasError && (

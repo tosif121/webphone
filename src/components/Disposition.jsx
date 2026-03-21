@@ -45,9 +45,15 @@ const Disposition = ({
   fetchLeadsWithDateRange,
   callType,
   setCallType,
+  formSubmitted,
   setFormSubmitted,
   campaignID,
   user,
+  activeLead,
+  leadLockToken,
+  setActiveLead,
+  setLeadLockToken,
+  setAgentLifecycle,
 }) => {
   const { username, selectedBreak } = useContext(HistoryContext);
   const [selectedAction, setSelectedAction] = useState(null);
@@ -69,6 +75,65 @@ const Disposition = ({
   const [isDispositionModalOpen, setDispositionModalOpen] = useState(false);
   const [isCallbackDialogOpen, setCallbackDialogOpen] = useState(false);
   const [callbackIncomplete, setCallbackIncomplete] = useState(false);
+  const [stickyEnabled, setStickyEnabled] = useState(false);
+  const [stickyMode, setStickyMode] = useState('loose');
+  const [makeSticky, setMakeSticky] = useState(false);
+
+  const getAuthHeaders = useCallback(
+    (extraHeaders = {}) => {
+      if (typeof window === 'undefined') {
+        return extraHeaders;
+      }
+
+      const tokenData = localStorage.getItem('token');
+      if (!tokenData) {
+        return extraHeaders;
+      }
+
+      try {
+        const parsedData = JSON.parse(tokenData);
+        const accessToken = parsedData?.token || parsedData?.accessToken;
+        if (!accessToken) {
+          return extraHeaders;
+        }
+
+        return {
+          Authorization: `Bearer ${accessToken}`,
+          ...extraHeaders,
+        };
+      } catch (error) {
+        return extraHeaders;
+      }
+    },
+    [],
+  );
+
+  const resetLeadLifecycle = useCallback(() => {
+    setActiveLead?.(null);
+    setLeadLockToken?.('');
+    setAgentLifecycle?.('completed');
+    setTimeout(() => {
+      setAgentLifecycle?.('idle');
+    }, 0);
+  }, [setActiveLead, setAgentLifecycle, setLeadLockToken]);
+
+  const resolveLeadFinalState = useCallback((action) => {
+    const normalized = String(action || '').trim().toLowerCase();
+    const failedStates = new Set([
+      'busy',
+      'not reachable',
+      'not answered',
+      'no answerr',
+      'wrong number',
+      'switched off',
+      'not interested',
+      'disconnected',
+      'do not call',
+      'voicemail left',
+    ]);
+
+    return failedStates.has(normalized) ? 'failed' : 'completed';
+  }, []);
 
   useEffect(() => {
     const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -76,8 +141,12 @@ const Disposition = ({
       try {
         const parsedData = JSON.parse(tokenData);
         setCampaignName(parsedData?.userData?.campaignName || 'N/A');
+        setStickyEnabled(parsedData?.userData?.stickyEnabled !== false);
+        setStickyMode(parsedData?.userData?.stickyMode || 'loose');
       } catch (e) {
         setCampaignName('N/A');
+        setStickyEnabled(false);
+        setStickyMode('loose');
       }
     }
   }, []);
@@ -198,6 +267,9 @@ const Disposition = ({
 
     // Prioritize disposition flag
     if (dispositionFlag === false) {
+      if (!formSubmitted) {
+        return;
+      }
       setIsAutoDispositionInProgress(true);
       autoDispoFunc();
       return;
@@ -218,17 +290,25 @@ const Disposition = ({
       setIsAutoDispositionInProgress(true);
       autoDispoFunc();
     }
-  }, []);
+  }, [formSubmitted, isAutoDispositionComplete, isAutoDispositionInProgress]);
 
-  const autoDispoFunc = async () => {
+  const autoDispoFunc = useCallback(async () => {
     try {
       const requestBody = {
         bridgeID,
         Disposition: 'Auto Disposed',
         autoDialDisabled: false,
+        leadId: activeLead?.leadId,
+        leadLockToken,
+        leadFinalState: resolveLeadFinalState('Auto Disposed'),
+        contactNumber: phoneNumber,
+        makeSticky,
+        stickyMode,
       };
 
-      const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
+      const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      });
 
       if (response.data.success) {
         toast.success('Auto disposition completed successfully');
@@ -240,6 +320,7 @@ const Disposition = ({
         // Move to next contact only once
 
         fetchLeadsWithDateRange();
+        resetLeadLifecycle();
 
         // Close modal and clear phone number
         setFormSubmitted(false);
@@ -295,7 +376,23 @@ const Disposition = ({
       ]);
       setShouldShowModal(true);
     }
-  };
+  }, [
+    activeLead?.leadId,
+    bridgeID,
+    fetchLeadsWithDateRange,
+    getAuthHeaders,
+    leadLockToken,
+    makeSticky,
+    phoneNumber,
+    resetLeadLifecycle,
+    resolveLeadFinalState,
+    setCallType,
+    setDispositionModal,
+    setFormSubmitted,
+    setPhoneNumber,
+    stickyMode,
+    username,
+  ]);
 
   const handleActionClick = useCallback((action, event) => {
     event.preventDefault();
@@ -447,6 +544,12 @@ const Disposition = ({
           bridgeID,
           Disposition: isDispoWithBreak ? 'dispoWithBreak' : selectedAction,
           autoDialDisabled: isAutoLeadDialDisabled,
+          leadId: activeLead?.leadId,
+          leadLockToken,
+          leadFinalState: resolveLeadFinalState(selectedAction),
+          contactNumber: phoneNumber,
+          makeSticky,
+          stickyMode,
         };
 
         // Handle callback data
@@ -473,7 +576,9 @@ const Disposition = ({
         }
 
         // 1. Submit disposition FIRST
-        const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody);
+        const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        });
 
         if (response.data.success) {
           // 2. AFTER successful disposition, check if break is selected
@@ -482,9 +587,15 @@ const Disposition = ({
           if (selectedBreakType && selectedBreakType !== 'Break') {
             try {
               // Apply the break after disposition
-              await axios.post(`${window.location.origin}/user/breakuser:${username}`, {
-                breakType: selectedBreakType,
-              });
+              await axios.post(
+                `${window.location.origin}/user/breakuser:${username}`,
+                {
+                  breakType: selectedBreakType,
+                },
+                {
+                  headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+                },
+              );
               toast.success('Disposition submitted and break applied successfully');
             } catch (breakError) {
               console.error('Break application failed:', breakError);
@@ -496,6 +607,7 @@ const Disposition = ({
 
           setHasSubmittedSuccessfully(true);
           fetchLeadsWithDateRange();
+          resetLeadLifecycle();
           setFormSubmitted(false);
           setDispositionModal(false);
           setPhoneNumber('');
@@ -528,6 +640,13 @@ const Disposition = ({
       hasSubmittedSuccessfully,
       fetchLeadsWithDateRange,
       setCallType,
+      activeLead?.leadId,
+      getAuthHeaders,
+      leadLockToken,
+      makeSticky,
+      resetLeadLifecycle,
+      resolveLeadFinalState,
+      stickyMode,
     ],
   );
 
@@ -674,6 +793,29 @@ const Disposition = ({
                   );
                 })}
               </div>
+              {stickyEnabled && phoneNumber ? (
+                <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="sticky-customer" className="text-sm font-medium text-foreground">
+                      Make this customer sticky
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Route this contact back to the same agent when possible.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="capitalize">
+                      {stickyMode}
+                    </Badge>
+                    <Checkbox
+                      id="sticky-customer"
+                      checked={makeSticky}
+                      onCheckedChange={(checked) => setMakeSticky(Boolean(checked))}
+                      disabled={isSubmitting || hasSubmittedSuccessfully}
+                    />
+                  </div>
+                </div>
+              ) : null}
               <div className="flex flex-col lg:flex-row gap-4 justify-end items-start border-t pt-4">
                 <div className="flex flex-row gap-2 w-full lg:w-auto md:justify-end">
                   <div>

@@ -277,7 +277,7 @@ export default function LeadCallsTable({
               </Button>
               {phone && (
                 <Button
-                  onClick={() => handleCall(phone)}
+                  onClick={() => handleCall(phone, row.original)}
                   size="sm"
                   className="bg-green-600 text-white hover:bg-green-700 rounded-full h-8 w-8 p-0"
                   title="Make call"
@@ -346,7 +346,7 @@ export default function LeadCallsTable({
               </Button>
               {phone && (
                 <Button
-                  onClick={() => handleCall(row.original.Caller)}
+                  onClick={() => handleCall(row.original.Caller, row.original)}
                   size="sm"
                   className="bg-green-600 text-white hover:bg-green-700 rounded-full h-8 w-8 p-0"
                 >
@@ -469,7 +469,7 @@ export default function LeadCallsTable({
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-muted-foreground">Call {selectedRow.name || 'Lead'}:</span>
                 <Button
-                  onClick={() => handleCall(selectedRow.phone)}
+                  onClick={() => handleCall(selectedRow.phone, selectedRow)}
                   size="sm"
                   className="bg-green-600 text-white hover:bg-green-700 rounded-full px-4"
                 >
@@ -556,7 +556,7 @@ export default function LeadCallsTable({
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-muted-foreground">Call Caller:</span>
                   <Button
-                    onClick={() => handleCall(selectedRow.Caller)}
+                    onClick={() => handleCall(selectedRow.Caller, selectedRow)}
                     size="sm"
                     className="bg-green-600 text-white hover:bg-green-700 rounded-full px-4"
                   >

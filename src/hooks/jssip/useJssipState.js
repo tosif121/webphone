@@ -28,6 +28,10 @@ export const useJssipState = () => {
   /* ----------------------------- user / lead data -------------------------- */
   const [userCall, setUserCall] = useState('');
   const [followUpDispoes, setFollowUpDispoes] = useState([]);
+  const [activeLead, setActiveLead] = useState(null);
+  const [leadLockToken, setLeadLockToken] = useState('');
+  const [agentLifecycle, setAgentLifecycle] = useState('idle');
+  const [activeCallContext, setActiveCallContext] = useState(null);
 
   /* ------------------------------- ui states ------------------------------- */
   const [ringtone, setRingtone] = useState('');
@@ -129,6 +133,14 @@ export const useJssipState = () => {
     setUserCall,
     followUpDispoes,
     setFollowUpDispoes,
+    activeLead,
+    setActiveLead,
+    leadLockToken,
+    setLeadLockToken,
+    agentLifecycle,
+    setAgentLifecycle,
+    activeCallContext,
+    setActiveCallContext,
 
     /* ui */
     ringtone,

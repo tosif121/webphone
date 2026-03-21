@@ -8,6 +8,21 @@ export const useJssipUtils = (state) => {
   const { username, setSelectedBreak } = useContext(HistoryContext);
   const { ringtoneRef, inNotification, setInNotification } = state;
 
+  const getAuthHeaders = useCallback((extraHeaders = {}) => {
+    try {
+      const tokenPayload = JSON.parse(localStorage.getItem('token') || 'null');
+      return tokenPayload?.token
+        ? {
+            Authorization: `Bearer ${tokenPayload.token}`,
+            ...extraHeaders,
+          }
+        : extraHeaders;
+    } catch (error) {
+      console.error('Failed to build auth headers:', error);
+      return extraHeaders;
+    }
+  }, []);
+
   // Request notification permission on component mount
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
@@ -205,7 +220,7 @@ export const useJssipUtils = (state) => {
   const checkUserReady = async () => {
     try {
       const url = `${window.location.origin}/userready/${username}`;
-      const response = await axios.post(url, {}, { headers: { 'Content-Type': 'application/json' } });
+      const response = await axios.post(url, {}, { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) });
       return response.data;
     } catch (error) {
       console.error('Error sending login request:', error);
@@ -215,7 +230,7 @@ export const useJssipUtils = (state) => {
 
   const removeBreak = async () => {
     try {
-      await axios.post(`${window.location.origin}/user/removebreakuser:${username}`);
+      await axios.post(`${window.location.origin}/user/removebreakuser:${username}`, {}, { headers: getAuthHeaders() });
       setSelectedBreak('Break');
       localStorage.removeItem('selectedBreak');
       Object.keys(localStorage).forEach((key) => {

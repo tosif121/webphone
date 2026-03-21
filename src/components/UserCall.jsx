@@ -3,40 +3,26 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription } from './ui/
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
-import { useEffect, useState } from 'react';
 
-const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, handleSubmit, formSubmitted }) => {
-  // Initialize form data function (NOT memoized)
-  const initializeFormData = () => {
-    return {
-      firstName: localFormData?.firstName || userCall?.firstName || '',
-      lastName: localFormData?.lastName || userCall?.lastName || '',
-      emailId: localFormData?.emailId || userCall?.emailId || userCall?.Email || userCall?.email || '',
-      contactNumber: userCall?.contactNumber || localFormData?.contactNumber || '',
-      alternateNumber: localFormData?.alternateNumber || userCall?.alternateNumber || '',
-      comment: localFormData?.comment || userCall?.comment || userCall?.Remarks || '',
-      Contactaddress: localFormData?.Contactaddress || userCall?.Contactaddress || userCall?.address || '',
-      ContactDistrict: localFormData?.ContactDistrict || userCall?.ContactDistrict || '',
-      ContactCity: localFormData?.ContactCity || userCall?.ContactCity || userCall?.city || userCall?.CIty || '',
-      ContactState: localFormData?.ContactState || userCall?.ContactState || userCall?.state || '',
-      ContactPincode:
-        localFormData?.ContactPincode ||
-        userCall?.ContactPincode ||
-        userCall?.postalCode ||
-        userCall?.['Pincode '] ||
-        '',
-    };
+const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, handleSubmit, formSubmitted, isManualEntry = false }) => {
+  const currentFormData = {
+    firstName: localFormData?.firstName || userCall?.firstName || '',
+    lastName: localFormData?.lastName || userCall?.lastName || '',
+    emailId: localFormData?.emailId || userCall?.emailId || userCall?.Email || userCall?.email || '',
+    contactNumber: isManualEntry ? localFormData?.contactNumber || userCall?.contactNumber || '' : userCall?.contactNumber || localFormData?.contactNumber || '',
+    alternateNumber: localFormData?.alternateNumber || userCall?.alternateNumber || '',
+    comment: localFormData?.comment || userCall?.comment || userCall?.Remarks || '',
+    Contactaddress: localFormData?.Contactaddress || userCall?.Contactaddress || userCall?.address || '',
+    ContactDistrict: localFormData?.ContactDistrict || userCall?.ContactDistrict || '',
+    ContactCity: localFormData?.ContactCity || userCall?.ContactCity || userCall?.city || userCall?.CIty || '',
+    ContactState: localFormData?.ContactState || userCall?.ContactState || userCall?.state || '',
+    ContactPincode:
+      localFormData?.ContactPincode ||
+      userCall?.ContactPincode ||
+      userCall?.postalCode ||
+      userCall?.['Pincode '] ||
+      '',
   };
-
-  const [currentFormData, setCurrentFormData] = useState(initializeFormData());
-
-  // Only update when userCall changes (not when localFormData changes)
-  useEffect(() => {
-    // Only reinitialize if userCall.contactNumber changes (new call)
-    if (userCall?.contactNumber && userCall.contactNumber !== currentFormData.contactNumber) {
-      setCurrentFormData(initializeFormData());
-    }
-  }, [userCall?.contactNumber]); // Only watch contactNumber
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -46,10 +32,6 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
       [name]: value,
     };
 
-    // Update local state immediately
-    setCurrentFormData(updatedData);
-
-    // Update parent state
     if (setLocalFormData) {
       setLocalFormData(updatedData);
     }
@@ -63,7 +45,7 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
       firstName: currentFormData.firstName,
       lastName: currentFormData.lastName,
       emailId: currentFormData.emailId,
-      contactNumber: userCall?.contactNumber || currentFormData.contactNumber,
+      contactNumber: isManualEntry ? currentFormData.contactNumber : userCall?.contactNumber || currentFormData.contactNumber,
       alternateNumber: currentFormData.alternateNumber,
       comment: currentFormData.comment,
       Contactaddress: currentFormData.Contactaddress,
@@ -115,9 +97,10 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
               name="contactNumber"
               type="tel"
               placeholder="Mobile Number"
-              value={userCall?.contactNumber || currentFormData.contactNumber}
-              disabled
-              className="pl-10 border-border bg-muted/50 cursor-not-allowed"
+              value={isManualEntry ? currentFormData.contactNumber : userCall?.contactNumber || currentFormData.contactNumber}
+              disabled={!isManualEntry}
+              className={`pl-10 border-border ${isManualEntry ? '' : 'bg-muted/50 cursor-not-allowed'}`}
+              onChange={handleChange}
               aria-label="Mobile Number"
             />
           </div>
@@ -256,9 +239,13 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
             <User className="text-primary" size={20} aria-hidden="true" />
           </div>
           <div>
-            <CardTitle className="text-2xl text-foreground">Contact Details</CardTitle>
-            <CardDescription className="text-muted-foreground text-sm">
-              {userCall?.contactNumber ? `Caller: ${userCall.contactNumber}` : 'Edit or review contact information'}
+              <CardTitle className="text-2xl text-foreground">Contact Form</CardTitle>
+              <CardDescription className="text-muted-foreground text-sm">
+              {isManualEntry
+                ? 'Manual contact entry'
+                : userCall?.contactNumber
+                  ? `Default fallback form for caller ${userCall.contactNumber}`
+                  : 'Default fallback contact form'}
             </CardDescription>
           </div>
         </div>

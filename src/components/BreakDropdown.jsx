@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useContext } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import HistoryContext from '@/context/HistoryContext';
@@ -16,6 +16,24 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
   const [timer, setTimer] = useState(0);
   const [breakTypes, setBreakTypes] = useState([]);
   const timerRef = useRef(null);
+
+  const getAuthHeaders = () => {
+    if (typeof window === 'undefined') {
+      return {};
+    }
+
+    try {
+      const tokenData = localStorage.getItem('token');
+      if (!tokenData) {
+        return {};
+      }
+      const parsedData = JSON.parse(tokenData);
+      const token = parsedData?.token || parsedData?.accessToken;
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    } catch (error) {
+      return {};
+    }
+  };
 
   const getBreakIcon = (label) => {
     if (!label) return Activity;
@@ -186,7 +204,16 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
 
   const removeBreak = async () => {
     try {
-      await axios.post(`${window.location.origin}/user/removebreakuser:${username}`);
+      await axios.post(
+        `${window.location.origin}/user/removebreakuser:${username}`,
+        {},
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+          },
+        },
+      );
 
       const breakStartKey = `breakStartTime_${selectedBreak}`;
       localStorage.removeItem(breakStartKey);
@@ -227,7 +254,16 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
     }
 
     try {
-      await axios.post(`${window.location.origin}/user/breakuser:${username}`, { breakType });
+      await axios.post(
+        `${window.location.origin}/user/breakuser:${username}`,
+        { breakType },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+          },
+        },
+      );
 
       setSelectedBreak(breakType);
       localStorage.setItem('selectedBreak', breakType);

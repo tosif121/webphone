@@ -1,11 +1,12 @@
-import { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Phone, Clock, PhoneMissed, Calendar } from 'lucide-react';
 import moment from 'moment';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import axios from 'axios';
 import { Button } from './ui/button';
+import toast from 'react-hot-toast';
 
-const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMissedCallsLength }) => {
+const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMissedCallsLength, token }) => {
   const [loadingCaller, setLoadingCaller] = useState(null);
 
   const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -45,18 +46,31 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
   const initiateCall = useCallback(
     async (caller) => {
       try {
+        setLoadingCaller(caller);
         const sanitizedCaller = removeCountryCode(caller);
-        const response = await axios.post(`${window.location.origin}/dialmissedcall`, {
-          caller: username,
-          receiver: sanitizedCaller,
-        });
+        await axios.post(
+          `${window.location.origin}/dialmissedcall`,
+          {
+            receiver: sanitizedCaller,
+          },
+          {
+            headers: token
+              ? {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                }
+              : { 'Content-Type': 'application/json' },
+          },
+        );
         setDropCalls(false);
       } catch (error) {
         console.error('Error:', error);
         toast.error('Request failed. Please try again.');
+      } finally {
+        setLoadingCaller(null);
       }
     },
-    [username, userCampaign],
+    [setDropCalls, token],
   );
 
   const sortedEntries = Object.entries(groupedCalls).sort((a, b) => b[1].latestTime - a[1].latestTime);

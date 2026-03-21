@@ -78,6 +78,14 @@ const useJssip = (isMobile = false) => {
     setIsIncomingRinging,
     followUpDispoes,
     setFollowUpDispoes,
+    activeLead,
+    setActiveLead,
+    leadLockToken,
+    setLeadLockToken,
+    agentLifecycle,
+    setAgentLifecycle,
+    activeCallContext,
+    setActiveCallContext,
     conferenceCalls,
     setConferenceCalls,
     callConference,
@@ -156,6 +164,30 @@ const useJssip = (isMobile = false) => {
     const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
     setOrigin(originWithoutProtocol);
   }, []);
+
+  const getStoredTokenPayload = useCallback(() => {
+    try {
+      const rawToken = localStorage.getItem('token');
+      return rawToken ? JSON.parse(rawToken) : null;
+    } catch (error) {
+      console.error('Failed to parse stored token payload:', error);
+      return null;
+    }
+  }, []);
+
+  const getAuthHeaders = useCallback(
+    (extraHeaders = {}) => {
+      const tokenPayload = getStoredTokenPayload();
+      const token = tokenPayload?.token;
+      return token
+        ? {
+            Authorization: `Bearer ${token}`,
+            ...extraHeaders,
+          }
+        : extraHeaders;
+    },
+    [getStoredTokenPayload],
+  );
 
   useEffect(() => {
     const handleBeforeUnload = (event) => {
@@ -261,7 +293,9 @@ const useJssip = (isMobile = false) => {
         axios.post(
           `${window.location.origin}/userconnection`,
           { user: username },
-          { headers: { 'Content-Type': 'application/json' } },
+          {
+            headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          },
         ),
         3000,
       );
@@ -302,6 +336,13 @@ const useJssip = (isMobile = false) => {
       // ✅ 3. Set follow-up dispositions and connection status
       setFollowUpDispoes(data.followUpDispoes || []);
       setConnectionStatus(data.status);
+      if (data.status === 'Disposition') {
+        setAgentLifecycle('disposition');
+      } else if (data.status === 'INUSE') {
+        setAgentLifecycle('on_call');
+      } else if (data.status === 'NOT_INUSE' || data.status === 'UNAVAILABLE') {
+        setAgentLifecycle(leadLockToken ? 'lead_locked' : 'idle');
+      }
 
       // ✅ 4. Handle other connection issues
       if (data.message !== 'ok connection for user') {
@@ -468,6 +509,7 @@ const useJssip = (isMobile = false) => {
   const eventHandlers = {
     failed: function (e) {
       setStatus('fail');
+      setAgentLifecycle(leadLockToken ? 'lead_locked' : 'idle');
       // setPhoneNumber('');
       if (isRecording) {
         stopRecording();
@@ -478,6 +520,7 @@ const useJssip = (isMobile = false) => {
     confirmed: function (e) {
       reset();
       startRecording();
+      setAgentLifecycle('on_call');
       setHistory((prev) => [
         ...prev.slice(0, -1),
         {
@@ -492,6 +535,7 @@ const useJssip = (isMobile = false) => {
       if (isRecording) {
         stopRecording();
       }
+      setActiveCallContext(null);
       setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
       pause();
       setStatus('start');
@@ -518,19 +562,21 @@ const useJssip = (isMobile = false) => {
     try {
       const response = await axios.post(
         `${window.location.origin}/useroncall/${username}`,
-        {},
+        leadLockToken ? { leadLockToken } : {},
         {
           headers: {
-            'Content-Type': 'application/json',
+            ...getAuthHeaders({ 'Content-Type': 'application/json' }),
           },
         },
       );
 
       if (response.status === 200) {
         setBridgeID(response.data.currentcalldata.bridgeID);
+        setActiveCallContext(response.data.currentcalldata || null);
         if (response.data.contactData) {
           setUserCall(response.data.contactData);
         }
+        setAgentLifecycle('on_call');
         setConferenceStatus(false);
 
         if (incomingNumber) {
@@ -564,6 +610,7 @@ const useJssip = (isMobile = false) => {
         setIncomingSession(null);
         setIsIncomingRinging(false);
         setStatus('calling');
+        setAgentLifecycle('on_call');
         setCallType('incoming');
         reset();
 
@@ -813,6 +860,7 @@ const useJssip = (isMobile = false) => {
                     setIncomingNumber(incomingNumber);
                     setIsIncomingRinging(true);
                     setStatus('incoming');
+                    setAgentLifecycle('ringing');
 
                     // Trigger web notification (will check if user is away)
                     setInNotification(incomingNumber);
@@ -836,6 +884,7 @@ const useJssip = (isMobile = false) => {
                       setIncomingSession(null);
                       setIsIncomingRinging(false);
                       setStatus('start');
+                      setAgentLifecycle(callHandledRef.current ? 'disposition' : 'idle');
                       setIsCustomerAnswered(false);
                       setHistory((prev) => [
                         ...prev.slice(0, -1),
@@ -852,6 +901,7 @@ const useJssip = (isMobile = false) => {
                       setIncomingSession(null);
                       setIsIncomingRinging(false);
                       setStatus('start');
+                      setAgentLifecycle(callHandledRef.current ? 'disposition' : 'idle');
                       setHistory((prev) => [
                         ...prev.slice(0, -1),
                         { ...prev[prev.length - 1], status: 'Failed', end: new Date().getTime() },
@@ -880,6 +930,7 @@ const useJssip = (isMobile = false) => {
                     setIncomingNumber(incomingNumber);
                     setIsIncomingRinging(true);
                     setStatus('incoming');
+                    setAgentLifecycle('ringing');
 
                     // Trigger web notification (will check if user is away)
                     setInNotification(incomingNumber);
@@ -892,6 +943,7 @@ const useJssip = (isMobile = false) => {
             // Handle normal outgoing calls (when direction is actually "outgoing")
             setSession(e.session);
             setStatus('calling');
+            setAgentLifecycle('dialing');
 
             // Set up audio stream
             e.session.connection.addEventListener('addstream', (event) => {
@@ -904,6 +956,7 @@ const useJssip = (isMobile = false) => {
             e.session.on('confirmed', () => {
               reset();
               startRecording();
+              setAgentLifecycle('on_call');
               setHistory((prev) => [
                 ...prev.slice(0, -1),
                 {
@@ -922,12 +975,14 @@ const useJssip = (isMobile = false) => {
               setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
               pause();
               setStatus('start');
+              setActiveCallContext(null);
               setIsCallended(true);
               setConferenceNumber('');
             });
 
             e.session.on('failed', () => {
               setStatus('fail');
+              setAgentLifecycle(leadLockToken ? 'lead_locked' : 'idle');
               if (isRecording) {
                 stopRecording();
               }
@@ -953,6 +1008,7 @@ const useJssip = (isMobile = false) => {
       session.answer(options); // Auto-answers (good for outgoing)
       setSession(session);
       setStatus('calling');
+      setAgentLifecycle('on_call');
       reset();
       answercall(incomingNumber);
 
@@ -967,6 +1023,7 @@ const useJssip = (isMobile = false) => {
         setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
         pause();
         setStatus('start');
+        setAgentLifecycle('disposition');
         setIsCallended(true);
         setConferenceNumber('');
         setDispositionModal(true);
@@ -979,6 +1036,7 @@ const useJssip = (isMobile = false) => {
         ]);
         pause();
         setStatus('start');
+        setAgentLifecycle('idle');
         setDispositionModal(false);
       });
     };
@@ -1036,7 +1094,7 @@ const useJssip = (isMobile = false) => {
     };
   }, [username, password]);
 
-  const handleCall = async (formattedNumber) => {
+  const handleCall = async (formattedNumber, metadata = {}) => {
     // ✅ 1. Early return - Check connection status
     if (isConnectionLost) {
       toast.error('Connection lost. Please check your internet connection.');
@@ -1044,6 +1102,8 @@ const useJssip = (isMobile = false) => {
     }
 
     const targetNumber = phoneNumber || formattedNumber;
+    const nextLead = metadata?.lead || activeLead;
+    const nextLeadLockToken = metadata?.leadLockToken || leadLockToken;
 
     try {
       // ✅ 2. Handle break removal if needed
@@ -1060,6 +1120,13 @@ const useJssip = (isMobile = false) => {
       dialingNumberRef.current = cleanedNumber;
       setPhoneNumber(targetNumber);
       setCallType('outgoing');
+      if (nextLead) {
+        setActiveLead(nextLead);
+      }
+      if (nextLeadLockToken) {
+        setLeadLockToken(nextLeadLockToken);
+        setAgentLifecycle('dialing');
+      }
 
       // ✅ 4. Add to call history
       const callRecord = {
@@ -1081,13 +1148,16 @@ const useJssip = (isMobile = false) => {
       const response = await axios.post(
         `${window.location.origin}/dialnumber`,
         {
-          caller: username,
           receiver: targetNumber,
+          leadLockToken: nextLeadLockToken || undefined,
+          leadId: nextLead?.leadId || undefined,
         },
         {
           headers: {
-            'Content-Type': 'application/json',
-            'X-User-ID': username,
+            ...getAuthHeaders({
+              'Content-Type': 'application/json',
+              'X-User-ID': username,
+            }),
           },
           timeout: 10000, // 10 second timeout
         },
@@ -1113,6 +1183,7 @@ const useJssip = (isMobile = false) => {
           setPhoneNumber('');
           dialingNumberRef.current = '';
           setCallType('');
+          setAgentLifecycle(nextLeadLockToken ? 'lead_locked' : 'idle');
 
           return;
         }
@@ -1123,6 +1194,7 @@ const useJssip = (isMobile = false) => {
         setPhoneNumber('');
         dialingNumberRef.current = '';
         setCallType('');
+        setAgentLifecycle(nextLeadLockToken ? 'lead_locked' : 'idle');
         return;
       }
 
@@ -1135,6 +1207,7 @@ const useJssip = (isMobile = false) => {
       setPhoneNumber('');
       dialingNumberRef.current = '';
       setCallType('');
+      setAgentLifecycle(nextLeadLockToken ? 'lead_locked' : 'idle');
 
       // ✅ 10. Check if error response contains "agent not ready" message
       if (error.response?.data) {
@@ -1194,15 +1267,16 @@ const useJssip = (isMobile = false) => {
         try {
           await axios.post(
             `${window.location.origin}/user/callended${username}`,
-            {},
+            leadLockToken ? { leadLockToken } : {},
             {
               headers: {
-                'Content-Type': 'application/json',
+                ...getAuthHeaders({ 'Content-Type': 'application/json' }),
               },
             },
           );
           setIsHeld(false);
           setIsCallended(false);
+          setAgentLifecycle('disposition');
           setDispositionModal(true);
         } catch (error) {
           console.error('Error calling callendedd API:', error);
@@ -1211,7 +1285,7 @@ const useJssip = (isMobile = false) => {
     };
 
     callApi();
-  }, [isCallended, username]);
+  }, [isCallended, username, leadLockToken, getAuthHeaders]);
 
   return [
     ringtone,
@@ -1275,6 +1349,14 @@ const useJssip = (isMobile = false) => {
     setHasParticipants,
     isMerged,
     setIsMerged,
+    activeLead,
+    setActiveLead,
+    leadLockToken,
+    setLeadLockToken,
+    agentLifecycle,
+    setAgentLifecycle,
+    activeCallContext,
+    setActiveCallContext,
   ];
 };
 

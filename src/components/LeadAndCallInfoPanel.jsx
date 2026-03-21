@@ -38,11 +38,13 @@ export default function LeadAndCallInfoPanel({
   token,
   callType,
   setFormSubmitted,
+  activeCallContext,
 }) {
   const [activeTab, setActiveTab] = useState('contact');
   const [localFormData, setLocalFormData] = useState({});
-  const [lastUserCall, setLastUserCall] = useState(null);
+  const [lastDraftKey, setLastDraftKey] = useState(null);
   const [isFormDataInitialized, setIsFormDataInitialized] = useState(false);
+  const [retainedUserCall, setRetainedUserCall] = useState(null);
 
   // Internal state management
   const [startDate, setStartDate] = useState(moment().subtract(7, 'days').startOf('day').toDate());
@@ -55,6 +57,130 @@ export default function LeadAndCallInfoPanel({
   const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
   const [conversationDetails, setConversationDetails] = useState([]);
   const [loadingConversation, setLoadingConversation] = useState(false);
+  const [manualEntryMode, setManualEntryMode] = useState(false);
+  const [contactConversationHistory, setContactConversationHistory] = useState([]);
+  const [latestConversation, setLatestConversation] = useState(null);
+  const [loadingContactConversationHistory, setLoadingContactConversationHistory] = useState(false);
+
+  const allowManualEntry = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const tokenData = localStorage.getItem('token');
+      if (!tokenData) return false;
+      const parsedData = JSON.parse(tokenData);
+      return parsedData?.userData?.allowManualEntry === true;
+    } catch (error) {
+      console.warn('Failed to read manual entry permission:', error);
+      return false;
+    }
+  }, [token]);
+
+  const manualEntryCall = useMemo(() => {
+    if (!manualEntryMode) return null;
+    return {
+      contactNumber: localFormData?.contactNumber || '',
+      alternateNumber: localFormData?.alternateNumber || '',
+      comment: localFormData?.comment || '',
+      isManualEntry: true,
+      isFresh: false,
+    };
+  }, [localFormData?.alternateNumber, localFormData?.comment, localFormData?.contactNumber, manualEntryMode]);
+
+  const isManualEntryActive = manualEntryMode && !userCall && !retainedUserCall;
+
+  const activeUserCall = useMemo(
+    () => (dispositionModal ? userCall || retainedUserCall || manualEntryCall : userCall || manualEntryCall),
+    [dispositionModal, manualEntryCall, retainedUserCall, userCall],
+  );
+
+  useEffect(() => {
+    if (userCall) {
+      setRetainedUserCall(userCall);
+      setManualEntryMode(false);
+    }
+  }, [userCall]);
+
+  const normalizedContactNumber = useMemo(() => {
+    const rawNumber = String(
+        activeUserCall?.contactNumber ||
+        localFormData?.contactNumber ||
+        activeUserCall?.contact_number ||
+        activeUserCall?.callerNumber ||
+        activeUserCall?.Caller ||
+        activeUserCall?.number ||
+        '',
+    ).trim();
+
+    if (!rawNumber) {
+      return 'no-contact';
+    }
+
+    return rawNumber.replace(/^\+91/, '') || rawNumber;
+  }, [activeUserCall, localFormData?.contactNumber]);
+
+  const currentCallReference = useMemo(
+    () =>
+      String(
+        (manualEntryMode && `manual:${normalizedContactNumber}`) ||
+        activeUserCall?.channelIDstring ||
+          activeUserCall?.channelID ||
+          activeUserCall?.incomingchannel ||
+          activeUserCall?.bridgeID ||
+          activeUserCall?.startTime ||
+          normalizedContactNumber ||
+          'no-call',
+      ),
+    [activeUserCall, manualEntryMode, normalizedContactNumber],
+  );
+
+  const authHeaders = useMemo(
+    () =>
+      token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : {},
+    [token],
+  );
+
+  const resolvedCallContext = useMemo(
+    () => ({
+      didNumber:
+        activeCallContext?.didNumber ||
+        activeUserCall?.didNumber ||
+        null,
+      isAfterHours:
+        activeCallContext?.isAfterHours === true ||
+        activeUserCall?.isAfterHours === true ||
+        activeUserCall?.isAfterhrs === true ||
+        false,
+      businessHoursSource:
+        activeCallContext?.businessHoursSource ||
+        activeUserCall?.businessHoursSource ||
+        null,
+      isSticky:
+        activeCallContext?.isSticky === true ||
+        activeUserCall?.isSticky === true ||
+        Boolean(activeUserCall?.stickyAgent),
+      stickyAgent:
+        activeCallContext?.stickyAgent ||
+        activeUserCall?.stickyAgent ||
+        null,
+    }),
+    [activeCallContext, activeUserCall],
+  );
+
+  const draftStorageKey = useMemo(() => {
+    if (!activeUserCall && !manualEntryMode) return null;
+
+    const formReference = formConfig?.formId || formId || 'contact-form';
+    const draftContactKey =
+      manualEntryMode && (!normalizedContactNumber || normalizedContactNumber === 'no-contact' || normalizedContactNumber.length < 10)
+        ? 'pending-manual'
+        : normalizedContactNumber;
+
+    return ['leadFormDraft', username || 'agent', userCampaign || 'no-campaign', manualEntryMode ? 'manual' : callType || 'unknown', formReference, draftContactKey].join(':');
+  }, [activeUserCall, callType, formConfig?.formId, formId, manualEntryMode, normalizedContactNumber, userCampaign, username]);
 
   const fetchWithTokenRetry = async (url, token, refreshToken, config = {}) => {
     // Use token if available, otherwise use refreshToken
@@ -76,7 +202,7 @@ export default function LeadAndCallInfoPanel({
             throw new Error('No saved credentials found');
           }
 
-          const refreshRes = await axios.post('${window.location.origin}/api/applogin', {
+          const refreshRes = await axios.post(`${window.location.origin}/api/applogin`, {
             username: savedUsername,
             password: savedPassword,
           });
@@ -159,7 +285,7 @@ export default function LeadAndCallInfoPanel({
           return;
         }
 
-        let targetType = callType === 'outgoing' ? 'outgoing' : 'incoming';
+        let targetType = manualEntryMode ? 'incoming' : callType === 'outgoing' ? 'outgoing' : 'incoming';
 
         // Try multiple possible property names and values
         let matchingForm = forms.find((form) => {
@@ -216,7 +342,7 @@ export default function LeadAndCallInfoPanel({
     }
 
     fetchFormList();
-  }, [userCampaign, callType]);
+  }, [userCampaign, callType, manualEntryMode]);
 
   useEffect(() => {
     if (!formId) {
@@ -270,6 +396,47 @@ export default function LeadAndCallInfoPanel({
     fetchFormDetails();
   }, [formId]);
 
+  useEffect(() => {
+    if (!token) {
+      setContactConversationHistory([]);
+      setLatestConversation(null);
+      return undefined;
+    }
+
+    const contactNumber = normalizedContactNumber;
+    if (!contactNumber || contactNumber === 'no-contact' || contactNumber.length < 10) {
+      setContactConversationHistory([]);
+      setLatestConversation(null);
+      return undefined;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoadingContactConversationHistory(true);
+        const response = await axios.get(`${window.location.origin}/fetchConversationsByContact`, {
+          params: {
+            contactNumber,
+            campaignId: userCampaign || undefined,
+            limit: 10,
+          },
+          headers: authHeaders,
+        });
+
+        const result = Array.isArray(response.data?.result) ? response.data.result : [];
+        setContactConversationHistory(result);
+        setLatestConversation(result[0] || null);
+      } catch (error) {
+        console.error('Error fetching contact conversations:', error);
+        setContactConversationHistory([]);
+        setLatestConversation(null);
+      } finally {
+        setLoadingContactConversationHistory(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timeoutId);
+  }, [authHeaders, normalizedContactNumber, token, userCampaign]);
+
   // Data fetching functions
   const fetchLeadsWithDateRange = useCallback(async () => {
     if (!userCampaign || !username || !token || !startDate || !endDate) return;
@@ -288,9 +455,7 @@ export default function LeadAndCallInfoPanel({
           user: username,
         },
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: authHeaders,
         },
       );
 
@@ -302,7 +467,7 @@ export default function LeadAndCallInfoPanel({
     } finally {
       setLoading(false);
     }
-  }, [userCampaign, username, token, startDate, endDate]);
+  }, [authHeaders, endDate, startDate, token, userCampaign, username]);
 
   const fetchCallDataByAgent = useCallback(async () => {
     if (!username || !token || !startDate || !endDate) return;
@@ -322,7 +487,7 @@ export default function LeadAndCallInfoPanel({
         {
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+            ...authHeaders,
           },
         },
       );
@@ -335,7 +500,7 @@ export default function LeadAndCallInfoPanel({
     } finally {
       setLoading(false);
     }
-  }, [username, token, startDate, endDate]);
+  }, [authHeaders, endDate, startDate, token, username]);
 
   // Fetch data when dependencies change
   useEffect(() => {
@@ -385,51 +550,139 @@ export default function LeadAndCallInfoPanel({
   // Get mapped leads
   const mappedLeads = useMemo(() => mapLeadData(leadsData), [leadsData, mapLeadData]);
 
-  // Initialize form data when userCall changes
+  // Initialize form data when current call/form changes
   useEffect(() => {
-    if (userCall && (!lastUserCall || lastUserCall.contactNumber !== userCall.contactNumber)) {
+    const initializationSignature = `${draftStorageKey || 'none'}:${latestConversation?._id || latestConversation?.id || latestConversation?.createdAt || 'none'}`;
+
+    if ((!activeUserCall && !manualEntryMode) || !draftStorageKey || lastDraftKey === initializationSignature) {
+      return;
+    }
+
       const initialFormData = {};
+      const sourceCallData = activeUserCall || {};
+      const conversationSeed = latestConversation
+        ? Object.fromEntries(
+            Object.entries(latestConversation).filter(([key]) => {
+              if (!key || key.startsWith('_')) return false;
+              return ![
+                'id',
+                'adminuser',
+                'userId',
+                'createdAt',
+                'updatedAt',
+                'updatedBy',
+                'editedInAdmin',
+                'isDeleted',
+                'formId',
+                'formID',
+                'formTitle',
+                'formType',
+                'campaignId',
+                'campaignName',
+                'callType',
+                'callReference',
+                'agentName',
+                'entryMode',
+                'isFresh',
+              ].includes(key);
+            }),
+          )
+        : {};
 
       if (formConfig?.sections?.length > 0) {
         // Dynamic form initialization
         formConfig.sections.forEach((section) => {
           section.fields.forEach((field) => {
             const fieldName = field.name;
+            const normalizedName = String(fieldName || '').toLowerCase();
+            const normalizedLabel = String(field.label || '').toLowerCase();
+
+            if (
+              field.systemField === 'callerNumber' ||
+              normalizedName === 'contactnumber' ||
+              normalizedName === 'callernumber' ||
+              normalizedName === 'number' ||
+              normalizedLabel.includes('caller number') ||
+              normalizedLabel.includes('mobile no')
+            ) {
+              initialFormData[fieldName] = sourceCallData.contactNumber || '';
+              return;
+            }
+
+            if (
+              field.systemField === 'alternateNumber' ||
+              normalizedName === 'alternatenumber' ||
+              normalizedLabel.includes('alternate')
+            ) {
+              initialFormData[fieldName] = sourceCallData.alternateNumber || '';
+              return;
+            }
+
             const lowerFieldName = fieldName.toLowerCase();
-            const userCallKeys = Object.keys(userCall);
+            const userCallKeys = Object.keys(sourceCallData);
             const matchedKey = userCallKeys.find((key) => key.toLowerCase() === lowerFieldName);
-            initialFormData[fieldName] = matchedKey !== undefined ? (userCall[matchedKey] ?? '') : '';
+            initialFormData[fieldName] = matchedKey !== undefined ? (sourceCallData[matchedKey] ?? '') : '';
           });
         });
       } else {
         // Static form initialization
         Object.assign(initialFormData, {
-          firstName: userCall.firstName || '',
-          lastName: userCall.lastName || '',
-          number: userCall.contactNumber || '',
-          alternateNumber: userCall.alternateNumber || '',
-          address: userCall.Contactaddress || '', // Note: Capital 'C' in Contact
-          state: userCall.ContactState || '', // Note: Capital 'C' and 'S'
-          district: userCall.ContactDistrict || '', // Note: Capital 'C' and 'D'
-          city: userCall.ContactCity || '', // Note: Capital 'C'
-          postalCode: userCall.ContactPincode || '', // Note: Capital 'C' and 'P'
-          email: userCall.emailId || '',
-          comment: userCall.comment || '',
+          firstName: sourceCallData.firstName || '',
+          lastName: sourceCallData.lastName || '',
+          emailId: sourceCallData.emailId || sourceCallData.Email || sourceCallData.email || '',
+          contactNumber: sourceCallData.contactNumber || '',
+          alternateNumber: sourceCallData.alternateNumber || '',
+          Contactaddress: sourceCallData.Contactaddress || sourceCallData.address || '',
+          ContactState: sourceCallData.ContactState || sourceCallData.state || '',
+          ContactDistrict: sourceCallData.ContactDistrict || '',
+          ContactCity: sourceCallData.ContactCity || sourceCallData.city || sourceCallData.CIty || '',
+          ContactPincode: sourceCallData.ContactPincode || sourceCallData.postalCode || sourceCallData['Pincode '] || '',
+          comment: sourceCallData.comment || '',
         });
       }
 
+      Object.assign(initialFormData, conversationSeed);
+
+      try {
+        const savedDraft = localStorage.getItem(draftStorageKey);
+        if (savedDraft) {
+          Object.assign(initialFormData, JSON.parse(savedDraft));
+        }
+      } catch (error) {
+        console.warn('Failed to restore saved form draft:', error);
+      }
+
+      if (manualEntryMode && localFormData && Object.keys(localFormData).length > 0) {
+        Object.assign(initialFormData, localFormData);
+      }
+
+      initialFormData.contactNumber = sourceCallData.contactNumber || initialFormData.contactNumber || '';
       setLocalFormData(initialFormData);
-      setLastUserCall(userCall);
+      setLastDraftKey(initializationSignature);
       setIsFormDataInitialized(true);
-    }
-  }, [userCall, isFormDataInitialized, formConfig]);
+  }, [activeUserCall, draftStorageKey, formConfig, lastDraftKey, latestConversation, localFormData, manualEntryMode]);
 
   useEffect(() => {
     if (formSubmitted) {
+      if (draftStorageKey) {
+        localStorage.removeItem(draftStorageKey);
+        localStorage.removeItem(`formNavigationState:${draftStorageKey}`);
+      }
       setLocalFormData({});
       setIsFormDataInitialized(false);
+      setLastDraftKey(null);
+      setRetainedUserCall(null);
+      setManualEntryMode(false);
     }
-  }, [formSubmitted]);
+  }, [draftStorageKey, formSubmitted]);
+
+  useEffect(() => {
+    if (!draftStorageKey) return;
+
+    if (localFormData && Object.keys(localFormData).length > 0) {
+      localStorage.setItem(draftStorageKey, JSON.stringify(localFormData));
+    }
+  }, [draftStorageKey, localFormData]);
 
   // Update local form data handler
   const updateLocalFormData = useCallback((newData) => {
@@ -438,18 +691,40 @@ export default function LeadAndCallInfoPanel({
     });
   }, []);
 
+  const buildConversationRecord = useCallback(
+    (submittedData, overrides = {}) => ({
+      ...submittedData,
+      contactNumber: submittedData.contactNumber || activeUserCall?.contactNumber || '',
+      agentName: username,
+      campaignId: userCampaign || '',
+      formId: overrides.formId ?? formConfig?.formId ?? null,
+      formTitle: overrides.formTitle ?? formConfig?.formTitle ?? 'Contact Form',
+      formType: overrides.formType ?? formConfig?.formType ?? (callType === 'outgoing' ? 'outgoing' : 'incoming'),
+      callType: manualEntryMode ? formConfig?.formType || 'manual' : callType || '',
+      entryMode: manualEntryMode ? 'manual' : 'call',
+      callReference: currentCallReference,
+    }),
+    [activeUserCall?.contactNumber, callType, currentCallReference, formConfig?.formId, formConfig?.formTitle, formConfig?.formType, manualEntryMode, userCampaign, username],
+  );
+
   // Handle form submission
   const handleContact = async (event, formDataToSubmit) => {
     event.preventDefault();
 
+    const conversationData = buildConversationRecord(formDataToSubmit, {
+      formId: 'contact-form',
+      formTitle: 'Contact Form',
+    });
+
     const payload = {
       user: username,
-      isFresh: userCall?.isFresh,
+      isFresh: activeUserCall?.isFresh,
+      formObject: conversationData,
       data: {
         firstName: formDataToSubmit.firstName || '',
         lastName: formDataToSubmit.lastName || '',
         emailId: formDataToSubmit.emailId || '',
-        contactNumber: formDataToSubmit.contactNumber || userCall?.contactNumber || '',
+        contactNumber: formDataToSubmit.contactNumber || activeUserCall?.contactNumber || '',
         alternateNumber: formDataToSubmit.alternateNumber || '',
         comment: formDataToSubmit.comment || '',
         Contactaddress: formDataToSubmit.Contactaddress || '',
@@ -463,9 +738,7 @@ export default function LeadAndCallInfoPanel({
 
     try {
       const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: authHeaders,
       });
 
       if (response.data?.success) {
@@ -489,48 +762,27 @@ export default function LeadAndCallInfoPanel({
       return;
     }
 
-    // Create the new object to be passed as 'formObject'
-    const formObject = {};
-    for (const key in formDataToSubmit) {
-      if (formDataToSubmit.hasOwnProperty(key)) {
-        if (
-          key !== 'firstName' &&
-          key !== 'lastName' &&
-          key !== 'email' &&
-          key !== 'number' &&
-          key !== 'alternateNumber' &&
-          key !== 'comment' &&
-          key !== 'address' &&
-          key !== 'district' &&
-          key !== 'city' &&
-          key !== 'state' &&
-          key !== 'postalCode'
-        ) {
-          formObject[key] = formDataToSubmit[key];
-        }
-      }
-    }
-
-    // Add agentName to the formObject
-    formObject.agentName = username;
+    const conversationData = buildConversationRecord(formDataToSubmit);
 
     const payload = {
       user: username,
-      isFresh: userCall?.isFresh,
-      formObject: formObject,
+      isFresh: activeUserCall?.isFresh,
+      formObject: conversationData,
       data: {
         ...formDataToSubmit,
-        contactNumber: userCall?.contactNumber || '',
-        formId: formConfig.formId,
+        contactNumber: conversationData.contactNumber,
+        formId: conversationData.formId,
+        formTitle: conversationData.formTitle,
+        formType: conversationData.formType,
+        campaignId: conversationData.campaignId,
+        callType: conversationData.callType,
         agentName: username,
       },
     };
 
     try {
       const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: authHeaders,
       });
 
       if (response.data?.success) {
@@ -551,9 +803,9 @@ export default function LeadAndCallInfoPanel({
 
   // Filter mapped leads for the current contact
   const filteredMappedLeadsForPanel = useMemo(() => {
-    if (!mappedLeads || !startDate || !endDate || !userCall) return [];
+    if (!mappedLeads || !startDate || !endDate || !activeUserCall) return [];
 
-    const normalizedContactNumber = String(userCall.contactNumber || '').replace(/^\+91/, '');
+    const normalizedContactNumber = String(activeUserCall.contactNumber || '').replace(/^\+91/, '');
     const startOfDay = moment(startDate).startOf('day');
     const endOfDay = moment(endDate).endOf('day');
 
@@ -565,7 +817,7 @@ export default function LeadAndCallInfoPanel({
         normalizedLeadPhone === normalizedContactNumber && leadUploadTime.isBetween(startOfDay, endOfDay, null, '[]')
       );
     });
-  }, [mappedLeads, startDate, endDate, userCall]);
+  }, [activeUserCall, mappedLeads, startDate, endDate]);
 
   // Get current lead (most recent)
   const currentLead = useMemo(() => {
@@ -579,9 +831,9 @@ export default function LeadAndCallInfoPanel({
 
   // Filter API call data for the current contact
   const filteredApiCallDataForPanel = useMemo(() => {
-    if (!apiCallData || !startDate || !endDate || !userCall) return [];
+    if (!apiCallData || !startDate || !endDate || !activeUserCall) return [];
 
-    const normalizedContactNumber = String(userCall.contactNumber || '').replace(/^\+91/, '');
+    const normalizedContactNumber = String(activeUserCall.contactNumber || '').replace(/^\+91/, '');
     const startOfDay = moment(startDate).startOf('day');
     const endOfDay = moment(endDate).endOf('day');
 
@@ -591,7 +843,7 @@ export default function LeadAndCallInfoPanel({
 
       return normalizedCallNumber === normalizedContactNumber && callTime.isBetween(startOfDay, endOfDay, null, '[]');
     });
-  }, [apiCallData, startDate, endDate, userCall]);
+  }, [activeUserCall, apiCallData, startDate, endDate]);
 
   // Get current API call record (most recent)
   const currentApiCallRecord = useMemo(() => {
@@ -605,7 +857,7 @@ export default function LeadAndCallInfoPanel({
 
   // Render contact form tab
   const renderContactTab = () => {
-    if (!userCall) return null;
+    if (!activeUserCall) return null;
 
     if (formConfig && formConfig?.sections && formConfig?.sections?.length > 0) {
       return (
@@ -614,7 +866,7 @@ export default function LeadAndCallInfoPanel({
           formConfig={formConfig}
           formState={localFormData}
           setFormState={updateLocalFormData}
-          userCall={userCall}
+          userCall={activeUserCall}
           userCallDialog={true}
           formSubmitted={formSubmitted}
           handleSubmit={handleSubmit}
@@ -622,6 +874,8 @@ export default function LeadAndCallInfoPanel({
           status={status}
           connectionStatus={connectionStatus}
           setLocalFormData={updateLocalFormData}
+          draftStorageKey={draftStorageKey}
+          isManualEntry={isManualEntryActive}
         />
       );
     } else {
@@ -630,9 +884,10 @@ export default function LeadAndCallInfoPanel({
           localFormData={localFormData}
           setLocalFormData={updateLocalFormData}
           handleSubmit={handleContact}
-          userCall={userCall}
+          userCall={activeUserCall}
           userCallDialog={true}
           formSubmitted={formSubmitted}
+          isManualEntry={isManualEntryActive}
         />
       );
     }
@@ -753,8 +1008,28 @@ export default function LeadAndCallInfoPanel({
     ];
 
     return (
-      <div className="space-y-4">
-        {specificKeysConfig.map((fieldConfig, index) => {
+          <div className="space-y-4">
+            {resolvedCallContext.didNumber || resolvedCallContext.isAfterHours || resolvedCallContext.isSticky ? (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
+                {resolvedCallContext.didNumber ? (
+                  <Badge variant="outline">Incoming via: {String(resolvedCallContext.didNumber).replace(/^\+91/, '')}</Badge>
+                ) : null}
+                {resolvedCallContext.isAfterHours ? (
+                  <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">After Hours</Badge>
+                ) : null}
+                {resolvedCallContext.isSticky ? (
+                  <Badge className="bg-primary/10 text-primary hover:bg-primary/10">
+                    Sticky{resolvedCallContext.stickyAgent ? ` • ${resolvedCallContext.stickyAgent}` : ''}
+                  </Badge>
+                ) : null}
+                {resolvedCallContext.businessHoursSource ? (
+                  <Badge variant="secondary" className="capitalize">
+                    {resolvedCallContext.businessHoursSource}
+                  </Badge>
+                ) : null}
+              </div>
+            ) : null}
+            {specificKeysConfig.map((fieldConfig, index) => {
           const key = fieldConfig.key;
           const label = fieldConfig.label;
           let value = dataToDisplay[key];
@@ -826,469 +1101,407 @@ export default function LeadAndCallInfoPanel({
   // Fetch conversations for a contact number from the API
   const handleHistoryCardClick = async (historyItem) => {
     setSelectedHistoryItem(historyItem);
-    setConversationDetails([]);
-    setLoadingConversation(true);
-
-    const contactNumber = String(
-      historyItem.Caller || historyItem.dialNumber || historyItem.phone || historyItem.contactNumber || '',
-    ).replace(/^\+91/, '');
-
-    if (!contactNumber) {
-      setLoadingConversation(false);
-      return;
-    }
-
-    try {
-      const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
-      const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
-
-      const response = await axios.get(`${window.location.origin}/fetchConversationsAgent`, {
-        params: { startDate: formattedStartDate, endDate: formattedEndDate, agentName: username },
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.data?.success && response.data.result) {
-        console.log('--- FETCH CONVERSATIONS DEBUG ---');
-        console.log('Target Contact Number:', contactNumber);
-        console.log('Raw API Response Data:', response.data.result);
-
-        // We assume the API returns conversations ONLY for this user/agent
-        // We will just display all results the backend returns for this timeframe.
-        const matched = [...response.data.result];
-
-        console.log('Displaying all returned Conversations:', matched);
-        console.log('---------------------------------');
-
-        // Sort by createdAt descending (most recent first)
-        matched.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        setConversationDetails(matched);
-      }
-    } catch (err) {
-      console.error('Error fetching conversations:', err);
-    } finally {
-      setLoadingConversation(false);
-    }
+    setConversationDetails(historyItem ? [historyItem] : []);
+    setLoadingConversation(false);
   };
 
   // Render history tab
   const renderHistoryTab = () => {
-    const normalizedContactNumber = String(userCall?.contactNumber || '').replace(/^\+91/, '');
-    const historyItems = [];
-
-    // Collect lead history
-    const filteredLeadHistoryItems = mappedLeads.filter(
-      (lead) => String(lead.phone || '').replace(/^\+91/, '') === normalizedContactNumber,
-    );
-
-    if (filteredLeadHistoryItems && filteredLeadHistoryItems.length > 0) {
-      filteredLeadHistoryItems.forEach((lead) => {
-        if (lead.history && lead.history.length > 0) {
-          lead.history.forEach((item) => {
-            const itemDate = moment(item.uploadDate);
-            if (itemDate.isBetween(moment(startDate).startOf('day'), moment(endDate).endOf('day'), null, '[]')) {
-              historyItems.push({ ...item, _isLeadHistory: true });
-            }
-          });
-        }
-      });
-
-      const mainLeadDate = moment(currentLead?.uploadDate);
-      if (
-        currentLead &&
-        mainLeadDate.isBetween(moment(startDate).startOf('day'), moment(endDate).endOf('day'), null, '[]')
-      ) {
-        if (!historyItems.some((h) => h.uploadDate === currentLead.uploadDate && h.phone === currentLead.phone)) {
-          historyItems.push({ ...currentLead, _isLeadHistory: true });
-        }
-      }
+    if (loadingContactConversationHistory) {
+      return (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+          <span className="ml-2 text-sm text-muted-foreground">Loading recent conversations...</span>
+        </div>
+      );
     }
 
-    // Collect API call history
-    if (apiCallData && apiCallData.length > 0) {
-      apiCallData.forEach((call) => {
-        const mainCallDate = moment(call.startTime);
-        if (mainCallDate.isBetween(moment(startDate).startOf('day'), moment(endDate).endOf('day'), null, '[]')) {
-          if (
-            !historyItems.some(
-              (h) => h.startTime === call.startTime && (h.Caller === call.Caller || h.dialNumber === call.dialNumber),
-            )
-          ) {
-            historyItems.push({ ...call, _isApiHistory: true });
-          }
-        }
-
-        if (call.history && call.history.length > 0) {
-          call.history.forEach((item) => {
-            const itemDate = moment(item.startTime);
-            if (itemDate.isBetween(moment(startDate).startOf('day'), moment(endDate).endOf('day'), null, '[]')) {
-              historyItems.push({ ...item, _isApiHistory: true });
-            }
-          });
-        }
-      });
-    }
-
-    // Remove duplicates and sort
-    const uniqueHistory = [];
-    const seen = new Set();
-    historyItems.forEach((item) => {
-      const key = item._isLeadHistory
-        ? `lead-${item.phone}-${item.uploadDate}`
-        : `api-${item.Caller || item.dialNumber}-${item.startTime}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        uniqueHistory.push(item);
-      }
-    });
-
-    uniqueHistory.sort((a, b) => {
-      const timeA = a.uploadDate || a.startTime;
-      const timeB = b.uploadDate || b.startTime;
-      return moment(timeB).valueOf() - moment(timeA).valueOf();
-    });
-
-    if (uniqueHistory.length === 0) {
+    if (contactConversationHistory.length === 0) {
       return (
         <div className="text-center py-8">
           <History size={48} className="mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">No call history available for this entry in the selected date range.</p>
+          <p className="text-muted-foreground">No recent tagging or conversation history found for this number.</p>
         </div>
       );
     }
 
     return (
-      <>
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <History size={16} className="text-muted-foreground" />
-            <span className="text-sm font-medium">Call History ({uniqueHistory.length})</span>
-          </div>
-
-          <div className="space-y-3 max-h-[32rem] overflow-y-auto">
-            {uniqueHistory.map((historyItem, index) => (
-              <Card
-                key={index}
-                className="border-l-4 border-l-primary/30 cursor-pointer hover:shadow-md hover:border-l-primary/60 transition-all duration-200"
-                onClick={() => handleHistoryCardClick(historyItem)}
-              >
-                <CardContent className="p-4">
-                  <div className="space-y-3">
-                    {historyItem._isLeadHistory ? (
-                      <>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <User size={16} className="text-muted-foreground" />
-                            <span className="font-medium">{historyItem.name || '-'}</span>
-                          </div>
-                          <Badge
-                            variant={historyItem.status === 'Complete' ? 'default' : 'secondary'}
-                            className={
-                              historyItem.status === 'Complete'
-                                ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                                : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                            }
-                          >
-                            {historyItem.status}
-                          </Badge>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Clock size={16} className="text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">
-                            {historyItem.uploadDate
-                              ? moment(historyItem.uploadDate).format('DD MMM YYYY, hh:mm A')
-                              : '-'}
-                          </span>
-                        </div>
-
-                        {historyItem.phone && (
-                          <div className="flex items-center gap-2">
-                            <Phone size={16} className="text-muted-foreground" />
-                            <span className="text-sm font-mono">{historyItem.phone}</span>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <User size={16} className="text-muted-foreground" />
-                            <span className="font-medium">{historyItem.agent || '-'}</span>
-                          </div>
-                          <Badge
-                            variant={historyItem.Type?.toLowerCase() === 'incoming' ? 'default' : 'secondary'}
-                            className={
-                              historyItem.Type?.toLowerCase() === 'incoming'
-                                ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                                : 'bg-purple-100 text-purple-800 hover:bg-purple-200'
-                            }
-                          >
-                            {(historyItem.Type === 'incoming' && 'Incoming') || 'Outgoing'}
-                          </Badge>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Clock size={16} className="text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">
-                            {historyItem.startTime
-                              ? moment(historyItem.startTime).format('DD MMM YYYY, hh:mm:ss A')
-                              : '-'}
-                          </span>
-                        </div>
-
-                        {(historyItem.Caller || historyItem.dialNumber) && (
-                          <div className="flex items-center gap-2">
-                            <Phone size={16} className="text-muted-foreground" />
-                            <span className="text-sm font-mono">
-                              {String(historyItem.Caller || historyItem.dialNumber).replace(/^\+91/, '')}
-                            </span>
-                          </div>
-                        )}
-                      </>
-                    )}
+      <div className="space-y-4">
+        {latestConversation && (
+          <Card className="border-l-4 border-l-primary">
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Tag size={16} className="text-primary" />
+                    <span className="font-medium">Last Tagging</span>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {latestConversation.formTitle || 'Contact Form'} by {latestConversation.agentName || 'Unknown agent'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">
+                    {latestConversation.entryMode === 'manual' ? 'Manual Entry' : 'Call Entry'}
+                  </Badge>
+                  <Badge variant="outline">
+                    {moment(latestConversation.createdAt).isValid()
+                      ? moment(latestConversation.createdAt).format('DD MMM YYYY, hh:mm A')
+                      : 'Recent'}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="flex items-center gap-2 mb-2">
+          <History size={16} className="text-muted-foreground" />
+          <span className="text-sm font-medium">Recent Conversations ({contactConversationHistory.length})</span>
         </div>
 
-        {/* Conversations Detail Dialog */}
-        <Dialog
-          open={!!selectedHistoryItem}
-          onOpenChange={(open) => {
-            if (!open) {
-              setSelectedHistoryItem(null);
-              setConversationDetails([]);
-            }
-          }}
-        >
-          <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Info size={18} />
-                Conversation Details
-              </DialogTitle>
-            </DialogHeader>
-            {loadingConversation ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-                <span className="ml-2 text-sm text-muted-foreground">Loading conversations...</span>
-              </div>
-            ) : conversationDetails.length > 0 ? (
-              <div className="space-y-4">
-                {conversationDetails.map((conv, idx) => {
-                  const skipKeys = new Set([
-                    '_id',
-                    'id',
-                    '__v',
-                    'formId',
-                    'formID',
-                    'userId',
-                    'adminuser',
-                    'isDeleted',
-                    'isFresh',
-                  ]);
-
-                  const formatLabel = (key) => {
-                    return key
-                      .replace(/([A-Z])/g, ' $1')
-                      .replace(/_/g, ' ')
-                      .replace(/^./, (s) => s.toUpperCase())
-                      .trim();
-                  };
-
-                  const formatValue = (key, value) => {
-                    if (value === null || value === undefined || value === '') return null;
-                    const k = key.toLowerCase();
-                    if (k === 'createdat' || k.includes('date') || k.includes('time')) {
-                      const m = moment(value);
-                      if (m.isValid()) return m.format('DD MMM YYYY, hh:mm:ss A');
-                    }
-                    if (typeof value === 'object') return JSON.stringify(value);
-                    return String(value);
-                  };
-
-                  const entries = Object.entries(conv)
-                    .filter(([key, value]) => {
-                      if (skipKeys.has(key)) return false;
-                      if (key.startsWith('_')) return false;
-                      if (value === null || value === undefined || value === '') return false;
-                      if (typeof value === 'object') return false;
-                      return true;
-                    })
-                    .map(([key, value]) => ({
-                      key,
-                      label: formatLabel(key),
-                      value: formatValue(key, value),
-                    }))
-                    .filter((entry) => entry.value !== null);
-
-                  return (
-                    <div key={conv._id || idx}>
-                      {conversationDetails.length > 1 && (
-                        <div className="text-xs font-semibold text-muted-foreground mb-2 bg-muted/50 px-2 py-1 rounded">
-                          Conversation {idx + 1}
-                        </div>
-                      )}
-                      <div className="space-y-0">
-                        {entries.map((entry) => (
-                          <div
-                            key={entry.key}
-                            className="flex items-start justify-between py-2 border-b border-border/30 last:border-0"
-                          >
-                            <span className="text-sm text-muted-foreground min-w-[120px] shrink-0">{entry.label}</span>
-                            <span className="text-sm font-medium text-right break-all max-w-[60%]">{entry.value}</span>
-                          </div>
-                        ))}
-                      </div>
-                      {idx < conversationDetails.length - 1 && <Separator className="my-3" />}
+        <div className="space-y-3 max-h-[32rem] overflow-y-auto pr-1">
+          {contactConversationHistory.map((conversation, index) => (
+            <Card
+              key={conversation._id || conversation.id || index}
+              className="border-l-4 border-l-primary/30 cursor-pointer hover:shadow-md hover:border-l-primary/60 transition-all duration-200"
+              onClick={() => handleHistoryCardClick(conversation)}
+            >
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <User size={16} className="text-muted-foreground" />
+                      <span className="font-medium">{conversation.agentName || 'Unknown agent'}</span>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No conversation data found for this contact.
-              </p>
-            )}
-          </DialogContent>
-        </Dialog>
-      </>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className={conversation.entryMode === 'manual' ? 'border-amber-300 text-amber-700' : 'border-sky-300 text-sky-700'}
+                      >
+                        {conversation.entryMode === 'manual' ? 'Manual' : 'Call'}
+                      </Badge>
+                      {conversation.callType && <Badge variant="secondary">{conversation.callType}</Badge>}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Clock size={16} />
+                      <span>{moment(conversation.createdAt).isValid() ? moment(conversation.createdAt).format('DD MMM YYYY, hh:mm A') : '-'}</span>
+                    </div>
+                    <span className="font-medium text-primary">{conversation.formTitle || 'Contact Form'}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Phone size={16} />
+                    <span className="font-mono">{String(conversation.contactNumber || '').replace(/^\+91/, '') || '-'}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
     );
   };
+
+  const renderConversationDialog = () => (
+    <Dialog
+      open={!!selectedHistoryItem}
+      onOpenChange={(open) => {
+        if (!open) {
+          setSelectedHistoryItem(null);
+          setConversationDetails([]);
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Info size={18} />
+            Conversation Details
+          </DialogTitle>
+        </DialogHeader>
+        {loadingConversation ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+            <span className="ml-2 text-sm text-muted-foreground">Loading conversations...</span>
+          </div>
+        ) : conversationDetails.length > 0 ? (
+          <div className="space-y-4">
+            {conversationDetails.map((conv, idx) => {
+              const skipKeys = new Set([
+                '_id',
+                'id',
+                '__v',
+                'formId',
+                'formID',
+                'userId',
+                'adminuser',
+                'isDeleted',
+                'isFresh',
+              ]);
+
+              const formatLabel = (key) =>
+                key
+                  .replace(/([A-Z])/g, ' $1')
+                  .replace(/_/g, ' ')
+                  .replace(/^./, (s) => s.toUpperCase())
+                  .trim();
+
+              const formatValue = (key, value) => {
+                if (value === null || value === undefined || value === '') return null;
+                const normalizedKey = key.toLowerCase();
+                if (normalizedKey === 'createdat' || normalizedKey.includes('date') || normalizedKey.includes('time')) {
+                  const parsedMoment = moment(value);
+                  if (parsedMoment.isValid()) return parsedMoment.format('DD MMM YYYY, hh:mm:ss A');
+                }
+                if (typeof value === 'object') return JSON.stringify(value);
+                return String(value);
+              };
+
+              const entries = Object.entries(conv)
+                .filter(([key, value]) => {
+                  if (skipKeys.has(key) || key.startsWith('_')) return false;
+                  if (value === null || value === undefined || value === '') return false;
+                  return typeof value !== 'object';
+                })
+                .map(([key, value]) => ({
+                  key,
+                  label: formatLabel(key),
+                  value: formatValue(key, value),
+                }))
+                .filter((entry) => entry.value !== null);
+
+              return (
+                <div key={conv._id || conv.id || idx}>
+                  {conversationDetails.length > 1 && (
+                    <div className="text-xs font-semibold text-muted-foreground mb-2 bg-muted/50 px-2 py-1 rounded">
+                      Conversation {idx + 1}
+                    </div>
+                  )}
+                  <div className="space-y-0">
+                    {entries.map((entry) => (
+                      <div
+                        key={entry.key}
+                        className="flex items-start justify-between py-2 border-b border-border/30 last:border-0"
+                      >
+                        <span className="text-sm text-muted-foreground min-w-[120px] shrink-0">{entry.label}</span>
+                        <span className="text-sm font-medium text-right break-all max-w-[60%]">{entry.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-4">No conversation data found for this contact.</p>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 
   // Disposition modal view
   if (!formSubmitted && dispositionModal) {
     return (
-      <AlertDialog open={true}>
-        <AlertDialogContent className="p-0 m-0 !max-w-6xl overflow-auto">
-          <Card className="w-full h-full border-0 shadow-none !gap-2">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="text-lg font-semibold">Active Call Information</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!userCall && !lastUserCall ? (
-                <div className="text-center py-8">
-                  <Phone size={48} className="mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No call data available for disposition.</p>
-                </div>
-              ) : (
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
-                    <TabsList className="grid w-full sm:w-auto grid-cols-4 flex-grow">
-                      <TabsTrigger value="contact" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                        <UserCog size={16} /> <span className="hidden sm:inline">Contact</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="callInfo" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                        <Clock size={16} /> <span className="hidden sm:inline">Call Info</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="lead" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                        <User size={16} /> <span className="hidden sm:inline">Lead Info</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="history" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                        <History size={16} /> <span className="hidden sm:inline">History</span>
-                      </TabsTrigger>
-                    </TabsList>
-                    <div className="w-auto flex justify-end">
-                      <DateRangePicker
-                        key={`panel-date-picker-${moment(startDate).format('YYYY-MM-DD')}-${moment(endDate).format(
-                          'YYYY-MM-DD',
-                        )}`}
-                        onDateChange={([start, end]) => {
-                          setStartDate(start);
-                          setEndDate(end);
-                        }}
-                        initialStartDate={startDate}
-                        initialEndDate={endDate}
-                      />
+      <>
+        <AlertDialog open={true}>
+          <AlertDialogContent className="p-0 m-0 !max-w-6xl overflow-auto">
+            <Card className="w-full h-full border-0 shadow-none !gap-2">
+              <CardHeader>
+                <CardTitle className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="text-lg font-semibold">Active Call Information</span>
+                  {(resolvedCallContext.didNumber || resolvedCallContext.isAfterHours || resolvedCallContext.isSticky) && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {resolvedCallContext.didNumber ? (
+                        <Badge variant="outline">DID: {String(resolvedCallContext.didNumber).replace(/^\+91/, '')}</Badge>
+                      ) : null}
+                      {resolvedCallContext.isAfterHours ? (
+                        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">After Hours</Badge>
+                      ) : null}
+                      {resolvedCallContext.isSticky ? (
+                        <Badge className="bg-primary/10 text-primary hover:bg-primary/10">Sticky</Badge>
+                      ) : null}
                     </div>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!activeUserCall ? (
+                  <div className="text-center py-8">
+                    <Phone size={48} className="mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No call data available for disposition.</p>
                   </div>
+                ) : (
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                      <TabsList className="grid w-full sm:w-auto grid-cols-4 flex-grow">
+                        <TabsTrigger value="contact" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                          <UserCog size={16} /> <span className="hidden sm:inline">Contact</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="callInfo" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                          <Clock size={16} /> <span className="hidden sm:inline">Call Info</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="lead" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                          <User size={16} /> <span className="hidden sm:inline">Lead Info</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="history" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                          <History size={16} /> <span className="hidden sm:inline">History</span>
+                        </TabsTrigger>
+                      </TabsList>
+                      <div className="w-auto flex justify-end">
+                        <DateRangePicker
+                          key={`panel-date-picker-${moment(startDate).format('YYYY-MM-DD')}-${moment(endDate).format(
+                            'YYYY-MM-DD',
+                          )}`}
+                          onDateChange={([start, end]) => {
+                            setStartDate(start);
+                            setEndDate(end);
+                          }}
+                          initialStartDate={startDate}
+                          initialEndDate={endDate}
+                        />
+                      </div>
+                    </div>
 
-                  <TabsContent value="contact" className="mt-4">
-                    {renderContactTab()}
-                  </TabsContent>
-                  <TabsContent value="lead" className="mt-4">
-                    {renderLeadTab()}
-                  </TabsContent>
-                  <TabsContent value="callInfo" className="mt-4">
-                    {renderCallInfoTab()}
-                  </TabsContent>
-                  <TabsContent value="history" className="mt-4">
-                    {renderHistoryTab()}
-                  </TabsContent>
-                </Tabs>
-              )}
-            </CardContent>
-          </Card>
-        </AlertDialogContent>
-      </AlertDialog>
+                    <TabsContent value="contact" className="mt-4">
+                      {renderContactTab()}
+                    </TabsContent>
+                    <TabsContent value="lead" className="mt-4">
+                      {renderLeadTab()}
+                    </TabsContent>
+                    <TabsContent value="callInfo" className="mt-4">
+                      {renderCallInfoTab()}
+                    </TabsContent>
+                    <TabsContent value="history" className="mt-4">
+                      {renderHistoryTab()}
+                    </TabsContent>
+                  </Tabs>
+                )}
+              </CardContent>
+            </Card>
+          </AlertDialogContent>
+        </AlertDialog>
+        {renderConversationDialog()}
+      </>
     );
   }
 
   // Normal panel view
   return (
-    <Card className="w-full h-max !gap-2">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span className="text-lg font-semibold">Active Call Information</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {!userCall ? (
-          <div className="text-center py-8">
-            <Phone size={48} className="mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No active call to display details.</p>
-          </div>
-        ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
-              <TabsList className="grid w-full sm:w-auto grid-cols-4 flex-grow">
-                <TabsTrigger value="contact" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                  <UserCog size={16} /> <span className="hidden sm:inline">Contact</span>
-                </TabsTrigger>
-                <TabsTrigger value="callInfo" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                  <Clock size={16} /> <span className="hidden sm:inline">Call Info</span>
-                </TabsTrigger>
-                <TabsTrigger value="lead" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                  <User size={16} /> <span className="hidden sm:inline">Lead Info</span>
-                </TabsTrigger>
-                <TabsTrigger value="history" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                  <History size={16} /> <span className="hidden sm:inline">History</span>
-                </TabsTrigger>
-              </TabsList>
-              <div className="sm:w-auto flex justify-end">
-                <DateRangePicker
-                  key={`panel-date-picker-${moment(startDate).format('YYYY-MM-DD')}-${moment(endDate).format(
-                    'YYYY-MM-DD',
-                  )}`}
-                  onDateChange={([start, end]) => {
-                    setStartDate(start);
-                    setEndDate(end);
+    <>
+      <Card className="w-full h-max !gap-2">
+        <CardHeader>
+          <CardTitle className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <span className="text-lg font-semibold">{isManualEntryActive ? 'Manual Entry Information' : 'Active Call Information'}</span>
+            <div className="flex items-center gap-2">
+              {!isManualEntryActive && (resolvedCallContext.didNumber || resolvedCallContext.isAfterHours || resolvedCallContext.isSticky) ? (
+                <>
+                  {resolvedCallContext.didNumber ? (
+                    <Badge variant="outline">DID: {String(resolvedCallContext.didNumber).replace(/^\+91/, '')}</Badge>
+                  ) : null}
+                  {resolvedCallContext.isAfterHours ? (
+                    <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">After Hours</Badge>
+                  ) : null}
+                  {resolvedCallContext.isSticky ? (
+                    <Badge className="bg-primary/10 text-primary hover:bg-primary/10">Sticky</Badge>
+                  ) : null}
+                </>
+              ) : null}
+              {isManualEntryActive && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (draftStorageKey) {
+                      localStorage.removeItem(draftStorageKey);
+                      localStorage.removeItem(`formNavigationState:${draftStorageKey}`);
+                    }
+                    setManualEntryMode(false);
+                    setLocalFormData({});
+                    setSelectedHistoryItem(null);
+                    setConversationDetails([]);
                   }}
-                  initialStartDate={startDate}
-                  initialEndDate={endDate}
-                />
-              </div>
+                >
+                  Cancel
+                </Button>
+              )}
+              {!activeUserCall && allowManualEntry && (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setManualEntryMode(true);
+                    setActiveTab('contact');
+                    setFormSubmitted(false);
+                  }}
+                >
+                  Manual Entry
+                </Button>
+              )}
             </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!activeUserCall ? (
+            <div className="text-center py-8">
+              <Phone size={48} className="mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                {allowManualEntry
+                  ? 'No active call to display details. You can still create a manual form entry.'
+                  : 'No active call to display details.'}
+              </p>
+            </div>
+          ) : (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                <TabsList className="grid w-full sm:w-auto grid-cols-4 flex-grow">
+                  <TabsTrigger value="contact" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                    <UserCog size={16} /> <span className="hidden sm:inline">Contact</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="callInfo" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                    <Clock size={16} /> <span className="hidden sm:inline">Call Info</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="lead" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                    <User size={16} /> <span className="hidden sm:inline">Lead Info</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="history" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                    <History size={16} /> <span className="hidden sm:inline">History</span>
+                  </TabsTrigger>
+                </TabsList>
+                <div className="sm:w-auto flex justify-end">
+                  <DateRangePicker
+                    key={`panel-date-picker-${moment(startDate).format('YYYY-MM-DD')}-${moment(endDate).format(
+                      'YYYY-MM-DD',
+                    )}`}
+                    onDateChange={([start, end]) => {
+                      setStartDate(start);
+                      setEndDate(end);
+                    }}
+                    initialStartDate={startDate}
+                    initialEndDate={endDate}
+                  />
+                </div>
+              </div>
 
-            <TabsContent value="contact" className="mt-4">
-              {renderContactTab()}
-            </TabsContent>
-            <TabsContent value="lead" className="mt-4">
-              {renderLeadTab()}
-            </TabsContent>
-            <TabsContent value="callInfo" className="mt-4">
-              {renderCallInfoTab()}
-            </TabsContent>
-            <TabsContent value="history" className="mt-4">
-              {renderHistoryTab()}
-            </TabsContent>
-          </Tabs>
-        )}
-      </CardContent>
-    </Card>
+              <TabsContent value="contact" className="mt-4">
+                {renderContactTab()}
+              </TabsContent>
+              <TabsContent value="lead" className="mt-4">
+                {renderLeadTab()}
+              </TabsContent>
+              <TabsContent value="callInfo" className="mt-4">
+                {renderCallInfoTab()}
+              </TabsContent>
+              <TabsContent value="history" className="mt-4">
+                {renderHistoryTab()}
+              </TabsContent>
+            </Tabs>
+          )}
+        </CardContent>
+      </Card>
+      {renderConversationDialog()}
+    </>
   );
 }

@@ -83,6 +83,14 @@ export function JssipProvider({ children }) {
     setHasParticipants,
     isMerged,
     setIsMerged,
+    activeLead,
+    setActiveLead,
+    leadLockToken,
+    setLeadLockToken,
+    agentLifecycle,
+    setAgentLifecycle,
+    activeCallContext,
+    setActiveCallContext,
   ] = useJssip(isMobile);
 
   return (
@@ -149,6 +157,14 @@ export function JssipProvider({ children }) {
         setHasParticipants,
         isMerged,
         setIsMerged,
+        activeLead,
+        setActiveLead,
+        leadLockToken,
+        setLeadLockToken,
+        agentLifecycle,
+        setAgentLifecycle,
+        activeCallContext,
+        setActiveCallContext,
         isMobile,
       }}
     >
