@@ -502,12 +502,6 @@ export default function LeadAndCallInfoPanel({
     }
   }, [authHeaders, endDate, startDate, token, username]);
 
-  // Fetch data when dependencies change
-  useEffect(() => {
-    fetchLeadsWithDateRange();
-    fetchCallDataByAgent();
-  }, [fetchLeadsWithDateRange, fetchCallDataByAgent]);
-
   // Map lead data function
   const mapLeadData = useCallback((rawData) => {
     if (!Array.isArray(rawData)) rawData = [rawData];
@@ -546,6 +540,12 @@ export default function LeadAndCallInfoPanel({
       return mapped;
     });
   }, []);
+
+  // Fetch data when dependencies change
+  useEffect(() => {
+    fetchLeadsWithDateRange();
+    fetchCallDataByAgent();
+  }, [fetchLeadsWithDateRange, fetchCallDataByAgent]);
 
   // Get mapped leads
   const mappedLeads = useMemo(() => mapLeadData(leadsData), [leadsData, mapLeadData]);

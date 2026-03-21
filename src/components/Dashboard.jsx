@@ -492,12 +492,6 @@ function Dashboard() {
     }
   }, [router]);
 
-  useEffect(() => {
-    if (!userCampaign || !username || !token || !startDate || !endDate) return;
-    fetchLeadsWithDateRange();
-    fetchCallDataByAgent();
-  }, [endDate, fetchCallDataByAgent, fetchLeadsWithDateRange, startDate, token, userCampaign, username]);
-
   const fetchLeadsWithDateRange = useCallback(async () => {
     setLoading(true);
     try {
@@ -566,6 +560,12 @@ function Dashboard() {
       setLoading(false);
     }
   }, [endDate, getAuthHeaders, startDate]);
+
+  useEffect(() => {
+    if (!userCampaign || !username || !token || !startDate || !endDate) return;
+    fetchLeadsWithDateRange();
+    fetchCallDataByAgent();
+  }, [endDate, fetchCallDataByAgent, fetchLeadsWithDateRange, startDate, token, userCampaign, username]);
 
   const mapLeadData = (rawData) => {
     if (!Array.isArray(rawData)) rawData = [rawData];
