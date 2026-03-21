@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
 import { Progress } from '@/components/ui/progress';
+import { applyAgentUiPreferencesToDom } from '@/utils/agent-preferences';
 import axios from 'axios';
 
 export default function Login() {
@@ -235,6 +236,9 @@ export default function Login() {
 
       // Store the token and save credentials for future auto-login
       localStorage.setItem('token', JSON.stringify(response));
+      if (userData?.uiPreferences) {
+        applyAgentUiPreferencesToDom(userData.uiPreferences);
+      }
       localStorage.setItem('savedUsername', loginUsername);
       localStorage.setItem('savedPassword', loginPassword);
 

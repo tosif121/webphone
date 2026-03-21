@@ -40,6 +40,7 @@ import BreakDropdown from './BreakDropdown';
 import { Card, CardContent } from './ui/card';
 import SessionTimeoutModal from './SessionTimeoutModal';
 import { endCallAudioBase64 } from '../constants/audioData';
+import { DEFAULT_AGENT_UI_PREFERENCES, getStoredAgentUiPreferences } from '@/utils/agent-preferences';
 
 function Dashboard() {
   const {
@@ -139,18 +140,19 @@ function Dashboard() {
   const [selectedDate, setSelectedDate] = useState('');
   const [token, setToken] = useState('');
   const [loading, setLoading] = useState(true);
-  const [leadViewMode, setLeadViewMode] = useState('smart');
+  const [leadViewMode, setLeadViewMode] = useState(DEFAULT_AGENT_UI_PREFERENCES.leadViewMode);
   const [smartLeadLoading, setSmartLeadLoading] = useState(false);
   const [smartLeadError, setSmartLeadError] = useState('');
 
   const [startDate, setStartDate] = useState(moment().subtract(24, 'hours').format('YYYY-MM-DD'));
   const [endDate, setEndDate] = useState(moment().format('YYYY-MM-DD'));
 
-  const [activeMainTab, setActiveMainTab] = useState('allLeads');
+  const [activeMainTab, setActiveMainTab] = useState(DEFAULT_AGENT_UI_PREFERENCES.defaultMainTab);
   const [leadStats, setLeadStats] = useState({
     completeCalls: 0,
     pendingCalls: 0,
     totalCalls: 0,
+    lockedCalls: 0,
   });
 
   const [callStats, setCallStats] = useState({
@@ -160,6 +162,21 @@ function Dashboard() {
   });
 
   const [formSubmitted, setFormSubmitted] = useState(false);
+
+  useEffect(() => {
+    const storedPreferences = getStoredAgentUiPreferences();
+    setLeadViewMode(storedPreferences.leadViewMode || DEFAULT_AGENT_UI_PREFERENCES.leadViewMode);
+    setActiveMainTab(storedPreferences.defaultMainTab || DEFAULT_AGENT_UI_PREFERENCES.defaultMainTab);
+
+    const handleProfileUpdated = (event) => {
+      const nextPreferences = event?.detail || getStoredAgentUiPreferences();
+      setLeadViewMode(nextPreferences.leadViewMode || DEFAULT_AGENT_UI_PREFERENCES.leadViewMode);
+      setActiveMainTab(nextPreferences.defaultMainTab || DEFAULT_AGENT_UI_PREFERENCES.defaultMainTab);
+    };
+
+    window.addEventListener('agent-profile-updated', handleProfileUpdated);
+    return () => window.removeEventListener('agent-profile-updated', handleProfileUpdated);
+  }, []);
 
   const getAuthHeaders = useCallback(
     (extraHeaders = {}) =>
@@ -413,21 +430,7 @@ function Dashboard() {
     setCampaignMissedCallsLength(computedMissedCallsLength);
   }, [computedMissedCallsLength, setCampaignMissedCallsLength]);
 
-  useEffect(() => {
-    if ((status == 'start' && username) || dropCalls) {
-      fetchUserMissedCalls();
-    }
-  }, [status, username, dropCalls]);
-
-  useEffect(() => {
-    if (selectedBreak !== 'Break' && ringtone.length >= 0) {
-      if (username) {
-        fetchUserMissedCalls();
-      }
-    }
-  }, [ringtone, username]);
-
-  const fetchUserMissedCalls = async () => {
+  const fetchUserMissedCalls = useCallback(async () => {
     if (!token || !username) {
       setUsermissedCalls([]);
       return;
@@ -448,7 +451,27 @@ function Dashboard() {
       console.error('Error fetching missed calls:', error);
       setUsermissedCalls([]);
     }
-  };
+  }, [getAuthHeaders, token, username]);
+
+  useEffect(() => {
+    if (token && username) {
+      fetchUserMissedCalls();
+    }
+  }, [fetchUserMissedCalls, token, username]);
+
+  useEffect(() => {
+    if ((status == 'start' && username) || dropCalls) {
+      fetchUserMissedCalls();
+    }
+  }, [dropCalls, fetchUserMissedCalls, status, username]);
+
+  useEffect(() => {
+    if (selectedBreak !== 'Break' && ringtone.length >= 0) {
+      if (username) {
+        fetchUserMissedCalls();
+      }
+    }
+  }, [ringtone, username]);
 
   useEffect(() => {
     const checkUserAvailability = async () => {
@@ -495,37 +518,36 @@ function Dashboard() {
   const fetchLeadsWithDateRange = useCallback(async () => {
     setLoading(true);
     try {
-      const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
-      const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
-
-      const response = await axios.post(
-        `${window.location.origin}/leadswithdaterange`,
-        {
-          startDate: formattedStartDate,
-          endDate: formattedEndDate,
-          campaignID: userCampaign,
-        },
-        {
+      const [leadListResponse, leadSummaryResponse] = await Promise.all([
+        axios.get(`${window.location.origin}/lead/list`, {
+          params: {
+            limit: 200,
+          },
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        },
-      );
+        }),
+        axios.get(`${window.location.origin}/lead/summary`, {
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        }),
+      ]);
 
-      const leads = response.data.data || [];
-
-      const completeCalls = leads.filter((lead) => lead.lastDialedStatus === 1 || lead.lastDialedStatus === 9).length;
-      const pendingCalls = leads.filter((lead) => lead.lastDialedStatus === 0).length;
-      const totalCalls = leads.length;
+      const leads = leadListResponse.data?.result || [];
+      const summary = leadSummaryResponse.data?.result || {};
 
       setLeadsData(leads);
-      setLeadStats({ completeCalls, pendingCalls, totalCalls });
+      setLeadStats({
+        completeCalls: Number(summary.completedLeads || 0),
+        pendingCalls: Number(summary.pendingLeads || 0),
+        totalCalls: Number(summary.totalLeads || 0),
+        lockedCalls: Number(summary.lockedLeads || 0),
+      });
     } catch (error) {
       console.error('Error fetching leads:', error.response?.data || error.message);
       setLeadsData([]);
-      setLeadStats({ completeCalls: 0, pendingCalls: 0, totalCalls: 0 });
+      setLeadStats({ completeCalls: 0, pendingCalls: 0, totalCalls: 0, lockedCalls: 0 });
     } finally {
       setLoading(false);
     }
-  }, [endDate, getAuthHeaders, startDate, userCampaign]);
+  }, [getAuthHeaders]);
 
   const fetchCallDataByAgent = useCallback(async () => {
     setLoading(true);
@@ -562,10 +584,14 @@ function Dashboard() {
   }, [endDate, getAuthHeaders, startDate]);
 
   useEffect(() => {
-    if (!userCampaign || !username || !token || !startDate || !endDate) return;
+    if (!userCampaign || !username || !token) return;
     fetchLeadsWithDateRange();
+  }, [fetchLeadsWithDateRange, token, userCampaign, username]);
+
+  useEffect(() => {
+    if (!username || !token || !startDate || !endDate) return;
     fetchCallDataByAgent();
-  }, [endDate, fetchCallDataByAgent, fetchLeadsWithDateRange, startDate, token, userCampaign, username]);
+  }, [endDate, fetchCallDataByAgent, startDate, token, username]);
 
   const mapLeadData = (rawData) => {
     if (!Array.isArray(rawData)) rawData = [rawData];
@@ -678,20 +704,62 @@ function Dashboard() {
         value: activeLead?.leadId ?? '-',
       },
       {
-        label: 'Retry',
-        value: activeLead?.retryCount ?? 0,
+        label: 'Campaign Leads',
+        value: leadStats.totalCalls ?? 0,
       },
       {
-        label: 'State',
-        value: activeLead?.leadState || 'new',
-      },
-      {
-        label: 'Locked',
-        value: leadLockToken ? 'Yes' : 'No',
+        label: 'Pending Queue',
+        value: leadStats.pendingCalls ?? 0,
       },
     ],
-    [activeLead, leadLockToken],
+    [activeLead?.leadId, leadStats.pendingCalls, leadStats.totalCalls],
   );
+
+  const smartLeadDetailEntries = useMemo(() => {
+    if (!activeLead || typeof activeLead !== 'object') {
+      return [];
+    }
+
+    const skipKeys = new Set([
+      '_id',
+      'leadId',
+      'number',
+      'phone',
+      'phone_number',
+      'contactNumber',
+      'lockToken',
+      'lockExpiresAt',
+      'assignedTo',
+      'lockedAt',
+      'leadState',
+      'lastDialAttemptAt',
+      'lastOutcome',
+      'lastShownTime',
+      'lastDialedStatus',
+      'isDeleted',
+      'campaignID',
+      'campaignname',
+      'filename',
+      'uploadDate',
+      'retryCount',
+    ]);
+
+    return Object.entries(activeLead)
+      .filter(([key, value]) => {
+        if (skipKeys.has(key)) return false;
+        if (value === undefined || value === null || String(value).trim() === '') return false;
+        return typeof value !== 'object';
+      })
+      .slice(0, 6)
+      .map(([key, value]) => ({
+        label: key
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/_/g, ' ')
+          .replace(/^./, (char) => char.toUpperCase())
+          .trim(),
+        value: String(value),
+      }));
+  }, [activeLead]);
 
   const handleDialAction = useCallback(
     async (phoneNumberToDial, sourceLead = null) => {
@@ -1020,6 +1088,19 @@ function Dashboard() {
             <div className="flex items-center justify-end gap-2 mb-4">
               <Button
                 type="button"
+                variant={leadViewMode === 'list' ? 'default' : 'outline'}
+                size="sm"
+                className="gap-2"
+                onClick={() => {
+                  setLeadViewMode('list');
+                  setActiveMainTab('allLeads');
+                }}
+              >
+                <List className="w-4 h-4" />
+                List Mode
+              </Button>
+              <Button
+                type="button"
                 variant={leadViewMode === 'smart' ? 'default' : 'outline'}
                 size="sm"
                 className="gap-2"
@@ -1028,79 +1109,99 @@ function Dashboard() {
                 <Lock className="w-4 h-4" />
                 Smart Dial
               </Button>
-              <Button
-                type="button"
-                variant={leadViewMode === 'list' ? 'default' : 'outline'}
-                size="sm"
-                className="gap-2"
-                onClick={() => setLeadViewMode('list')}
-              >
-                <List className="w-4 h-4" />
-                List Mode
-              </Button>
             </div>
 
-            {leadViewMode === 'smart' && activeMainTab === 'allLeads' ? (
-              <Card className="overflow-hidden border-l-4 border-l-primary">
+            {leadViewMode === 'smart' ? (
+              <Card className="overflow-hidden border border-border/70 shadow-sm">
                 <CardContent className="p-5 sm:p-6">
-                  <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="space-y-4 flex-1">
-                      <div className="flex items-center gap-2 text-sm font-medium text-primary">
-                        <Lock className="w-4 h-4" />
-                        Smart Dial Mode
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-semibold text-foreground">
-                          {activeLead?.name || activeLead?.fullName || 'Next Lead'}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {activeLeadNumber || smartLeadError || (smartLeadLoading ? 'Fetching the next eligible lead...' : 'No lead available right now.')}
-                        </p>
-                      </div>
-
-                      {activeLead ? (
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="flex-1 space-y-5">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                            <Lock className="w-4 h-4" />
+                            Smart Dial Mode
+                          </div>
+                          <h3 className="text-2xl font-semibold text-foreground">
+                            {activeLead?.name || activeLead?.fullName || 'Next Lead'}
+                          </h3>
+                          <p className="text-base font-medium text-muted-foreground">
+                            {activeLeadNumber || smartLeadError || (smartLeadLoading ? 'Fetching the next eligible lead...' : 'No lead available right now.')}
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 min-w-[220px]">
                           {smartLeadSummary.map((item) => (
-                            <div key={item.label} className="rounded-lg border bg-muted/40 px-3 py-2">
-                              <div className="text-xs text-muted-foreground">{item.label}</div>
-                              <div className="text-sm font-semibold text-foreground mt-1">{item.value}</div>
+                            <div key={item.label} className="rounded-xl border bg-muted/35 px-4 py-3">
+                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{item.label}</div>
+                              <div className="mt-1 text-lg font-semibold text-foreground">{item.value}</div>
                             </div>
                           ))}
                         </div>
+                      </div>
+
+                      {activeLead ? (
+                        <div className="rounded-2xl border bg-background/70 p-4">
+                          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                            {smartLeadDetailEntries.length > 0 ? (
+                              smartLeadDetailEntries.map((item) => (
+                                <div key={item.label} className="rounded-xl border bg-muted/20 px-4 py-3">
+                                  <div className="text-xs text-muted-foreground">{item.label}</div>
+                                  <div className="mt-1 text-sm font-medium text-foreground break-words">{item.value}</div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="rounded-xl border border-dashed px-4 py-5 text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
+                                No additional lead fields are available for this record.
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       ) : (
-                        <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 px-4 py-6 text-sm text-muted-foreground">
+                        <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 px-4 py-8 text-sm text-muted-foreground">
                           {smartLeadLoading ? 'Locking the next lead for this agent...' : smartLeadError || 'No eligible lead is currently available for this campaign.'}
                         </div>
                       )}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row lg:flex-col gap-3 lg:min-w-[220px]">
-                      <Button
-                        type="button"
-                        className="gap-2"
-                        disabled={!activeLeadNumber || !leadLockToken || smartLeadLoading || !['lead_locked', 'idle'].includes(agentLifecycle)}
-                        onClick={() => {
-                          if (!activeLeadNumber) return;
-                          handleDialAction(activeLeadNumber, activeLead);
-                        }}
-                      >
-                        <Phone className="w-4 h-4" />
-                        Dial
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="gap-2"
-                        disabled={!activeLead?.leadId || !leadLockToken || smartLeadLoading || agentLifecycle !== 'lead_locked'}
-                        onClick={handleSkipLead}
-                      >
-                        <SkipForward className="w-4 h-4" />
-                        Skip
-                      </Button>
+                    <div className="flex flex-row xl:flex-col items-stretch gap-4 xl:min-w-[220px]">
+                      <div className="flex items-center gap-3">
+                        <Button
+                          type="button"
+                          className="h-14 w-14 rounded-full bg-green-600 p-0 text-white shadow-sm hover:bg-green-700"
+                          disabled={!activeLeadNumber || !leadLockToken || smartLeadLoading || !['lead_locked', 'idle'].includes(agentLifecycle)}
+                          onClick={() => {
+                            if (!activeLeadNumber) return;
+                            handleDialAction(activeLeadNumber, activeLead);
+                          }}
+                        >
+                          <Phone className="h-5 w-5" />
+                        </Button>
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">Dial Lead</div>
+                          <div className="text-xs text-muted-foreground">Start the next locked campaign call</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-14 w-14 rounded-full p-0"
+                          disabled={!activeLead?.leadId || !leadLockToken || smartLeadLoading || agentLifecycle !== 'lead_locked'}
+                          onClick={handleSkipLead}
+                        >
+                          <SkipForward className="h-5 w-5" />
+                        </Button>
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">Skip Lead</div>
+                          <div className="text-xs text-muted-foreground">Move to the next eligible lead</div>
+                        </div>
+                      </div>
+
                       <Button
                         type="button"
                         variant="ghost"
-                        className="gap-2"
+                        className="justify-start gap-2 px-0 text-sm font-medium"
                         disabled={smartLeadLoading || !['idle', 'lead_locked'].includes(agentLifecycle)}
                         onClick={() => {
                           setActiveLead(null);

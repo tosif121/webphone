@@ -245,6 +245,7 @@ export default function DynamicForm({
   connectionStatus,
   draftStorageKey,
   isManualEntry = false,
+  submitLabel = 'Save Data',
 }) {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [visitedSections, setVisitedSections] = useState([]);
@@ -696,8 +697,19 @@ export default function DynamicForm({
     currentSection?.nextSection === 'submit';
 
   const showNextButton = sortedSections.length > 1 && !isLastSection;
+  const callerNumberField =
+    currentSection?.fields?.find((field) => isFieldVisible(field) && getFieldSystemRole(field) === 'callerNumber') || null;
+  const alternateNumberField =
+    currentSection?.fields?.find((field) => isFieldVisible(field) && getFieldSystemRole(field) === 'alternateNumber') || null;
   const renderableFields =
-    currentSection?.fields?.filter((field) => isFieldVisible(field) && getFieldSystemRole(field) !== 'callerNumber') || [];
+    currentSection?.fields?.filter((field) => {
+      if (!isFieldVisible(field)) {
+        return false;
+      }
+
+      const systemRole = getFieldSystemRole(field);
+      return systemRole !== 'callerNumber' && systemRole !== 'alternateNumber';
+    }) || [];
 
   useEffect(() => {
     if (userCall && formConfig?.sections && !isInitialized) {
@@ -807,7 +819,7 @@ export default function DynamicForm({
       className={`${
         !userCallDialog
           ? 'backdrop-blur-sm bg-card/80 rounded-lg max-w-4xl mx-auto'
-          : 'bg-transparent border-0 shadow-none p-0 !gap-2 max-h-[32rem] overflow-y-auto'
+          : 'bg-card/95 rounded-xl border shadow-sm p-0 !gap-2 max-h-[32rem] overflow-y-auto'
       }`}
     >
       <CardHeader className="pb-4">
@@ -832,26 +844,57 @@ export default function DynamicForm({
       </CardHeader>
       <CardContent>
         <div className="space-y-6 mb-6">
-          <div className="rounded-lg border bg-muted/25 p-4">
-            <Label className="mb-2 block text-sm font-medium">Caller Number</Label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-              <Input
-                value={callerNumberValue}
-                disabled={!isManualEntry}
-                onChange={(event) => handleChange('contactNumber', event.target.value)}
-                className={`${isManualEntry ? '' : 'cursor-not-allowed bg-muted/60'} pl-10`}
-                aria-label="Caller Number"
-              />
+          <div className="rounded-xl border bg-muted/20 p-4">
+            <div className={`grid grid-cols-1 gap-4 ${alternateNumberField ? 'md:grid-cols-2' : ''}`}>
+              <div>
+                <Label className="mb-2 block text-sm font-medium">
+                  {callerNumberField?.label || 'Caller Number'}
+                </Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <Input
+                    value={callerNumberValue}
+                    disabled={!isManualEntry}
+                    onChange={(event) => handleChange('contactNumber', event.target.value)}
+                    className={`${isManualEntry ? '' : 'cursor-not-allowed bg-muted/60'} pl-10`}
+                    aria-label="Caller Number"
+                  />
+                </div>
+                {errors.contactNumber && (
+                  <p className="mt-1 text-sm text-red-500" role="alert">
+                    {errors.contactNumber}
+                  </p>
+                )}
+              </div>
+
+              {alternateNumberField ? (
+                <div>
+                  <Label htmlFor={`${alternateNumberField.name}-system`} className="mb-2 block text-sm font-medium">
+                    {alternateNumberField.label || 'Alternate Number'}
+                  </Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <Input
+                      id={`${alternateNumberField.name}-system`}
+                      name={alternateNumberField.name}
+                      type={alternateNumberField.type || 'text'}
+                      placeholder={alternateNumberField.label || 'Alternate Number'}
+                      value={getFieldValue(alternateNumberField.name)}
+                      onChange={handleInputChange}
+                      className={`pl-10 ${errors[alternateNumberField.name] ? 'border-red-500' : ''}`}
+                    />
+                  </div>
+                  {errors[alternateNumberField.name] && (
+                    <p className="mt-1 text-sm text-red-500" role="alert">
+                      {errors[alternateNumberField.name]}
+                    </p>
+                  )}
+                </div>
+              ) : null}
             </div>
-            {errors.contactNumber && (
-              <p className="mt-1 text-sm text-red-500" role="alert">
-                {errors.contactNumber}
-              </p>
-            )}
           </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {renderableFields.map((field, idx) => {
               const fieldId = `${field.name}-${idx}`;
               const fieldLabel = field.question || field.label || 'Field';
@@ -1167,11 +1210,6 @@ export default function DynamicForm({
                         Locked Caller
                       </span>
                     )}
-                    {fieldSystemRole === 'alternateNumber' && (
-                      <span className="ml-2 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
-                        Alternate Number
-                      </span>
-                    )}
                   </Label>
                   <div className="relative">
                     {getFieldIcon(field)}
@@ -1224,7 +1262,7 @@ export default function DynamicForm({
                 ) : (
                   <>
                     <CheckCircle className="w-4 h-4" />
-                    Submit Form
+                    {submitLabel}
                   </>
                 )}
               </Button>
@@ -1247,7 +1285,7 @@ export default function DynamicForm({
                 ) : (
                   <>
                     <CheckCircle className="w-4 h-4" />
-                    Submit Form
+                    {submitLabel}
                   </>
                 )}
               </Button>

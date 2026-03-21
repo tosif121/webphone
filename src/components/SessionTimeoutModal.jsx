@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, WifiOff, UserX } from 'lucide-react';
+import { applyAgentUiPreferencesToDom } from '@/utils/agent-preferences';
 
 const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, customMessage }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -50,6 +51,9 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
       if (response && (response.success || response.token || response.message === 'Login successful')) {
         if (typeof window !== 'undefined') {
           localStorage.setItem('token', JSON.stringify(response));
+          if (response?.userData?.uiPreferences) {
+            applyAgentUiPreferencesToDom(response.userData.uiPreferences);
+          }
         }
 
         onLoginSuccess();

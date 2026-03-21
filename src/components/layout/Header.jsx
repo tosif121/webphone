@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useContext, useRef } from 'react';
+import { useTheme } from 'next-themes';
 import {
   Menu,
   X,
@@ -22,15 +23,25 @@ import {
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import toast from 'react-hot-toast';
 
 import ThemeToggle from './ThemeToggle';
+import ThemeSelector from './ThemeSelector';
 import BreakDropdown from '../BreakDropdown';
 import HistoryContext from '@/context/HistoryContext';
 import axios from 'axios';
+import {
+  applyAgentUiPreferencesToDom,
+  DEFAULT_AGENT_UI_PREFERENCES,
+  getStoredAgentUiPreferences,
+  normalizeAgentUiPreferences,
+} from '@/utils/agent-preferences';
 
 export default function Header() {
   const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const {
@@ -48,6 +59,9 @@ export default function Header() {
   const [userId, setUserId] = useState('N/A');
   const [campaignName, setCampaignName] = useState('N/A');
   const [troubleshootingMode, setTroubleshootingMode] = useState(false);
+  const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
+  const [profilePreferences, setProfilePreferences] = useState(DEFAULT_AGENT_UI_PREFERENCES);
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
 
   const userMenuRef = useRef(null);
 
@@ -64,6 +78,9 @@ export default function Header() {
         setCampaignName(parsedData?.userData?.campaignName || 'N/A');
         setUserRole(parsedData?.userData?.role || null);
         setToken(parsedData.token);
+        if (parsedData?.userData?.uiPreferences) {
+          applyAgentUiPreferencesToDom(parsedData.userData.uiPreferences);
+        }
       } catch (e) {
         // If parsing fails, fallback to default
         setUsername('Guest');
@@ -74,12 +91,19 @@ export default function Header() {
       }
     }
 
+    setProfilePreferences(getStoredAgentUiPreferences());
+
     // Initialize Troubleshooting Mode
     const savedMode = typeof window !== 'undefined' ? localStorage.getItem('jssip_troubleshooting_mode') : false;
     if (savedMode === 'true') {
       setTroubleshootingMode(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (!isPreferencesOpen) return;
+    setProfilePreferences(getStoredAgentUiPreferences());
+  }, [isPreferencesOpen]);
 
   const handleTroubleshootingToggle = (checked) => {
     setTroubleshootingMode(checked);
@@ -98,6 +122,48 @@ export default function Header() {
           newValue: checked.toString(),
         }),
       );
+    }
+  };
+
+  const handleSavePreferences = async () => {
+    const currentColorTheme = typeof window !== 'undefined' ? localStorage.getItem('color-theme') || 'default' : 'default';
+    const normalizedPreferences = normalizeAgentUiPreferences({
+      ...profilePreferences,
+      themeMode: theme || profilePreferences.themeMode,
+      colorTheme: currentColorTheme,
+    });
+
+    setIsSavingPreferences(true);
+    try {
+      await axios.patch(
+        `${window.location.origin}/agent/profile`,
+        {
+          uiPreferences: normalizedPreferences,
+        },
+        {
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              }
+            : {
+                'Content-Type': 'application/json',
+              },
+        },
+      );
+
+      applyAgentUiPreferencesToDom(normalizedPreferences);
+      if (normalizedPreferences.themeMode) {
+        setTheme(normalizedPreferences.themeMode);
+      }
+      setProfilePreferences(normalizedPreferences);
+      setIsPreferencesOpen(false);
+      toast.success('Preferences saved');
+    } catch (error) {
+      console.error('Failed to save agent preferences:', error);
+      toast.error(error.response?.data?.message || 'Failed to save preferences');
+    } finally {
+      setIsSavingPreferences(false);
     }
   };
 
@@ -351,6 +417,21 @@ export default function Header() {
                   })}
                 </div>
 
+                <div className="px-4 pb-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start gap-3"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      setIsPreferencesOpen(true);
+                    }}
+                  >
+                    <Settings className="w-4 h-4" />
+                    Preferences
+                  </Button>
+                </div>
+
                 {/* Theme Toggle */}
                 <div className="py-3 px-4 border-t">
                   <ThemeToggle />
@@ -544,6 +625,19 @@ export default function Header() {
                   })}
               </div>
 
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start gap-3"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setIsPreferencesOpen(true);
+                }}
+              >
+                <Settings className="w-4 h-4" />
+                Preferences
+              </Button>
+
               {/* Theme Toggle */}
               <div className="py-3 border-t">
                 <ThemeToggle />
@@ -583,6 +677,82 @@ export default function Header() {
           </div>
         </div>
       </div>
+
+      <Dialog open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Profile Preferences</DialogTitle>
+          </DialogHeader>
+
+          <div className="grid gap-5 py-2">
+            <div className="grid gap-2">
+              <Label>Theme Mode</Label>
+              <Select
+                value={profilePreferences.themeMode}
+                onValueChange={(value) => {
+                  setProfilePreferences((prev) => ({ ...prev, themeMode: value }));
+                  setTheme(value);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Theme Mode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light">Light</SelectItem>
+                  <SelectItem value="dark">Dark</SelectItem>
+                  <SelectItem value="system">System</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Color Theme</Label>
+              <ThemeSelector />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Default Lead View</Label>
+              <Select
+                value={profilePreferences.leadViewMode}
+                onValueChange={(value) => setProfilePreferences((prev) => ({ ...prev, leadViewMode: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Default Lead View" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="list">List Mode</SelectItem>
+                  <SelectItem value="smart">Smart Dial</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Default Lead Panel</Label>
+              <Select
+                value={profilePreferences.defaultMainTab}
+                onValueChange={(value) => setProfilePreferences((prev) => ({ ...prev, defaultMainTab: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Default Lead Panel" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="callInfo">Call Info</SelectItem>
+                  <SelectItem value="allLeads">All Leads</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsPreferencesOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSavePreferences} disabled={isSavingPreferences}>
+              {isSavingPreferences ? 'Saving...' : 'Save Preferences'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

@@ -78,6 +78,7 @@ const Disposition = ({
   const [stickyEnabled, setStickyEnabled] = useState(false);
   const [stickyMode, setStickyMode] = useState('loose');
   const [makeSticky, setMakeSticky] = useState(false);
+  const stickyTargetNumber = phoneNumber || activeLead?.number || activeLead?.phone || activeLead?.contactNumber || '';
 
   const getAuthHeaders = useCallback(
     (extraHeaders = {}) => {
@@ -145,7 +146,7 @@ const Disposition = ({
         setStickyMode(parsedData?.userData?.stickyMode || 'loose');
       } catch (e) {
         setCampaignName('N/A');
-        setStickyEnabled(false);
+        setStickyEnabled(true);
         setStickyMode('loose');
       }
     }
@@ -301,7 +302,7 @@ const Disposition = ({
         leadId: activeLead?.leadId,
         leadLockToken,
         leadFinalState: resolveLeadFinalState('Auto Disposed'),
-        contactNumber: phoneNumber,
+        contactNumber: stickyTargetNumber,
         makeSticky,
         stickyMode,
       };
@@ -383,7 +384,7 @@ const Disposition = ({
     getAuthHeaders,
     leadLockToken,
     makeSticky,
-    phoneNumber,
+    stickyTargetNumber,
     resetLeadLifecycle,
     resolveLeadFinalState,
     setCallType,
@@ -547,7 +548,7 @@ const Disposition = ({
           leadId: activeLead?.leadId,
           leadLockToken,
           leadFinalState: resolveLeadFinalState(selectedAction),
-          contactNumber: phoneNumber,
+          contactNumber: stickyTargetNumber,
           makeSticky,
           stickyMode,
         };
@@ -561,7 +562,7 @@ const Disposition = ({
               comment: callbackData.details,
               user: user,
               campaignID: campaignID,
-              phoneNumber: phoneNumber,
+              phoneNumber: stickyTargetNumber,
             };
           } else {
             requestBody.followUpDisposition = {
@@ -570,7 +571,7 @@ const Disposition = ({
               comment: followUpDetails,
               user: user,
               campaignID: campaignID,
-              phoneNumber: phoneNumber,
+              phoneNumber: stickyTargetNumber,
             };
           }
         }
@@ -635,7 +636,7 @@ const Disposition = ({
       followUpTime,
       followUpDetails,
       setDispositionModal,
-      phoneNumber,
+      stickyTargetNumber,
       isSubmitting,
       hasSubmittedSuccessfully,
       fetchLeadsWithDateRange,
@@ -793,7 +794,7 @@ const Disposition = ({
                   );
                 })}
               </div>
-              {stickyEnabled && phoneNumber ? (
+              {stickyEnabled && stickyTargetNumber ? (
                 <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-3">
                   <div className="space-y-1">
                     <Label htmlFor="sticky-customer" className="text-sm font-medium text-foreground">

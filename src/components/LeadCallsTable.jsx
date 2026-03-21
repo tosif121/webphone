@@ -32,10 +32,16 @@ const mapLeadData = (rawData) => {
       mapped.name = item.name;
     }
 
+    // Handle Phone: number OR phone_number OR phone field
+    if (item.number) {
+      mapped.phone = String(item.number).replace(/^\+91/, '');
+    } else if (item.contactNumber) {
+      mapped.phone = String(item.contactNumber).replace(/^\+91/, '');
+    }
     // Handle Phone: phone_number OR phone field
-    if (item.phone_number) {
+    if (!mapped.phone && item.phone_number) {
       mapped.phone = String(item.phone_number).replace(/^\+91/, '');
-    } else if (item.phone) {
+    } else if (!mapped.phone && item.phone) {
       mapped.phone = String(item.phone).replace(/^\+91/, '');
     }
 
@@ -76,9 +82,17 @@ const mapLeadData = (rawData) => {
       }
     });
 
-    // Map status based on lastDialedStatus
-    if (item.lastDialedStatus === 1 || item.lastDialedStatus === 9) {
+    // Map status based on lead lifecycle / lastDialedStatus
+    if (item.leadState === 'locked') {
+      mapped.status = 'Locked';
+    } else if (item.leadState === 'assigned') {
+      mapped.status = 'Assigned';
+    } else if (item.leadState === 'completed' || item.lastDialedStatus === 1 || item.lastDialedStatus === 9) {
       mapped.status = 'Complete';
+    } else if (item.leadState === 'failed') {
+      mapped.status = 'Failed';
+    } else if (item.leadState === 'skipped') {
+      mapped.status = 'Skipped';
     } else if (item.lastDialedStatus === 0) {
       mapped.status = 'Pending';
     }
@@ -806,15 +820,15 @@ export default function LeadCallsTable({
           >
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center md:mb-6 gap-4">
               <TabsList className="grid grid-cols-2 w-full sm:w-fit">
-                <TabsTrigger value="allLeads" className="flex items-center gap-2">
-                  <LayoutGrid size={16} />
-                  <span className="hidden sm:inline">All Leads</span>
-                  <span className="sm:hidden">Leads</span>
-                </TabsTrigger>
                 <TabsTrigger value="callInfo" className="flex items-center gap-2">
                   <Clock size={16} />
                   <span className="hidden sm:inline">Call Info</span>
                   <span className="sm:hidden">Calls</span>
+                </TabsTrigger>
+                <TabsTrigger value="allLeads" className="flex items-center gap-2">
+                  <LayoutGrid size={16} />
+                  <span className="hidden sm:inline">All Leads</span>
+                  <span className="sm:hidden">Leads</span>
                 </TabsTrigger>
               </TabsList>
 

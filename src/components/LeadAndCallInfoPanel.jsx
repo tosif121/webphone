@@ -143,6 +143,17 @@ export default function LeadAndCallInfoPanel({
     [token],
   );
 
+  const normalizeConversationLookupKey = useCallback((value) => {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+  }, []);
+
+  const hasExistingConversation = useMemo(
+    () => Boolean(latestConversation && Object.keys(latestConversation).length > 0),
+    [latestConversation],
+  );
+
   const resolvedCallContext = useMemo(
     () => ({
       didNumber:
@@ -417,7 +428,7 @@ export default function LeadAndCallInfoPanel({
           params: {
             contactNumber,
             campaignId: userCampaign || undefined,
-            limit: 10,
+            limit: 100,
           },
           headers: authHeaders,
         });
@@ -560,34 +571,51 @@ export default function LeadAndCallInfoPanel({
 
       const initialFormData = {};
       const sourceCallData = activeUserCall || {};
-      const conversationSeed = latestConversation
-        ? Object.fromEntries(
-            Object.entries(latestConversation).filter(([key]) => {
-              if (!key || key.startsWith('_')) return false;
-              return ![
-                'id',
-                'adminuser',
-                'userId',
-                'createdAt',
-                'updatedAt',
-                'updatedBy',
-                'editedInAdmin',
-                'isDeleted',
-                'formId',
-                'formID',
-                'formTitle',
-                'formType',
-                'campaignId',
-                'campaignName',
-                'callType',
-                'callReference',
-                'agentName',
-                'entryMode',
-                'isFresh',
-              ].includes(key);
-            }),
-          )
-        : {};
+      const conversationEntries = latestConversation
+        ? Object.entries(latestConversation).filter(([key]) => {
+            if (!key || key.startsWith('_')) return false;
+            return ![
+              'id',
+              'adminuser',
+              'userId',
+              'createdAt',
+              'updatedAt',
+              'updatedBy',
+              'editedInAdmin',
+              'isDeleted',
+              'formId',
+              'formID',
+              'formTitle',
+              'formType',
+              'campaignId',
+              'campaignName',
+              'callType',
+              'callReference',
+              'agentName',
+              'entryMode',
+              'isFresh',
+            ].includes(key);
+          })
+        : [];
+      const getConversationValue = (...candidates) => {
+        for (const candidate of candidates) {
+          const normalizedCandidate = normalizeConversationLookupKey(candidate);
+          if (!normalizedCandidate) {
+            continue;
+          }
+
+          const matchedEntry = conversationEntries.find(([entryKey]) => {
+            const normalizedEntryKey = normalizeConversationLookupKey(entryKey);
+            return normalizedEntryKey === normalizedCandidate;
+          });
+
+          if (matchedEntry && matchedEntry[1] !== undefined && matchedEntry[1] !== null && `${matchedEntry[1]}` !== '') {
+            return matchedEntry[1];
+          }
+        }
+
+        return undefined;
+      };
 
       if (formConfig?.sections?.length > 0) {
         // Dynamic form initialization
@@ -618,6 +646,12 @@ export default function LeadAndCallInfoPanel({
               return;
             }
 
+            const conversationValue = getConversationValue(fieldName, field.label, field.question);
+            if (conversationValue !== undefined) {
+              initialFormData[fieldName] = conversationValue;
+              return;
+            }
+
             const lowerFieldName = fieldName.toLowerCase();
             const userCallKeys = Object.keys(sourceCallData);
             const matchedKey = userCallKeys.find((key) => key.toLowerCase() === lowerFieldName);
@@ -627,21 +661,34 @@ export default function LeadAndCallInfoPanel({
       } else {
         // Static form initialization
         Object.assign(initialFormData, {
-          firstName: sourceCallData.firstName || '',
-          lastName: sourceCallData.lastName || '',
-          emailId: sourceCallData.emailId || sourceCallData.Email || sourceCallData.email || '',
+          firstName: getConversationValue('firstName', 'first name') ?? sourceCallData.firstName ?? '',
+          lastName: getConversationValue('lastName', 'last name') ?? sourceCallData.lastName ?? '',
+          emailId:
+            getConversationValue('emailId', 'email', 'email address') ??
+            sourceCallData.emailId ??
+            sourceCallData.Email ??
+            sourceCallData.email ??
+            '',
           contactNumber: sourceCallData.contactNumber || '',
-          alternateNumber: sourceCallData.alternateNumber || '',
-          Contactaddress: sourceCallData.Contactaddress || sourceCallData.address || '',
-          ContactState: sourceCallData.ContactState || sourceCallData.state || '',
-          ContactDistrict: sourceCallData.ContactDistrict || '',
-          ContactCity: sourceCallData.ContactCity || sourceCallData.city || sourceCallData.CIty || '',
-          ContactPincode: sourceCallData.ContactPincode || sourceCallData.postalCode || sourceCallData['Pincode '] || '',
-          comment: sourceCallData.comment || '',
+          alternateNumber:
+            getConversationValue('alternateNumber', 'alternate number', 'alternate contact') ??
+            sourceCallData.alternateNumber ??
+            '',
+          Contactaddress:
+            getConversationValue('Contactaddress', 'address', 'location') ?? sourceCallData.Contactaddress ?? sourceCallData.address ?? '',
+          ContactState: getConversationValue('ContactState', 'state') ?? sourceCallData.ContactState ?? sourceCallData.state ?? '',
+          ContactDistrict: getConversationValue('ContactDistrict', 'district') ?? sourceCallData.ContactDistrict ?? '',
+          ContactCity:
+            getConversationValue('ContactCity', 'city') ?? sourceCallData.ContactCity ?? sourceCallData.city ?? sourceCallData.CIty ?? '',
+          ContactPincode:
+            getConversationValue('ContactPincode', 'postal code', 'pincode', 'pin code') ??
+            sourceCallData.ContactPincode ??
+            sourceCallData.postalCode ??
+            sourceCallData['Pincode '] ??
+            '',
+          comment: getConversationValue('comment', 'remarks', 'comment', 'call remark') ?? sourceCallData.comment ?? '',
         });
       }
-
-      Object.assign(initialFormData, conversationSeed);
 
       try {
         const savedDraft = localStorage.getItem(draftStorageKey);
@@ -660,7 +707,7 @@ export default function LeadAndCallInfoPanel({
       setLocalFormData(initialFormData);
       setLastDraftKey(initializationSignature);
       setIsFormDataInitialized(true);
-  }, [activeUserCall, draftStorageKey, formConfig, lastDraftKey, latestConversation, localFormData, manualEntryMode]);
+  }, [activeUserCall, draftStorageKey, formConfig, lastDraftKey, latestConversation, localFormData, manualEntryMode, normalizeConversationLookupKey]);
 
   useEffect(() => {
     if (formSubmitted) {
@@ -859,36 +906,82 @@ export default function LeadAndCallInfoPanel({
   const renderContactTab = () => {
     if (!activeUserCall) return null;
 
+    const submitLabel = hasExistingConversation ? 'Update Data' : 'Save Data';
+
     if (formConfig && formConfig?.sections && formConfig?.sections?.length > 0) {
       return (
-        <DynamicForm
-          key={formConfig.formId}
-          formConfig={formConfig}
-          formState={localFormData}
-          setFormState={updateLocalFormData}
-          userCall={activeUserCall}
-          userCallDialog={true}
-          formSubmitted={formSubmitted}
-          handleSubmit={handleSubmit}
-          localFormData={localFormData}
-          status={status}
-          connectionStatus={connectionStatus}
-          setLocalFormData={updateLocalFormData}
-          draftStorageKey={draftStorageKey}
-          isManualEntry={isManualEntryActive}
-        />
+        <div className="space-y-4">
+          {hasExistingConversation ? (
+            <div className="rounded-xl border bg-muted/30 p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">Latest conversation loaded</div>
+                  <div className="text-sm text-muted-foreground">
+                    Prefilled with the most recent tagging entry for this number. Full history is available in the History tab.
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline">{contactConversationHistory.length} conversation{contactConversationHistory.length === 1 ? '' : 's'}</Badge>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setActiveTab('history')}>
+                    View History
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <DynamicForm
+            key={formConfig.formId}
+            formConfig={formConfig}
+            formState={localFormData}
+            setFormState={updateLocalFormData}
+            userCall={activeUserCall}
+            userCallDialog={true}
+            formSubmitted={formSubmitted}
+            handleSubmit={handleSubmit}
+            localFormData={localFormData}
+            status={status}
+            connectionStatus={connectionStatus}
+            setLocalFormData={updateLocalFormData}
+            draftStorageKey={draftStorageKey}
+            isManualEntry={isManualEntryActive}
+            submitLabel={submitLabel}
+          />
+        </div>
       );
     } else {
       return (
-        <UserCall
-          localFormData={localFormData}
-          setLocalFormData={updateLocalFormData}
-          handleSubmit={handleContact}
-          userCall={activeUserCall}
-          userCallDialog={true}
-          formSubmitted={formSubmitted}
-          isManualEntry={isManualEntryActive}
-        />
+        <div className="space-y-4">
+          {hasExistingConversation ? (
+            <div className="rounded-xl border bg-muted/30 p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">Latest conversation loaded</div>
+                  <div className="text-sm text-muted-foreground">
+                    Prefilled with the most recent tagging entry for this number. Full history is available in the History tab.
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline">{contactConversationHistory.length} conversation{contactConversationHistory.length === 1 ? '' : 's'}</Badge>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setActiveTab('history')}>
+                    View History
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <UserCall
+            localFormData={localFormData}
+            setLocalFormData={updateLocalFormData}
+            handleSubmit={handleContact}
+            userCall={activeUserCall}
+            userCallDialog={true}
+            formSubmitted={formSubmitted}
+            isManualEntry={isManualEntryActive}
+            submitLabel={submitLabel}
+          />
+        </div>
       );
     }
   };

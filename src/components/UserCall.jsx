@@ -4,7 +4,16 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 
-const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, handleSubmit, formSubmitted, isManualEntry = false }) => {
+const UserCall = ({
+  localFormData,
+  setLocalFormData,
+  userCallDialog,
+  userCall,
+  handleSubmit,
+  formSubmitted,
+  isManualEntry = false,
+  submitLabel = 'Save Data',
+}) => {
   const currentFormData = {
     firstName: localFormData?.firstName || userCall?.firstName || '',
     lastName: localFormData?.lastName || userCall?.lastName || '',
@@ -62,6 +71,37 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
     return (
       <form className="space-y-6 max-h-[32rem] overflow-y-auto pr-2" onSubmit={onSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2 rounded-xl border bg-muted/20 p-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="relative">
+                <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+                <Input
+                  name="contactNumber"
+                  type="tel"
+                  placeholder="Caller Number"
+                  value={isManualEntry ? currentFormData.contactNumber : userCall?.contactNumber || currentFormData.contactNumber}
+                  disabled={!isManualEntry}
+                  className={`pl-10 border-border ${isManualEntry ? '' : 'bg-muted/50 cursor-not-allowed'}`}
+                  onChange={handleChange}
+                  aria-label="Caller Number"
+                />
+              </div>
+
+              <div className="relative">
+                <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+                <Input
+                  name="alternateNumber"
+                  type="tel"
+                  placeholder="Alternate Number"
+                  value={currentFormData.alternateNumber}
+                  onChange={handleChange}
+                  className="pl-10 border-border"
+                  aria-label="Alternate Number"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* First Name */}
           <div className="relative">
             <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
@@ -87,35 +127,6 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
               onChange={handleChange}
               className="pl-10 border-border"
               aria-label="Last Name"
-            />
-          </div>
-
-          {/* Mobile Number - Fixed and disabled */}
-          <div className="relative">
-            <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
-            <Input
-              name="contactNumber"
-              type="tel"
-              placeholder="Mobile Number"
-              value={isManualEntry ? currentFormData.contactNumber : userCall?.contactNumber || currentFormData.contactNumber}
-              disabled={!isManualEntry}
-              className={`pl-10 border-border ${isManualEntry ? '' : 'bg-muted/50 cursor-not-allowed'}`}
-              onChange={handleChange}
-              aria-label="Mobile Number"
-            />
-          </div>
-
-          {/* Alternate Number */}
-          <div className="relative">
-            <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
-            <Input
-              name="alternateNumber"
-              type="tel"
-              placeholder="Alternate Number"
-              value={currentFormData.alternateNumber}
-              onChange={handleChange}
-              className="pl-10 border-border"
-              aria-label="Alternate Number"
             />
           </div>
 
@@ -220,7 +231,7 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
 
         <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
           <Button type="submit" disabled={formSubmitted} className="min-w-[120px]">
-            {formSubmitted ? 'Saving...' : 'Save Contact'}
+            {formSubmitted ? 'Saving...' : submitLabel}
           </Button>
         </div>
       </form>
@@ -228,7 +239,11 @@ const UserCall = ({ localFormData, setLocalFormData, userCallDialog, userCall, h
   };
 
   if (userCallDialog) {
-    return userCallForm();
+    return (
+      <Card className="rounded-xl border shadow-sm">
+        <CardContent className="pt-6">{userCallForm()}</CardContent>
+      </Card>
+    );
   }
 
   return (
