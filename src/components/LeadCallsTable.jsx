@@ -10,6 +10,7 @@ import { Separator } from './ui/separator';
 import DateRangePicker from './DateRangePicker';
 import axios from 'axios';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { normalizePhone } from '@/utils/normalizePhone';
 
 const mapLeadData = (rawData) => {
   if (!Array.isArray(rawData)) rawData = [rawData];
@@ -34,15 +35,15 @@ const mapLeadData = (rawData) => {
 
     // Handle Phone: number OR phone_number OR phone field
     if (item.number) {
-      mapped.phone = String(item.number).replace(/^\+91/, '');
+      mapped.phone = normalizePhone(item.number);
     } else if (item.contactNumber) {
-      mapped.phone = String(item.contactNumber).replace(/^\+91/, '');
+      mapped.phone = normalizePhone(item.contactNumber);
     }
     // Handle Phone: phone_number OR phone field
     if (!mapped.phone && item.phone_number) {
-      mapped.phone = String(item.phone_number).replace(/^\+91/, '');
+      mapped.phone = normalizePhone(item.phone_number);
     } else if (!mapped.phone && item.phone) {
-      mapped.phone = String(item.phone).replace(/^\+91/, '');
+      mapped.phone = normalizePhone(item.phone);
     }
 
     // Handle Start Time/Upload Date: startTime OR uploadDate
@@ -101,7 +102,7 @@ const mapLeadData = (rawData) => {
   });
 };
 
-export default function LeadCallsTable({
+function LeadCallsTable({
   callDetails,
   formConfig,
   handleCall,
@@ -185,7 +186,7 @@ export default function LeadCallsTable({
     apiCallData.forEach((call) => {
       if (!call.Caller) return;
 
-      const normalizedCaller = String(call.Caller).replace(/^\+91/, '');
+      const normalizedCaller = normalizePhone(call.Caller);
 
       if (!grouped[normalizedCaller]) {
         grouped[normalizedCaller] = {
@@ -603,14 +604,14 @@ export default function LeadCallsTable({
       setConversationDetails([]);
       setLoadingConversation(true);
 
-      const contactNumber = String(
+      const contactNumber = normalizePhone(
         historyItem.phone_number ||
           historyItem.phone ||
           historyItem.Caller ||
           historyItem.dialNumber ||
           historyItem.contactNumber ||
           '',
-      ).replace(/^\+91/, '');
+      );
 
       if (!contactNumber) {
         setLoadingConversation(false);
@@ -618,11 +619,9 @@ export default function LeadCallsTable({
       }
 
       try {
-        const tokenData = localStorage.getItem('token');
-        let tokenStr = token || null; // use prop token if available
-        if (!tokenStr && tokenData) {
-          const parsedData = JSON.parse(tokenData);
-          tokenStr = parsedData.token || parsedData.accessToken;
+        if (!token) {
+          setLoadingConversation(false);
+          return;
         }
 
         const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
@@ -630,7 +629,7 @@ export default function LeadCallsTable({
 
         const response = await axios.get(`${window.location.origin}/fetchConversationsAgent`, {
           params: { startDate: formattedStartDate, endDate: formattedEndDate, agentName: username },
-          headers: { Authorization: `Bearer ${tokenStr}` },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (response.data?.success && response.data.result) {
@@ -1043,3 +1042,5 @@ export default function LeadCallsTable({
     </div>
   );
 }
+
+export default React.memo(LeadCallsTable);

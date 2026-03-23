@@ -86,6 +86,8 @@ const useJssip = (isMobile = false) => {
     setAgentLifecycle,
     activeCallContext,
     setActiveCallContext,
+    workspaceActiveCall,
+    setWorkspaceActiveCall,
     conferenceCalls,
     setConferenceCalls,
     callConference,
@@ -187,6 +189,89 @@ const useJssip = (isMobile = false) => {
         : extraHeaders;
     },
     [getStoredTokenPayload],
+  );
+
+  const activeCallContextLoadedRef = useRef(false);
+  const activeCallContextRequestRef = useRef(null);
+
+  const finalizePostCallContext = useCallback(() => {
+    activeCallContextLoadedRef.current = false;
+    activeCallContextRequestRef.current = null;
+    setBridgeID('');
+    setActiveCallContext(null);
+    setUserCall('');
+    setWorkspaceActiveCall(null);
+  }, [setActiveCallContext, setBridgeID, setUserCall, setWorkspaceActiveCall]);
+
+  const ensureActiveCallContextLoaded = useCallback(
+    async ({ incomingNumber = null, addIncomingHistory = false } = {}) => {
+      if (activeCallContextLoadedRef.current) {
+        return;
+      }
+
+      if (activeCallContextRequestRef.current) {
+        return activeCallContextRequestRef.current;
+      }
+
+      activeCallContextRequestRef.current = (async () => {
+        try {
+          const response = await axios.post(
+            `${window.location.origin}/useroncall/${username}`,
+            leadLockToken ? { leadLockToken } : {},
+            {
+              headers: {
+                ...getAuthHeaders({ 'Content-Type': 'application/json' }),
+              },
+            },
+          );
+
+          if (response.status !== 200) {
+            throw new Error('Failed to process call');
+          }
+
+          setBridgeID(response.data.currentcalldata?.bridgeID || '');
+          setActiveCallContext(response.data.currentcalldata || null);
+          if (response.data.contactData) {
+            setUserCall(response.data.contactData);
+          }
+          setAgentLifecycle('on_call');
+          setConferenceStatus(false);
+          activeCallContextLoadedRef.current = true;
+
+          if (addIncomingHistory && incomingNumber) {
+            setHistory((prev) => [
+              ...prev,
+              {
+                phoneNumber: incomingNumber,
+                type: 'incoming',
+                status: 'Success',
+                start: new Date().getTime(),
+                startTime: new Date(),
+              },
+            ]);
+          }
+        } catch (error) {
+          activeCallContextLoadedRef.current = false;
+          console.error('Error processing call:', error);
+          throw error;
+        } finally {
+          activeCallContextRequestRef.current = null;
+        }
+      })();
+
+      return activeCallContextRequestRef.current;
+    },
+    [
+      getAuthHeaders,
+      leadLockToken,
+      setActiveCallContext,
+      setAgentLifecycle,
+      setBridgeID,
+      setConferenceStatus,
+      setHistory,
+      setUserCall,
+      username,
+    ],
   );
 
   useEffect(() => {
@@ -508,6 +593,7 @@ const useJssip = (isMobile = false) => {
 
   const eventHandlers = {
     failed: function (e) {
+      finalizePostCallContext();
       setStatus('fail');
       setAgentLifecycle(leadLockToken ? 'lead_locked' : 'idle');
       // setPhoneNumber('');
@@ -518,7 +604,7 @@ const useJssip = (isMobile = false) => {
     },
 
     confirmed: function (e) {
-      reset();
+      reset(undefined, true);
       startRecording();
       setAgentLifecycle('on_call');
       setHistory((prev) => [
@@ -535,7 +621,6 @@ const useJssip = (isMobile = false) => {
       if (isRecording) {
         stopRecording();
       }
-      setActiveCallContext(null);
       setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
       pause();
       setStatus('start');
@@ -558,46 +643,16 @@ const useJssip = (isMobile = false) => {
     },
   };
 
-  const answercall = async (incomingNumber = null) => {
-    try {
-      const response = await axios.post(
-        `${window.location.origin}/useroncall/${username}`,
-        leadLockToken ? { leadLockToken } : {},
-        {
-          headers: {
-            ...getAuthHeaders({ 'Content-Type': 'application/json' }),
-          },
-        },
-      );
+  useEffect(() => {
+    const handleRefreshFollowUps = () => {
+      void connectioncheck();
+    };
 
-      if (response.status === 200) {
-        setBridgeID(response.data.currentcalldata.bridgeID);
-        setActiveCallContext(response.data.currentcalldata || null);
-        if (response.data.contactData) {
-          setUserCall(response.data.contactData);
-        }
-        setAgentLifecycle('on_call');
-        setConferenceStatus(false);
-
-        if (incomingNumber) {
-          setHistory((prev) => [
-            ...prev,
-            {
-              phoneNumber: incomingNumber,
-              type: 'incoming',
-              status: 'Success',
-              start: new Date().getTime(),
-              startTime: new Date(),
-            },
-          ]);
-        }
-      } else {
-        console.error('Failed to process call');
-      }
-    } catch (error) {
-      console.error('Error processing call:', error);
-    }
-  };
+    window.addEventListener('refreshFollowUps', handleRefreshFollowUps);
+    return () => {
+      window.removeEventListener('refreshFollowUps', handleRefreshFollowUps);
+    };
+  }, [connectioncheck]);
 
   const answerIncomingCall = async () => {
     if (incomingSession) {
@@ -624,9 +679,7 @@ const useJssip = (isMobile = false) => {
         // Update history
         setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], status: 'Success' }]);
 
-        const callerNumber = incomingNumber;
-
-        await answercall(callerNumber);
+        await ensureActiveCallContextLoaded();
       } catch (error) {
         console.error('Error answering call:', error);
         toast.error('Failed to answer call');
@@ -645,6 +698,7 @@ const useJssip = (isMobile = false) => {
     setIsIncomingRinging(false);
     setStatus('start');
     setCallType('');
+    finalizePostCallContext();
     // Update history as rejected
     setHistory((prev) => [
       ...prev.slice(0, -1),
@@ -803,7 +857,10 @@ const useJssip = (isMobile = false) => {
               const incomingNumber = e.request.from._uri._user;
               setInNotification(incomingNumber);
 
-              handleIncomingCall(e.session, e.request); // Your existing auto-answer logic
+              handleIncomingCall(e.session, e.request, {
+                addIncomingHistory: false,
+                startTimerImmediately: false,
+              }); // Outgoing leg should start timer only after answer
             } else {
               // Check if this is an autodial call
               const checkAutodialAndHandle = async () => {
@@ -831,16 +888,13 @@ const useJssip = (isMobile = false) => {
                   setIsIncomingRinging(false);
                   setIncomingSession(null);
 
-                  // Use the existing answercall function which handles useroncall API
                   const incomingNumber = e.request.from._uri._user;
 
                   // Always trigger notification check (will only show if user is away)
                   setInNotification(incomingNumber);
 
-                  await answercall(incomingNumber);
-
                   // Auto-answer the call
-                  handleIncomingCall(e.session, e.request);
+                  handleIncomingCall(e.session, e.request, { addIncomingHistory: false });
                   return true; // Indicate autodial was handled
                 }
 
@@ -918,7 +972,7 @@ const useJssip = (isMobile = false) => {
                     setInNotification(incomingNumber);
 
                     // Auto-answer the call (existing logic)
-                    handleIncomingCall(e.session, e.request);
+                    handleIncomingCall(e.session, e.request, { addIncomingHistory: true });
                   }
                 })
                 .catch((error) => {
@@ -954,8 +1008,9 @@ const useJssip = (isMobile = false) => {
 
             // Add event listeners for outgoing calls
             e.session.on('confirmed', () => {
-              reset();
+              reset(undefined, true);
               startRecording();
+              void ensureActiveCallContextLoaded();
               setAgentLifecycle('on_call');
               setHistory((prev) => [
                 ...prev.slice(0, -1),
@@ -975,12 +1030,12 @@ const useJssip = (isMobile = false) => {
               setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
               pause();
               setStatus('start');
-              setActiveCallContext(null);
               setIsCallended(true);
               setConferenceNumber('');
             });
 
             e.session.on('failed', () => {
+              finalizePostCallContext();
               setStatus('fail');
               setAgentLifecycle(leadLockToken ? 'lead_locked' : 'idle');
               if (isRecording) {
@@ -1003,14 +1058,24 @@ const useJssip = (isMobile = false) => {
       }
     };
 
-    const handleIncomingCall = (session, request) => {
+    const handleIncomingCall = (
+      session,
+      request,
+      { addIncomingHistory = false, startTimerImmediately = true } = {},
+    ) => {
       const incomingNumber = request.from._uri._user;
       session.answer(options); // Auto-answers (good for outgoing)
       setSession(session);
       setStatus('calling');
       setAgentLifecycle('on_call');
-      reset();
-      answercall(incomingNumber);
+      reset(undefined, startTimerImmediately);
+      void ensureActiveCallContextLoaded({ incomingNumber, addIncomingHistory });
+
+      session.once('confirmed', () => {
+        if (!startTimerImmediately) {
+          reset(undefined, true);
+        }
+      });
 
       session.connection.addEventListener('addstream', (event) => {
         if (audioRef.current) {
@@ -1030,6 +1095,7 @@ const useJssip = (isMobile = false) => {
       });
 
       session.once('failed', () => {
+        finalizePostCallContext();
         setHistory((prev) => [
           ...prev.slice(0, -1),
           { ...prev[prev.length - 1], end: new Date().getTime(), status: 'Fail' },
@@ -1040,7 +1106,6 @@ const useJssip = (isMobile = false) => {
         setDispositionModal(false);
       });
     };
-
     const enumerateDevices = async () => {
       try {
         await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1120,6 +1185,8 @@ const useJssip = (isMobile = false) => {
       dialingNumberRef.current = cleanedNumber;
       setPhoneNumber(targetNumber);
       setCallType('outgoing');
+      pause();
+      reset(undefined, false);
       if (nextLead) {
         setActiveLead(nextLead);
       }
@@ -1357,7 +1424,14 @@ const useJssip = (isMobile = false) => {
     setAgentLifecycle,
     activeCallContext,
     setActiveCallContext,
+    workspaceActiveCall,
+    setWorkspaceActiveCall,
+    finalizePostCallContext,
   ];
 };
 
 export default useJssip;
+
+
+
+

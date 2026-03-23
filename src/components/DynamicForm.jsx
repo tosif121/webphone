@@ -280,7 +280,11 @@ export default function DynamicForm({
     : userCall?.contactNumber || currentFormData.contactNumber || '';
 
   const getFieldSystemRole = useCallback((field) => {
-    if (field?.systemField === 'callerNumber' || field?.systemField === 'alternateNumber') {
+    if (
+      field?.systemField === 'callerNumber' ||
+      field?.systemField === 'callerName' ||
+      field?.systemField === 'alternateNumber'
+    ) {
       return field.systemField;
     }
 
@@ -301,6 +305,14 @@ export default function DynamicForm({
     }
 
     if (
+      normalizedName === 'caller_name' ||
+      normalizedName === 'callername' ||
+      normalizedLabel.includes('caller name')
+    ) {
+      return 'callerName';
+    }
+
+    if (
       normalizedName === 'alternatenumber' ||
       normalizedName === 'alternate_number' ||
       normalizedLabel.includes('alternate')
@@ -317,6 +329,18 @@ export default function DynamicForm({
 
       if (role === 'callerNumber') {
         return isManualEntry ? currentFormData.contactNumber || '' : userCall?.contactNumber || '';
+      }
+
+      if (role === 'callerName') {
+        return (
+          currentFormData[field.name] ||
+          currentFormData.callerName ||
+          currentFormData.caller_name ||
+          userCall?.callerName ||
+          userCall?.caller_name ||
+          userCall?.firstName ||
+          ''
+        );
       }
 
       if (role === 'alternateNumber') {
@@ -438,31 +462,82 @@ export default function DynamicForm({
   }, [callerNumberValue, currentSection, currentFormData, getFieldSystemRole, isFieldVisible, matchesFieldVisibility]);
 
   const getFinalFormData = useCallback(() => {
-    const finalData = { ...initialValues };
+    const finalData = {};
+    const activeSectionIndexes = new Set(
+      (Array.isArray(navigationPath) && navigationPath.length > 0 ? navigationPath : [currentSectionIndex]).filter(
+        (index) => Number.isInteger(index) && index >= 0,
+      ),
+    );
 
-    Object.keys(currentFormData).forEach((key) => {
-      const value = currentFormData[key];
-      if (value !== undefined && value !== null && value !== '') {
-        finalData[key] = value;
-      } else if (value === 0 || value === false || (Array.isArray(value) && value.length === 0)) {
-        finalData[key] = value;
+    activeSectionIndexes.forEach((sectionIndex) => {
+      const section = sortedSections[sectionIndex];
+      if (!section?.fields?.length) {
+        return;
       }
-    });
 
-    if (callerNumberValue) {
-      finalData.contactNumber = callerNumberValue;
-    }
+      section.fields.forEach((field) => {
+        const systemRole = getFieldSystemRole(field);
+        const isVisible = systemRole ? true : isFieldVisible(field);
+        if (!isVisible) {
+          return;
+        }
 
-    sortedSections.forEach((section) => {
-      section.fields?.forEach((field) => {
-        if (getFieldSystemRole(field) === 'callerNumber' && callerNumberValue) {
-          finalData[field.name] = callerNumberValue;
+        if (systemRole === 'callerNumber') {
+          if (callerNumberValue) {
+            finalData[field.name] = callerNumberValue;
+            finalData.contactNumber = callerNumberValue;
+          }
+          return;
+        }
+
+        if (systemRole === 'callerName') {
+          const callerNameValue = String(currentFormData[field.name] || currentFormData.callerName || '').trim();
+          if (callerNameValue) {
+            finalData[field.name] = callerNameValue;
+            if (!finalData.callerName) {
+              finalData.callerName = callerNameValue;
+            }
+          }
+          return;
+        }
+
+        if (systemRole === 'alternateNumber') {
+          const alternateNumberValue = currentFormData[field.name] || userCall?.alternateNumber || '';
+          if (alternateNumberValue !== '') {
+            finalData[field.name] = alternateNumberValue;
+            finalData.alternateNumber = alternateNumberValue;
+          }
+          return;
+        }
+
+        const value = currentFormData[field.name];
+        if (value !== undefined && value !== null && value !== '') {
+          finalData[field.name] = value;
+        } else if (value === 0 || value === false || (Array.isArray(value) && value.length === 0)) {
+          finalData[field.name] = value;
         }
       });
     });
 
+    if (callerNumberValue && !finalData.contactNumber) {
+      finalData.contactNumber = callerNumberValue;
+    }
+
+    if (currentFormData.alternateNumber && !finalData.alternateNumber) {
+      finalData.alternateNumber = currentFormData.alternateNumber;
+    }
+
     return finalData;
-  }, [callerNumberValue, getFieldSystemRole, initialValues, currentFormData, sortedSections]);
+  }, [
+    callerNumberValue,
+    currentFormData,
+    currentSectionIndex,
+    getFieldSystemRole,
+    isFieldVisible,
+    navigationPath,
+    sortedSections,
+    userCall?.alternateNumber,
+  ]);
 
   const cleanupFormDataForPath = (newPath) => {
     const sectionsInPath = new Set(newPath);
@@ -498,6 +573,22 @@ export default function DynamicForm({
     setVisitedSections((prev) => (!prev.includes(indexToAdd) ? [...prev, indexToAdd] : prev));
   };
 
+  const clearDependentBranch = useCallback((sourceFieldName, draftState) => {
+    sortedSections.forEach((section) => {
+      section?.fields?.forEach((field) => {
+        if (field.parentField !== sourceFieldName) {
+          return;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(draftState, field.name)) {
+          delete draftState[field.name];
+        }
+
+        clearDependentBranch(field.name, draftState);
+      });
+    });
+  }, [sortedSections]);
+
   const handleChange = (fieldName, value) => {
     const lockedCallerField = currentSection?.fields?.find(
       (field) => field.name === fieldName && getFieldSystemRole(field) === 'callerNumber'
@@ -510,12 +601,7 @@ export default function DynamicForm({
     setCurrentFormData((prev) => {
       const newData = { ...prev, [fieldName]: value };
 
-      // Clear dependent fields when parent changes
-      currentSection?.fields.forEach((field) => {
-        if (field.parentField === fieldName && newData[field.name]) {
-          newData[field.name] = '';
-        }
-      });
+      clearDependentBranch(fieldName, newData);
 
       return newData;
     });
@@ -699,6 +785,8 @@ export default function DynamicForm({
   const showNextButton = sortedSections.length > 1 && !isLastSection;
   const callerNumberField =
     currentSection?.fields?.find((field) => isFieldVisible(field) && getFieldSystemRole(field) === 'callerNumber') || null;
+  const callerNameField =
+    currentSection?.fields?.find((field) => isFieldVisible(field) && getFieldSystemRole(field) === 'callerName') || null;
   const alternateNumberField =
     currentSection?.fields?.find((field) => isFieldVisible(field) && getFieldSystemRole(field) === 'alternateNumber') || null;
   const renderableFields =
@@ -708,7 +796,7 @@ export default function DynamicForm({
       }
 
       const systemRole = getFieldSystemRole(field);
-      return systemRole !== 'callerNumber' && systemRole !== 'alternateNumber';
+      return systemRole !== 'callerNumber' && systemRole !== 'callerName' && systemRole !== 'alternateNumber';
     }) || [];
 
   useEffect(() => {
@@ -722,6 +810,10 @@ export default function DynamicForm({
           if (systemValue !== undefined && systemValue !== '') {
             initialData[field.name] = systemValue;
             initialVals[field.name] = systemValue;
+            return;
+          }
+
+          if (userCallDialog) {
             return;
           }
 
@@ -740,7 +832,7 @@ export default function DynamicForm({
       setCurrentFormData((prev) => ({ ...initialData, ...prev }));
       setIsInitialized(true);
     }
-  }, [userCall, formConfig, isInitialized, getSystemFieldValue, userModifiedFields]);
+  }, [formConfig, getSystemFieldValue, isInitialized, userCall, userCallDialog, userModifiedFields]);
 
   useEffect(() => {
     setCurrentSectionIndex(0);
@@ -819,10 +911,10 @@ export default function DynamicForm({
       className={`${
         !userCallDialog
           ? 'backdrop-blur-sm bg-card/80 rounded-lg max-w-4xl mx-auto'
-          : 'bg-card/95 rounded-xl border shadow-sm p-0 !gap-2 max-h-[32rem] overflow-y-auto'
+          : 'bg-card/95 rounded-xl border shadow-sm p-0 !gap-0 flex h-full min-h-0 flex-col overflow-hidden'
       }`}
     >
-      <CardHeader className="pb-4">
+      <CardHeader className={userCallDialog ? 'shrink-0 pb-3' : 'pb-4'}>
         <div className="flex items-center justify-between mb-4">
           <CardTitle className="text-2xl text-primary">
             {formConfig.formTitle || 'Form'}
@@ -842,10 +934,11 @@ export default function DynamicForm({
           </div>
         )}
       </CardHeader>
-      <CardContent>
-        <div className="space-y-6 mb-6">
+      <CardContent className={userCallDialog ? 'flex flex-1 min-h-0 flex-col overflow-hidden' : undefined}>
+        <div className={userCallDialog ? 'mb-4 min-h-0 flex-1 overflow-y-auto pr-1' : ''}>
+        <div className="space-y-6">
           <div className="rounded-xl border bg-muted/20 p-4">
-            <div className={`grid grid-cols-1 gap-4 ${alternateNumberField ? 'md:grid-cols-2' : ''}`}>
+            <div className={`grid grid-cols-1 gap-4 ${callerNameField || alternateNumberField ? 'md:grid-cols-2' : ''} ${callerNameField && alternateNumberField ? 'xl:grid-cols-3' : ''}`}>
               <div>
                 <Label className="mb-2 block text-sm font-medium">
                   {callerNumberField?.label || 'Caller Number'}
@@ -866,6 +959,31 @@ export default function DynamicForm({
                   </p>
                 )}
               </div>
+
+              {callerNameField ? (
+                <div>
+                  <Label htmlFor={`${callerNameField.name}-system`} className="mb-2 block text-sm font-medium">
+                    {callerNameField.label || 'Caller Name'}
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <Input
+                      id={`${callerNameField.name}-system`}
+                      name={callerNameField.name}
+                      type={callerNameField.type || 'text'}
+                      placeholder={callerNameField.label || 'Caller Name'}
+                      value={getFieldValue(callerNameField.name)}
+                      onChange={handleInputChange}
+                      className={`pl-10 ${errors[callerNameField.name] ? 'border-red-500' : ''}`}
+                    />
+                  </div>
+                  {errors[callerNameField.name] && (
+                    <p className="mt-1 text-sm text-red-500" role="alert">
+                      {errors[callerNameField.name]}
+                    </p>
+                  )}
+                </div>
+              ) : null}
 
               {alternateNumberField ? (
                 <div>
@@ -894,7 +1012,7 @@ export default function DynamicForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <div className={`grid grid-cols-1 gap-4 md:gap-6 ${userCallDialog ? 'md:grid-cols-2 xl:grid-cols-3' : 'md:grid-cols-2'}`}>
             {renderableFields.map((field, idx) => {
               const fieldId = `${field.name}-${idx}`;
               const fieldLabel = field.question || field.label || 'Field';
@@ -1235,17 +1353,26 @@ export default function DynamicForm({
             })}
           </div>
         </div>
+        </div>
 
-        <div className="flex justify-between items-center pt-6 border-t">
-          <Button
-            variant="outline"
-            onClick={handleBack}
-            disabled={navigationPath.length <= 1}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
+        <div
+          className={`flex items-center justify-between border-t pt-6 ${
+            userCallDialog ? 'sticky bottom-0 z-10 shrink-0 bg-card/95 pb-2 backdrop-blur supports-[backdrop-filter]:bg-card/90' : ''
+          }`}
+        >
+          {sortedSections.length > 1 ? (
+            <Button
+              variant="outline"
+              onClick={handleBack}
+              disabled={navigationPath.length <= 1}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+          ) : (
+            <div className="hidden" />
+          )}
 
           <div className="flex gap-2">
             {isLastSection ? (

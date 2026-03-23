@@ -1,17 +1,14 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import {
+  Keyboard,
+  Mic,
+  MicOff,
+  Pause,
   Phone,
   PhoneCall,
   PhoneOff,
-  MoveHorizontal,
-  Lock,
-  Unlock,
-  History,
-  LayoutGrid,
-  BarChart3,
-  Grid3x3,
+  Play,
   ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Rnd } from 'react-rnd';
@@ -23,6 +20,7 @@ import useJssip from '@/hooks/useJssip';
 import CallConference from './CallConference';
 import { JssipContext } from '@/context/JssipContext';
 import IncomingCall from './IncomingCall';
+import { getStoredAgentUiPreferences } from '@/utils/agent-preferences';
 
 export default function DraggableWebPhone() {
   const {
@@ -78,6 +76,9 @@ export default function DraggableWebPhone() {
     hasParticipants,
     muted,
     setMuted,
+    agentLifecycle,
+    activeCallContext,
+    workspaceActiveCall,
     isMobile,
     isCustomerAnswered,
     setHasParticipants,
@@ -90,15 +91,25 @@ export default function DraggableWebPhone() {
   const [phoneShow, setPhoneShow] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [seeLogs, setSeeLogs] = useState(false);
-  const [phonePosition, setPhonePosition] = useState('right');
-  const [isDraggable, setIsDraggable] = useState(false);
+  const [dialerDockMode, setDialerDockMode] = useState('right');
+  const [dialerLayoutMode, setDialerLayoutMode] = useState('overlay');
   const [activeTab, setActiveTab] = useState('dialpad');
+  const [isExpandedDuringCall, setIsExpandedDuringCall] = useState(false);
+  const [miniBarX, setMiniBarX] = useState(null);
+  const [workspaceBounds, setWorkspaceBounds] = useState(null);
+  const phoneShowBeforeCallRef = useRef(true);
+  const previousIsCallLiveRef = useRef(false);
+  const previousHasWorkspaceActiveCallRef = useRef(false);
+  const previousStatusRef = useRef(status);
+  const compactBarDurationRef = useRef('00:00');
+  const previousPostCallPhaseRef = useRef(false);
+  const [compactBarDisconnectedAt, setCompactBarDisconnectedAt] = useState('');
 
   const [rndState, setRndState] = useState({
     x: 0,
     y: 0,
-    width: 250,
-    height: 430,
+    width: 280,
+    height: 500,
   });
 
   const [confSeconds, setConfSeconds] = useState(0);
@@ -135,25 +146,24 @@ export default function DraggableWebPhone() {
     if (typeof window !== 'undefined' && rndState.x === 0 && rndState.y === 0 && isHydrated) {
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
-      const x = phonePosition === 'right' ? windowWidth - 250 - 32 : 32;
+      const x = dialerDockMode === 'right' ? windowWidth - 280 - 32 : 32;
 
       setRndState({
         x,
-        y: windowHeight - 430 - 64,
-        width: 250,
-        height: 430,
+        y: windowHeight - 500 - 72,
+        width: 280,
+        height: 500,
       });
     }
-  }, [isHydrated, phonePosition]);
+  }, [dialerDockMode, isHydrated, rndState.x, rndState.y]);
 
   // Load settings from localStorage and always show phone on desktop
   useEffect(() => {
     setIsHydrated(true);
     try {
-      const savedPosition = localStorage.getItem('phonePosition');
-      const savedDraggable = localStorage.getItem('phoneDraggable');
       const savedRndState = localStorage.getItem('phoneRndState');
       const savedShow = localStorage.getItem('phoneShow');
+      const savedPreferences = getStoredAgentUiPreferences();
 
       // Load phoneShow state from localStorage, default to true on desktop
       if (!effectiveIsMobile) {
@@ -164,12 +174,8 @@ export default function DraggableWebPhone() {
         }
       }
 
-      if (savedPosition && (savedPosition === 'left' || savedPosition === 'right')) {
-        setPhonePosition(savedPosition);
-      }
-      if (savedDraggable) {
-        setIsDraggable(JSON.parse(savedDraggable));
-      }
+      setDialerDockMode(savedPreferences.dialerDockMode || 'right');
+      setDialerLayoutMode(savedPreferences.dialerLayoutMode || 'overlay');
       if (savedRndState) {
         const parsed = JSON.parse(savedRndState);
         setRndState(parsed);
@@ -179,33 +185,113 @@ export default function DraggableWebPhone() {
     }
   }, [effectiveIsMobile]);
 
+  useEffect(() => {
+    const handleProfileUpdated = (event) => {
+      const nextPreferences = event?.detail || getStoredAgentUiPreferences();
+      setDialerDockMode(nextPreferences.dialerDockMode || 'right');
+      setDialerLayoutMode(nextPreferences.dialerLayoutMode || 'overlay');
+    };
+
+    window.addEventListener('agent-profile-updated', handleProfileUpdated);
+    return () => window.removeEventListener('agent-profile-updated', handleProfileUpdated);
+  }, []);
+
+  useEffect(() => {
+    const handleWorkspaceBoundsChange = (event) => {
+      const nextBounds = event?.detail;
+      if (!nextBounds || !nextBounds.height) {
+        setWorkspaceBounds(null);
+        return;
+      }
+
+      setWorkspaceBounds(nextBounds);
+    };
+
+    window.addEventListener('webphone-workspace-bounds', handleWorkspaceBoundsChange);
+    return () => window.removeEventListener('webphone-workspace-bounds', handleWorkspaceBoundsChange);
+  }, []);
+
   // Save settings to localStorage
   useEffect(() => {
     if (isHydrated) {
       try {
-        localStorage.setItem('phonePosition', phonePosition);
-        localStorage.setItem('phoneDraggable', JSON.stringify(isDraggable));
         localStorage.setItem('phoneRndState', JSON.stringify(rndState));
         localStorage.setItem('phoneShow', JSON.stringify(phoneShow));
       } catch (error) {
         console.warn('Failed to save phone settings to localStorage:', error);
       }
     }
-  }, [phonePosition, isDraggable, rndState, phoneShow, isHydrated]);
+  }, [rndState, phoneShow, isHydrated]);
 
-  // Auto-show on incoming call
+  // Auto-show on incoming call, but preserve the user's pre-call dialer choice.
   useEffect(() => {
     if (isIncomingRinging) {
+      if (!previousIsCallLiveRef.current) {
+        phoneShowBeforeCallRef.current = phoneShow;
+      }
       setPhoneShow(true);
     }
-  }, [isIncomingRinging]);
+  }, [isIncomingRinging, phoneShow]);
 
-  // Auto-show when calling
+  const isCallLive =
+    ['dialing', 'ringing', 'on_call'].includes(agentLifecycle) ||
+    ['calling', 'ringing', 'conference', 'incoming'].includes(status);
+  const isWorkspaceCallMode = status !== 'start' || dispositionModal;
+  const isPostCallPhase = dispositionModal && !isCallLive;
+  const hasPostCallContext = Boolean(dispositionModal || workspaceActiveCall || userCall || activeCallContext);
+  const hasCallUiContext = isWorkspaceCallMode || hasPostCallContext || isCallLive;
+  const shouldShowCompactCallControls =
+    isWorkspaceCallMode &&
+    !isIncomingRinging &&
+    !isExpandedDuringCall;
+  const liveDurationLabel = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
   useEffect(() => {
-    if (status === 'calling') {
-      setPhoneShow(true);
+    if (isCallLive) {
+      compactBarDurationRef.current = liveDurationLabel;
     }
-  }, [status]);
+  }, [isCallLive, liveDurationLabel]);
+
+  useEffect(() => {
+    if (isPostCallPhase && !previousPostCallPhaseRef.current) {
+      setCompactBarDisconnectedAt(
+        new Intl.DateTimeFormat('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        }).format(new Date()),
+      );
+    } else if (!hasPostCallContext && previousPostCallPhaseRef.current) {
+      setCompactBarDisconnectedAt('');
+    }
+
+    previousPostCallPhaseRef.current = isPostCallPhase;
+  }, [hasPostCallContext, isPostCallPhase]);
+
+  useEffect(() => {
+    if (isCallLive) {
+      if (!previousIsCallLiveRef.current) {
+        phoneShowBeforeCallRef.current = phoneShow;
+      }
+      setIsExpandedDuringCall(false);
+    } else if (previousIsCallLiveRef.current && !effectiveIsMobile) {
+      setPhoneShow(Boolean(phoneShowBeforeCallRef.current));
+      setIsExpandedDuringCall(false);
+    }
+    previousIsCallLiveRef.current = isCallLive;
+  }, [effectiveIsMobile, isCallLive, phoneShow]);
+
+  useEffect(() => {
+    if (previousHasWorkspaceActiveCallRef.current && !isWorkspaceCallMode) {
+      setActiveTab('dialpad');
+      setSeeLogs(false);
+      if (!effectiveIsMobile) {
+        setPhoneShow(Boolean(phoneShowBeforeCallRef.current));
+      }
+    }
+
+    previousHasWorkspaceActiveCallRef.current = isWorkspaceCallMode;
+  }, [effectiveIsMobile, isWorkspaceCallMode]);
 
   // Listen for custom events from mobile navigation
   useEffect(() => {
@@ -223,7 +309,7 @@ export default function DraggableWebPhone() {
 
     const handleCloseDialpad = () => {
       // Only close if not in an active call
-      if (status === 'start' || !session) {
+      if (!isWorkspaceCallMode) {
         console.log('Closing dialpad');
         setPhoneShow(false);
       } else {
@@ -240,7 +326,7 @@ export default function DraggableWebPhone() {
       window.removeEventListener('openDialpadRecents', handleOpenDialpadRecents);
       window.removeEventListener('closeDialpad', handleCloseDialpad);
     };
-  }, [status, session]);
+  }, [isWorkspaceCallMode]);
 
   // Notify when dialpad opens/closes
   useEffect(() => {
@@ -257,48 +343,15 @@ export default function DraggableWebPhone() {
     setCallConference(false);
   }
 
-  // Reset on call start
+  // Reset transient call UI only when the call session actually returns to idle.
   useEffect(() => {
-    if (status === 'start') {
+    if (previousStatusRef.current !== status && status === 'start') {
       stopRecording();
       setMuted(false);
+      setIsExpandedDuringCall(false);
     }
+    previousStatusRef.current = status;
   }, [status, stopRecording, setMuted]);
-
-  // Toggle left/right position
-  const togglePosition = () => {
-    const newPosition = phonePosition === 'right' ? 'left' : 'right';
-    setPhonePosition(newPosition);
-
-    if (!isDraggable && typeof window !== 'undefined') {
-      const windowWidth = window.innerWidth;
-      const x = newPosition === 'right' ? windowWidth - 250 - 32 : 32;
-
-      setRndState((prev) => ({
-        ...prev,
-        x,
-        y: window.innerHeight - 430 - 64,
-      }));
-    }
-  };
-
-  // Toggle drag mode
-  const toggleDraggable = () => {
-    const newDraggable = !isDraggable;
-    setIsDraggable(newDraggable);
-
-    if (!newDraggable && typeof window !== 'undefined') {
-      const windowWidth = window.innerWidth;
-      const x = phonePosition === 'right' ? windowWidth - 250 - 32 : 32;
-
-      setRndState({
-        x,
-        y: window.innerHeight - 430 - 64,
-        width: 250,
-        height: 430,
-      });
-    }
-  };
 
 
   // Render phone content
@@ -333,12 +386,26 @@ export default function DraggableWebPhone() {
             setSeeLogs={setSeeLogs}
             timeoutArray={timeoutArray}
             isConnectionLost={isConnectionLost}
+            headerAction={
+              !effectiveIsMobile && !isWorkspaceCallMode && !isIncomingRinging ? (
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  className="h-9 w-9 rounded-full bg-background/95"
+                  onClick={handleCollapseDuringCall}
+                  aria-label="Hide dialer"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              ) : null
+            }
           />
         )}
 
         {!(effectiveIsMobile && isIncomingRinging) &&
           !seeLogs &&
-          (status === 'calling' || status === 'ringing' || status === 'conference') &&
+          isCallLive &&
           (callConference ? (
             <CallConference
               conferenceNumber={conferenceNumber}
@@ -392,7 +459,8 @@ export default function DraggableWebPhone() {
         {!(effectiveIsMobile && isIncomingRinging) &&
           !seeLogs &&
           activeTab === 'dialpad' &&
-          !['start', 'calling', 'ringing', 'conference'].includes(status) && (
+          !isCallLive &&
+          status !== 'start' && (
             <div className="flex flex-col items-center justify-center h-full text-center py-12">
               <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center mb-4">
                 <PhoneCall className="h-6 w-6 text-slate-400 dark:text-slate-500" />
@@ -405,14 +473,163 @@ export default function DraggableWebPhone() {
     </div>
   );
 
-  const positionClasses = phonePosition === 'right' ? 'right-4 sm:right-6' : 'left-4 sm:left-6';
+  const dockSideClass = dialerDockMode === 'left' ? 'left-4 sm:left-6' : dialerDockMode === 'floating' ? 'left-1/2 -translate-x-1/2' : 'right-4 sm:right-6';
+  const desktopDockClass = dialerDockMode === 'left' ? 'left-6' : 'right-6';
+  const miniBarWidth = 356;
+  const fallbackDockedTop = typeof window !== 'undefined' && window.innerWidth >= 1280 ? 257 : 241;
+  const fallbackBottomOffset = 132;
+  const workspaceBottomOffset =
+    typeof window !== 'undefined'
+      ? Math.max(window.innerHeight - (workspaceBounds?.bottom ?? window.innerHeight - fallbackBottomOffset), 0)
+      : fallbackBottomOffset;
+  const miniBarBottomOffset = Math.max(workspaceBottomOffset, 12);
+  const miniBarY =
+    typeof window !== 'undefined'
+      ? Math.max(window.innerHeight - (60 + miniBarBottomOffset), 24)
+      : 24;
+  const activeCallLabel =
+    workspaceActiveCall?.contactNumber ||
+    userCall?.contactNumber ||
+    activeCallContext?.contactNumber ||
+    incomingNumber ||
+    phoneNumber ||
+    'Active Call';
+  const compactBarStatusLabel = isPostCallPhase
+    ? `Call disconnected · ${compactBarDurationRef.current}`
+    : liveDurationLabel;
+  const compactBarButtonsDisabled = isPostCallPhase;
+  const isDialingPhase = callType === 'outgoing' && agentLifecycle === 'dialing' && !isPostCallPhase;
+  const getDefaultMiniBarX = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return 24;
+    }
+
+    return dialerDockMode === 'left' ? 24 : Math.max(window.innerWidth - miniBarWidth - 24, 24);
+  }, [dialerDockMode]);
+  const compactBarDisplayLabel = isPostCallPhase
+    ? `Call disconnected - ${compactBarDisconnectedAt || compactBarDurationRef.current}`
+    : compactBarStatusLabel;
+  const shouldReserveSpace =
+    dialerLayoutMode === 'docked' &&
+    phoneShow &&
+    !effectiveIsMobile &&
+    !isWorkspaceCallMode &&
+    !isIncomingRinging &&
+    dialerDockMode !== 'floating';
+  const fullDockedDialerStyle = workspaceBounds?.height
+    ? {
+        top: `${Math.round(workspaceBounds.top)}px`,
+        height: `${Math.round(workspaceBounds.height)}px`,
+      }
+    : {
+        top: `${fallbackDockedTop}px`,
+        bottom: `${fallbackBottomOffset}px`,
+      };
+  const hiddenBubbleStyle = {
+    bottom: `${Math.max(Math.min(workspaceBottomOffset, 28), 18)}px`,
+  };
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent('webphone-layout-change', {
+        detail: {
+          shouldReserveSpace,
+          dialerDockMode,
+          dialerLayoutMode,
+        },
+      }),
+    );
+  }, [dialerDockMode, dialerLayoutMode, shouldReserveSpace]);
+
+  useEffect(() => {
+    if (effectiveIsMobile || typeof window === 'undefined') {
+      return;
+    }
+
+    const applyMiniBarPosition = () => {
+      const defaultX = getDefaultMiniBarX();
+      setMiniBarX((prev) => {
+        if (prev === null) {
+          return defaultX;
+        }
+        return Math.min(Math.max(prev, 24), Math.max(window.innerWidth - miniBarWidth - 24, 24));
+      });
+    };
+
+    applyMiniBarPosition();
+    window.addEventListener('resize', applyMiniBarPosition);
+    return () => window.removeEventListener('resize', applyMiniBarPosition);
+  }, [effectiveIsMobile, getDefaultMiniBarX]);
+
+  const handleMuteToggle = () => {
+    const nextMuted = !muted;
+    if (nextMuted) {
+      session?.mute();
+    } else {
+      session?.unmute();
+    }
+    setMuted(nextMuted);
+  };
+
+  const handleEndCurrentCall = () => {
+    try {
+      session?.terminate();
+      stopRecording?.();
+    } catch (error) {
+      console.warn('Failed to terminate current session cleanly:', error);
+    }
+  };
+
+  const handleExpandDuringCall = () => {
+    setPhoneShow(true);
+    setIsExpandedDuringCall(true);
+    setActiveTab('dialpad');
+    setSeeLogs(false);
+  };
+
+  const handleCollapseDuringCall = () => {
+    if (isWorkspaceCallMode) {
+      setIsExpandedDuringCall(false);
+    } else {
+      setPhoneShow(false);
+    }
+  };
+
+  const handleMiniBarPointerDown = useCallback(
+    (event) => {
+      if (effectiveIsMobile || typeof window === 'undefined') {
+        return;
+      }
+
+      if (event.target instanceof HTMLElement && event.target.closest('button')) {
+        return;
+      }
+
+      const startClientX = event.clientX;
+      const startX = miniBarX ?? getDefaultMiniBarX();
+      const minX = 24;
+      const maxX = Math.max(window.innerWidth - miniBarWidth - 24, minX);
+
+      const handlePointerMove = (moveEvent) => {
+        const deltaX = moveEvent.clientX - startClientX;
+        setMiniBarX(Math.min(Math.max(startX + deltaX, minX), maxX));
+      };
+
+      const handlePointerUp = () => {
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+      };
+
+      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointerup', handlePointerUp);
+    },
+    [effectiveIsMobile, getDefaultMiniBarX, miniBarX],
+  );
 
   return (
     <>
-      {/* Control Buttons - Desktop Only */}
-      {!effectiveIsMobile && (
-        <div className={`fixed bottom-2 ${positionClasses} z-[51] flex flex-col gap-2`}>
-          {/* Show/Hide Toggle */}
+      {!effectiveIsMobile && !isWorkspaceCallMode && !phoneShow && (
+        <div className={`fixed ${dockSideClass} z-[51] flex flex-col gap-2`} style={hiddenBubbleStyle}>
           <Button
             type="button"
             size="sm"
@@ -422,85 +639,114 @@ export default function DraggableWebPhone() {
           >
             {!phoneShow ? <PhoneOff className="h-5 w-5" /> : <Phone className="h-5 w-5" />}
           </Button>
-
-          {phoneShow && (
-            <>
-              {/* Lock/Unlock Toggle */}
-              <Button
-                type="button"
-                size="sm"
-                variant={isDraggable ? 'default' : 'outline'}
-                className="rounded-full w-12 h-12 hover:scale-105 transition-transform"
-                onClick={toggleDraggable}
-                aria-label={isDraggable ? 'Lock position' : 'Enable dragging'}
-                title={isDraggable ? 'Lock position' : 'Enable dragging'}
-              >
-                {isDraggable ? <Unlock className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
-              </Button>
-
-              {/* Left/Right Position Toggle */}
-              {!isDraggable && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="rounded-full w-12 h-12 hover:scale-105 transition-transform"
-                  onClick={togglePosition}
-                  aria-label={`Move phone to ${phonePosition === 'right' ? 'left' : 'right'}`}
-                  title={`Move to ${phonePosition === 'right' ? 'left' : 'right'}`}
-                >
-                  <MoveHorizontal className="h-5 w-5" />
-                </Button>
-              )}
-            </>
-          )}
         </div>
       )}
 
-      {/* Phone Interface */}
-      {!dispositionModal && phoneShow && (
+      {shouldShowCompactCallControls && (
+        effectiveIsMobile ? (
+          <div className="fixed inset-x-3 bottom-20 z-[50]">
+            <div className={`flex items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2.5 shadow-xl backdrop-blur ${compactBarButtonsDisabled ? 'opacity-70' : ''}`}>
+              <div className="min-w-0 pr-2">
+                <div className="truncate text-sm font-semibold text-foreground">{activeCallLabel}</div>
+                <div className="text-xs text-muted-foreground">
+                  {isDialingPhase ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span>Dialing</span>
+                      <span className="flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary [animation-delay:-0.3s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary [animation-delay:-0.15s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary" />
+                      </span>
+                    </span>
+                  ) : compactBarDisplayLabel}
+                </div>
+              </div>
+              <Button type="button" size="icon" variant={muted ? 'default' : 'outline'} className="h-9 w-9 rounded-full" onClick={handleMuteToggle} aria-label={muted ? 'Unmute call' : 'Mute call'} disabled={compactBarButtonsDisabled}>
+                {muted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+              <Button type="button" size="icon" variant={isHeld ? 'default' : 'outline'} className="h-9 w-9 rounded-full" onClick={toggleHold} aria-label={isHeld ? 'Resume call' : 'Hold call'} disabled={compactBarButtonsDisabled}>
+                {isHeld ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+              </Button>
+              <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-full" onClick={handleExpandDuringCall} aria-label="Open dialpad" disabled={compactBarButtonsDisabled}>
+                <Keyboard className="h-4 w-4" />
+              </Button>
+              <Button type="button" size="icon" className="h-9 w-9 rounded-full bg-destructive text-white hover:bg-destructive/90" onClick={handleEndCurrentCall} aria-label="End call" disabled={compactBarButtonsDisabled}>
+                <PhoneOff className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div
+            className="fixed z-[60]"
+            style={{
+              width: `${miniBarWidth}px`,
+              height: '60px',
+              left: `${miniBarX ?? getDefaultMiniBarX()}px`,
+              bottom: `${miniBarBottomOffset}px`,
+            }}
+            onPointerDown={handleMiniBarPointerDown}
+          >
+            <div className={`flex h-[60px] cursor-grab items-center gap-2 rounded-full border border-border bg-card/95 px-4 shadow-xl backdrop-blur active:cursor-grabbing ${compactBarButtonsDisabled ? 'opacity-70' : ''}`}>
+              <div className="min-w-0 pr-2">
+                <div className="truncate text-sm font-semibold text-foreground">{activeCallLabel}</div>
+                <div className="text-xs text-muted-foreground">
+                  {isDialingPhase ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span>Dialing</span>
+                      <span className="flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary [animation-delay:-0.3s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary [animation-delay:-0.15s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary" />
+                      </span>
+                    </span>
+                  ) : compactBarDisplayLabel}
+                </div>
+              </div>
+              <Button type="button" size="icon" variant={muted ? 'default' : 'outline'} className="h-9 w-9 rounded-full" onClick={handleMuteToggle} aria-label={muted ? 'Unmute call' : 'Mute call'} disabled={compactBarButtonsDisabled}>
+                {muted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+              <Button type="button" size="icon" variant={isHeld ? 'default' : 'outline'} className="h-9 w-9 rounded-full" onClick={toggleHold} aria-label={isHeld ? 'Resume call' : 'Hold call'} disabled={compactBarButtonsDisabled}>
+                {isHeld ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+              </Button>
+              <Button type="button" size="icon" variant="outline" className="h-9 w-9 rounded-full" onClick={handleExpandDuringCall} aria-label="Open dialpad" disabled={compactBarButtonsDisabled}>
+                <Keyboard className="h-4 w-4" />
+              </Button>
+              <Button type="button" size="icon" className="h-9 w-9 rounded-full bg-destructive text-white hover:bg-destructive/90" onClick={handleEndCurrentCall} aria-label="End call" disabled={compactBarButtonsDisabled}>
+                <PhoneOff className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )
+      )}
+
+      {phoneShow && (isExpandedDuringCall || !isWorkspaceCallMode || isIncomingRinging) && (
         <>
           {effectiveIsMobile ? (
-            // Mobile: Full screen with padding for header and bottom nav from MobileNavigation
-            <div className="fixed left-0 right-0 top-14 bottom-16 z-[35] bg-card overflow-hidden">
+            <div
+              className={`fixed left-0 right-0 z-[35] overflow-hidden bg-card ${
+                isIncomingRinging || isCallLive ? 'top-14 bottom-16' : 'bottom-16 top-auto h-[72vh] rounded-t-[28px] border-t border-border shadow-2xl'
+              }`}
+            >
               {renderPhoneContent()}
             </div>
-          ) : isDraggable ? (
-            // Desktop: Draggable mode
+          ) : dialerDockMode === 'floating' ? (
             <Rnd
               position={{ x: rndState.x, y: rndState.y }}
               size={{ width: rndState.width, height: rndState.height }}
-              minWidth={250}
-              minHeight={430}
+              minWidth={280}
+              minHeight={480}
               maxWidth={400}
-              maxHeight={600}
+              maxHeight={640}
               bounds="window"
               dragHandleClassName="webphone-drag-handle"
               cancel="button, input, textarea, select, a"
-              enableResizing={{
-                top: true,
-                right: true,
-                bottom: true,
-                left: true,
-                topRight: true,
-                bottomRight: true,
-                bottomLeft: true,
-                topLeft: true,
-              }}
+              enableResizing={false}
               onDragStop={(e, d) => {
                 setRndState((prev) => ({
                   ...prev,
                   x: d.x,
                   y: d.y,
                 }));
-              }}
-              onResizeStop={(e, direction, ref, delta, position) => {
-                setRndState({
-                  x: position.x,
-                  y: position.y,
-                  width: parseInt(ref.style.width),
-                  height: parseInt(ref.style.height),
-                });
               }}
               style={{ zIndex: 50 }}
             >
@@ -509,12 +755,24 @@ export default function DraggableWebPhone() {
               </div>
             </Rnd>
           ) : (
-            // Desktop: Fixed position mode
             <div
-              className={`bottom-16 ${
-                phonePosition === 'right' ? 'end-8' : 'start-8'
-              } fixed w-[250px] h-[460px] z-[50] bg-card rounded-xl border border-border shadow-xl transition-all duration-300 overflow-hidden`}
+              className={`fixed ${desktopDockClass} z-[50] w-[280px] overflow-hidden rounded-[28px] border border-border bg-card shadow-xl transition-all duration-300`}
+              style={fullDockedDialerStyle}
             >
+              {(isWorkspaceCallMode || isIncomingRinging) && (
+                <div className="absolute right-3 top-3 z-10">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="h-9 w-9 rounded-full bg-background/95"
+                    onClick={handleCollapseDuringCall}
+                    aria-label="Minimize call controls"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
               {renderPhoneContent()}
             </div>
           )}
@@ -523,3 +781,4 @@ export default function DraggableWebPhone() {
     </>
   );
 }
+

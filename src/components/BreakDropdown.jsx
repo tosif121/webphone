@@ -304,9 +304,19 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
               <ChevronDown className="w-4 h-4 ml-1" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent
+            align="end"
+            side="bottom"
+            sideOffset={10}
+            collisionPadding={16}
+            className="z-[120] w-[var(--radix-dropdown-menu-trigger-width)] min-w-[var(--radix-dropdown-menu-trigger-width)] max-w-[var(--radix-dropdown-menu-trigger-width)] rounded-xl border border-border/70 p-2 shadow-xl"
+          >
             {breakTypes.map(({ type, label, icon: Icon, id }) => (
-              <DropdownMenuItem key={id} onClick={() => handleBreakAction(type)} className="gap-3 cursor-pointer">
+              <DropdownMenuItem
+                key={id}
+                onClick={() => handleBreakAction(type)}
+                className="gap-3 cursor-pointer rounded-lg px-3 py-2 text-sm whitespace-normal break-words"
+              >
                 <Icon className="w-4 h-4 text-muted-foreground" />
                 <span>{label}</span>
               </DropdownMenuItem>
@@ -319,3 +329,4 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
 };
 
 export default BreakDropdown;
+

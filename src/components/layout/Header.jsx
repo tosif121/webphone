@@ -289,15 +289,18 @@ export default function Header() {
   ];
 
   return (
-    <header className="w-full bg-white dark:bg-background shadow-md border-b border-border sticky top-0 z-40">
+    <header className="w-full bg-white dark:bg-background shadow-md border-b border-border sticky top-0 z-[70]">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         {/* Logo and Brand */}
         <Link href={'/'} className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center shadow-sm">
             <PhoneCall className="w-5 h-5 text-primary-foreground" />
           </div>
-          <div className="hidden sm:block">
+          <div className="hidden sm:flex flex-col leading-none">
             <span className="text-xl font-bold text-foreground">SAMWAD</span>
+            <span className="mt-1 text-[12px] font-medium uppercase tracking-[0.12em] text-muted-foreground/70">
+              Agent Panel
+            </span>
           </div>
         </Link>
 
@@ -369,7 +372,7 @@ export default function Header() {
             </Button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-popover border rounded-lg shadow-lg z-50 animate-in slide-in-from-top-2 duration-200">
+              <div className="absolute right-0 mt-2 w-80 bg-popover border rounded-lg shadow-lg z-[90] animate-in slide-in-from-top-2 duration-200">
                 {/* User Info Header */}
                 <div className="px-4 py-4 bg-muted/50 border-b">
                   <div className="flex items-center gap-3">
@@ -711,33 +714,66 @@ export default function Header() {
             </div>
 
             <div className="grid gap-2">
-              <Label>Default Lead View</Label>
+              <Label>Default Workspace</Label>
               <Select
-                value={profilePreferences.leadViewMode}
-                onValueChange={(value) => setProfilePreferences((prev) => ({ ...prev, leadViewMode: value }))}
+                value={profilePreferences.defaultWorkspaceTab || profilePreferences.defaultMainTab}
+                onValueChange={(value) =>
+                  setProfilePreferences((prev) => ({
+                    ...prev,
+                    defaultWorkspaceTab: value,
+                    defaultMainTab: value,
+                  }))
+                }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Default Lead View" />
+                  <SelectValue placeholder="Default Workspace" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="list">List Mode</SelectItem>
-                  <SelectItem value="smart">Smart Dial</SelectItem>
+                  <SelectItem value="callInfo">Call Info</SelectItem>
+                  <SelectItem value="leads">Leads</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid gap-2">
-              <Label>Default Lead Panel</Label>
+              <Label>Dialer Placement</Label>
               <Select
-                value={profilePreferences.defaultMainTab}
-                onValueChange={(value) => setProfilePreferences((prev) => ({ ...prev, defaultMainTab: value }))}
+                value={profilePreferences.dialerDockMode || 'right'}
+                onValueChange={(value) =>
+                  setProfilePreferences((prev) => ({
+                    ...prev,
+                    dialerDockMode: value,
+                  }))
+                }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Default Lead Panel" />
+                  <SelectValue placeholder="Dialer Placement" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="callInfo">Call Info</SelectItem>
-                  <SelectItem value="allLeads">All Leads</SelectItem>
+                  <SelectItem value="left">Left Dock</SelectItem>
+                  <SelectItem value="right">Right Dock</SelectItem>
+                  <SelectItem value="floating">Floating</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Dialer Layout</Label>
+              <Select
+                value={profilePreferences.dialerLayoutMode || 'overlay'}
+                onValueChange={(value) =>
+                  setProfilePreferences((prev) => ({
+                    ...prev,
+                    dialerLayoutMode: value,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Dialer Layout" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="overlay">Overlay</SelectItem>
+                  <SelectItem value="docked">Reserve Space</SelectItem>
                 </SelectContent>
               </Select>
             </div>

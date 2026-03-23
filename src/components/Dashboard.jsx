@@ -6,8 +6,7 @@ import { JssipContext } from '@/context/JssipContext';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import DropCallsModal from './DropCallsModal';
-import LeadCallsTable from './LeadCallsTable';
-import MobileNavigation from './MobileNavigation';
+import ContactCentricWorkspace from './ContactCentricWorkspace';
 
 import {
   Bell,
@@ -41,6 +40,8 @@ import { Card, CardContent } from './ui/card';
 import SessionTimeoutModal from './SessionTimeoutModal';
 import { endCallAudioBase64 } from '../constants/audioData';
 import { DEFAULT_AGENT_UI_PREFERENCES, getStoredAgentUiPreferences } from '@/utils/agent-preferences';
+import { useAuth } from '@/hooks/useAuth';
+import { normalizePhone } from '@/utils/normalizePhone';
 
 function Dashboard() {
   const {
@@ -124,58 +125,109 @@ function Dashboard() {
     selectedStatus,
   } = useContext(HistoryContext);
 
+  const { token, user: authUser } = useAuth();
   const [usermissedCalls, setUsermissedCalls] = useState([]);
-  const [adminUser, setAdminUser] = useState(null);
-  const [userCampaign, setUserCampaign] = useState(null);
   const [leadsData, setLeadsData] = useState([]);
   const [apiCallData, setApiCallData] = useState([]);
   const endCallAudioRef = useRef(null);
-  const [campaignName, setCampaignName] = useState('N/A');
+  const userCampaign = authUser?.campaign || '';
+  const campaignName = authUser?.campaignName || 'N/A';
+  const previewLeadMode = useMemo(
+    () => String(authUser?.leadDistributionStrategy || 'manual_pull').trim().toLowerCase() === 'manual_pull',
+    [authUser?.leadDistributionStrategy],
+  );
 
   const router = useRouter();
   const computedMissedCallsLength = useMemo(() => {
     return Object.values(usermissedCalls || {}).filter((call) => call?.campaign === userCampaign).length;
   }, [usermissedCalls, userCampaign]);
 
-  const [selectedDate, setSelectedDate] = useState('');
-  const [token, setToken] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [leadViewMode, setLeadViewMode] = useState(DEFAULT_AGENT_UI_PREFERENCES.leadViewMode);
+  const [leadDashboardLoading, setLeadDashboardLoading] = useState(false);
+  const [callDataLoading, setCallDataLoading] = useState(false);
   const [smartLeadLoading, setSmartLeadLoading] = useState(false);
   const [smartLeadError, setSmartLeadError] = useState('');
+  const [leadError, setLeadError] = useState('');
+  const [callError, setCallError] = useState('');
 
-  const [startDate, setStartDate] = useState(moment().subtract(24, 'hours').format('YYYY-MM-DD'));
+  const [startDate, setStartDate] = useState(moment().startOf('day').format('YYYY-MM-DD'));
   const [endDate, setEndDate] = useState(moment().format('YYYY-MM-DD'));
+  const [workspaceDatePreset, setWorkspaceDatePreset] = useState('today');
 
-  const [activeMainTab, setActiveMainTab] = useState(DEFAULT_AGENT_UI_PREFERENCES.defaultMainTab);
+  const [activeMainTab, setActiveMainTab] = useState(DEFAULT_AGENT_UI_PREFERENCES.defaultWorkspaceTab);
+  const [activeMetricFilter, setActiveMetricFilter] = useState('all');
+  const [workspaceLayoutState, setWorkspaceLayoutState] = useState({
+    shouldReserveSpace: false,
+    dialerDockMode: 'right',
+    dialerLayoutMode: 'overlay',
+  });
   const [leadStats, setLeadStats] = useState({
-    completeCalls: 0,
-    pendingCalls: 0,
-    totalCalls: 0,
-    lockedCalls: 0,
+    assignedLeads: 0,
+    contactedLeads: 0,
+    pendingLeads: 0,
+    completedLeads: 0,
   });
 
   const [callStats, setCallStats] = useState({
     incomingCalls: 0,
     outgoingCalls: 0,
     totalCalls: 0,
+    connectedCalls: 0,
+    avgDurationSeconds: 0,
   });
 
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const dashboardErrorMessage = useMemo(() => {
+    return [leadError, callError].filter(Boolean).join(' ');
+  }, [callError, leadError]);
+  const leadDashboardFetchInFlightRef = useRef(false);
+  const queuedLeadDashboardRefreshRef = useRef(false);
+  const leadDashboardDebounceRef = useRef(null);
+  const callStatsFetchInFlightRef = useRef(false);
+  const nextLeadFetchInFlightRef = useRef(false);
 
   useEffect(() => {
     const storedPreferences = getStoredAgentUiPreferences();
-    setLeadViewMode(storedPreferences.leadViewMode || DEFAULT_AGENT_UI_PREFERENCES.leadViewMode);
-    setActiveMainTab(storedPreferences.defaultMainTab || DEFAULT_AGENT_UI_PREFERENCES.defaultMainTab);
+    setActiveMainTab(
+      storedPreferences.defaultWorkspaceTab ||
+        storedPreferences.defaultMainTab ||
+        DEFAULT_AGENT_UI_PREFERENCES.defaultWorkspaceTab,
+    );
+    setWorkspaceLayoutState((prev) => ({
+      ...prev,
+      dialerDockMode: storedPreferences.dialerDockMode || DEFAULT_AGENT_UI_PREFERENCES.dialerDockMode,
+      dialerLayoutMode: storedPreferences.dialerLayoutMode || DEFAULT_AGENT_UI_PREFERENCES.dialerLayoutMode,
+    }));
 
     const handleProfileUpdated = (event) => {
       const nextPreferences = event?.detail || getStoredAgentUiPreferences();
-      setLeadViewMode(nextPreferences.leadViewMode || DEFAULT_AGENT_UI_PREFERENCES.leadViewMode);
-      setActiveMainTab(nextPreferences.defaultMainTab || DEFAULT_AGENT_UI_PREFERENCES.defaultMainTab);
+      setActiveMainTab(
+        nextPreferences.defaultWorkspaceTab ||
+          nextPreferences.defaultMainTab ||
+          DEFAULT_AGENT_UI_PREFERENCES.defaultWorkspaceTab,
+      );
+      setWorkspaceLayoutState((prev) => ({
+        ...prev,
+        dialerDockMode: nextPreferences.dialerDockMode || DEFAULT_AGENT_UI_PREFERENCES.dialerDockMode,
+        dialerLayoutMode: nextPreferences.dialerLayoutMode || DEFAULT_AGENT_UI_PREFERENCES.dialerLayoutMode,
+      }));
+    };
+
+    const handleDialerLayoutChange = (event) => {
+      const nextLayout = event?.detail || {};
+      setWorkspaceLayoutState((prev) => ({
+        shouldReserveSpace: Boolean(nextLayout.shouldReserveSpace),
+        dialerDockMode: nextLayout.dialerDockMode || prev.dialerDockMode || DEFAULT_AGENT_UI_PREFERENCES.dialerDockMode,
+        dialerLayoutMode:
+          nextLayout.dialerLayoutMode || prev.dialerLayoutMode || DEFAULT_AGENT_UI_PREFERENCES.dialerLayoutMode,
+      }));
     };
 
     window.addEventListener('agent-profile-updated', handleProfileUpdated);
-    return () => window.removeEventListener('agent-profile-updated', handleProfileUpdated);
+    window.addEventListener('webphone-layout-change', handleDialerLayoutChange);
+    return () => {
+      window.removeEventListener('agent-profile-updated', handleProfileUpdated);
+      window.removeEventListener('webphone-layout-change', handleDialerLayoutChange);
+    };
   }, []);
 
   const getAuthHeaders = useCallback(
@@ -189,11 +241,241 @@ function Dashboard() {
     [token],
   );
 
+  const clearLeadSelection = useCallback(
+    (nextLifecycle = 'idle') => {
+      setActiveLead((prevLead) => (prevLead ? null : prevLead));
+      setLeadLockToken((prevLockToken) => (prevLockToken ? '' : prevLockToken));
+      setAgentLifecycle((prevLifecycle) => (prevLifecycle === nextLifecycle ? prevLifecycle : nextLifecycle));
+    },
+    [setActiveLead, setAgentLifecycle, setLeadLockToken],
+  );
+
+  const applyLockedLeadState = useCallback(
+    (nextLead, nextLifecycle = 'lead_locked') => {
+      if (!nextLead) {
+        clearLeadSelection(nextLifecycle === 'lead_locked' ? 'idle' : nextLifecycle);
+        return;
+      }
+
+      setActiveLead((prevLead) => {
+        if (prevLead?.leadId === nextLead?.leadId && prevLead?.lockToken === nextLead?.lockToken) {
+          return prevLead;
+        }
+        return nextLead;
+      });
+      setLeadLockToken((prevLockToken) => {
+        const nextLockToken = nextLead?.lockToken || '';
+        return prevLockToken === nextLockToken ? prevLockToken : nextLockToken;
+      });
+      setAgentLifecycle((prevLifecycle) => (prevLifecycle === nextLifecycle ? prevLifecycle : nextLifecycle));
+    },
+    [clearLeadSelection, setActiveLead, setAgentLifecycle, setLeadLockToken],
+  );
+
+  const fetchLeadsWithDateRange = useCallback(async () => {
+    if (!token || !username || !userCampaign) {
+      setLeadsData([]);
+      setLeadStats({ assignedLeads: 0, contactedLeads: 0, pendingLeads: 0, completedLeads: 0 });
+      return;
+    }
+
+    if (leadDashboardFetchInFlightRef.current) {
+      queuedLeadDashboardRefreshRef.current = true;
+      return;
+    }
+
+    leadDashboardFetchInFlightRef.current = true;
+    setLeadDashboardLoading(true);
+    setLeadError('');
+
+    try {
+      const leadDashboardResponse = await axios.get(`${window.location.origin}/lead/dashboard`, {
+        params: {
+          limit: 200,
+        },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      });
+
+      const leadDashboard = leadDashboardResponse.data?.result || {};
+      const leads = Array.isArray(leadDashboard.leads) ? leadDashboard.leads : [];
+      const summary = leadDashboard.summary || leadDashboard.stats || {};
+      const completedLeads = Number(summary.completedLeads || 0);
+      const pendingLeads = Number(summary.pendingLeads || 0);
+      const assignedLeads = Number(summary.totalLeads || leads.length || 0);
+      const contactedLeads = Math.max(
+        Number(summary.contactedLeads || 0),
+        assignedLeads - pendingLeads,
+      );
+
+      setLeadsData(leads);
+      setLeadStats({
+        assignedLeads,
+        contactedLeads,
+        pendingLeads,
+        completedLeads,
+      });
+    } catch (error) {
+      console.error('Error fetching lead dashboard:', error.response?.data || error.message);
+      setLeadError(error.response?.data?.message || error.message || 'Failed to fetch leads.');
+      setLeadsData([]);
+      setLeadStats({ assignedLeads: 0, contactedLeads: 0, pendingLeads: 0, completedLeads: 0 });
+    } finally {
+      leadDashboardFetchInFlightRef.current = false;
+      setLeadDashboardLoading(false);
+
+      if (queuedLeadDashboardRefreshRef.current) {
+        queuedLeadDashboardRefreshRef.current = false;
+        void fetchLeadsWithDateRange();
+      }
+    }
+  }, [getAuthHeaders, token, userCampaign, username]);
+
+  const queueLeadDashboardFetch = useCallback(
+    (delay = 300) => {
+      if (!token || !username || !userCampaign) {
+        return;
+      }
+
+      if (leadDashboardDebounceRef.current) {
+        clearTimeout(leadDashboardDebounceRef.current);
+      }
+
+      leadDashboardDebounceRef.current = setTimeout(() => {
+        leadDashboardDebounceRef.current = null;
+        void fetchLeadsWithDateRange();
+      }, delay);
+    },
+    [fetchLeadsWithDateRange, token, userCampaign, username],
+  );
+
+  const fetchCallDataByAgent = useCallback(async () => {
+    if (!username || !token || !startDate || !endDate) {
+      setApiCallData([]);
+      setCallStats({ incomingCalls: 0, outgoingCalls: 0, totalCalls: 0, connectedCalls: 0, avgDurationSeconds: 0 });
+      return;
+    }
+
+    if (callStatsFetchInFlightRef.current) {
+      return;
+    }
+
+    callStatsFetchInFlightRef.current = true;
+    setCallDataLoading(true);
+    setCallError('');
+
+    try {
+      const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
+      const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
+
+      const response = await axios.post(
+        `${window.location.origin}/callDataByAgent`,
+        {
+          startDate: formattedStartDate,
+          endDate: formattedEndDate,
+        },
+        {
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        },
+      );
+
+      const calls = response.data.result || [];
+      const summary = response.data?.summary || null;
+      setApiCallData(calls);
+
+      if (summary) {
+        setCallStats({
+          incomingCalls: Number(summary.incomingCalls || 0),
+          outgoingCalls: Number(summary.outgoingCalls || 0),
+          totalCalls: Number(summary.totalCalls || calls.length || 0),
+          connectedCalls: Number(summary.connectedCalls || 0),
+          avgDurationSeconds: Number(summary.avgDurationSeconds || 0),
+        });
+      } else {
+        const incoming = calls.filter((call) => call.Type?.toLowerCase() === 'incoming').length;
+        const outgoing = calls.filter((call) => call.Type?.toLowerCase() !== 'incoming').length;
+        const connectedCalls = calls.filter((call) => {
+          const durationValue = Number(call?.duration || 0);
+          return (
+            String(call?.Disposition || '').trim().toLowerCase() === 'answered' ||
+            durationValue > 0 ||
+            Number(call?.anstime || 0) > 0
+          );
+        });
+        const durationTotal = connectedCalls.reduce((total, call) => {
+          const durationValue = Number(call?.duration || 0);
+          if (Number.isFinite(durationValue) && durationValue > 0) {
+            return total + (durationValue > 100000 ? Math.round(durationValue / 1000) : Math.round(durationValue));
+          }
+          const answerTime = Number(call?.anstime || 0);
+          const hangupTime = Number(call?.hanguptime || 0);
+          if (answerTime > 0 && hangupTime > answerTime) {
+            const diff = hangupTime - answerTime;
+            return total + (diff > 100000 ? Math.round(diff / 1000) : Math.round(diff));
+          }
+          return total;
+        }, 0);
+
+        setCallStats({
+          incomingCalls: incoming,
+          outgoingCalls: outgoing,
+          totalCalls: calls.length,
+          connectedCalls: connectedCalls.length,
+          avgDurationSeconds: connectedCalls.length > 0 ? Math.round(durationTotal / connectedCalls.length) : 0,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching API data for Call Info tab:', error);
+      setCallError(error.response?.data?.message || error.message || 'Failed to fetch call stats.');
+      setApiCallData([]);
+      setCallStats({ incomingCalls: 0, outgoingCalls: 0, totalCalls: 0, connectedCalls: 0, avgDurationSeconds: 0 });
+    } finally {
+      callStatsFetchInFlightRef.current = false;
+      setCallDataLoading(false);
+    }
+  }, [endDate, getAuthHeaders, startDate, token, username]);
+
+  const fetchUserMissedCalls = useCallback(async () => {
+    if (!token || !username) {
+      setUsermissedCalls([]);
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${window.location.origin}/usermissedCalls/${username}`,
+        {},
+        {
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        },
+      );
+      if (response.data) {
+        setUsermissedCalls(response.data.result || []);
+      }
+    } catch (error) {
+      console.error('Error fetching missed calls:', error);
+      setUsermissedCalls([]);
+    }
+  }, [getAuthHeaders, token, username]);
+
+  useEffect(
+    () => () => {
+      if (leadDashboardDebounceRef.current) {
+        clearTimeout(leadDashboardDebounceRef.current);
+      }
+    },
+    [],
+  );
+
   const fetchNextLead = useCallback(async () => {
     if (!token || !username || !userCampaign) {
       return null;
     }
 
+    if (nextLeadFetchInFlightRef.current) {
+      return activeLead || null;
+    }
+
+    nextLeadFetchInFlightRef.current = true;
     setSmartLeadLoading(true);
     setSmartLeadError('');
     try {
@@ -206,21 +488,18 @@ function Dashboard() {
       );
 
       const nextLead = response.data?.result || null;
-      setActiveLead(nextLead);
-      setLeadLockToken(nextLead?.lockToken || '');
-      setAgentLifecycle(nextLead ? 'lead_locked' : 'idle');
+      applyLockedLeadState(nextLead, nextLead ? 'lead_locked' : 'idle');
       return nextLead;
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'No lead available right now.';
       setSmartLeadError(message);
-      setActiveLead(null);
-      setLeadLockToken('');
-      setAgentLifecycle('idle');
+      clearLeadSelection('idle');
       return null;
     } finally {
+      nextLeadFetchInFlightRef.current = false;
       setSmartLeadLoading(false);
     }
-  }, [getAuthHeaders, setActiveLead, setAgentLifecycle, setLeadLockToken, token, userCampaign, username]);
+  }, [activeLead, applyLockedLeadState, clearLeadSelection, getAuthHeaders, token, userCampaign, username]);
 
   const handleSkipLead = useCallback(async () => {
     if (!activeLead?.leadId || !leadLockToken) {
@@ -238,31 +517,55 @@ function Dashboard() {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         },
       );
-      setActiveLead(null);
-      setLeadLockToken('');
-      setAgentLifecycle('idle');
+      clearLeadSelection('idle');
       void fetchNextLead();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to skip lead.');
     }
-  }, [activeLead?.leadId, fetchNextLead, getAuthHeaders, leadLockToken, setActiveLead, setAgentLifecycle, setLeadLockToken]);
+  }, [activeLead?.leadId, clearLeadSelection, fetchNextLead, getAuthHeaders, leadLockToken]);
+
+  const handleWorkspaceDatePresetChange = useCallback((nextPreset) => {
+    const normalizedPreset = String(nextPreset || 'today').trim().toLowerCase();
+    const today = moment();
+    setWorkspaceDatePreset(normalizedPreset);
+
+    switch (normalizedPreset) {
+      case '7d':
+        setStartDate(today.clone().subtract(6, 'days').startOf('day').format('YYYY-MM-DD'));
+        setEndDate(today.format('YYYY-MM-DD'));
+        break;
+      case '30d':
+        setStartDate(today.clone().subtract(29, 'days').startOf('day').format('YYYY-MM-DD'));
+        setEndDate(today.format('YYYY-MM-DD'));
+        break;
+      case 'all':
+        setStartDate(today.clone().subtract(180, 'days').startOf('day').format('YYYY-MM-DD'));
+        setEndDate(today.format('YYYY-MM-DD'));
+        break;
+      case 'today':
+      default:
+        setStartDate(today.clone().startOf('day').format('YYYY-MM-DD'));
+        setEndDate(today.format('YYYY-MM-DD'));
+        break;
+    }
+  }, []);
 
   // Listen for refresh leads event from Layout (after disposition submission)
   useEffect(() => {
     const handleRefreshLeads = () => {
-      fetchLeadsWithDateRange();
+      queueLeadDashboardFetch(150);
     };
 
     window.addEventListener('refreshLeads', handleRefreshLeads);
     return () => window.removeEventListener('refreshLeads', handleRefreshLeads);
-  }, []);
+  }, [queueLeadDashboardFetch]);
 
   // Refresh leads when call ends (dispositionModal opens)
   useEffect(() => {
     if (dispositionModal && userCampaign && username && token && startDate && endDate) {
-      fetchLeadsWithDateRange();
+      queueLeadDashboardFetch(200);
     }
-  }, [dispositionModal]);
+  }, [dispositionModal, endDate, queueLeadDashboardFetch, startDate, token, userCampaign, username]);
 
   useEffect(() => {
     const now = new Date();
@@ -285,33 +588,11 @@ function Dashboard() {
   }, [followUpDispoes, setScheduleCallsLength]);
 
   useEffect(() => {
-    const tokenData = localStorage.getItem('token');
-    if (tokenData) {
-      try {
-        const parsedData = JSON.parse(tokenData);
-        const newCampaign = parsedData?.userData?.campaign;
-
-        // Only update if actually different
-        if (newCampaign !== userCampaign) {
-          setUserCampaign(newCampaign);
-          setCampaignName(parsedData?.userData?.campaignName || 'N/A');
-          setAdminUser(parsedData?.userData?.adminuser);
-          setToken(parsedData.token);
-        }
-      } catch (e) {
-        console.error('Invalid token JSON in localStorage:', e);
-        localStorage.removeItem('token');
-        router.push('/login');
-      }
-    }
-  }, []); // Remove router dependency to prevent re-runs
-
-  useEffect(() => {
     if (!token || !username || !userCampaign) {
       return;
     }
 
-    if (leadViewMode !== 'smart' || status !== 'start' || dispositionModal || selectedBreak !== 'Break') {
+    if (!previewLeadMode || status !== 'start' || dispositionModal || selectedBreak !== 'Break') {
       return;
     }
 
@@ -324,7 +605,7 @@ function Dashboard() {
     token,
     username,
     userCampaign,
-    leadViewMode,
+    previewLeadMode,
     status,
     dispositionModal,
     selectedBreak,
@@ -430,29 +711,6 @@ function Dashboard() {
     setCampaignMissedCallsLength(computedMissedCallsLength);
   }, [computedMissedCallsLength, setCampaignMissedCallsLength]);
 
-  const fetchUserMissedCalls = useCallback(async () => {
-    if (!token || !username) {
-      setUsermissedCalls([]);
-      return;
-    }
-
-    try {
-      const response = await axios.post(
-        `${window.location.origin}/usermissedCalls/${username}`,
-        {},
-        {
-          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        },
-      );
-      if (response.data) {
-        setUsermissedCalls(response.data.result || []);
-      }
-    } catch (error) {
-      console.error('Error fetching missed calls:', error);
-      setUsermissedCalls([]);
-    }
-  }, [getAuthHeaders, token, username]);
-
   useEffect(() => {
     if (token && username) {
       fetchUserMissedCalls();
@@ -504,94 +762,46 @@ function Dashboard() {
   }, [connectionStatus, currentCallData, getAuthHeaders, queueDetails, userCampaign, username]);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    try {
-      const parsedToken = JSON.parse(storedToken);
-      if (!parsedToken) {
-        router.push('/login');
-      }
-    } catch (error) {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (!token) {
       router.push('/login');
     }
-  }, [router]);
-
-  const fetchLeadsWithDateRange = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [leadListResponse, leadSummaryResponse] = await Promise.all([
-        axios.get(`${window.location.origin}/lead/list`, {
-          params: {
-            limit: 200,
-          },
-          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        }),
-        axios.get(`${window.location.origin}/lead/summary`, {
-          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        }),
-      ]);
-
-      const leads = leadListResponse.data?.result || [];
-      const summary = leadSummaryResponse.data?.result || {};
-
-      setLeadsData(leads);
-      setLeadStats({
-        completeCalls: Number(summary.completedLeads || 0),
-        pendingCalls: Number(summary.pendingLeads || 0),
-        totalCalls: Number(summary.totalLeads || 0),
-        lockedCalls: Number(summary.lockedLeads || 0),
-      });
-    } catch (error) {
-      console.error('Error fetching leads:', error.response?.data || error.message);
-      setLeadsData([]);
-      setLeadStats({ completeCalls: 0, pendingCalls: 0, totalCalls: 0, lockedCalls: 0 });
-    } finally {
-      setLoading(false);
-    }
-  }, [getAuthHeaders]);
-
-  const fetchCallDataByAgent = useCallback(async () => {
-    setLoading(true);
-    try {
-      const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
-      const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
-
-      const response = await axios.post(
-        `${window.location.origin}/callDataByAgent`,
-        {
-          startDate: formattedStartDate,
-          endDate: formattedEndDate,
-        },
-        {
-          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        },
-      );
-
-      const calls = response.data.result || [];
-      setApiCallData(calls);
-
-      const incoming = calls.filter((call) => call.Type?.toLowerCase() === 'incoming').length;
-      const outgoing = calls.filter((call) => call.Type?.toLowerCase() !== 'incoming').length;
-      const total = calls.length;
-
-      setCallStats({ incomingCalls: incoming, outgoingCalls: outgoing, totalCalls: total });
-    } catch (error) {
-      console.error('Error fetching API data for Call Info tab:', error);
-      setApiCallData([]);
-      setCallStats({ incomingCalls: 0, outgoingCalls: 0, totalCalls: 0 });
-    } finally {
-      setLoading(false);
-    }
-  }, [endDate, getAuthHeaders, startDate]);
+  }, [router, token]);
 
   useEffect(() => {
     if (!userCampaign || !username || !token) return;
-    fetchLeadsWithDateRange();
-  }, [fetchLeadsWithDateRange, token, userCampaign, username]);
+    queueLeadDashboardFetch(100);
+  }, [queueLeadDashboardFetch, token, userCampaign, username]);
 
   useEffect(() => {
     if (!username || !token || !startDate || !endDate) return;
     fetchCallDataByAgent();
   }, [endDate, fetchCallDataByAgent, startDate, token, username]);
+
+  useEffect(() => {
+    if (!username || !token || !startDate || !endDate) return;
+    if (status !== 'start' || dispositionModal) return;
+
+    const refreshTimer = setTimeout(() => {
+      void fetchCallDataByAgent();
+      queueLeadDashboardFetch(100);
+    }, 200);
+
+    return () => clearTimeout(refreshTimer);
+  }, [
+    dispositionModal,
+    endDate,
+    fetchCallDataByAgent,
+    formSubmitted,
+    queueLeadDashboardFetch,
+    startDate,
+    status,
+    token,
+    username,
+  ]);
 
   const mapLeadData = (rawData) => {
     if (!Array.isArray(rawData)) rawData = [rawData];
@@ -685,34 +895,10 @@ function Dashboard() {
 
   const activeLeadNumber = useMemo(
     () =>
-      String(
-        activeLead?.number ||
-          activeLead?.phone ||
-          activeLead?.phone_number ||
-          activeLead?.contactNumber ||
-          '',
-      )
-        .replace(/^\+91/, '')
-        .trim(),
+      normalizePhone(
+        activeLead?.number || activeLead?.phone || activeLead?.phone_number || activeLead?.contactNumber || '',
+      ),
     [activeLead],
-  );
-
-  const smartLeadSummary = useMemo(
-    () => [
-      {
-        label: 'Lead ID',
-        value: activeLead?.leadId ?? '-',
-      },
-      {
-        label: 'Campaign Leads',
-        value: leadStats.totalCalls ?? 0,
-      },
-      {
-        label: 'Pending Queue',
-        value: leadStats.pendingCalls ?? 0,
-      },
-    ],
-    [activeLead?.leadId, leadStats.pendingCalls, leadStats.totalCalls],
   );
 
   const smartLeadDetailEntries = useMemo(() => {
@@ -720,37 +906,126 @@ function Dashboard() {
       return [];
     }
 
+    const normalizedSkipKeys = new Set(
+      [
+        '_id',
+        'id',
+        'leadid',
+        'number',
+        'phone',
+        'phone_number',
+        'contactnumber',
+        'locktoken',
+        'lockexpiresat',
+        'assignedto',
+        'lockedat',
+        'leadstate',
+        'lastdialattemptat',
+        'lastoutcome',
+        'lastshowntime',
+        'lastdialedstatus',
+        'isdeleted',
+        'campaignid',
+        'campaignname',
+        'campaign',
+        'filename',
+        'uploaddate',
+        'retrycount',
+        'alreadylocked',
+        'locked',
+        'islocked',
+        'lockstatus',
+        'priority',
+        'userid',
+        'userid',
+        'createdat',
+        'updatedat',
+        'adminuser',
+        'database',
+      ].map((key) => String(key).toLowerCase()),
+    );
+
     const skipKeys = new Set([
-      '_id',
-      'leadId',
-      'number',
-      'phone',
-      'phone_number',
-      'contactNumber',
-      'lockToken',
-      'lockExpiresAt',
-      'assignedTo',
-      'lockedAt',
-      'leadState',
-      'lastDialAttemptAt',
-      'lastOutcome',
-      'lastShownTime',
-      'lastDialedStatus',
-      'isDeleted',
-      'campaignID',
-      'campaignname',
-      'filename',
-      'uploadDate',
-      'retryCount',
+      'name',
+      'fullname',
+      'patientname',
+      'leadname',
+      'customername',
+      'contactname',
+      'city',
+      'location',
+      'address',
+      'addr',
+      'source',
+      'leadsource',
+      'purpose',
+      'reason',
+      'interest',
+      'querytype',
+      'remarks',
+      'remark',
+      'notes',
+      'comment',
     ]);
 
-    return Object.entries(activeLead)
+    const preferredLeadEntries = [
+      {
+        label: 'Lead Name',
+        value:
+          activeLead?.name ||
+          activeLead?.fullName ||
+          activeLead?.patientName ||
+          activeLead?.leadName ||
+          activeLead?.customerName ||
+          activeLead?.contactName ||
+          '-',
+      },
+      {
+        label: 'City',
+        value: activeLead?.city || activeLead?.City || activeLead?.location || activeLead?.Location || '-',
+      },
+      {
+        label: 'Address',
+        value: activeLead?.address || activeLead?.Address || activeLead?.addr || activeLead?.residence || '-',
+      },
+      {
+        label: 'Source',
+        value: activeLead?.source || activeLead?.Source || activeLead?.leadSource || activeLead?.['Lead Source'] || '-',
+      },
+      {
+        label: 'Purpose',
+        value:
+          activeLead?.purpose ||
+          activeLead?.Purpose ||
+          activeLead?.reason ||
+          activeLead?.Reason ||
+          activeLead?.interest ||
+          activeLead?.Interest ||
+          activeLead?.queryType ||
+          activeLead?.['Call Related To'] ||
+          activeLead?.['Call Related to'] ||
+          '-',
+      },
+      {
+        label: 'Notes',
+        value:
+          activeLead?.notes ||
+          activeLead?.Notes ||
+          activeLead?.remark ||
+          activeLead?.remarks ||
+          activeLead?.Remarks ||
+          activeLead?.comment ||
+          '-',
+      },
+    ];
+
+    const additionalEntries = Object.entries(activeLead)
       .filter(([key, value]) => {
-        if (skipKeys.has(key)) return false;
+        const normalizedKey = String(key).toLowerCase();
+        if (normalizedSkipKeys.has(normalizedKey) || skipKeys.has(normalizedKey)) return false;
         if (value === undefined || value === null || String(value).trim() === '') return false;
         return typeof value !== 'object';
       })
-      .slice(0, 6)
       .map(([key, value]) => ({
         label: key
           .replace(/([A-Z])/g, ' $1')
@@ -759,11 +1034,126 @@ function Dashboard() {
           .trim(),
         value: String(value),
       }));
+
+    const filteredPreferredEntries = preferredLeadEntries.filter(
+      (entry) => entry.value && String(entry.value).trim() !== '',
+    );
+
+    return [...filteredPreferredEntries, ...additionalEntries].slice(0, 12);
   }, [activeLead]);
+
+  const formatDurationLabel = useCallback((secondsValue) => {
+    const safeSeconds = Number(secondsValue || 0);
+    if (!safeSeconds) return '00:00';
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutesValue = Math.floor((safeSeconds % 3600) / 60);
+    const remainingSeconds = safeSeconds % 60;
+    return hours > 0
+      ? `${String(hours).padStart(2, '0')}:${String(minutesValue).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
+      : `${String(minutesValue).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+  }, []);
+
+  const dashboardCards = useMemo(() => {
+    if (activeMainTab === 'leads') {
+      return [
+        { key: 'all', label: 'Assigned Leads', value: leadStats.assignedLeads, icon: Users },
+        { key: 'contacted', label: 'Contacted Leads', value: leadStats.contactedLeads, icon: CheckCircle },
+        { key: 'pending', label: 'Pending Leads', value: leadStats.pendingLeads, icon: AlertCircle },
+        { key: 'completed', label: 'Completed Leads', value: leadStats.completedLeads, icon: BarChart3 },
+      ];
+    }
+
+    return [
+      { key: 'all', label: 'Total Calls', value: callStats.totalCalls, icon: Phone },
+      { key: 'incoming', label: 'Incoming Calls', value: callStats.incomingCalls, icon: PhoneIncoming },
+      { key: 'outgoing', label: 'Outgoing Calls', value: callStats.outgoingCalls, icon: PhoneForwarded },
+      { key: 'connected', label: 'Avg Duration', value: formatDurationLabel(callStats.avgDurationSeconds), icon: Clock },
+    ];
+  }, [activeMainTab, callStats.avgDurationSeconds, callStats.incomingCalls, callStats.outgoingCalls, callStats.totalCalls, formatDurationLabel, leadStats.assignedLeads, leadStats.completedLeads, leadStats.contactedLeads, leadStats.pendingLeads]);
+
+  useEffect(() => {
+    setActiveMetricFilter('all');
+  }, [activeMainTab]);
+
+  const workspaceReservedStyle = useMemo(() => {
+    if (!(workspaceLayoutState.shouldReserveSpace && workspaceLayoutState.dialerLayoutMode === 'docked')) {
+      return undefined;
+    }
+
+    return workspaceLayoutState.dialerDockMode === 'left'
+      ? { paddingLeft: '304px' }
+      : { paddingRight: '304px' };
+  }, [workspaceLayoutState.dialerDockMode, workspaceLayoutState.dialerLayoutMode, workspaceLayoutState.shouldReserveSpace]);
+
+  const workspaceShellRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    let animationFrameId = null;
+
+    const emitWorkspaceBounds = () => {
+      const target = workspaceShellRef.current;
+      if (!target) {
+        return;
+      }
+
+      const rect = target.getBoundingClientRect();
+      window.dispatchEvent(
+        new CustomEvent('webphone-workspace-bounds', {
+          detail: {
+            top: Math.max(rect.top, 0),
+            bottom: Math.max(rect.bottom, 0),
+            height: Math.max(rect.height, 0),
+          },
+        }),
+      );
+    };
+
+    const scheduleWorkspaceBoundsEmit = () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+
+      animationFrameId = requestAnimationFrame(emitWorkspaceBounds);
+    };
+
+    scheduleWorkspaceBoundsEmit();
+
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => {
+            scheduleWorkspaceBoundsEmit();
+          })
+        : null;
+
+    if (workspaceShellRef.current && resizeObserver) {
+      resizeObserver.observe(workspaceShellRef.current);
+    }
+
+    window.addEventListener('resize', scheduleWorkspaceBoundsEmit);
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', scheduleWorkspaceBoundsEmit);
+    };
+  }, [
+    activeMainTab,
+    dispositionModal,
+    status,
+    workspaceLayoutState.dialerDockMode,
+    workspaceLayoutState.dialerLayoutMode,
+    workspaceLayoutState.shouldReserveSpace,
+  ]);
 
   const handleDialAction = useCallback(
     async (phoneNumberToDial, sourceLead = null) => {
-      const normalizedPhoneNumber = String(phoneNumberToDial || '').replace(/^\+91/, '').trim();
+      const normalizedPhoneNumber = normalizePhone(phoneNumberToDial);
       if (!normalizedPhoneNumber) {
         toast.error('Lead number is missing.');
         return;
@@ -786,9 +1176,13 @@ function Dashboard() {
           );
           lockedLead = response.data?.result || sourceLead;
           nextLockToken = lockedLead?.lockToken || nextLockToken;
-          setActiveLead(lockedLead);
-          setLeadLockToken(nextLockToken || '');
-          setAgentLifecycle('lead_locked');
+          applyLockedLeadState(
+            {
+              ...lockedLead,
+              lockToken: nextLockToken || lockedLead?.lockToken || '',
+            },
+            'lead_locked',
+          );
         } catch (error) {
           toast.error(error.response?.data?.message || 'Unable to lock this lead.');
           return;
@@ -805,7 +1199,7 @@ function Dashboard() {
           : undefined,
       );
     },
-    [getAuthHeaders, handleCall, leadLockToken, setActiveLead, setAgentLifecycle, setLeadLockToken, token],
+    [applyLockedLeadState, getAuthHeaders, handleCall, leadLockToken, token],
   );
 
   return (
@@ -932,138 +1326,76 @@ function Dashboard() {
           token={token}
         />
       )}
-      <div>
-        <div className="text-center md:text-start mb-6">
-          <h1 className="text-2xl font-bold text-primary mb-2">Agent Panel</h1>
-          <p className="text-sm text-muted-foreground">Real-time performance metrics and activity tracking</p>
-        </div>
-        <div className="relative">
-          <div
-            className={`grid grid-cols-3 gap-2 sm:gap-6 transition-all duration-400 ease-in-out ${
-              status !== 'start' ? 'opacity-0 pointer-events-none absolute inset-0' : 'opacity-100'
-            }`}
-          >
-            {activeMainTab === 'allLeads' ? (
-              <>
-                <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">
-                          Complete Leads
-                        </p>
-                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">
-                          {leadStats.completeCalls}
-                        </h2>
-                      </div>
-                      <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
-                        <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">
-                          Total Leads
-                        </p>
-                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">
-                          {leadStats.totalCalls}
-                        </h2>
-                      </div>
-                      <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
-                        <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">
-                          Pending Leads
-                        </p>
-                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">
-                          {leadStats.pendingCalls}
-                        </h2>
-                      </div>
-                      <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
-                        <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
-            ) : (
-              <>
-                <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">
-                          Total Calls
-                        </p>
-                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">
-                          {callStats.totalCalls}
-                        </h2>
-                      </div>
-                      <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
-                        <Phone className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">
-                          Incoming Calls
-                        </p>
-                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">
-                          {callStats.incomingCalls}
-                        </h2>
-                      </div>
-                      <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
-                        <PhoneIncoming className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="overflow-hidden border-l-4 sm:py-6 py-2 border-l-primary">
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="text-xs whitespace-nowrap sm:text-sm font-medium text-muted-foreground">
-                          Outgoing Calls
-                        </p>
-                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 sm:mt-2">
-                          {callStats.outgoingCalls}
-                        </h2>
-                      </div>
-                      <div className="md:block hidden bg-primary/10 p-2 sm:p-3 rounded-lg">
-                        <PhoneForwarded className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
-            )}
+      <div className="flex h-full min-h-0 w-full min-w-0 flex-col gap-3">
+        {dashboardErrorMessage && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {dashboardErrorMessage}
           </div>
+        )}
+
+        <div className="grid shrink-0 grid-cols-2 gap-3 xl:grid-cols-4">
+          {dashboardCards.map((card) => {
+            const Icon = card.icon;
+            const isActive = activeMetricFilter === card.key || (card.key === 'all' && activeMetricFilter === 'all');
+            const isCardLoading = activeMainTab === 'leads' ? leadDashboardLoading : callDataLoading;
+            return (
+              <button
+                key={card.key}
+                type="button"
+                onClick={() => setActiveMetricFilter((prev) => (prev === card.key ? 'all' : card.key))}
+                className={`overflow-hidden rounded-2xl border text-left transition-all ${isActive ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/70 bg-card hover:border-primary/40 hover:bg-muted/20'}`}
+              >
+                <div className="flex items-start justify-between gap-4 p-4 sm:p-5">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
+                    {isCardLoading ? (
+                      <div className="mt-3 h-8 w-24 rounded-lg bg-muted animate-pulse" />
+                    ) : (
+                      <div className="mt-3 text-2xl font-bold text-foreground">{card.value}</div>
+                    )}
+                  </div>
+                  <div className="rounded-2xl bg-primary/10 p-3 text-primary">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
-        <div className="flex gap-6 mt-8 md:flex-row flex-col relative">
-          <div
-            className={`w-full transition-opacity duration-400 ${
-              status !== 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
-            }`}
-          >
+
+        <div className="min-h-0 flex-1 overflow-hidden">
+          {status === 'start' && !dispositionModal ? (
+          <div ref={workspaceShellRef} className="h-full min-h-0 w-full min-w-0 overflow-hidden transition-all duration-300" style={workspaceReservedStyle}>
+            <ContactCentricWorkspace
+              mode={activeMainTab}
+              onModeChange={setActiveMainTab}
+              callsData={apiCallData}
+              leadsData={leadsData}
+              token={token}
+              previewLeadMode={previewLeadMode}
+              activeCardFilter={activeMetricFilter}
+              handleDialAction={handleDialAction}
+              callLoading={callDataLoading}
+              leadLoading={leadDashboardLoading}
+              workspaceErrorMessage={dashboardErrorMessage}
+              activeLead={activeLead}
+              activeLeadNumber={activeLeadNumber}
+              smartLeadLoading={smartLeadLoading}
+              smartLeadError={smartLeadError}
+              smartLeadDetailEntries={smartLeadDetailEntries}
+              agentLifecycle={agentLifecycle}
+              leadLockToken={leadLockToken}
+              datePreset={workspaceDatePreset}
+              onDatePresetChange={handleWorkspaceDatePresetChange}
+              onSkipLead={handleSkipLead}
+              onRefreshLead={() => {
+                clearLeadSelection('idle');
+                void fetchNextLead();
+              }}
+            />
+          </div>
+        ) : (
+          <div ref={workspaceShellRef} className="h-full min-h-0 w-full min-w-0 overflow-hidden transition-all duration-300" style={workspaceReservedStyle}>
             <LeadAndCallInfoPanel
               userCall={userCall}
               handleCall={handleDialAction}
@@ -1079,160 +1411,7 @@ function Dashboard() {
               activeCallContext={activeCallContext}
             />
           </div>
-
-          <div
-            className={`w-full transition-opacity duration-400 ${
-              status === 'start' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'
-            }`}
-          >
-            <div className="flex items-center justify-end gap-2 mb-4">
-              <Button
-                type="button"
-                variant={leadViewMode === 'list' ? 'default' : 'outline'}
-                size="sm"
-                className="gap-2"
-                onClick={() => {
-                  setLeadViewMode('list');
-                  setActiveMainTab('allLeads');
-                }}
-              >
-                <List className="w-4 h-4" />
-                List Mode
-              </Button>
-              <Button
-                type="button"
-                variant={leadViewMode === 'smart' ? 'default' : 'outline'}
-                size="sm"
-                className="gap-2"
-                onClick={() => setLeadViewMode('smart')}
-              >
-                <Lock className="w-4 h-4" />
-                Smart Dial
-              </Button>
-            </div>
-
-            {leadViewMode === 'smart' ? (
-              <Card className="overflow-hidden border border-border/70 shadow-sm">
-                <CardContent className="p-5 sm:p-6">
-                  <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="flex-1 space-y-5">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-sm font-medium text-primary">
-                            <Lock className="w-4 h-4" />
-                            Smart Dial Mode
-                          </div>
-                          <h3 className="text-2xl font-semibold text-foreground">
-                            {activeLead?.name || activeLead?.fullName || 'Next Lead'}
-                          </h3>
-                          <p className="text-base font-medium text-muted-foreground">
-                            {activeLeadNumber || smartLeadError || (smartLeadLoading ? 'Fetching the next eligible lead...' : 'No lead available right now.')}
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 min-w-[220px]">
-                          {smartLeadSummary.map((item) => (
-                            <div key={item.label} className="rounded-xl border bg-muted/35 px-4 py-3">
-                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{item.label}</div>
-                              <div className="mt-1 text-lg font-semibold text-foreground">{item.value}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {activeLead ? (
-                        <div className="rounded-2xl border bg-background/70 p-4">
-                          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                            {smartLeadDetailEntries.length > 0 ? (
-                              smartLeadDetailEntries.map((item) => (
-                                <div key={item.label} className="rounded-xl border bg-muted/20 px-4 py-3">
-                                  <div className="text-xs text-muted-foreground">{item.label}</div>
-                                  <div className="mt-1 text-sm font-medium text-foreground break-words">{item.value}</div>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="rounded-xl border border-dashed px-4 py-5 text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
-                                No additional lead fields are available for this record.
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 px-4 py-8 text-sm text-muted-foreground">
-                          {smartLeadLoading ? 'Locking the next lead for this agent...' : smartLeadError || 'No eligible lead is currently available for this campaign.'}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex flex-row xl:flex-col items-stretch gap-4 xl:min-w-[220px]">
-                      <div className="flex items-center gap-3">
-                        <Button
-                          type="button"
-                          className="h-14 w-14 rounded-full bg-green-600 p-0 text-white shadow-sm hover:bg-green-700"
-                          disabled={!activeLeadNumber || !leadLockToken || smartLeadLoading || !['lead_locked', 'idle'].includes(agentLifecycle)}
-                          onClick={() => {
-                            if (!activeLeadNumber) return;
-                            handleDialAction(activeLeadNumber, activeLead);
-                          }}
-                        >
-                          <Phone className="h-5 w-5" />
-                        </Button>
-                        <div>
-                          <div className="text-sm font-semibold text-foreground">Dial Lead</div>
-                          <div className="text-xs text-muted-foreground">Start the next locked campaign call</div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-14 w-14 rounded-full p-0"
-                          disabled={!activeLead?.leadId || !leadLockToken || smartLeadLoading || agentLifecycle !== 'lead_locked'}
-                          onClick={handleSkipLead}
-                        >
-                          <SkipForward className="h-5 w-5" />
-                        </Button>
-                        <div>
-                          <div className="text-sm font-semibold text-foreground">Skip Lead</div>
-                          <div className="text-xs text-muted-foreground">Move to the next eligible lead</div>
-                        </div>
-                      </div>
-
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="justify-start gap-2 px-0 text-sm font-medium"
-                        disabled={smartLeadLoading || !['idle', 'lead_locked'].includes(agentLifecycle)}
-                        onClick={() => {
-                          setActiveLead(null);
-                          setLeadLockToken('');
-                          setAgentLifecycle('idle');
-                          void fetchNextLead();
-                        }}
-                      >
-                        <RefreshCcw className="w-4 h-4" />
-                        Refresh Lead
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <LeadCallsTable
-                callDetails={leadsData}
-                apiCallData={apiCallData}
-                handleCall={handleDialAction}
-                startDate={startDate}
-                setStartDate={setStartDate}
-                endDate={endDate}
-                setEndDate={setEndDate}
-                username={username}
-                token={token}
-                activeMainTab={activeMainTab}
-                setActiveMainTab={setActiveMainTab}
-              />
-            )}
-          </div>
+          )}
         </div>
       </div>
 

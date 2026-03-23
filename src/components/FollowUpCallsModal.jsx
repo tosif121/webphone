@@ -6,12 +6,24 @@ import { Button } from './ui/button';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+const ACTIVE_CALLBACK_STORAGE_KEY = 'activeFollowUpCallback';
+
 const TABS = [
   { key: 'today', label: 'Today' },
   { key: 'upcoming', label: 'Upcoming' },
   { key: 'missed', label: 'Missed' },
   { key: 'completed', label: 'Completed' },
 ];
+
+const resolveScheduledAt = (item = {}) => {
+  const numericValue = Number(item.scheduledAt);
+  if (Number.isFinite(numericValue) && numericValue > 0) {
+    return String(Math.trunc(Math.abs(numericValue))).length <= 10 ? numericValue * 1000 : numericValue;
+  }
+
+  const parsedMoment = moment(`${item.date || ''} ${item.time || ''}`, ['YYYY-MM-DD hh:mm A', 'YYYY-MM-DD HH:mm'], true);
+  return parsedMoment.isValid() ? parsedMoment.valueOf() : null;
+};
 
 const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleCallsLength, token }) => {
   const [activeTab, setActiveTab] = useState('today');
@@ -32,10 +44,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
     const now = new Date();
     return (followUpDispoes || []).reduce(
       (accumulator, item) => {
-        const scheduledAt =
-          Number(item.scheduledAt) ||
-          moment(`${item.date || ''} ${item.time || ''}`, 'YYYY-MM-DD hh:mm A').valueOf() ||
-          null;
+        const scheduledAt = resolveScheduledAt(item);
 
         if (!scheduledAt) {
           return accumulator;
@@ -44,16 +53,16 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
         const callTime = new Date(scheduledAt);
         const startOfToday = moment().startOf('day');
         const endOfToday = moment().endOf('day');
-        const tab = item.tab
-          || (item.status === 'completed'
-            ? 'completed'
-            : item.status === 'missed'
-              ? 'missed'
-              : moment(callTime).isBetween(startOfToday, endOfToday, null, '[]')
-                ? 'today'
-                : moment(callTime).isAfter(endOfToday)
-                  ? 'upcoming'
-                  : 'missed');
+        const normalizedStatus = String(item.status || item.computedStatus || '').trim().toLowerCase();
+        const tab = normalizedStatus === 'completed'
+          ? 'completed'
+          : normalizedStatus === 'missed'
+            ? 'missed'
+            : moment(callTime).isBetween(startOfToday, endOfToday, null, '[]')
+              ? 'today'
+              : moment(callTime).isAfter(endOfToday)
+                ? 'upcoming'
+                : 'missed';
         const isAlert =
           (tab === 'today' || tab === 'upcoming')
           && now >= new Date(callTime.getTime() - 10 * 60 * 1000)
@@ -88,11 +97,34 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
   const formatDateTime = (date) => moment(date).format('MMM DD, YYYY • hh:mm A');
 
   const activeCalls = callbackBuckets[activeTab] || [];
+  const tabCounts = useMemo(
+    () => ({
+      today: callbackBuckets.today.length,
+      upcoming: callbackBuckets.upcoming.length,
+      missed: callbackBuckets.missed.length,
+      completed: callbackBuckets.completed.length,
+    }),
+    [callbackBuckets],
+  );
 
   const initiateCall = useCallback(
-    async (caller) => {
+    async (callbackRecord) => {
       try {
-        const cleanPhoneNumber = caller?.replace(/\s+/g, '') || '';
+        const cleanPhoneNumber = String(callbackRecord?.phoneNumber || '').replace(/\s+/g, '');
+
+        if (!cleanPhoneNumber) {
+          toast.error('No callback number available.');
+          return;
+        }
+
+        localStorage.setItem(
+          ACTIVE_CALLBACK_STORAGE_KEY,
+          JSON.stringify({
+            callbackId: callbackRecord?._id || callbackRecord?.id || null,
+            phoneNumber: cleanPhoneNumber,
+            startedAt: Date.now(),
+          }),
+        );
 
         await axios.post(
           `${window.location.origin}/dialmissedcall`,
@@ -108,6 +140,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
         );
         setCallAlert(false);
       } catch (error) {
+        localStorage.removeItem(ACTIVE_CALLBACK_STORAGE_KEY);
         console.error('Error:', error);
         toast.error('Request failed. Please try again.');
       }
@@ -184,7 +217,12 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                 `}
                 onClick={() => setActiveTab(tab.key)}
               >
-                {tab.label}
+                <span>{tab.label}</span>
+                {tabCounts[tab.key] > 0 ? (
+                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary">
+                    {tabCounts[tab.key]}
+                  </span>
+                ) : null}
               </button>
             ))}
           </div>
@@ -258,7 +296,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                               : 'bg-green-600 hover:bg-green-700 focus-visible:ring-green-500 dark:bg-green-700 dark:hover:bg-green-800'
                           }
                         `}
-                              onClick={() => initiateCall(call.phoneNumber)}
+                              onClick={() => initiateCall(call)}
                               disabled={!call.phoneNumber}
                               aria-label={`Call ${call.phoneNumber}`}
                             >

@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import KeyPad from './KeyPad';
 import NetworkMonitor from './NetworkMonitor';
-import { Delete, History, Phone } from 'lucide-react';
+import { Delete, Phone } from 'lucide-react';
 import useFormatPhoneNumber from '../hooks/useFormatPhoneNumber';
-import { Button } from './ui/button';
 
-const Home = ({ phoneNumber, setPhoneNumber, handleCall, setSeeLogs, timeoutArray, isConnectionLost }) => {
+const Home = ({ phoneNumber, setPhoneNumber, handleCall, setSeeLogs, timeoutArray, isConnectionLost, headerAction = null }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const formatPhoneNumber = useFormatPhoneNumber();
@@ -28,29 +27,22 @@ const Home = ({ phoneNumber, setPhoneNumber, handleCall, setSeeLogs, timeoutArra
   };
 
   return (
-    <div className="md:p-3 p-4 h-full flex flex-col md:justify-start justify-end md:pb-0 pb-14">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden px-4 pt-2.5 pb-2">
       {/* Header - Only show on desktop, hidden on mobile since MobileNavigation provides it */}
       {!isMobile && (
-        <div className="flex justify-between items-center mb-4 sm:mb-3 cursor-move select-none">
+        <div className="mb-3 flex cursor-move select-none items-center justify-between">
           <div className="text-base sm:text-lg font-semibold text-primary">WebPhone</div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-3">
             <NetworkMonitor timeoutArray={timeoutArray} />
-            <button
-              className="text-primary hover:text-primary/70 transition-colors p-1"
-              onClick={() => setSeeLogs(true)}
-              aria-label="View Call History"
-              tabIndex={-1}
-            >
-              <History className="w-5 h-5 sm:w-5 sm:h-5" />
-            </button>
+            {headerAction}
           </div>
         </div>
       )}
 
       {/* Mobile: White box with shadow around dialpad content */}
-      <div>
+      <div className="flex min-h-0 flex-1 flex-col">
         {/* Phone Input */}
-        <div className="relative mb-6 md:mb-4">
+        <div className="relative mb-1.5 shrink-0 border-b border-border/80 pb-2">
           <input
             type="text"
             value={formatPhoneNumber(phoneNumber)}
@@ -62,7 +54,7 @@ const Home = ({ phoneNumber, setPhoneNumber, handleCall, setSeeLogs, timeoutArra
             autoFocus={!isMobile}
             readOnly={isMobile}
             placeholder="Enter number"
-            className="w-full text-4xl md:text-2xl placeholder:text-2xl font-normal text-center bg-transparent border-none focus:border-none outline-none py-0 pr-8 text-foreground placeholder:text-muted-foreground/50 transition-all"
+            className="w-full bg-transparent py-0 pr-8 text-center text-3xl font-medium tracking-[0.08em] text-foreground outline-none transition-all placeholder:text-xl placeholder:text-muted-foreground/45 md:text-[28px]"
             aria-label="Phone number"
           />
           {phoneNumber && (
@@ -80,19 +72,19 @@ const Home = ({ phoneNumber, setPhoneNumber, handleCall, setSeeLogs, timeoutArra
         </div>
 
         {/* KeyPad */}
-        <div className="flex items-center justify-center sm:flex-1 mb-4">
-          <KeyPad setPhoneNumber={setPhoneNumber} />
-        </div>
+          <div className="mb-1 flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+            <KeyPad setPhoneNumber={setPhoneNumber} />
+          </div>
 
         {/* Call Button */}
-        <div className="flex justify-center">
+        <div className="flex shrink-0 justify-center pb-1 pt-0">
           <button
             disabled={!phoneNumber}
-            className="w-16 h-16 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-green-600 hover:bg-green-700 active:scale-95 hover:shadow-xl shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-green-600 shadow-lg transition-all duration-200 hover:scale-[1.03] hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={handleCall}
             aria-label="Call"
           >
-            <Phone className="w-6 h-6 sm:w-5 sm:h-5 text-white" />
+            <Phone className="h-5 w-5 text-white" />
           </button>
         </div>
       </div>

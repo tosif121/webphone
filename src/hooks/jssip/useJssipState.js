@@ -32,6 +32,7 @@ export const useJssipState = () => {
   const [leadLockToken, setLeadLockToken] = useState('');
   const [agentLifecycle, setAgentLifecycle] = useState('idle');
   const [activeCallContext, setActiveCallContext] = useState(null);
+  const [workspaceActiveCall, setWorkspaceActiveCall] = useState(null);
 
   /* ------------------------------- ui states ------------------------------- */
   const [ringtone, setRingtone] = useState('');
@@ -141,6 +142,8 @@ export const useJssipState = () => {
     setAgentLifecycle,
     activeCallContext,
     setActiveCallContext,
+    workspaceActiveCall,
+    setWorkspaceActiveCall,
 
     /* ui */
     ringtone,

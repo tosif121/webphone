@@ -16,6 +16,10 @@ import DynamicForm from './DynamicForm';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import moment from 'moment';
+import { useAuth } from '@/hooks/useAuth';
+import { JssipContext } from '@/context/JssipContext';
+
+const ACTIVE_CALLBACK_STORAGE_KEY = 'activeFollowUpCallback';
 
 const formatDate = (date) => {
   if (!date) return '';
@@ -56,6 +60,8 @@ const Disposition = ({
   setAgentLifecycle,
 }) => {
   const { username, selectedBreak } = useContext(HistoryContext);
+  const { finalizePostCallContext } = useContext(JssipContext);
+  const { token, user: authUser } = useAuth();
   const [selectedAction, setSelectedAction] = useState(null);
   const [isAutoLeadDialDisabled, setIsAutoLeadDialDisabled] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,7 +71,6 @@ const Disposition = ({
   const [shouldShowModal, setShouldShowModal] = useState(false);
   const [isAutoDispositionComplete, setIsAutoDispositionComplete] = useState(false);
   const [isAutoDispositionInProgress, setIsAutoDispositionInProgress] = useState(false);
-  const [campaignName, setCampaignName] = useState('N/A');
 
   // Changed to store Date objects for the Callback component
   const [followUpDate, setFollowUpDate] = useState(undefined);
@@ -75,38 +80,21 @@ const Disposition = ({
   const [isDispositionModalOpen, setDispositionModalOpen] = useState(false);
   const [isCallbackDialogOpen, setCallbackDialogOpen] = useState(false);
   const [callbackIncomplete, setCallbackIncomplete] = useState(false);
-  const [stickyEnabled, setStickyEnabled] = useState(false);
-  const [stickyMode, setStickyMode] = useState('loose');
   const [makeSticky, setMakeSticky] = useState(false);
+  const campaignName = authUser?.campaignName || 'N/A';
+  const stickyEnabled = authUser?.stickyEnabled !== false;
+  const stickyMode = authUser?.stickyMode || 'loose';
   const stickyTargetNumber = phoneNumber || activeLead?.number || activeLead?.phone || activeLead?.contactNumber || '';
 
   const getAuthHeaders = useCallback(
-    (extraHeaders = {}) => {
-      if (typeof window === 'undefined') {
-        return extraHeaders;
-      }
-
-      const tokenData = localStorage.getItem('token');
-      if (!tokenData) {
-        return extraHeaders;
-      }
-
-      try {
-        const parsedData = JSON.parse(tokenData);
-        const accessToken = parsedData?.token || parsedData?.accessToken;
-        if (!accessToken) {
-          return extraHeaders;
-        }
-
-        return {
-          Authorization: `Bearer ${accessToken}`,
-          ...extraHeaders,
-        };
-      } catch (error) {
-        return extraHeaders;
-      }
-    },
-    [],
+    (extraHeaders = {}) =>
+      token
+        ? {
+            Authorization: `Bearer ${token}`,
+            ...extraHeaders,
+          }
+        : extraHeaders,
+    [token],
   );
 
   const resetLeadLifecycle = useCallback(() => {
@@ -117,6 +105,51 @@ const Disposition = ({
       setAgentLifecycle?.('idle');
     }, 0);
   }, [setActiveLead, setAgentLifecycle, setLeadLockToken]);
+
+  const closeDispositionFlow = useCallback(() => {
+    finalizePostCallContext?.();
+    setFormSubmitted(false);
+    setDispositionModal(false);
+    setPhoneNumber('');
+    setCallType('');
+  }, [finalizePostCallContext, setCallType, setDispositionModal, setFormSubmitted, setPhoneNumber]);
+
+  const completeActiveFollowUpCallback = useCallback(async () => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const storedValue = localStorage.getItem(ACTIVE_CALLBACK_STORAGE_KEY);
+    if (!storedValue) {
+      return;
+    }
+
+    try {
+      const parsedValue = JSON.parse(storedValue);
+      const callbackId = parsedValue?.callbackId;
+      const callbackPhone = String(parsedValue?.phoneNumber || '').replace(/^\+91/, '').trim();
+      const currentPhone = String(stickyTargetNumber || '').replace(/^\+91/, '').trim();
+
+      if (!callbackId || (callbackPhone && currentPhone && callbackPhone !== currentPhone)) {
+        return;
+      }
+
+      await axios.post(
+        `${window.location.origin}/callback/update-status`,
+        {
+          callbackId,
+          status: 'completed',
+        },
+        {
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        },
+      );
+      localStorage.removeItem(ACTIVE_CALLBACK_STORAGE_KEY);
+      window.dispatchEvent(new CustomEvent('refreshFollowUps'));
+    } catch (error) {
+      console.warn('Unable to mark active follow-up callback as completed:', error);
+    }
+  }, [getAuthHeaders, stickyTargetNumber]);
 
   const resolveLeadFinalState = useCallback((action) => {
     const normalized = String(action || '').trim().toLowerCase();
@@ -134,22 +167,6 @@ const Disposition = ({
     ]);
 
     return failedStates.has(normalized) ? 'failed' : 'completed';
-  }, []);
-
-  useEffect(() => {
-    const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (tokenData) {
-      try {
-        const parsedData = JSON.parse(tokenData);
-        setCampaignName(parsedData?.userData?.campaignName || 'N/A');
-        setStickyEnabled(parsedData?.userData?.stickyEnabled !== false);
-        setStickyMode(parsedData?.userData?.stickyMode || 'loose');
-      } catch (e) {
-        setCampaignName('N/A');
-        setStickyEnabled(true);
-        setStickyMode('loose');
-      }
-    }
   }, []);
 
   const getStylesForAction = (action, isSelected) => {
@@ -256,43 +273,6 @@ const Disposition = ({
     );
   };
 
-  useEffect(() => {
-    // Prevent running if already completed or in progress
-    if (isAutoDispositionComplete || isAutoDispositionInProgress) {
-      return;
-    }
-
-    const tokenData = JSON.parse(localStorage.getItem('token'))?.userData;
-    const dispositionFlag = tokenData?.disposition;
-    const dispoData = tokenData?.dispostionOptions;
-
-    // Prioritize disposition flag
-    if (dispositionFlag === false) {
-      if (!formSubmitted) {
-        return;
-      }
-      setIsAutoDispositionInProgress(true);
-      autoDispoFunc();
-      return;
-    }
-
-    // If flag is true or undefined, check options
-    if (dispoData?.length > 0) {
-      // Has disposition options - show modal
-      setDispositionActions(
-        dispoData.map((item) => ({
-          action: item.value,
-          label: item.label,
-        })),
-      );
-      setShouldShowModal(true);
-      setIsAutoDispositionComplete(true);
-    } else {
-      setIsAutoDispositionInProgress(true);
-      autoDispoFunc();
-    }
-  }, [formSubmitted, isAutoDispositionComplete, isAutoDispositionInProgress]);
-
   const autoDispoFunc = useCallback(async () => {
     try {
       const requestBody = {
@@ -312,6 +292,7 @@ const Disposition = ({
       });
 
       if (response.data.success) {
+        await completeActiveFollowUpCallback();
         toast.success('Auto disposition completed successfully');
 
         // Set completion flag before calling other functions
@@ -323,11 +304,7 @@ const Disposition = ({
         fetchLeadsWithDateRange();
         resetLeadLifecycle();
 
-        // Close modal and clear phone number
-        setFormSubmitted(false);
-        setDispositionModal(false);
-        setPhoneNumber('');
-        setCallType('');
+        closeDispositionFlow();
       } else {
         toast.error(response.data.message || 'Auto disposition failed');
         setIsAutoDispositionInProgress(false);
@@ -355,10 +332,7 @@ const Disposition = ({
         setIsAutoDispositionComplete(true);
 
         // Don't show modal for 400 errors - just close everything
-        setFormSubmitted(false);
-        setDispositionModal(false);
-        setPhoneNumber('');
-        setCallType('');
+        closeDispositionFlow();
         return;
       }
 
@@ -380,6 +354,7 @@ const Disposition = ({
   }, [
     activeLead?.leadId,
     bridgeID,
+    closeDispositionFlow,
     fetchLeadsWithDateRange,
     getAuthHeaders,
     leadLockToken,
@@ -387,13 +362,42 @@ const Disposition = ({
     stickyTargetNumber,
     resetLeadLifecycle,
     resolveLeadFinalState,
-    setCallType,
-    setDispositionModal,
-    setFormSubmitted,
-    setPhoneNumber,
     stickyMode,
     username,
+    completeActiveFollowUpCallback,
   ]);
+
+  useEffect(() => {
+    if (isAutoDispositionComplete || isAutoDispositionInProgress) {
+      return;
+    }
+
+    const dispositionFlag = authUser?.disposition;
+    const dispoData = authUser?.dispostionOptions;
+
+    if (dispositionFlag === false) {
+      if (!formSubmitted) {
+        return;
+      }
+      setIsAutoDispositionInProgress(true);
+      autoDispoFunc();
+      return;
+    }
+
+    if (dispoData?.length > 0) {
+      setDispositionActions(
+        dispoData.map((item) => ({
+          action: item.value,
+          label: item.label,
+        })),
+      );
+      setShouldShowModal(true);
+      setIsAutoDispositionComplete(true);
+    } else {
+      setIsAutoDispositionInProgress(true);
+      autoDispoFunc();
+    }
+  }, [authUser, autoDispoFunc, formSubmitted, isAutoDispositionComplete, isAutoDispositionInProgress]);
 
   const handleActionClick = useCallback((action, event) => {
     event.preventDefault();
@@ -420,8 +424,7 @@ const Disposition = ({
       if (!open) {
         // Allow closing if successfully submitted
         if (hasSubmittedSuccessfully) {
-          setFormSubmitted(false);
-          setDispositionModal(false);
+          closeDispositionFlow();
           return;
         }
 
@@ -448,7 +451,7 @@ const Disposition = ({
         return;
       }
     },
-    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully, setDispositionModal],
+    [callbackIncomplete, closeDispositionFlow, hasSubmittedSuccessfully, isSubmitting, selectedAction],
   );
 
   // Enhanced X button click handler
@@ -459,8 +462,7 @@ const Disposition = ({
 
       // Allow closing if successfully submitted
       if (hasSubmittedSuccessfully) {
-        setFormSubmitted(false);
-        setDispositionModal(false);
+        closeDispositionFlow();
         return;
       }
 
@@ -485,7 +487,7 @@ const Disposition = ({
       // If action is selected but not submitted, show warning
       toast.error('Please submit the disposition before closing');
     },
-    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully, setDispositionModal],
+    [callbackIncomplete, closeDispositionFlow, hasSubmittedSuccessfully, isSubmitting, selectedAction],
   );
 
   // Prevent ESC key from closing modal
@@ -497,8 +499,7 @@ const Disposition = ({
 
         // Allow closing if successfully submitted
         if (hasSubmittedSuccessfully) {
-          setFormSubmitted(false);
-          setDispositionModal(false);
+          closeDispositionFlow();
           return;
         }
 
@@ -514,7 +515,7 @@ const Disposition = ({
         }
       }
     },
-    [selectedAction, isSubmitting, callbackIncomplete, hasSubmittedSuccessfully, setDispositionModal],
+    [callbackIncomplete, closeDispositionFlow, hasSubmittedSuccessfully, isSubmitting, selectedAction],
   );
 
   // Add event listener for ESC key
@@ -582,6 +583,7 @@ const Disposition = ({
         });
 
         if (response.data.success) {
+          await completeActiveFollowUpCallback();
           // 2. AFTER successful disposition, check if break is selected
           const selectedBreakType = localStorage.getItem('selectedBreak');
 
@@ -609,10 +611,7 @@ const Disposition = ({
           setHasSubmittedSuccessfully(true);
           fetchLeadsWithDateRange();
           resetLeadLifecycle();
-          setFormSubmitted(false);
-          setDispositionModal(false);
-          setPhoneNumber('');
-          setCallType('');
+          closeDispositionFlow();
         } else {
           toast.error(response.data.message || 'Submission failed');
         }
@@ -635,12 +634,11 @@ const Disposition = ({
       followUpDate,
       followUpTime,
       followUpDetails,
-      setDispositionModal,
       stickyTargetNumber,
       isSubmitting,
       hasSubmittedSuccessfully,
+      closeDispositionFlow,
       fetchLeadsWithDateRange,
-      setCallType,
       activeLead?.leadId,
       getAuthHeaders,
       leadLockToken,
@@ -648,6 +646,7 @@ const Disposition = ({
       resetLeadLifecycle,
       resolveLeadFinalState,
       stickyMode,
+      completeActiveFollowUpCallback,
     ],
   );
 

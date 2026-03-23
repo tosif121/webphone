@@ -3,6 +3,9 @@ const COLOR_THEME_VALUES = ['default', 'blue', 'green', 'amber', 'rose', 'purple
 export const DEFAULT_AGENT_UI_PREFERENCES = {
   leadViewMode: 'list',
   defaultMainTab: 'callInfo',
+  defaultWorkspaceTab: 'callInfo',
+  dialerDockMode: 'right',
+  dialerLayoutMode: 'overlay',
   themeMode: 'light',
   colorTheme: 'default',
 };
@@ -12,9 +15,18 @@ export function normalizeAgentUiPreferences(rawPreferences = {}) {
   const leadViewMode = ['list', 'smart'].includes(String(source.leadViewMode || '').trim().toLowerCase())
     ? String(source.leadViewMode).trim().toLowerCase()
     : DEFAULT_AGENT_UI_PREFERENCES.leadViewMode;
-  const defaultMainTab = ['callInfo', 'allLeads'].includes(String(source.defaultMainTab || '').trim())
-    ? String(source.defaultMainTab).trim()
-    : DEFAULT_AGENT_UI_PREFERENCES.defaultMainTab;
+  const resolvedDefaultTab = String(source.defaultWorkspaceTab || source.defaultMainTab || '').trim();
+  const defaultWorkspaceTab = ['callInfo', 'leads'].includes(resolvedDefaultTab)
+    ? resolvedDefaultTab
+    : resolvedDefaultTab === 'allLeads'
+      ? 'leads'
+      : DEFAULT_AGENT_UI_PREFERENCES.defaultWorkspaceTab;
+  const dialerDockMode = ['left', 'right', 'floating'].includes(String(source.dialerDockMode || '').trim())
+    ? String(source.dialerDockMode).trim()
+    : DEFAULT_AGENT_UI_PREFERENCES.dialerDockMode;
+  const dialerLayoutMode = ['overlay', 'docked'].includes(String(source.dialerLayoutMode || '').trim())
+    ? String(source.dialerLayoutMode).trim()
+    : DEFAULT_AGENT_UI_PREFERENCES.dialerLayoutMode;
   const themeMode = ['light', 'dark', 'system'].includes(String(source.themeMode || '').trim().toLowerCase())
     ? String(source.themeMode).trim().toLowerCase()
     : DEFAULT_AGENT_UI_PREFERENCES.themeMode;
@@ -24,7 +36,10 @@ export function normalizeAgentUiPreferences(rawPreferences = {}) {
 
   return {
     leadViewMode,
-    defaultMainTab,
+    defaultMainTab: defaultWorkspaceTab,
+    defaultWorkspaceTab,
+    dialerDockMode,
+    dialerLayoutMode,
     themeMode,
     colorTheme,
   };

@@ -91,6 +91,9 @@ export function JssipProvider({ children }) {
     setAgentLifecycle,
     activeCallContext,
     setActiveCallContext,
+    workspaceActiveCall,
+    setWorkspaceActiveCall,
+    finalizePostCallContext,
   ] = useJssip(isMobile);
 
   return (
@@ -165,6 +168,9 @@ export function JssipProvider({ children }) {
         setAgentLifecycle,
         activeCallContext,
         setActiveCallContext,
+        workspaceActiveCall,
+        setWorkspaceActiveCall,
+        finalizePostCallContext,
         isMobile,
       }}
     >
