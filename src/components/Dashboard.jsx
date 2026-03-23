@@ -368,7 +368,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/callDataByAgent`,
+        `${window.location.origin}/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -442,7 +442,7 @@ function Dashboard() {
 
     try {
       const response = await axios.post(
-        `${window.location.origin}/usermissedCalls/${username}`,
+        `${window.location.origin}/userMissedCalls/${username}`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
