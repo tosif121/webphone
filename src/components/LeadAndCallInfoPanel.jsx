@@ -25,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Button } from './ui/button';
-import { AlertDialog, AlertDialogContent } from './ui/alert-dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -2410,6 +2410,12 @@ export default function LeadAndCallInfoPanel({
       <>
         <AlertDialog open={true}>
           <AlertDialogContent className="!left-4 !right-4 !top-[92px] !bottom-[72px] !m-0 !grid !max-w-none !translate-x-0 !translate-y-0 overflow-hidden p-0 sm:!left-6 sm:!right-6">
+            <AlertDialogHeader className="sr-only">
+              <AlertDialogTitle>Active call workspace</AlertDialogTitle>
+              <AlertDialogDescription>
+                Review the current caller information, contact details, history, and any required post-call updates.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
             <Card className="flex h-full min-h-0 w-full flex-col border-0 shadow-none !gap-0">
               {!activeUserCall ? (
                 <CardContent className="flex flex-1 items-center justify-center">
