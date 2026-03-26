@@ -1,19 +1,25 @@
 import { useState, useEffect } from 'react';
 import KeyPad from './KeyPad';
-import NetworkMonitor from './NetworkMonitor';
+import NetworkIndicator from './NetworkIndicator';
 import { Delete, Phone } from 'lucide-react';
 import useFormatPhoneNumber from '../hooks/useFormatPhoneNumber';
 
-const Home = ({ phoneNumber, setPhoneNumber, handleCall, setSeeLogs, timeoutArray, isConnectionLost, headerAction = null }) => {
+const Home = ({
+  phoneNumber,
+  setPhoneNumber,
+  handleCall,
+  setSeeLogs,
+  timeoutArray,
+  isConnectionLost,
+  headerAction = null,
+}) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const formatPhoneNumber = useFormatPhoneNumber();
 
-  // Detect mobile screen size
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 767px)');
     setIsMobile(mediaQuery.matches);
-
     const handleResize = () => setIsMobile(mediaQuery.matches);
     mediaQuery.addEventListener('change', handleResize);
     return () => mediaQuery.removeEventListener('change', handleResize);
@@ -27,22 +33,21 @@ const Home = ({ phoneNumber, setPhoneNumber, handleCall, setSeeLogs, timeoutArra
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden px-4 pt-2.5 pb-2">
-      {/* Header - Only show on desktop, hidden on mobile since MobileNavigation provides it */}
+    <div className="flex flex-col overflow-hidden px-4 pt-2.5 pb-4">
+      {/* Header — desktop only */}
       {!isMobile && (
-        <div className="mb-3 flex cursor-move select-none items-center justify-between">
+        <div className="mb-3 flex select-none items-center justify-between">
           <div className="text-base sm:text-lg font-semibold text-primary">WebPhone</div>
           <div className="flex items-center gap-3">
-            <NetworkMonitor timeoutArray={timeoutArray} />
+            <NetworkIndicator timeoutArray={timeoutArray} />
             {headerAction}
           </div>
         </div>
       )}
-
-      {/* Mobile: White box with shadow around dialpad content */}
-      <div className="flex min-h-0 flex-1 flex-col">
+      {/* Body: input + keypad + call button, tightly packed */}
+      <div className="flex flex-col gap-8 sm:gap-4">
         {/* Phone Input */}
-        <div className="relative mb-1.5 shrink-0 border-b border-border/80 pb-2">
+        <div className="relative shrink-0 border-b border-border/80">
           <input
             type="text"
             value={formatPhoneNumber(phoneNumber)}
@@ -54,7 +59,7 @@ const Home = ({ phoneNumber, setPhoneNumber, handleCall, setSeeLogs, timeoutArra
             autoFocus={!isMobile}
             readOnly={isMobile}
             placeholder="Enter number"
-            className="w-full bg-transparent py-0 pr-8 text-center text-3xl font-medium tracking-[0.08em] text-foreground outline-none transition-all placeholder:text-xl placeholder:text-muted-foreground/45 md:text-[28px]"
+            className="w-full bg-transparent py-2 pr-8 text-center text-3xl font-medium tracking-[0.08em] text-foreground outline-none transition-all placeholder:text-xl placeholder:text-muted-foreground/45 md:text-[28px]"
             aria-label="Phone number"
           />
           {phoneNumber && (
@@ -72,12 +77,12 @@ const Home = ({ phoneNumber, setPhoneNumber, handleCall, setSeeLogs, timeoutArra
         </div>
 
         {/* KeyPad */}
-          <div className="mb-1 flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-            <KeyPad setPhoneNumber={setPhoneNumber} />
-          </div>
+        <div className="flex items-center justify-center">
+          <KeyPad setPhoneNumber={setPhoneNumber} />
+        </div>
 
         {/* Call Button */}
-        <div className="flex shrink-0 justify-center pb-1 pt-0">
+        <div className="flex justify-center">
           <button
             disabled={!phoneNumber}
             className="flex h-14 w-14 items-center justify-center rounded-full bg-green-600 shadow-lg transition-all duration-200 hover:scale-[1.03] hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"

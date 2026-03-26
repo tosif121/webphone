@@ -21,7 +21,7 @@ import HistoryContext from '@/context/HistoryContext';
 import maskPhoneNumber from '@/utils/maskPhoneNumber';
 import KeyPad from './KeyPad';
 import Image from 'next/image';
-import WebRTCStats from './WebRTCStats';
+import NetworkIndicator from './NetworkIndicator';
 
 const CallScreen = ({
   conferenceNumber,
@@ -56,6 +56,7 @@ const CallScreen = ({
   setConfRunning,
   setConfSeconds,
   setConfMinutes,
+  headerAction = null,
 }) => {
   const [currNum, setCurrNum] = useState('');
   const [isHovered, setIsHovered] = useState(false);
@@ -314,21 +315,25 @@ const CallScreen = ({
         disabled={isDisabled}
         title={title}
         className={`
-          w-14 h-14 sm:w-10 sm:h-10 rounded-lg transition-all duration-200 flex items-center justify-center
+          w-16 h-16 sm:w-12 sm:h-12 rounded-xl transition-all duration-200 flex items-center justify-center
           ${active ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card/80 text-primary hover:bg-accent'}
           ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105 hover:shadow-lg active:scale-95'}
           ${className}
         `}
       >
-        {isProcessing ? <Loader2 size={isMobile ? 24 : 16} className="animate-spin" /> : icon}
+        {isProcessing ? <Loader2 size={isMobile ? 28 : 22} className="animate-spin" /> : icon}
       </button>
     );
   };
 
   return (
-    <div className="flex flex-col sm:justify-start justify-end min-h-full md:pb-0 pb-14 px-0 md:px-3">
-      {session && session.connection && <WebRTCStats peerConnection={session.connection} />}
-
+    <div className="flex flex-col overflow-hidden px-4 pt-2.5 pb-4">
+      {session && session.connection && (
+        <div className="flex items-center gap-3 mb-1">
+          <NetworkIndicator peerConnection={session.connection} showTime={true} />
+          {headerAction}
+        </div>
+      )}
       {/* Mobile: White box with shadow */}
       <div className={isMobile ? '' : 'w-full max-w-md mx-auto'}>
         {/* Header - Original UI Structure */}
@@ -350,21 +355,21 @@ const CallScreen = ({
 
             <div className="text-xl md:text-sm font-medium text-muted-foreground max-w-[250px]">{mainNumber}</div>
 
-            <div className="flex items-center justify-center gap-1 mt-1">
+            <div className="flex items-center justify-center mt-3">
               {isRunning ? (
-                <>
-                  <Clock className="w-4 h-4 sm:w-3 sm:h-3 text-secondary-foreground" />
-                  <span className="text-lg md:text-sm font-mono text-secondary-foreground">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/30 border border-secondary/20">
+                  <Clock className="w-3.5 h-3.5 text-secondary-foreground" />
+                  <span className="text-sm font-mono font-bold text-secondary-foreground">
                     {conferenceNumber && !isMerged
                       ? `${String(confMinutes).padStart(2, '0')}:${String(confSeconds).padStart(2, '0')}`
                       : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`}
                   </span>
-                </>
+                </div>
               ) : (
-                <>
-                  <Loader2 className="w-4 h-4 sm:w-3 sm:h-3 text-primary animate-spin" />
-                  <span className="text-primary text-sm md:text-xs">Calling...</span>
-                </>
+                <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 animate-pulse">
+                  <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                  <span className="text-primary text-sm font-bold tracking-tight">Calling...</span>
+                </div>
               )}
             </div>
           </div>
@@ -381,7 +386,7 @@ const CallScreen = ({
                   onClick={handleToggleHoldDebounced}
                   disabled={!session || conferenceStatus}
                   active={isHeld}
-                  icon={<Pause size={isMobile ? 24 : 16} />}
+                  icon={<Pause size={isMobile ? 30 : 22} />}
                   title="Hold"
                   debounceTime={1000}
                 />
@@ -389,7 +394,7 @@ const CallScreen = ({
                   buttonId="transfer-button"
                   disabled={!isMerged}
                   onClick={handleTransfer}
-                  icon={<PhoneForwarded size={isMobile ? 24 : 16} />}
+                  icon={<PhoneForwarded size={isMobile ? 30 : 22} />}
                   title="Transfer"
                   className={!isMerged ? 'opacity-40' : ''}
                   debounceTime={500}
@@ -398,7 +403,7 @@ const CallScreen = ({
                 <ControlButton
                   buttonId="keypad-button"
                   onClick={() => setShowKeyPad(true)}
-                  icon={<Grip size={isMobile ? 24 : 16} />}
+                  icon={<Grip size={isMobile ? 30 : 22} />}
                   title="Keypad"
                   debounceTime={200}
                 />
@@ -411,7 +416,7 @@ const CallScreen = ({
                     buttonId="merge-button"
                     disabled={hasParticipants !== 'connected'}
                     onClick={handleMerge}
-                    icon={<Merge size={isMobile ? 24 : 16} />}
+                    icon={<Merge size={isMobile ? 28 : 20} />}
                     title="Merge"
                     active={isMerged}
                     debounceTime={800}
@@ -421,7 +426,7 @@ const CallScreen = ({
                     buttonId="add-call-button"
                     disabled={!session || !isCustomerAnswered || isMerged}
                     onClick={() => setCallConference?.(true)}
-                    icon={<UserPlus size={isMobile ? 24 : 16} />}
+                    icon={<UserPlus size={isMobile ? 28 : 20} />}
                     title="Add Call"
                     debounceTime={500}
                   />
@@ -432,7 +437,7 @@ const CallScreen = ({
                   disabled={!session && !isRecording}
                   icon={
                     <Square
-                      size={isMobile ? 24 : 16}
+                      size={isMobile ? 28 : 20}
                       className={isRecording ? 'text-destructive' : 'text-secondary-foreground'}
                     />
                   }
@@ -445,7 +450,7 @@ const CallScreen = ({
                   buttonId="mute-button"
                   active={muted}
                   onClick={handleMuteToggle}
-                  icon={<MicOff size={isMobile ? 24 : 16} />}
+                  icon={<MicOff size={isMobile ? 28 : 20} />}
                   title="Mute"
                   debounceTime={200}
                 />

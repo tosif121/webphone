@@ -79,11 +79,19 @@ export function getStoredAgentUiPreferences() {
     const rawLocalPreferences = localStorage.getItem('agent-ui-preferences');
     const parsedLocalPreferences = rawLocalPreferences ? JSON.parse(rawLocalPreferences) : null;
     const tokenPreferences = getStoredTokenPayload()?.userData?.uiPreferences || {};
-    return normalizeAgentUiPreferences({
+    
+    const finalPreferences = normalizeAgentUiPreferences({
       ...DEFAULT_AGENT_UI_PREFERENCES,
       ...tokenPreferences,
       ...(parsedLocalPreferences || {}),
     });
+
+    console.log('[Preferences] Loaded preferences:', {
+      source: parsedLocalPreferences ? 'LocalStorage' : 'Token/Default',
+      preferences: finalPreferences
+    });
+
+    return finalPreferences;
   } catch (error) {
     console.warn('Failed to restore agent UI preferences:', error);
     return { ...DEFAULT_AGENT_UI_PREFERENCES };
@@ -94,6 +102,7 @@ export function applyAgentUiPreferencesToDom(preferences) {
   if (typeof window === 'undefined') return;
 
   const normalized = normalizeAgentUiPreferences(preferences);
+  console.log('[Preferences] Applying and saving preferences:', normalized);
   localStorage.setItem('agent-ui-preferences', JSON.stringify(normalized));
 
   if (normalized.themeMode) {

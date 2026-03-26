@@ -47,14 +47,14 @@ const iconMap = {
   lastname: User,
   patient: User,
   full: User,
-  
+
   // Contact
   email: Mail,
   mail: Mail,
   phone: Phone,
   mobile: Phone,
   contact: Phone,
-  
+
   // Medical
   medical: Stethoscope,
   health: Heart,
@@ -62,16 +62,16 @@ const iconMap = {
   medication: Pill,
   history: FileText,
   emergency: AlertCircle,
-  
+
   // Appointment
   appointment: CalendarDays,
   date: Calendar,
   time: Clock,
-  
+
   // Payment
   insurance: CreditCard,
   payment: CreditCard,
-  
+
   // Location
   address: MapPin,
   state: MapPinned,
@@ -79,7 +79,7 @@ const iconMap = {
   city: Building2,
   postal: MailOpen,
   pin: MailOpen,
-  
+
   // General
   comment: MessageSquare,
   message: MessageSquare,
@@ -98,7 +98,7 @@ function getFieldIcon(field) {
   const label = field.label?.toLowerCase() || '';
   const name = field.name?.toLowerCase() || '';
   const type = field.type?.toLowerCase() || '';
-  
+
   // Check label first, then name, then type
   for (const key in iconMap) {
     if (label.includes(key) || name.includes(key) || type === key) {
@@ -136,9 +136,7 @@ const RatingField = ({ value, onChange, question, required }) => {
           </button>
         ))}
       </div>
-      <p className="text-sm text-muted-foreground">
-        {value ? `${value} out of 5` : 'Click to rate'}
-      </p>
+      <p className="text-sm text-muted-foreground">{value ? `${value} out of 5` : 'Click to rate'}</p>
     </div>
   );
 };
@@ -171,10 +169,12 @@ const FileUploadField = ({ value, onChange, field, required }) => {
 
   return (
     <div className="space-y-3">
-      <Label className={`mb-2 block text-sm font-medium ${required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}>
+      <Label
+        className={`mb-2 block text-sm font-medium ${required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}
+      >
         {field.label}
       </Label>
-      
+
       <div
         className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
           isDragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
@@ -187,9 +187,7 @@ const FileUploadField = ({ value, onChange, field, required }) => {
         onDrop={handleDrop}
       >
         <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-        <p className="text-sm text-muted-foreground mb-2">
-          Drag and drop files here, or click to select
-        </p>
+        <p className="text-sm text-muted-foreground mb-2">Drag and drop files here, or click to select</p>
         <input
           type="file"
           multiple
@@ -288,8 +286,12 @@ export default function DynamicForm({
       return field.systemField;
     }
 
-    const normalizedName = String(field?.name || '').trim().toLowerCase();
-    const normalizedLabel = String(field?.label || '').trim().toLowerCase();
+    const normalizedName = String(field?.name || '')
+      .trim()
+      .toLowerCase();
+    const normalizedLabel = String(field?.label || '')
+      .trim()
+      .toLowerCase();
 
     if (
       normalizedName === 'contactnumber' ||
@@ -373,7 +375,7 @@ export default function DynamicForm({
 
       return visibilityValues.some((value) => value === String(parentValue).trim());
     },
-    [currentFormData]
+    [currentFormData],
   );
 
   // Get filtered options for cascading dropdowns
@@ -404,7 +406,7 @@ export default function DynamicForm({
 
       return filtered;
     },
-    [currentFormData]
+    [currentFormData],
   );
 
   // Check if field should be visible based on parent field
@@ -414,19 +416,23 @@ export default function DynamicForm({
   const validateSection = useCallback(() => {
     const sectionErrors = {};
     const visibleFields =
-      currentSection?.fields?.filter((field) => isFieldVisible(field) && getFieldSystemRole(field) !== 'callerNumber') || [];
+      currentSection?.fields?.filter(
+        (field) => isFieldVisible(field) && getFieldSystemRole(field) !== 'callerNumber',
+      ) || [];
 
     if (!callerNumberValue || !String(callerNumberValue).trim()) {
       sectionErrors.contactNumber = 'Caller number is required';
     }
 
-    visibleFields.forEach(field => {
+    visibleFields.forEach((field) => {
       if (field.required) {
         const value = currentFormData[field.name];
-        
-        if (!value || 
-            (typeof value === 'string' && value.trim() === '') ||
-            (Array.isArray(value) && value.length === 0)) {
+
+        if (
+          !value ||
+          (typeof value === 'string' && value.trim() === '') ||
+          (Array.isArray(value) && value.length === 0)
+        ) {
           sectionErrors[field.name] = `${field.label} is required`;
         }
       }
@@ -434,21 +440,21 @@ export default function DynamicForm({
       // Additional validation based on field type
       if (currentFormData[field.name]) {
         const value = currentFormData[field.name];
-        
+
         if (field.type === 'email' && value) {
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           if (!emailRegex.test(value)) {
             sectionErrors[field.name] = 'Please enter a valid email address';
           }
         }
-        
+
         if (field.type === 'phone' && value) {
           const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
           if (!phoneRegex.test(value.replace(/\s/g, ''))) {
             sectionErrors[field.name] = 'Please enter a valid phone number';
           }
         }
-        
+
         if (field.type === 'number' && value) {
           if (isNaN(value) || value < 0) {
             sectionErrors[field.name] = 'Please enter a valid number';
@@ -573,25 +579,28 @@ export default function DynamicForm({
     setVisitedSections((prev) => (!prev.includes(indexToAdd) ? [...prev, indexToAdd] : prev));
   };
 
-  const clearDependentBranch = useCallback((sourceFieldName, draftState) => {
-    sortedSections.forEach((section) => {
-      section?.fields?.forEach((field) => {
-        if (field.parentField !== sourceFieldName) {
-          return;
-        }
+  const clearDependentBranch = useCallback(
+    (sourceFieldName, draftState) => {
+      sortedSections.forEach((section) => {
+        section?.fields?.forEach((field) => {
+          if (field.parentField !== sourceFieldName) {
+            return;
+          }
 
-        if (Object.prototype.hasOwnProperty.call(draftState, field.name)) {
-          delete draftState[field.name];
-        }
+          if (Object.prototype.hasOwnProperty.call(draftState, field.name)) {
+            delete draftState[field.name];
+          }
 
-        clearDependentBranch(field.name, draftState);
+          clearDependentBranch(field.name, draftState);
+        });
       });
-    });
-  }, [sortedSections]);
+    },
+    [sortedSections],
+  );
 
   const handleChange = (fieldName, value) => {
     const lockedCallerField = currentSection?.fields?.find(
-      (field) => field.name === fieldName && getFieldSystemRole(field) === 'callerNumber'
+      (field) => field.name === fieldName && getFieldSystemRole(field) === 'callerNumber',
     );
 
     if (lockedCallerField) {
@@ -610,7 +619,7 @@ export default function DynamicForm({
 
     // Clear field error when user starts typing
     if (errors[fieldName]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[fieldName];
         return newErrors;
@@ -640,7 +649,7 @@ export default function DynamicForm({
     setIsSubmitting(true);
     try {
       const finalData = getFinalFormData();
-      
+
       if (handleSubmit) {
         await handleSubmit(finalData);
         toast.success('Form submitted successfully!');
@@ -665,7 +674,7 @@ export default function DynamicForm({
       let targetSectionId = null;
 
       const callRelatedField = currentSection.fields.find(
-        (field) => field.name === 'Call Related To' && field.type === 'select' && currentFormData[field.name]
+        (field) => field.name === 'Call Related To' && field.type === 'select' && currentFormData[field.name],
       );
 
       if (callRelatedField) {
@@ -784,11 +793,14 @@ export default function DynamicForm({
 
   const showNextButton = sortedSections.length > 1 && !isLastSection;
   const callerNumberField =
-    currentSection?.fields?.find((field) => isFieldVisible(field) && getFieldSystemRole(field) === 'callerNumber') || null;
+    currentSection?.fields?.find((field) => isFieldVisible(field) && getFieldSystemRole(field) === 'callerNumber') ||
+    null;
   const callerNameField =
-    currentSection?.fields?.find((field) => isFieldVisible(field) && getFieldSystemRole(field) === 'callerName') || null;
+    currentSection?.fields?.find((field) => isFieldVisible(field) && getFieldSystemRole(field) === 'callerName') ||
+    null;
   const alternateNumberField =
-    currentSection?.fields?.find((field) => isFieldVisible(field) && getFieldSystemRole(field) === 'alternateNumber') || null;
+    currentSection?.fields?.find((field) => isFieldVisible(field) && getFieldSystemRole(field) === 'alternateNumber') ||
+    null;
   const renderableFields =
     currentSection?.fields?.filter((field) => {
       if (!isFieldVisible(field)) {
@@ -846,8 +858,6 @@ export default function DynamicForm({
     setErrors({});
   }, [draftStorageKey]);
 
-
-
   useEffect(() => {
     const savedState = localStorage.getItem(navigationStorageKey);
     if (savedState) {
@@ -893,8 +903,6 @@ export default function DynamicForm({
     return initialValues[fieldName] || '';
   };
 
-
-
   if (!formConfig || !currentSection) {
     return (
       <Card className="p-6">
@@ -911,19 +919,17 @@ export default function DynamicForm({
       className={`${
         !userCallDialog
           ? 'backdrop-blur-sm bg-card/80 rounded-lg max-w-4xl mx-auto'
-          : 'bg-card/95 rounded-xl border shadow-sm p-0 !gap-0 flex h-full min-h-0 flex-col overflow-hidden'
+          : 'bg-card/95 rounded-xl border shadow-sm !gap-0 flex h-full min-h-0 flex-col overflow-hidden'
       }`}
     >
       <CardHeader className={userCallDialog ? 'shrink-0 pb-3' : 'pb-4'}>
         <div className="flex items-center justify-between mb-4">
-          <CardTitle className="text-2xl text-primary">
-            {formConfig.formTitle || 'Form'}
-          </CardTitle>
+          <CardTitle className="text-2xl text-primary">{formConfig.formTitle || 'Form'}</CardTitle>
           <div className="text-sm text-muted-foreground">
             Step {currentSectionIndex + 1} of {sortedSections.length}
           </div>
         </div>
-        
+
         {sortedSections.length > 1 && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
@@ -936,353 +942,390 @@ export default function DynamicForm({
       </CardHeader>
       <CardContent className={userCallDialog ? 'flex flex-1 min-h-0 flex-col overflow-hidden' : undefined}>
         <div className={userCallDialog ? 'mb-4 min-h-0 flex-1 overflow-y-auto pr-1' : ''}>
-        <div className="space-y-6">
-          <div className="rounded-xl border bg-muted/20 p-4">
-            <div className={`grid grid-cols-1 gap-4 ${callerNameField || alternateNumberField ? 'md:grid-cols-2' : ''} ${callerNameField && alternateNumberField ? 'xl:grid-cols-3' : ''}`}>
-              <div>
-                <Label className="mb-2 block text-sm font-medium">
-                  {callerNumberField?.label || 'Caller Number'}
-                </Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <Input
-                    value={callerNumberValue}
-                    disabled={!isManualEntry}
-                    onChange={(event) => handleChange('contactNumber', event.target.value)}
-                    className={`${isManualEntry ? '' : 'cursor-not-allowed bg-muted/60'} pl-10`}
-                    aria-label="Caller Number"
-                  />
-                </div>
-                {errors.contactNumber && (
-                  <p className="mt-1 text-sm text-red-500" role="alert">
-                    {errors.contactNumber}
-                  </p>
-                )}
-              </div>
-
-              {callerNameField ? (
+          <div className="space-y-6">
+            <div className="rounded-xl border bg-muted/20 p-4">
+              <div
+                className={`grid grid-cols-1 gap-4 ${callerNameField || alternateNumberField ? 'md:grid-cols-2' : ''} ${callerNameField && alternateNumberField ? 'xl:grid-cols-3' : ''}`}
+              >
                 <div>
-                  <Label htmlFor={`${callerNameField.name}-system`} className="mb-2 block text-sm font-medium">
-                    {callerNameField.label || 'Caller Name'}
-                  </Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    <Input
-                      id={`${callerNameField.name}-system`}
-                      name={callerNameField.name}
-                      type={callerNameField.type || 'text'}
-                      placeholder={callerNameField.label || 'Caller Name'}
-                      value={getFieldValue(callerNameField.name)}
-                      onChange={handleInputChange}
-                      className={`pl-10 ${errors[callerNameField.name] ? 'border-red-500' : ''}`}
-                    />
-                  </div>
-                  {errors[callerNameField.name] && (
-                    <p className="mt-1 text-sm text-red-500" role="alert">
-                      {errors[callerNameField.name]}
-                    </p>
-                  )}
-                </div>
-              ) : null}
-
-              {alternateNumberField ? (
-                <div>
-                  <Label htmlFor={`${alternateNumberField.name}-system`} className="mb-2 block text-sm font-medium">
-                    {alternateNumberField.label || 'Alternate Number'}
+                  <Label className="mb-2 block text-sm font-medium">
+                    {callerNumberField?.label || 'Caller Number'}
                   </Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     <Input
-                      id={`${alternateNumberField.name}-system`}
-                      name={alternateNumberField.name}
-                      type={alternateNumberField.type || 'text'}
-                      placeholder={alternateNumberField.label || 'Alternate Number'}
-                      value={getFieldValue(alternateNumberField.name)}
-                      onChange={handleInputChange}
-                      className={`pl-10 ${errors[alternateNumberField.name] ? 'border-red-500' : ''}`}
+                      value={callerNumberValue}
+                      disabled={!isManualEntry}
+                      onChange={(event) => handleChange('contactNumber', event.target.value)}
+                      className={`${isManualEntry ? '' : 'cursor-not-allowed bg-muted/60'} pl-10`}
+                      aria-label="Caller Number"
                     />
                   </div>
-                  {errors[alternateNumberField.name] && (
+                  {errors.contactNumber && (
                     <p className="mt-1 text-sm text-red-500" role="alert">
-                      {errors[alternateNumberField.name]}
+                      {errors.contactNumber}
                     </p>
                   )}
                 </div>
-              ) : null}
-            </div>
-          </div>
 
-          <div className={`grid grid-cols-1 gap-4 md:gap-6 ${userCallDialog ? 'md:grid-cols-2 xl:grid-cols-3' : 'md:grid-cols-2'}`}>
-            {renderableFields.map((field, idx) => {
-              const fieldId = `${field.name}-${idx}`;
-              const fieldLabel = field.question || field.label || 'Field';
-              const fieldValue = getFieldValue(field.name);
-              const hasError = errors[field.name];
-              const fieldSystemRole = getFieldSystemRole(field);
-              const isLockedCallerField = fieldSystemRole === 'callerNumber';
-
-              if (field.type === 'textarea') {
-                return (
-                  <div key={fieldId}>
-                    <Label
-                      htmlFor={fieldId}
-                      className={`mb-2 block text-sm font-medium ${
-                        field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
-                      }`}
-                    >
-                      {fieldLabel}
+                {callerNameField ? (
+                  <div>
+                    <Label htmlFor={`${callerNameField.name}-system`} className="mb-2 block text-sm font-medium">
+                      {callerNameField.label || 'Caller Name'}
                     </Label>
                     <div className="relative">
-                      {getFieldIcon(field)}
-                      <Textarea
-                        id={fieldId}
-                        name={field.name}
-                        placeholder={fieldLabel}
-                        required={field.required}
-                        value={fieldValue}
+                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                      <Input
+                        id={`${callerNameField.name}-system`}
+                        name={callerNameField.name}
+                        type={callerNameField.type || 'text'}
+                        placeholder={callerNameField.label || 'Caller Name'}
+                        value={getFieldValue(callerNameField.name)}
                         onChange={handleInputChange}
-                        className={`pl-10 ${hasError ? 'border-red-500' : ''}`}
-                        rows={4}
+                        className={`pl-10 ${errors[callerNameField.name] ? 'border-red-500' : ''}`}
                       />
                     </div>
-                    {hasError && (
+                    {errors[callerNameField.name] && (
                       <p className="mt-1 text-sm text-red-500" role="alert">
-                        {hasError}
+                        {errors[callerNameField.name]}
                       </p>
                     )}
                   </div>
-                );
-              }
+                ) : null}
 
-              if (field.type === 'select') {
-                const selectOptions = getFilteredOptions(field);
-                const isDisabled = field.parentField && !currentFormData[field.parentField];
-
-                return (
-                  <div key={fieldId}>
-                    <Label
-                      htmlFor={fieldId}
-                      className={`mb-2 block text-sm font-medium ${
-                        field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
-                      }`}
-                    >
-                      {fieldLabel}
-                      {field.parentField && (
-                        <span className="text-xs text-muted-foreground ml-2">
-                          (depends on {field.parentField})
-                        </span>
-                      )}
+                {alternateNumberField ? (
+                  <div>
+                    <Label htmlFor={`${alternateNumberField.name}-system`} className="mb-2 block text-sm font-medium">
+                      {alternateNumberField.label || 'Alternate Number'}
                     </Label>
                     <div className="relative">
-                      {getFieldIcon(field)}
-                      <Select
-                        value={fieldValue || ''}
-                        onValueChange={(value) => {
-                          handleSelectChange(field.name, value);
-                        }}
-                        disabled={isDisabled}
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                      <Input
+                        id={`${alternateNumberField.name}-system`}
+                        name={alternateNumberField.name}
+                        type={alternateNumberField.type || 'text'}
+                        placeholder={alternateNumberField.label || 'Alternate Number'}
+                        value={getFieldValue(alternateNumberField.name)}
+                        onChange={handleInputChange}
+                        className={`pl-10 ${errors[alternateNumberField.name] ? 'border-red-500' : ''}`}
+                      />
+                    </div>
+                    {errors[alternateNumberField.name] && (
+                      <p className="mt-1 text-sm text-red-500" role="alert">
+                        {errors[alternateNumberField.name]}
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div
+              className={`grid grid-cols-1 gap-4 md:gap-6 ${userCallDialog ? 'md:grid-cols-2 xl:grid-cols-3' : 'md:grid-cols-2'}`}
+            >
+              {renderableFields.map((field, idx) => {
+                const fieldId = `${field.name}-${idx}`;
+                const fieldLabel = field.question || field.label || 'Field';
+                const fieldValue = getFieldValue(field.name);
+                const hasError = errors[field.name];
+                const fieldSystemRole = getFieldSystemRole(field);
+                const isLockedCallerField = fieldSystemRole === 'callerNumber';
+
+                if (field.type === 'textarea') {
+                  return (
+                    <div key={fieldId}>
+                      <Label
+                        htmlFor={fieldId}
+                        className={`mb-2 block text-sm font-medium ${
+                          field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
+                        }`}
                       >
-                        <SelectTrigger className={`pl-10 ${hasError ? 'border-red-500' : ''}`} id={fieldId}>
-                          <SelectValue
-                            placeholder={
-                              isDisabled
-                                ? `Select ${field.parentField} first`
-                                : selectOptions.length === 0
-                                ? 'No options available'
-                                : `Select ${fieldLabel.toLowerCase()}`
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {selectOptions.map((option, i) => (
-                            <SelectItem key={i} value={option.value}>
+                        {fieldLabel}
+                      </Label>
+                      <div className="relative">
+                        {getFieldIcon(field)}
+                        <Textarea
+                          id={fieldId}
+                          name={field.name}
+                          placeholder={fieldLabel}
+                          required={field.required}
+                          value={fieldValue}
+                          onChange={handleInputChange}
+                          className={`pl-10 ${hasError ? 'border-red-500' : ''}`}
+                          rows={4}
+                        />
+                      </div>
+                      {hasError && (
+                        <p className="mt-1 text-sm text-red-500" role="alert">
+                          {hasError}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (field.type === 'select') {
+                  const selectOptions = getFilteredOptions(field);
+                  const isDisabled = field.parentField && !currentFormData[field.parentField];
+
+                  return (
+                    <div key={fieldId}>
+                      <Label
+                        htmlFor={fieldId}
+                        className={`mb-2 block text-sm font-medium ${
+                          field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
+                        }`}
+                      >
+                        {fieldLabel}
+                        {field.parentField && (
+                          <span className="text-xs text-muted-foreground ml-2">(depends on {field.parentField})</span>
+                        )}
+                      </Label>
+                      <div className="relative">
+                        {getFieldIcon(field)}
+                        <Select
+                          value={fieldValue || ''}
+                          onValueChange={(value) => {
+                            handleSelectChange(field.name, value);
+                          }}
+                          disabled={isDisabled}
+                        >
+                          <SelectTrigger className={`pl-10 ${hasError ? 'border-red-500' : ''}`} id={fieldId}>
+                            <SelectValue
+                              placeholder={
+                                isDisabled
+                                  ? `Select ${field.parentField} first`
+                                  : selectOptions.length === 0
+                                    ? 'No options available'
+                                    : `Select ${fieldLabel.toLowerCase()}`
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectOptions.map((option, i) => (
+                              <SelectItem key={i} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {hasError && (
+                        <p className="mt-1 text-sm text-red-500" role="alert">
+                          {hasError}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (field.type === 'radio') {
+                  const radioOptions = getFilteredOptions(field);
+                  return (
+                    <div key={fieldId}>
+                      <Label
+                        className={`mb-2 block text-sm font-medium ${field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}
+                      >
+                        {fieldLabel}
+                      </Label>
+                      <RadioGroup
+                        value={fieldValue}
+                        onValueChange={(value) => handleChange(field.name, value)}
+                        className="space-y-2"
+                      >
+                        {radioOptions.map((option, i) => (
+                          <div key={i} className="flex items-center space-x-2">
+                            <RadioGroupItem value={option.value} id={`${fieldId}-${i}`} />
+                            <Label htmlFor={`${fieldId}-${i}`} className="cursor-pointer">
                               {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                      {hasError && (
+                        <p className="mt-1 text-sm text-red-500" role="alert">
+                          {hasError}
+                        </p>
+                      )}
                     </div>
-                    {hasError && (
-                      <p className="mt-1 text-sm text-red-500" role="alert">
-                        {hasError}
-                      </p>
-                    )}
-                  </div>
-                );
-              }
+                  );
+                }
 
-              if (field.type === 'radio') {
-                const radioOptions = getFilteredOptions(field);
-                return (
-                  <div key={fieldId}>
-                    <Label className={`mb-2 block text-sm font-medium ${field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}>
-                      {fieldLabel}
-                    </Label>
-                    <RadioGroup
-                      value={fieldValue}
-                      onValueChange={(value) => handleChange(field.name, value)}
-                      className="space-y-2"
-                    >
-                      {radioOptions.map((option, i) => (
-                        <div key={i} className="flex items-center space-x-2">
-                          <RadioGroupItem value={option.value} id={`${fieldId}-${i}`} />
-                          <Label htmlFor={`${fieldId}-${i}`} className="cursor-pointer">
-                            {option.label}
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                    {hasError && (
-                      <p className="mt-1 text-sm text-red-500" role="alert">
-                        {hasError}
-                      </p>
-                    )}
-                  </div>
-                );
-              }
+                if (field.type === 'checkbox') {
+                  const checkboxValue = Array.isArray(fieldValue) ? fieldValue : [];
+                  const checkboxOptions = getFilteredOptions(field);
 
-              if (field.type === 'checkbox') {
-                const checkboxValue = Array.isArray(fieldValue) ? fieldValue : [];
-                const checkboxOptions = getFilteredOptions(field);
-
-                return (
-                  <div key={fieldId}>
-                    <Label className={`mb-2 block text-sm font-medium ${field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}>
-                      {fieldLabel}
-                    </Label>
-                    <div className="space-y-2">
-                      {checkboxOptions.map((option, i) => (
-                        <div key={i} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`${fieldId}-${i}`}
-                            checked={checkboxValue.includes(option.value)}
-                            onCheckedChange={(checked) => {
-                              const newValue = checked
-                                ? [...checkboxValue, option.value]
-                                : checkboxValue.filter(v => v !== option.value);
-                              handleChange(field.name, newValue);
-                            }}
-                          />
-                          <Label htmlFor={`${fieldId}-${i}`} className="cursor-pointer">
-                            {option.label}
-                          </Label>
-                        </div>
-                      ))}
+                  return (
+                    <div key={fieldId}>
+                      <Label
+                        className={`mb-2 block text-sm font-medium ${field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}
+                      >
+                        {fieldLabel}
+                      </Label>
+                      <div className="space-y-2">
+                        {checkboxOptions.map((option, i) => (
+                          <div key={i} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`${fieldId}-${i}`}
+                              checked={checkboxValue.includes(option.value)}
+                              onCheckedChange={(checked) => {
+                                const newValue = checked
+                                  ? [...checkboxValue, option.value]
+                                  : checkboxValue.filter((v) => v !== option.value);
+                                handleChange(field.name, newValue);
+                              }}
+                            />
+                            <Label htmlFor={`${fieldId}-${i}`} className="cursor-pointer">
+                              {option.label}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                      {hasError && (
+                        <p className="mt-1 text-sm text-red-500" role="alert">
+                          {hasError}
+                        </p>
+                      )}
                     </div>
-                    {hasError && (
-                      <p className="mt-1 text-sm text-red-500" role="alert">
-                        {hasError}
-                      </p>
-                    )}
-                  </div>
-                );
-              }
+                  );
+                }
 
-              if (field.type === 'multiple-options') {
-                const currentValues = Array.isArray(fieldValue) ? fieldValue : [];
+                if (field.type === 'multiple-options') {
+                  const currentValues = Array.isArray(fieldValue) ? fieldValue : [];
 
-                return (
-                  <div className="space-y-3" key={fieldId}>
-                    <Label
-                      className={`mb-2 block text-sm font-medium ${
-                        field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
-                      }`}
-                    >
-                      {fieldLabel}
-                    </Label>
-                    <div className="space-y-2">
-                      {field.options?.map((option, optionIndex) => (
-                        <div key={optionIndex} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`${field.name}-${optionIndex}`}
-                            checked={currentValues.includes(option.value)}
-                            onCheckedChange={(checked) => {
-                              const newValues = checked
-                                ? [...currentValues, option.value]
-                                : currentValues.filter((v) => v !== option.value);
-                              handleChange(field.name, newValues);
-                            }}
-                          />
-                          <Label
-                            htmlFor={`${field.name}-${optionIndex}`}
-                            className="text-sm font-normal cursor-pointer"
-                          >
-                            {option.label}
-                          </Label>
-                        </div>
-                      ))}
+                  return (
+                    <div className="space-y-3" key={fieldId}>
+                      <Label
+                        className={`mb-2 block text-sm font-medium ${
+                          field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
+                        }`}
+                      >
+                        {fieldLabel}
+                      </Label>
+                      <div className="space-y-2">
+                        {field.options?.map((option, optionIndex) => (
+                          <div key={optionIndex} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`${field.name}-${optionIndex}`}
+                              checked={currentValues.includes(option.value)}
+                              onCheckedChange={(checked) => {
+                                const newValues = checked
+                                  ? [...currentValues, option.value]
+                                  : currentValues.filter((v) => v !== option.value);
+                                handleChange(field.name, newValues);
+                              }}
+                            />
+                            <Label
+                              htmlFor={`${field.name}-${optionIndex}`}
+                              className="text-sm font-normal cursor-pointer"
+                            >
+                              {option.label}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                      {hasError && (
+                        <p className="mt-1 text-sm text-red-500" role="alert">
+                          {hasError}
+                        </p>
+                      )}
                     </div>
-                    {hasError && (
-                      <p className="mt-1 text-sm text-red-500" role="alert">
-                        {hasError}
-                      </p>
-                    )}
-                  </div>
-                );
-              }
+                  );
+                }
 
-              if (field.type === 'single-checkbox') {
-                return (
-                  <div className="flex items-center gap-2" key={fieldId}>
-                    <Checkbox
-                      id={field.name}
-                      checked={!!fieldValue}
-                      onCheckedChange={(checked) => handleChange(field.name, checked)}
-                    />
-                    <Label
-                      htmlFor={field.name}
-                      className={`cursor-pointer text-sm font-medium ${
-                        field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
-                      }`}
-                    >
-                      {fieldLabel}
-                    </Label>
-                    {hasError && (
-                      <p className="mt-1 text-sm text-red-500" role="alert">
-                        {hasError}
-                      </p>
-                    )}
-                  </div>
-                );
-              }
+                if (field.type === 'single-checkbox') {
+                  return (
+                    <div className="flex items-center gap-2" key={fieldId}>
+                      <Checkbox
+                        id={field.name}
+                        checked={!!fieldValue}
+                        onCheckedChange={(checked) => handleChange(field.name, checked)}
+                      />
+                      <Label
+                        htmlFor={field.name}
+                        className={`cursor-pointer text-sm font-medium ${
+                          field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
+                        }`}
+                      >
+                        {fieldLabel}
+                      </Label>
+                      {hasError && (
+                        <p className="mt-1 text-sm text-red-500" role="alert">
+                          {hasError}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
 
-              if (field.type === 'rating') {
-                return (
-                  <div key={fieldId}>
-                    <RatingField
-                      question={fieldLabel}
-                      required={field.required}
-                      value={fieldValue || 0}
-                      onChange={(newValue) => handleChange(field.name, newValue)}
-                    />
-                    {hasError && (
-                      <p className="mt-1 text-sm text-red-500" role="alert">
-                        {hasError}
-                      </p>
-                    )}
-                  </div>
-                );
-              }
+                if (field.type === 'rating') {
+                  return (
+                    <div key={fieldId}>
+                      <RatingField
+                        question={fieldLabel}
+                        required={field.required}
+                        value={fieldValue || 0}
+                        onChange={(newValue) => handleChange(field.name, newValue)}
+                      />
+                      {hasError && (
+                        <p className="mt-1 text-sm text-red-500" role="alert">
+                          {hasError}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
 
-              if (field.type === 'file') {
-                return (
-                  <div key={fieldId}>
-                    <FileUploadField
-                      field={field}
-                      required={field.required}
-                      value={fieldValue}
-                      onChange={(value) => handleChange(field.name, value)}
-                    />
-                    {hasError && (
-                      <p className="mt-1 text-sm text-red-500" role="alert">
-                        {hasError}
-                      </p>
-                    )}
-                  </div>
-                );
-              }
+                if (field.type === 'file') {
+                  return (
+                    <div key={fieldId}>
+                      <FileUploadField
+                        field={field}
+                        required={field.required}
+                        value={fieldValue}
+                        onChange={(value) => handleChange(field.name, value)}
+                      />
+                      {hasError && (
+                        <p className="mt-1 text-sm text-red-500" role="alert">
+                          {hasError}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
 
-              if (field.type === 'date') {
+                if (field.type === 'date') {
+                  return (
+                    <div key={fieldId}>
+                      <Label
+                        htmlFor={fieldId}
+                        className={`mb-2 block text-sm font-medium ${
+                          field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
+                        }`}
+                      >
+                        {fieldLabel}
+                      </Label>
+                      <div className="relative">
+                        {getFieldIcon(field)}
+                        <Input
+                          id={fieldId}
+                          name={field.name}
+                          type="date"
+                          required={field.required}
+                          value={fieldValue}
+                          onChange={handleInputChange}
+                          className={`pl-10 ${hasError ? 'border-red-500' : ''}`}
+                        />
+                      </div>
+                      {hasError && (
+                        <p className="mt-1 text-sm text-red-500" role="alert">
+                          {hasError}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={fieldId}>
                     <Label
@@ -1292,17 +1335,24 @@ export default function DynamicForm({
                       }`}
                     >
                       {fieldLabel}
+                      {fieldSystemRole === 'callerNumber' && (
+                        <span className="ml-2 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
+                          Locked Caller
+                        </span>
+                      )}
                     </Label>
                     <div className="relative">
                       {getFieldIcon(field)}
                       <Input
                         id={fieldId}
                         name={field.name}
-                        type="date"
+                        type={field.type || 'text'}
+                        placeholder={isLockedCallerField ? 'Auto-filled from caller number' : fieldLabel}
                         required={field.required}
                         value={fieldValue}
                         onChange={handleInputChange}
-                        className={`pl-10 ${hasError ? 'border-red-500' : ''}`}
+                        disabled={isLockedCallerField}
+                        className={`pl-10 ${hasError ? 'border-red-500' : ''} ${isLockedCallerField ? 'bg-muted/60 cursor-not-allowed' : ''}`}
                       />
                     </div>
                     {hasError && (
@@ -1312,52 +1362,16 @@ export default function DynamicForm({
                     )}
                   </div>
                 );
-              }
-
-              return (
-                <div key={fieldId}>
-                  <Label
-                    htmlFor={fieldId}
-                    className={`mb-2 block text-sm font-medium ${
-                      field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
-                    }`}
-                  >
-                    {fieldLabel}
-                    {fieldSystemRole === 'callerNumber' && (
-                      <span className="ml-2 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
-                        Locked Caller
-                      </span>
-                    )}
-                  </Label>
-                  <div className="relative">
-                    {getFieldIcon(field)}
-                    <Input
-                      id={fieldId}
-                      name={field.name}
-                      type={field.type || 'text'}
-                      placeholder={isLockedCallerField ? 'Auto-filled from caller number' : fieldLabel}
-                      required={field.required}
-                      value={fieldValue}
-                      onChange={handleInputChange}
-                      disabled={isLockedCallerField}
-                      className={`pl-10 ${hasError ? 'border-red-500' : ''} ${isLockedCallerField ? 'bg-muted/60 cursor-not-allowed' : ''}`}
-                    />
-                  </div>
-                  {hasError && (
-                    <p className="mt-1 text-sm text-red-500" role="alert">
-                      {hasError}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
+              })}
+            </div>
           </div>
-        </div>
         </div>
 
         <div
           className={`flex items-center justify-between border-t pt-6 ${
-            userCallDialog ? 'sticky bottom-0 z-10 shrink-0 bg-card/95 pb-2 backdrop-blur supports-[backdrop-filter]:bg-card/90' : ''
+            userCallDialog
+              ? 'sticky bottom-0 z-10 shrink-0 bg-card/95 pb-2 backdrop-blur supports-[backdrop-filter]:bg-card/90'
+              : ''
           }`}
         >
           {sortedSections.length > 1 ? (

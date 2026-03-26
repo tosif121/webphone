@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { HistoryProvider } from '@/context/HistoryContext';
 import { JssipProvider } from '@/context/JssipContext';
@@ -20,11 +20,25 @@ export default function App({ Component, pageProps }) {
   const router = useRouter();
 
   const publicPages = new Set(['/login', '/subscription-expired', '/404']);
-
   const isPublicPage = publicPages.has(router.pathname);
 
+  // Handle Authentication for protected routes
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
+
+  useEffect(() => {
+    const tokenData = localStorage.getItem('token');
+    const isLoggedIn = !!tokenData;
+    setIsAuthenticated(isLoggedIn);
+
+    if (!isLoggedIn && !isPublicPage) {
+      router.push('/login');
+    } else if (isLoggedIn && router.pathname === '/login') {
+      router.push('/');
+    }
+  }, [isPublicPage, router.pathname]);
+
   // Register service worker for notifications
-  React.useEffect(() => {
+  useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/sw.js')
@@ -38,7 +52,7 @@ export default function App({ Component, pageProps }) {
   }, []);
 
   // Add global error handlers for unhandled errors
-  React.useEffect(() => {
+  useEffect(() => {
     const handleError = (event) => {
       logError(event.error || new Error(event.message), 'unhandled-error');
     };
@@ -48,9 +62,7 @@ export default function App({ Component, pageProps }) {
     };
 
     if (typeof window !== 'undefined') {
-      // Check for hydration issues on mount
       checkHydrationIssues();
-
       window.addEventListener('error', handleError);
       window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
@@ -60,6 +72,21 @@ export default function App({ Component, pageProps }) {
       };
     }
   }, []);
+
+  // 1. If we don't know the auth status yet, hide everything to prevent blinking.
+  if (isAuthenticated === null) {
+    return <div className="h-screen w-screen bg-background" />;
+  }
+
+  // 2. If not logged in and trying to access a protected page, hide while redirecting.
+  if (!isAuthenticated && !isPublicPage) {
+    return <div className="h-screen w-screen bg-background" />;
+  }
+
+  // 3. If logged in and trying to access login page, hide while redirecting to dashboard.
+  if (isAuthenticated && router.pathname === '/login') {
+    return <div className="h-screen w-screen bg-background" />;
+  }
 
   return (
     <ErrorBoundary>

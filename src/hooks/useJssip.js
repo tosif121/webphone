@@ -1107,6 +1107,10 @@ const useJssip = (isMobile = false) => {
       });
     };
     const enumerateDevices = async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.warn('MediaDevices API not available (possibly insecure context)');
+        return;
+      }
       try {
         await navigator.mediaDevices.getUserMedia({ audio: true });
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -1142,10 +1146,14 @@ const useJssip = (isMobile = false) => {
     // Set up periodic connection check
     const socketCheckInterval = setInterval(checkSocketConnection, 10000); // Check every 10 seconds
 
-    navigator.mediaDevices.addEventListener('devicechange', enumerateDevices);
+    if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+      navigator.mediaDevices.addEventListener('devicechange', enumerateDevices);
+    }
 
     return () => {
-      navigator.mediaDevices.removeEventListener('devicechange', enumerateDevices);
+      if (navigator.mediaDevices && navigator.mediaDevices.removeEventListener) {
+        navigator.mediaDevices.removeEventListener('devicechange', enumerateDevices);
+      }
       clearInterval(socketCheckInterval);
 
       if (ua) {
@@ -1431,7 +1439,3 @@ const useJssip = (isMobile = false) => {
 };
 
 export default useJssip;
-
-
-
-

@@ -233,22 +233,24 @@ NetworkQualityBars.displayName = 'NetworkQualityBars';
 // ── StatCard ─────────────────────────────────────────────────────────────────
 const StatCard = React.memo(({ title, icon, value, description, borderColor = 'border-l-primary', subStats }) => (
   <Card
-    className={`shadow border border-l-4 ${borderColor} transition-transform duration-200 hover:scale-105 hover:shadow-lg w-full`}
+    className={`shadow border border-l-4 ${borderColor} transition-transform duration-200 hover:scale-[1.02] hover:shadow-lg w-full`}
   >
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-      <CardTitle className="text-xs sm:text-sm font-medium text-primary truncate">{title}</CardTitle>
-      <span className="shrink-0">{icon}</span>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4">
+      <CardTitle className="text-xs sm:text-sm font-medium text-primary truncate max-w-[80%]">{title}</CardTitle>
+      <span className="shrink-0 scale-90 sm:scale-100">{icon}</span>
     </CardHeader>
-    <CardContent className="pt-1 pb-2">
-      <div className="text-lg sm:text-xl font-bold break-words">{value}</div>
-      {description && <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 break-words">{description}</p>}
+    <CardContent className="pt-1 pb-3 px-4">
+      <div className="text-xl sm:text-2xl font-bold break-words">{value}</div>
+      {description && (
+        <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">{description}</p>
+      )}
       {subStats && (
-        <div className="flex flex-wrap gap-1 sm:gap-2 mt-1.5 text-xs text-muted-foreground">
+        <div className="flex flex-wrap gap-2 mt-2 text-[10px] sm:text-xs text-muted-foreground">
           {subStats.map((s, i) => (
-            <span key={i} className="flex items-center gap-1 min-w-0">
-              {s.icon && <span className="shrink-0">{s.icon}</span>}
+            <span key={i} className="flex items-center gap-1.5 bg-muted/30 px-1.5 py-0.5 rounded">
+              {s.icon && <span className="shrink-0 scale-75">{s.icon}</span>}
               <span className="font-semibold">{s.value}</span>
-              <span className="truncate">{s.label}</span>
+              <span className="truncate opacity-80">{s.label}</span>
             </span>
           ))}
         </div>
@@ -673,7 +675,7 @@ const SystemFailureMonitors = () => {
   // ── Early renders ────────────────────────────────────────────────────────
   if (!mounted) {
     return (
-      <div className="flex items-center justify-center p-6">
+      <div className="flex w-full items-center justify-center p-6">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
           <h2 className="text-xl font-semibold text-foreground">Loading Network Monitor</h2>
@@ -684,7 +686,7 @@ const SystemFailureMonitors = () => {
   }
   if (!troubleshootingMode) {
     return (
-      <div className="space-y-6 pt-12 pb-6 px-6 max-w-2xl mx-auto">
+      <div className="w-full space-y-6 pt-12 pb-6 px-6 max-w-2xl m-auto">
         <Card className="shadow-lg border-primary/20 bg-card">
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -716,7 +718,7 @@ const SystemFailureMonitors = () => {
         userLogin={userLogin}
         customMessage={timeoutMessage}
       />
-      <div className="space-y-6">
+      <div className="space-y-6 w-full">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
@@ -749,7 +751,7 @@ const SystemFailureMonitors = () => {
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           <StatCard
             title="WebSocket Connection"
             value={liveAnalysis.wsConnected || liveUA.isConnected ? 'Connected' : 'FAILED'}
@@ -861,29 +863,38 @@ const SystemFailureMonitors = () => {
             )}
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="grid gap-3">
               {currentComponents.map((component, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg bg-card hover:bg-accent/5 transition-colors"
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-border rounded-xl bg-card hover:bg-accent/5 transition-colors gap-4"
                 >
-                  <div className="flex items-center space-x-3">
-                    {getStatusIcon(component.status)}
+                  <div className="flex items-start space-x-3">
+                    <div className="mt-1 shrink-0">{getStatusIcon(component.status)}</div>
                     <div>
-                      <h3 className="font-medium text-card-foreground">{component.component}</h3>
-                      <p className="text-sm text-muted-foreground">{component.details}</p>
+                      <h3 className="font-semibold text-sm sm:text-base text-card-foreground">{component.component}</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mt-0.5">
+                        {component.details}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3 shrink-0">
+                  <div className="flex items-center justify-between w-full sm:w-auto space-x-3 shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-border/40">
                     {component.component === 'Network Quality' && (
                       <NetworkQualityBars
                         signalStrength={liveAnalysis.signalStrength ?? 1}
                         networkQuality={liveAnalysis.networkQuality ?? 'unknown'}
                         networkTier={liveAnalysis.networkTier ?? ''}
+                        className="scale-90"
                       />
                     )}
-                    <Badge className={getStatusColor(component.status)}>{component.status}</Badge>
-                    <span className="text-xs text-muted-foreground">{!autoRefresh ? 'Frozen' : currentTime}</span>
+                    <div className="flex items-center gap-2">
+                      <Badge className={`${getStatusColor(component.status)} px-2 py-0.5 text-[10px]`}>
+                        {component.status}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                        {!autoRefresh ? 'Frozen' : currentTime}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}

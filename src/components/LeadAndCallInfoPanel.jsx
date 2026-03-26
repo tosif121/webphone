@@ -25,7 +25,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Button } from './ui/button';
-import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -107,7 +113,11 @@ const buildCallIdentityCandidates = (call = {}) =>
     call?.dialNumber,
     call?.contactNumber,
   ]
-    .map((value) => String(value || '').trim().toLowerCase())
+    .map((value) =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
+    )
     .filter(Boolean);
 
 const buildConversationIdentityCandidates = (conversation = {}) =>
@@ -124,7 +134,11 @@ const buildConversationIdentityCandidates = (conversation = {}) =>
     conversation?.updatedAt,
     conversation?.contactNumber,
   ]
-    .map((value) => String(value || '').trim().toLowerCase())
+    .map((value) =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
+    )
     .filter(Boolean);
 
 const getConversationRemark = (conversation = {}) =>
@@ -381,7 +395,7 @@ export default function LeadAndCallInfoPanel({
 
   const normalizedContactNumber = useMemo(() => {
     const rawNumber = String(
-        activeUserCall?.contactNumber ||
+      activeUserCall?.contactNumber ||
         localFormData?.contactNumber ||
         activeUserCall?.contact_number ||
         activeUserCall?.callerNumber ||
@@ -405,7 +419,7 @@ export default function LeadAndCallInfoPanel({
     () =>
       String(
         (manualEntryMode && `manual:${normalizedContactNumber}`) ||
-        activeUserCall?.channelIDstring ||
+          activeUserCall?.channelIDstring ||
           activeUserCall?.channelID ||
           activeUserCall?.incomingchannel ||
           activeUserCall?.bridgeID ||
@@ -468,7 +482,12 @@ export default function LeadAndCallInfoPanel({
         lastDisposition: workspaceContact?.lastDisposition || 'N/A',
         campaign: workspaceContact?.lastCampaign || 'N/A',
       },
-    [contactConversationHistory.length, contactWorkspace?.quickStats, workspaceContact?.lastCampaign, workspaceContact?.lastDisposition],
+    [
+      contactConversationHistory.length,
+      contactWorkspace?.quickStats,
+      workspaceContact?.lastCampaign,
+      workspaceContact?.lastDisposition,
+    ],
   );
 
   const workspaceTimeline = useMemo(() => contactWorkspace?.timeline || [], [contactWorkspace?.timeline]);
@@ -519,27 +538,18 @@ export default function LeadAndCallInfoPanel({
 
   const resolvedCallContext = useMemo(
     () => ({
-      didNumber:
-        activeCallContext?.didNumber ||
-        activeUserCall?.didNumber ||
-        null,
+      didNumber: activeCallContext?.didNumber || activeUserCall?.didNumber || null,
       isAfterHours:
         activeCallContext?.isAfterHours === true ||
         activeUserCall?.isAfterHours === true ||
         activeUserCall?.isAfterhrs === true ||
         false,
-      businessHoursSource:
-        activeCallContext?.businessHoursSource ||
-        activeUserCall?.businessHoursSource ||
-        null,
+      businessHoursSource: activeCallContext?.businessHoursSource || activeUserCall?.businessHoursSource || null,
       isSticky:
         activeCallContext?.isSticky === true ||
         activeUserCall?.isSticky === true ||
         Boolean(activeUserCall?.stickyAgent),
-      stickyAgent:
-        activeCallContext?.stickyAgent ||
-        activeUserCall?.stickyAgent ||
-        null,
+      stickyAgent: activeCallContext?.stickyAgent || activeUserCall?.stickyAgent || null,
     }),
     [activeCallContext, activeUserCall],
   );
@@ -575,19 +585,43 @@ export default function LeadAndCallInfoPanel({
     } finally {
       setSavingSticky(false);
     }
-  }, [authHeaders, isStickyContact, normalizedContactNumber, stickyPreferences.enabled, stickyPreferences.mode, userCampaign]);
+  }, [
+    authHeaders,
+    isStickyContact,
+    normalizedContactNumber,
+    stickyPreferences.enabled,
+    stickyPreferences.mode,
+    userCampaign,
+  ]);
 
   const draftStorageKey = useMemo(() => {
     if (!activeUserCall && !manualEntryMode) return null;
 
     const formReference = formConfig?.formId || formId || 'contact-form';
     const draftContactKey =
-      manualEntryMode && (!normalizedContactNumber || normalizedContactNumber === 'no-contact' || normalizedContactNumber.length < 10)
+      manualEntryMode &&
+      (!normalizedContactNumber || normalizedContactNumber === 'no-contact' || normalizedContactNumber.length < 10)
         ? 'pending-manual'
         : normalizedContactNumber;
 
-    return ['leadFormDraft', username || 'agent', userCampaign || 'no-campaign', manualEntryMode ? 'manual' : callType || 'unknown', formReference, draftContactKey].join(':');
-  }, [activeUserCall, callType, formConfig?.formId, formId, manualEntryMode, normalizedContactNumber, userCampaign, username]);
+    return [
+      'leadFormDraft',
+      username || 'agent',
+      userCampaign || 'no-campaign',
+      manualEntryMode ? 'manual' : callType || 'unknown',
+      formReference,
+      draftContactKey,
+    ].join(':');
+  }, [
+    activeUserCall,
+    callType,
+    formConfig?.formId,
+    formId,
+    manualEntryMode,
+    normalizedContactNumber,
+    userCampaign,
+    username,
+  ]);
 
   const fetchWithTokenRetry = async (url, token, refreshToken, config = {}) => {
     // Use token if available, otherwise use refreshToken
@@ -939,242 +973,277 @@ export default function LeadAndCallInfoPanel({
       return;
     }
 
-      const initialFormData = {};
-      const sourceCallData = activeUserCall || {};
-      const contactEntries = contactProfile
-        ? Object.entries(contactProfile).filter(([key]) => {
-            if (!key || key.startsWith('_')) return false;
-            return !['id', 'isDeleted', 'adminuser', 'uploadDate'].includes(key);
-          })
-        : [];
-      const conversationEntries = latestConversation
-        ? Object.entries(latestConversation).filter(([key]) => {
-            if (!key || key.startsWith('_')) return false;
-            return ![
-              'id',
-              'adminuser',
-              'userId',
-              'createdAt',
-              'updatedAt',
-              'updatedBy',
-              'editedInAdmin',
-              'isDeleted',
-              'formId',
-              'formID',
-              'formTitle',
-              'formType',
-              'campaignId',
-              'campaignName',
-              'callType',
-              'callReference',
-              'agentName',
-              'entryMode',
-              'isFresh',
-            ].includes(key);
-          })
-        : [];
-      const getConversationValue = (...candidates) => {
-        for (const candidate of candidates) {
-          const normalizedCandidate = normalizeConversationLookupKey(candidate);
-          if (!normalizedCandidate) {
-            continue;
-          }
-
-          const matchedEntry = conversationEntries.find(([entryKey]) => {
-            const normalizedEntryKey = normalizeConversationLookupKey(entryKey);
-            return normalizedEntryKey === normalizedCandidate;
-          });
-
-          if (matchedEntry && matchedEntry[1] !== undefined && matchedEntry[1] !== null && `${matchedEntry[1]}` !== '') {
-            return matchedEntry[1];
-          }
+    const initialFormData = {};
+    const sourceCallData = activeUserCall || {};
+    const contactEntries = contactProfile
+      ? Object.entries(contactProfile).filter(([key]) => {
+          if (!key || key.startsWith('_')) return false;
+          return !['id', 'isDeleted', 'adminuser', 'uploadDate'].includes(key);
+        })
+      : [];
+    const conversationEntries = latestConversation
+      ? Object.entries(latestConversation).filter(([key]) => {
+          if (!key || key.startsWith('_')) return false;
+          return ![
+            'id',
+            'adminuser',
+            'userId',
+            'createdAt',
+            'updatedAt',
+            'updatedBy',
+            'editedInAdmin',
+            'isDeleted',
+            'formId',
+            'formID',
+            'formTitle',
+            'formType',
+            'campaignId',
+            'campaignName',
+            'callType',
+            'callReference',
+            'agentName',
+            'entryMode',
+            'isFresh',
+          ].includes(key);
+        })
+      : [];
+    const getConversationValue = (...candidates) => {
+      for (const candidate of candidates) {
+        const normalizedCandidate = normalizeConversationLookupKey(candidate);
+        if (!normalizedCandidate) {
+          continue;
         }
 
-        return undefined;
-      };
-      const getContactValue = (...candidates) => {
-        for (const candidate of candidates) {
-          const normalizedCandidate = normalizeConversationLookupKey(candidate);
-          if (!normalizedCandidate) {
-            continue;
-          }
-
-          const matchedEntry = contactEntries.find(([entryKey]) => {
-            const normalizedEntryKey = normalizeConversationLookupKey(entryKey);
-            return normalizedEntryKey === normalizedCandidate;
-          });
-
-          if (matchedEntry && matchedEntry[1] !== undefined && matchedEntry[1] !== null && `${matchedEntry[1]}` !== '') {
-            return matchedEntry[1];
-          }
-        }
-
-        return undefined;
-      };
-      const allowContactFallbackForDynamicForm = !latestConversation;
-      const allowSourceFallbackForDynamicForm = !latestConversation;
-
-      if (formConfig?.sections?.length > 0) {
-        // Dynamic form initialization
-        formConfig.sections.forEach((section) => {
-          section.fields.forEach((field) => {
-            const fieldName = field.name;
-            const normalizedName = String(fieldName || '').toLowerCase();
-            const normalizedLabel = String(field.label || '').toLowerCase();
-
-            if (
-              field.systemField === 'callerNumber' ||
-              normalizedName === 'contactnumber' ||
-              normalizedName === 'callernumber' ||
-              normalizedName === 'number' ||
-              normalizedLabel.includes('caller number') ||
-              normalizedLabel.includes('mobile no')
-            ) {
-              initialFormData[fieldName] = sourceCallData.contactNumber || '';
-              return;
-            }
-
-            if (
-              field.systemField === 'callerName' ||
-              normalizedName === 'caller_name' ||
-              normalizedName === 'callername' ||
-              normalizedLabel.includes('caller name')
-            ) {
-              initialFormData[fieldName] =
-                getConversationValue(fieldName, field.label, field.question, 'callerName', 'caller_name', 'Caller Name', 'Caller Name ', 'name') ??
-                (allowContactFallbackForDynamicForm
-                  ? getContactValue(fieldName, field.label, field.question, 'callerName', 'caller_name', 'CallerName', 'firstName', 'name')
-                  : undefined) ??
-                sourceCallData.callerName ??
-                sourceCallData.caller_name ??
-                sourceCallData.firstName ??
-                '';
-              return;
-            }
-
-            if (
-              field.systemField === 'alternateNumber' ||
-              normalizedName === 'alternatenumber' ||
-              normalizedLabel.includes('alternate')
-            ) {
-              initialFormData[fieldName] =
-                sourceCallData.alternateNumber ||
-                getConversationValue(fieldName, field.label, field.question) ||
-                (allowContactFallbackForDynamicForm
-                  ? getContactValue(fieldName, field.label, field.question, 'alternateNumber', 'alternate number', 'alternate contact')
-                  : undefined) ||
-                '';
-              return;
-            }
-
-            const conversationValue = getConversationValue(fieldName, field.label, field.question);
-            if (conversationValue !== undefined) {
-              initialFormData[fieldName] = conversationValue;
-              return;
-            }
-
-            const contactValue = allowContactFallbackForDynamicForm
-              ? getContactValue(fieldName, field.label, field.question)
-              : undefined;
-            if (contactValue !== undefined) {
-              initialFormData[fieldName] = contactValue;
-              return;
-            }
-
-            if (allowSourceFallbackForDynamicForm) {
-              const lowerFieldName = fieldName.toLowerCase();
-              const userCallKeys = Object.keys(sourceCallData);
-              const matchedKey = userCallKeys.find((key) => key.toLowerCase() === lowerFieldName);
-              initialFormData[fieldName] = matchedKey !== undefined ? (sourceCallData[matchedKey] ?? '') : '';
-              return;
-            }
-
-            initialFormData[fieldName] = '';
-          });
+        const matchedEntry = conversationEntries.find(([entryKey]) => {
+          const normalizedEntryKey = normalizeConversationLookupKey(entryKey);
+          return normalizedEntryKey === normalizedCandidate;
         });
-      } else {
-        // Static form initialization
-        Object.assign(initialFormData, {
-          firstName:
-            getConversationValue('firstName', 'first name') ??
-            getContactValue('firstName', 'first name', 'caller name', 'name') ??
-            sourceCallData.firstName ??
-            '',
-          lastName:
-            getConversationValue('lastName', 'last name') ??
-            getContactValue('lastName', 'last name') ??
-            sourceCallData.lastName ??
-            '',
-          emailId:
-            getConversationValue('emailId', 'email', 'email address') ??
-            getContactValue('emailId', 'email', 'email address') ??
-            sourceCallData.emailId ??
-            sourceCallData.Email ??
-            sourceCallData.email ??
-            '',
-          contactNumber: sourceCallData.contactNumber || '',
-          alternateNumber:
-            getConversationValue('alternateNumber', 'alternate number', 'alternate contact') ??
-            getContactValue('alternateNumber', 'alternate number', 'alternate contact') ??
-            sourceCallData.alternateNumber ??
-            '',
-          Contactaddress:
-            getConversationValue('Contactaddress', 'address', 'location') ??
-            getContactValue('Contactaddress', 'address', 'location') ??
-            sourceCallData.Contactaddress ??
-            sourceCallData.address ??
-            '',
-          ContactState:
-            getConversationValue('ContactState', 'state') ??
-            getContactValue('ContactState', 'state') ??
-            sourceCallData.ContactState ??
-            sourceCallData.state ??
-            '',
-          ContactDistrict:
-            getConversationValue('ContactDistrict', 'district') ??
-            getContactValue('ContactDistrict', 'district') ??
-            sourceCallData.ContactDistrict ??
-            '',
-          ContactCity:
-            getConversationValue('ContactCity', 'city') ??
-            getContactValue('ContactCity', 'city') ??
-            sourceCallData.ContactCity ??
-            sourceCallData.city ??
-            sourceCallData.CIty ??
-            '',
-          ContactPincode:
-            getConversationValue('ContactPincode', 'postal code', 'pincode', 'pin code') ??
-            getContactValue('ContactPincode', 'postal code', 'pincode', 'pin code') ??
-            sourceCallData.ContactPincode ??
-            sourceCallData.postalCode ??
-            sourceCallData['Pincode '] ??
-            '',
-          comment:
-            getConversationValue('comment', 'remarks', 'comment', 'call remark') ??
-            getContactValue('comment', 'remarks', 'comment', 'call remark') ??
-            sourceCallData.comment ??
-            '',
-        });
-      }
 
-      try {
-        const savedDraft = localStorage.getItem(draftStorageKey);
-        if (savedDraft) {
-          Object.assign(initialFormData, JSON.parse(savedDraft));
+        if (matchedEntry && matchedEntry[1] !== undefined && matchedEntry[1] !== null && `${matchedEntry[1]}` !== '') {
+          return matchedEntry[1];
         }
-      } catch (error) {
-        console.warn('Failed to restore saved form draft:', error);
       }
 
-      if (manualEntryMode && localFormData && Object.keys(localFormData).length > 0) {
-        Object.assign(initialFormData, localFormData);
+      return undefined;
+    };
+    const getContactValue = (...candidates) => {
+      for (const candidate of candidates) {
+        const normalizedCandidate = normalizeConversationLookupKey(candidate);
+        if (!normalizedCandidate) {
+          continue;
+        }
+
+        const matchedEntry = contactEntries.find(([entryKey]) => {
+          const normalizedEntryKey = normalizeConversationLookupKey(entryKey);
+          return normalizedEntryKey === normalizedCandidate;
+        });
+
+        if (matchedEntry && matchedEntry[1] !== undefined && matchedEntry[1] !== null && `${matchedEntry[1]}` !== '') {
+          return matchedEntry[1];
+        }
       }
 
-      initialFormData.contactNumber = sourceCallData.contactNumber || initialFormData.contactNumber || '';
-      setLocalFormData(initialFormData);
-      setLastDraftKey(initializationSignature);
-      setIsFormDataInitialized(true);
-  }, [activeUserCall, contactProfile, draftStorageKey, formConfig, lastDraftKey, latestConversation, localFormData, manualEntryMode, normalizeConversationLookupKey]);
+      return undefined;
+    };
+    const allowContactFallbackForDynamicForm = !latestConversation;
+    const allowSourceFallbackForDynamicForm = !latestConversation;
+
+    if (formConfig?.sections?.length > 0) {
+      // Dynamic form initialization
+      formConfig.sections.forEach((section) => {
+        section.fields.forEach((field) => {
+          const fieldName = field.name;
+          const normalizedName = String(fieldName || '').toLowerCase();
+          const normalizedLabel = String(field.label || '').toLowerCase();
+
+          if (
+            field.systemField === 'callerNumber' ||
+            normalizedName === 'contactnumber' ||
+            normalizedName === 'callernumber' ||
+            normalizedName === 'number' ||
+            normalizedLabel.includes('caller number') ||
+            normalizedLabel.includes('mobile no')
+          ) {
+            initialFormData[fieldName] = sourceCallData.contactNumber || '';
+            return;
+          }
+
+          if (
+            field.systemField === 'callerName' ||
+            normalizedName === 'caller_name' ||
+            normalizedName === 'callername' ||
+            normalizedLabel.includes('caller name')
+          ) {
+            initialFormData[fieldName] =
+              getConversationValue(
+                fieldName,
+                field.label,
+                field.question,
+                'callerName',
+                'caller_name',
+                'Caller Name',
+                'Caller Name ',
+                'name',
+              ) ??
+              (allowContactFallbackForDynamicForm
+                ? getContactValue(
+                    fieldName,
+                    field.label,
+                    field.question,
+                    'callerName',
+                    'caller_name',
+                    'CallerName',
+                    'firstName',
+                    'name',
+                  )
+                : undefined) ??
+              sourceCallData.callerName ??
+              sourceCallData.caller_name ??
+              sourceCallData.firstName ??
+              '';
+            return;
+          }
+
+          if (
+            field.systemField === 'alternateNumber' ||
+            normalizedName === 'alternatenumber' ||
+            normalizedLabel.includes('alternate')
+          ) {
+            initialFormData[fieldName] =
+              sourceCallData.alternateNumber ||
+              getConversationValue(fieldName, field.label, field.question) ||
+              (allowContactFallbackForDynamicForm
+                ? getContactValue(
+                    fieldName,
+                    field.label,
+                    field.question,
+                    'alternateNumber',
+                    'alternate number',
+                    'alternate contact',
+                  )
+                : undefined) ||
+              '';
+            return;
+          }
+
+          const conversationValue = getConversationValue(fieldName, field.label, field.question);
+          if (conversationValue !== undefined) {
+            initialFormData[fieldName] = conversationValue;
+            return;
+          }
+
+          const contactValue = allowContactFallbackForDynamicForm
+            ? getContactValue(fieldName, field.label, field.question)
+            : undefined;
+          if (contactValue !== undefined) {
+            initialFormData[fieldName] = contactValue;
+            return;
+          }
+
+          if (allowSourceFallbackForDynamicForm) {
+            const lowerFieldName = fieldName.toLowerCase();
+            const userCallKeys = Object.keys(sourceCallData);
+            const matchedKey = userCallKeys.find((key) => key.toLowerCase() === lowerFieldName);
+            initialFormData[fieldName] = matchedKey !== undefined ? (sourceCallData[matchedKey] ?? '') : '';
+            return;
+          }
+
+          initialFormData[fieldName] = '';
+        });
+      });
+    } else {
+      // Static form initialization
+      Object.assign(initialFormData, {
+        firstName:
+          getConversationValue('firstName', 'first name') ??
+          getContactValue('firstName', 'first name', 'caller name', 'name') ??
+          sourceCallData.firstName ??
+          '',
+        lastName:
+          getConversationValue('lastName', 'last name') ??
+          getContactValue('lastName', 'last name') ??
+          sourceCallData.lastName ??
+          '',
+        emailId:
+          getConversationValue('emailId', 'email', 'email address') ??
+          getContactValue('emailId', 'email', 'email address') ??
+          sourceCallData.emailId ??
+          sourceCallData.Email ??
+          sourceCallData.email ??
+          '',
+        contactNumber: sourceCallData.contactNumber || '',
+        alternateNumber:
+          getConversationValue('alternateNumber', 'alternate number', 'alternate contact') ??
+          getContactValue('alternateNumber', 'alternate number', 'alternate contact') ??
+          sourceCallData.alternateNumber ??
+          '',
+        Contactaddress:
+          getConversationValue('Contactaddress', 'address', 'location') ??
+          getContactValue('Contactaddress', 'address', 'location') ??
+          sourceCallData.Contactaddress ??
+          sourceCallData.address ??
+          '',
+        ContactState:
+          getConversationValue('ContactState', 'state') ??
+          getContactValue('ContactState', 'state') ??
+          sourceCallData.ContactState ??
+          sourceCallData.state ??
+          '',
+        ContactDistrict:
+          getConversationValue('ContactDistrict', 'district') ??
+          getContactValue('ContactDistrict', 'district') ??
+          sourceCallData.ContactDistrict ??
+          '',
+        ContactCity:
+          getConversationValue('ContactCity', 'city') ??
+          getContactValue('ContactCity', 'city') ??
+          sourceCallData.ContactCity ??
+          sourceCallData.city ??
+          sourceCallData.CIty ??
+          '',
+        ContactPincode:
+          getConversationValue('ContactPincode', 'postal code', 'pincode', 'pin code') ??
+          getContactValue('ContactPincode', 'postal code', 'pincode', 'pin code') ??
+          sourceCallData.ContactPincode ??
+          sourceCallData.postalCode ??
+          sourceCallData['Pincode '] ??
+          '',
+        comment:
+          getConversationValue('comment', 'remarks', 'comment', 'call remark') ??
+          getContactValue('comment', 'remarks', 'comment', 'call remark') ??
+          sourceCallData.comment ??
+          '',
+      });
+    }
+
+    try {
+      const savedDraft = localStorage.getItem(draftStorageKey);
+      if (savedDraft) {
+        Object.assign(initialFormData, JSON.parse(savedDraft));
+      }
+    } catch (error) {
+      console.warn('Failed to restore saved form draft:', error);
+    }
+
+    if (manualEntryMode && localFormData && Object.keys(localFormData).length > 0) {
+      Object.assign(initialFormData, localFormData);
+    }
+
+    initialFormData.contactNumber = sourceCallData.contactNumber || initialFormData.contactNumber || '';
+    setLocalFormData(initialFormData);
+    setLastDraftKey(initializationSignature);
+    setIsFormDataInitialized(true);
+  }, [
+    activeUserCall,
+    contactProfile,
+    draftStorageKey,
+    formConfig,
+    lastDraftKey,
+    latestConversation,
+    localFormData,
+    manualEntryMode,
+    normalizeConversationLookupKey,
+  ]);
 
   useEffect(() => {
     if (formSubmitted) {
@@ -1219,7 +1288,17 @@ export default function LeadAndCallInfoPanel({
       entryMode: manualEntryMode ? 'manual' : 'call',
       callReference: currentCallReference,
     }),
-    [activeUserCall?.contactNumber, callType, currentCallReference, formConfig?.formId, formConfig?.formTitle, formConfig?.formType, manualEntryMode, userCampaign, username],
+    [
+      activeUserCall?.contactNumber,
+      callType,
+      currentCallReference,
+      formConfig?.formId,
+      formConfig?.formTitle,
+      formConfig?.formType,
+      manualEntryMode,
+      userCampaign,
+      username,
+    ],
   );
 
   // Handle form submission
@@ -1399,15 +1478,12 @@ export default function LeadAndCallInfoPanel({
     try {
       setLoadingContactConversationHistory(true);
       setLoadingContactProfile(true);
-      const response = await axios.get(
-        `${window.location.origin}/contact/${encodeURIComponent(contactNumber)}/full`,
-        {
-          params: {
-            limit: 75,
-          },
-          headers: authHeaders,
+      const response = await axios.get(`${window.location.origin}/contact/${encodeURIComponent(contactNumber)}/full`, {
+        params: {
+          limit: 75,
         },
-      );
+        headers: authHeaders,
+      });
 
       const result = response.data?.result || null;
       setContactWorkspace(result);
@@ -1490,8 +1566,7 @@ export default function LeadAndCallInfoPanel({
 
     const displayPhone = String(workspaceContact?.phone || activeUserCall?.contactNumber || '').replace(/^\+91/, '');
     const displayName =
-      String(workspaceContact?.name || '').trim() ||
-      (displayPhone ? `Contact ${displayPhone}` : 'Unknown Contact');
+      String(workspaceContact?.name || '').trim() || (displayPhone ? `Contact ${displayPhone}` : 'Unknown Contact');
 
     return (
       <Card className="border bg-background/95 shadow-sm">
@@ -1500,9 +1575,7 @@ export default function LeadAndCallInfoPanel({
             <div className="space-y-2">
               <div>
                 <div className="text-xl font-semibold text-foreground">{displayName}</div>
-                <div className="text-sm text-muted-foreground">
-                  {displayPhone || 'No caller number available'}
-                </div>
+                <div className="text-sm text-muted-foreground">{displayPhone || 'No caller number available'}</div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {workspaceContact?.tags?.map((tag) => (
@@ -1562,11 +1635,15 @@ export default function LeadAndCallInfoPanel({
             </div>
             <div className="rounded-xl border bg-muted/15 px-4 py-3">
               <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Connected</div>
-              <div className="mt-1 text-lg font-semibold text-foreground">{workspaceQuickStats.connectedCalls || 0}</div>
+              <div className="mt-1 text-lg font-semibold text-foreground">
+                {workspaceQuickStats.connectedCalls || 0}
+              </div>
             </div>
             <div className="rounded-xl border bg-muted/15 px-4 py-3">
               <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Last Disposition</div>
-              <div className="mt-1 text-sm font-medium text-foreground">{workspaceQuickStats.lastDisposition || 'N/A'}</div>
+              <div className="mt-1 text-sm font-medium text-foreground">
+                {workspaceQuickStats.lastDisposition || 'N/A'}
+              </div>
             </div>
             <div className="rounded-xl border bg-muted/15 px-4 py-3">
               <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Campaign</div>
@@ -1628,13 +1705,16 @@ export default function LeadAndCallInfoPanel({
                         {moment(item.timestamp).isValid() ? moment(item.timestamp).format('DD MMM YYYY, hh:mm A') : '-'}
                       </div>
                     </div>
-                    {(item.meta?.agentName || item.meta?.callType || item.meta?.scheduledAt) ? (
+                    {item.meta?.agentName || item.meta?.callType || item.meta?.scheduledAt ? (
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         {item.meta?.agentName ? <Badge variant="outline">{item.meta.agentName}</Badge> : null}
                         {item.meta?.callType ? <Badge variant="secondary">{item.meta.callType}</Badge> : null}
                         {item.meta?.scheduledAt ? (
                           <Badge variant="outline">
-                            Callback {moment(item.meta.scheduledAt).isValid() ? moment(item.meta.scheduledAt).format('DD MMM, hh:mm A') : '-'}
+                            Callback{' '}
+                            {moment(item.meta.scheduledAt).isValid()
+                              ? moment(item.meta.scheduledAt).format('DD MMM, hh:mm A')
+                              : '-'}
                           </Badge>
                         ) : null}
                       </div>
@@ -1665,7 +1745,8 @@ export default function LeadAndCallInfoPanel({
     const detailEntries = Object.entries(contactProfile || {})
       .filter(([key, value]) => {
         if (!key || key.startsWith('_')) return false;
-        if (['id', 'isDeleted', 'adminuser', 'uploadDate', 'formId', 'formID', 'campaignId'].includes(key)) return false;
+        if (['id', 'isDeleted', 'adminuser', 'uploadDate', 'formId', 'formID', 'campaignId'].includes(key))
+          return false;
         return value !== undefined && value !== null && `${value}`.trim() !== '' && typeof value !== 'object';
       })
       .slice(0, 10);
@@ -1673,70 +1754,95 @@ export default function LeadAndCallInfoPanel({
     return (
       <div className="h-full overflow-y-auto pr-1">
         <div className="space-y-4">
-        <Card className="border bg-background/95 shadow-sm">
-          <CardContent className="space-y-4 p-4 sm:p-5">
-            <div className="space-y-2">
-              <div className="text-xl font-semibold text-foreground">
-                {String(workspaceContact?.name || '').trim() || `Contact ${String(workspaceContact?.phone || '').replace(/^\+91/, '')}`}
+          <Card className="border bg-background/95 shadow-sm">
+            <CardContent className="space-y-4 p-4 sm:p-5">
+              <div className="space-y-2">
+                <div className="text-xl font-semibold text-foreground">
+                  {String(workspaceContact?.name || '').trim() ||
+                    `Contact ${String(workspaceContact?.phone || '').replace(/^\+91/, '')}`}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {String(workspaceContact?.phone || activeUserCall?.contactNumber || '').replace(/^\+91/, '') ||
+                    'No caller number available'}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {workspaceContact?.tags?.map((tag) => (
+                    <Badge key={tag} variant="outline">
+                      {tag}
+                    </Badge>
+                  ))}
+                  {isStickyContact ? (
+                    <Badge className="bg-primary/10 text-primary hover:bg-primary/10">Sticky</Badge>
+                  ) : null}
+                  {stickyPreferences.enabled && normalizedContactNumber !== 'no-contact' ? (
+                    <Button
+                      type="button"
+                      variant={isStickyContact ? 'secondary' : 'outline'}
+                      size="sm"
+                      className="h-8 rounded-full px-3"
+                      onClick={() => void handleStickyContact()}
+                      disabled={savingSticky}
+                    >
+                      {savingSticky ? 'Saving...' : isStickyContact ? 'Sticky Saved' : 'Make Sticky'}
+                    </Button>
+                  ) : null}
+                </div>
               </div>
-              <div className="text-sm text-muted-foreground">
-                {String(workspaceContact?.phone || activeUserCall?.contactNumber || '').replace(/^\+91/, '') || 'No caller number available'}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {workspaceContact?.tags?.map((tag) => (
-                  <Badge key={tag} variant="outline">{tag}</Badge>
-                ))}
-                {isStickyContact ? <Badge className="bg-primary/10 text-primary hover:bg-primary/10">Sticky</Badge> : null}
-                {stickyPreferences.enabled && normalizedContactNumber !== 'no-contact' ? (
-                  <Button
-                    type="button"
-                    variant={isStickyContact ? 'secondary' : 'outline'}
-                    size="sm"
-                    className="h-8 rounded-full px-3"
-                    onClick={() => void handleStickyContact()}
-                    disabled={savingSticky}
-                  >
-                    {savingSticky ? 'Saving...' : isStickyContact ? 'Sticky Saved' : 'Make Sticky'}
-                  </Button>
-                ) : null}
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-              <div className="rounded-xl border bg-muted/15 px-4 py-3">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">First Call</div>
-                <div className="mt-1 text-sm font-medium text-foreground">{moment(workspaceContact?.firstCallTime || contactProfile?.firstCallTime).isValid() ? moment(workspaceContact?.firstCallTime || contactProfile?.firstCallTime).format('DD MMM YYYY, hh:mm A') : '-'}</div>
-              </div>
-              <div className="rounded-xl border bg-muted/15 px-4 py-3">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Calls</div>
-                <div className="mt-1 text-lg font-semibold text-foreground">{workspaceQuickStats.totalCalls || 0}</div>
-              </div>
-              <div className="rounded-xl border bg-muted/15 px-4 py-3">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Last Disposition</div>
-                <div className="mt-1 text-sm font-medium text-foreground">{workspaceQuickStats.lastDisposition || 'N/A'}</div>
-              </div>
-              <div className="rounded-xl border bg-muted/15 px-4 py-3">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Campaign</div>
-                <div className="mt-1 text-sm font-medium text-foreground">{workspaceQuickStats.campaign || 'N/A'}</div>
-              </div>
-            </div>
-
-            {detailEntries.length > 0 ? (
-              <div className="grid gap-3 md:grid-cols-2">
-                {detailEntries.map(([key, value]) => (
-                  <div key={key} className="rounded-xl border border-border/60 bg-background/80 px-4 py-3">
-                    <div className="text-xs uppercase tracking-wide text-muted-foreground">{key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}</div>
-                    <div className="mt-2 break-words text-sm font-medium text-foreground">{String(value)}</div>
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                <div className="rounded-xl border bg-muted/15 px-4 py-3">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">First Call</div>
+                  <div className="mt-1 text-sm font-medium text-foreground">
+                    {moment(workspaceContact?.firstCallTime || contactProfile?.firstCallTime).isValid()
+                      ? moment(workspaceContact?.firstCallTime || contactProfile?.firstCallTime).format(
+                          'DD MMM YYYY, hh:mm A',
+                        )
+                      : '-'}
                   </div>
-                ))}
+                </div>
+                <div className="rounded-xl border bg-muted/15 px-4 py-3">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Calls</div>
+                  <div className="mt-1 text-lg font-semibold text-foreground">
+                    {workspaceQuickStats.totalCalls || 0}
+                  </div>
+                </div>
+                <div className="rounded-xl border bg-muted/15 px-4 py-3">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Last Disposition
+                  </div>
+                  <div className="mt-1 text-sm font-medium text-foreground">
+                    {workspaceQuickStats.lastDisposition || 'N/A'}
+                  </div>
+                </div>
+                <div className="rounded-xl border bg-muted/15 px-4 py-3">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Campaign</div>
+                  <div className="mt-1 text-sm font-medium text-foreground">
+                    {workspaceQuickStats.campaign || 'N/A'}
+                  </div>
+                </div>
               </div>
-            ) : (
-              <div className="rounded-xl border border-dashed border-border/60 px-4 py-8 text-center text-sm text-muted-foreground">
-                No additional contact details are available for this caller.
-              </div>
-            )}
-          </CardContent>
-        </Card>
+
+              {detailEntries.length > 0 ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {detailEntries.map(([key, value]) => (
+                    <div key={key} className="rounded-xl border border-border/60 bg-background/80 px-4 py-3">
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                        {key
+                          .replace(/([A-Z])/g, ' $1')
+                          .replace(/_/g, ' ')
+                          .trim()}
+                      </div>
+                      <div className="mt-2 break-words text-sm font-medium text-foreground">{String(value)}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-border/60 px-4 py-8 text-center text-sm text-muted-foreground">
+                  No additional contact details are available for this caller.
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -1752,9 +1858,11 @@ export default function LeadAndCallInfoPanel({
         <div className="h-full overflow-y-auto pr-1">
           <div className="space-y-4">
             <div className="rounded-xl border bg-muted/30 p-4">
-            <div className="text-sm font-semibold text-foreground">Campaign form is disabled</div>
-            <div className="text-sm text-muted-foreground">No form is configured for this campaign. Contact details remain available in the next tab.</div>
-          </div>
+              <div className="text-sm font-semibold text-foreground">Campaign form is disabled</div>
+              <div className="text-sm text-muted-foreground">
+                No form is configured for this campaign. Contact details remain available in the next tab.
+              </div>
+            </div>
           </div>
         </div>
       );
@@ -1764,23 +1872,23 @@ export default function LeadAndCallInfoPanel({
       return (
         <div className="h-full overflow-hidden">
           <div className="h-full space-y-4">
-          <DynamicForm
-            key={formConfig.formId}
-            formConfig={formConfig}
-            formState={localFormData}
-            setFormState={updateLocalFormData}
-            userCall={activeUserCall}
-            userCallDialog={true}
-            formSubmitted={formSubmitted}
-            handleSubmit={handleSubmit}
-            localFormData={localFormData}
-            status={status}
-            connectionStatus={connectionStatus}
-            setLocalFormData={updateLocalFormData}
-            draftStorageKey={draftStorageKey}
-            isManualEntry={isManualEntryActive}
-            submitLabel={submitLabel}
-          />
+            <DynamicForm
+              key={formConfig.formId}
+              formConfig={formConfig}
+              formState={localFormData}
+              setFormState={updateLocalFormData}
+              userCall={activeUserCall}
+              userCallDialog={true}
+              formSubmitted={formSubmitted}
+              handleSubmit={handleSubmit}
+              localFormData={localFormData}
+              status={status}
+              connectionStatus={connectionStatus}
+              setLocalFormData={updateLocalFormData}
+              draftStorageKey={draftStorageKey}
+              isManualEntry={isManualEntryActive}
+              submitLabel={submitLabel}
+            />
           </div>
         </div>
       );
@@ -1788,16 +1896,16 @@ export default function LeadAndCallInfoPanel({
       return (
         <div className="h-full overflow-hidden">
           <div className="h-full space-y-4">
-          <UserCall
-            localFormData={localFormData}
-            setLocalFormData={updateLocalFormData}
-            handleSubmit={handleContact}
-            userCall={activeUserCall}
-            userCallDialog={true}
-            formSubmitted={formSubmitted}
-            isManualEntry={isManualEntryActive}
-            submitLabel={submitLabel}
-          />
+            <UserCall
+              localFormData={localFormData}
+              setLocalFormData={updateLocalFormData}
+              handleSubmit={handleContact}
+              userCall={activeUserCall}
+              userCallDialog={true}
+              formSubmitted={formSubmitted}
+              isManualEntry={isManualEntryActive}
+              submitLabel={submitLabel}
+            />
           </div>
         </div>
       );
@@ -1924,28 +2032,30 @@ export default function LeadAndCallInfoPanel({
     ];
 
     return (
-          <div className="space-y-4">
-            {resolvedCallContext.didNumber || resolvedCallContext.isAfterHours || isStickyContact ? (
-              <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
-                {resolvedCallContext.didNumber ? (
-                  <Badge variant="outline">Incoming via: {String(resolvedCallContext.didNumber).replace(/^\+91/, '')}</Badge>
-                ) : null}
-                {resolvedCallContext.isAfterHours ? (
-                  <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">After Hours</Badge>
-                ) : null}
-                {isStickyContact ? (
-                  <Badge className="bg-primary/10 text-primary hover:bg-primary/10">
-                    Sticky{resolvedCallContext.stickyAgent ? ` • ${resolvedCallContext.stickyAgent}` : ''}
-                  </Badge>
-                ) : null}
-                {resolvedCallContext.businessHoursSource ? (
-                  <Badge variant="secondary" className="capitalize">
-                    {resolvedCallContext.businessHoursSource}
-                  </Badge>
-                ) : null}
-              </div>
+      <div className="space-y-4">
+        {resolvedCallContext.didNumber || resolvedCallContext.isAfterHours || isStickyContact ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
+            {resolvedCallContext.didNumber ? (
+              <Badge variant="outline">
+                Incoming via: {String(resolvedCallContext.didNumber).replace(/^\+91/, '')}
+              </Badge>
             ) : null}
-            {specificKeysConfig.map((fieldConfig, index) => {
+            {resolvedCallContext.isAfterHours ? (
+              <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">After Hours</Badge>
+            ) : null}
+            {isStickyContact ? (
+              <Badge className="bg-primary/10 text-primary hover:bg-primary/10">
+                Sticky{resolvedCallContext.stickyAgent ? ` • ${resolvedCallContext.stickyAgent}` : ''}
+              </Badge>
+            ) : null}
+            {resolvedCallContext.businessHoursSource ? (
+              <Badge variant="secondary" className="capitalize">
+                {resolvedCallContext.businessHoursSource}
+              </Badge>
+            ) : null}
+          </div>
+        ) : null}
+        {specificKeysConfig.map((fieldConfig, index) => {
           const key = fieldConfig.key;
           const label = fieldConfig.label;
           let value = dataToDisplay[key];
@@ -2029,7 +2139,10 @@ export default function LeadAndCallInfoPanel({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-sm text-muted-foreground">Showing call attempts for the last selected range.</div>
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={String(callHistoryRowsPerPage)} onValueChange={(value) => setCallHistoryRowsPerPage(Number(value))}>
+            <Select
+              value={String(callHistoryRowsPerPage)}
+              onValueChange={(value) => setCallHistoryRowsPerPage(Number(value))}
+            >
               <SelectTrigger className="h-10 w-[126px] rounded-full border-border/70 bg-background text-sm">
                 <SelectValue placeholder="10 rows" />
               </SelectTrigger>
@@ -2057,7 +2170,7 @@ export default function LeadAndCallInfoPanel({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/70">
+        <div className="min-h-0 flex-1 rounded-2xl border border-border/70">
           <div className="h-full overflow-auto">
             <Table>
               <TableHeader className="sticky top-0 z-10 bg-card">
@@ -2072,15 +2185,27 @@ export default function LeadAndCallInfoPanel({
               </TableHeader>
               <TableBody>
                 {workspaceCallsWithConversations.map(({ call, historyId, relatedConversation }) => {
-                  const isIncoming = String(call?.Type || '').trim().toLowerCase() === 'incoming';
-                  const previewText = getConversationRemark(relatedConversation) || 'Tagging not updated for this call.';
+                  const isIncoming =
+                    String(call?.Type || '')
+                      .trim()
+                      .toLowerCase() === 'incoming';
+                  const previewText =
+                    getConversationRemark(relatedConversation) || 'Tagging not updated for this call.';
                   return (
                     <React.Fragment key={historyId}>
                       <TableRow className="hover:bg-muted/30">
-                        <TableCell>{moment(call?.startTime).isValid() ? moment(call.startTime).format('DD MMM YYYY, hh:mm A') : '-'}</TableCell>
+                        <TableCell>
+                          {moment(call?.startTime).isValid()
+                            ? moment(call.startTime).format('DD MMM YYYY, hh:mm A')
+                            : '-'}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={isIncoming ? 'default' : 'secondary'}>
-                            {isIncoming ? <PhoneIncoming size={14} className="mr-1" /> : <PhoneOutgoing size={14} className="mr-1" />}
+                            {isIncoming ? (
+                              <PhoneIncoming size={14} className="mr-1" />
+                            ) : (
+                              <PhoneOutgoing size={14} className="mr-1" />
+                            )}
                             {isIncoming ? 'Incoming' : 'Outgoing'}
                           </Badge>
                         </TableCell>
@@ -2118,10 +2243,16 @@ export default function LeadAndCallInfoPanel({
                               ) : (
                                 <div className="rounded-xl border border-border/60 bg-background/80 px-4 py-3">
                                   <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <div className="text-sm font-medium text-foreground">{relatedConversation?.formTitle || 'Tagging Conversation'}</div>
+                                    <div className="text-sm font-medium text-foreground">
+                                      {relatedConversation?.formTitle || 'Tagging Conversation'}
+                                    </div>
                                     <div className="text-xs text-muted-foreground">
-                                      {moment(relatedConversation?.updatedAt || relatedConversation?.createdAt).isValid()
-                                        ? moment(relatedConversation?.updatedAt || relatedConversation?.createdAt).format('DD MMM YYYY, hh:mm A')
+                                      {moment(
+                                        relatedConversation?.updatedAt || relatedConversation?.createdAt,
+                                      ).isValid()
+                                        ? moment(
+                                            relatedConversation?.updatedAt || relatedConversation?.createdAt,
+                                          ).format('DD MMM YYYY, hh:mm A')
                                         : '-'}
                                     </div>
                                   </div>
@@ -2131,14 +2262,40 @@ export default function LeadAndCallInfoPanel({
                                   <div className="mt-3 grid gap-2 md:grid-cols-2">
                                     {Object.entries(relatedConversation)
                                       .filter(([key, value]) => {
-                                        if (value === undefined || value === null || `${value}`.trim() === '') return false;
-                                        return !['id', '_id', '__v', 'createdAt', 'updatedAt', 'contactNumber', 'agentName', 'formId', 'formID', 'formTitle', 'campaignId', 'campaignName', 'entryMode', 'callReference'].includes(key);
+                                        if (value === undefined || value === null || `${value}`.trim() === '')
+                                          return false;
+                                        return ![
+                                          'id',
+                                          '_id',
+                                          '__v',
+                                          'createdAt',
+                                          'updatedAt',
+                                          'contactNumber',
+                                          'agentName',
+                                          'formId',
+                                          'formID',
+                                          'formTitle',
+                                          'campaignId',
+                                          'campaignName',
+                                          'entryMode',
+                                          'callReference',
+                                        ].includes(key);
                                       })
                                       .slice(0, 8)
                                       .map(([key, value]) => (
-                                        <div key={key} className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2">
-                                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}</div>
-                                          <div className="mt-1 break-words text-sm font-medium text-foreground">{String(value)}</div>
+                                        <div
+                                          key={key}
+                                          className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2"
+                                        >
+                                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                            {key
+                                              .replace(/([A-Z])/g, ' $1')
+                                              .replace(/_/g, ' ')
+                                              .trim()}
+                                          </div>
+                                          <div className="mt-1 break-words text-sm font-medium text-foreground">
+                                            {String(value)}
+                                          </div>
                                         </div>
                                       ))}
                                   </div>
@@ -2157,12 +2314,26 @@ export default function LeadAndCallInfoPanel({
         </div>
 
         <div className="flex shrink-0 items-center justify-between">
-          <div className="text-sm text-muted-foreground">Page {callHistoryPage + 1} of {callHistoryTotalPages}</div>
+          <div className="text-sm text-muted-foreground">
+            Page {callHistoryPage + 1} of {callHistoryTotalPages}
+          </div>
           <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" disabled={callHistoryPage === 0} onClick={() => setCallHistoryPage((prev) => Math.max(prev - 1, 0))}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={callHistoryPage === 0}
+              onClick={() => setCallHistoryPage((prev) => Math.max(prev - 1, 0))}
+            >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button type="button" variant="outline" size="sm" disabled={callHistoryPage + 1 >= callHistoryTotalPages} onClick={() => setCallHistoryPage((prev) => Math.min(prev + 1, callHistoryTotalPages - 1))}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={callHistoryPage + 1 >= callHistoryTotalPages}
+              onClick={() => setCallHistoryPage((prev) => Math.min(prev + 1, callHistoryTotalPages - 1))}
+            >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -2183,7 +2354,11 @@ export default function LeadAndCallInfoPanel({
             className="min-h-[96px]"
           />
           <div className="flex justify-end">
-            <Button type="button" onClick={() => void handleSaveNote()} disabled={savingNote || !String(noteText || '').trim()}>
+            <Button
+              type="button"
+              onClick={() => void handleSaveNote()}
+              disabled={savingNote || !String(noteText || '').trim()}
+            >
               {savingNote ? 'Saving...' : 'Save Note'}
             </Button>
           </div>
@@ -2275,13 +2450,16 @@ export default function LeadAndCallInfoPanel({
                         {moment(item.timestamp).isValid() ? moment(item.timestamp).format('DD MMM YYYY, hh:mm A') : '-'}
                       </div>
                     </div>
-                    {(item.meta?.agentName || item.meta?.callType || item.meta?.scheduledAt) ? (
+                    {item.meta?.agentName || item.meta?.callType || item.meta?.scheduledAt ? (
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         {item.meta?.agentName ? <Badge variant="outline">{item.meta.agentName}</Badge> : null}
                         {item.meta?.callType ? <Badge variant="secondary">{item.meta.callType}</Badge> : null}
                         {item.meta?.scheduledAt ? (
                           <Badge variant="outline">
-                            Callback {moment(item.meta.scheduledAt).isValid() ? moment(item.meta.scheduledAt).format('DD MMM, hh:mm A') : '-'}
+                            Callback{' '}
+                            {moment(item.meta.scheduledAt).isValid()
+                              ? moment(item.meta.scheduledAt).format('DD MMM, hh:mm A')
+                              : '-'}
                           </Badge>
                         ) : null}
                       </div>
@@ -2425,14 +2603,20 @@ export default function LeadAndCallInfoPanel({
                   </div>
                 </CardContent>
               ) : (
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex h-full min-h-0 w-full flex-col gap-0 overflow-hidden">
+                <Tabs
+                  value={activeTab}
+                  onValueChange={setActiveTab}
+                  className="flex h-full min-h-0 w-full flex-col gap-0 overflow-hidden"
+                >
                   <CardHeader className="flex shrink-0 flex-wrap items-center justify-between gap-3 pb-3">
                     <div className="flex min-w-0 flex-wrap items-center gap-3">
                       <span className="text-lg font-semibold">Active Call</span>
                       {(resolvedCallContext.didNumber || resolvedCallContext.isAfterHours || isStickyContact) && (
                         <div className="flex flex-wrap items-center gap-2">
                           {resolvedCallContext.didNumber ? (
-                            <Badge variant="outline">DID: {String(resolvedCallContext.didNumber).replace(/^\+91/, '')}</Badge>
+                            <Badge variant="outline">
+                              DID: {String(resolvedCallContext.didNumber).replace(/^\+91/, '')}
+                            </Badge>
                           ) : null}
                           {resolvedCallContext.isAfterHours ? (
                             <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">After Hours</Badge>
@@ -2444,10 +2628,16 @@ export default function LeadAndCallInfoPanel({
                       )}
                     </div>
                     <TabsList className="grid min-w-0 flex-1 grid-cols-3 gap-2 rounded-xl bg-muted/40 p-1 lg:max-w-[760px]">
-                      <TabsTrigger value="callerInfo" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                      <TabsTrigger
+                        value="callerInfo"
+                        className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4"
+                      >
                         <PhoneCall size={16} /> <span>Caller Information</span>
                       </TabsTrigger>
-                      <TabsTrigger value="contactDetails" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                      <TabsTrigger
+                        value="contactDetails"
+                        className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4"
+                      >
                         <User size={16} /> <span>Contact Details</span>
                       </TabsTrigger>
                       <TabsTrigger value="history" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
@@ -2523,9 +2713,12 @@ export default function LeadAndCallInfoPanel({
               </div>
             </CardHeader>
             <CardContent className="flex-1 min-h-0 overflow-hidden pt-0">
-              <div className="text-center py-8">
-                <Phone size={48} className="mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
+              <div className="rounded-2xl border border-dashed border-border/60 px-4 py-8 sm:px-6 sm:py-16 text-center">
+                <Phone
+                  size={48}
+                  className="mx-auto text-muted-foreground mb-4 opacity-50 transition-opacity group-hover:opacity-100"
+                />
+                <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto">
                   {allowManualEntry
                     ? 'No active call to display details. You can still create a manual form entry.'
                     : 'No active call to display details.'}
@@ -2534,11 +2727,16 @@ export default function LeadAndCallInfoPanel({
             </CardContent>
           </>
         ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex h-full min-h-0 w-full flex-col gap-0 overflow-hidden">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="flex h-full min-h-0 w-full flex-col gap-0 overflow-hidden"
+          >
             <CardHeader className="flex shrink-0 flex-wrap items-center justify-between gap-3 pb-3">
               <div className="flex min-w-0 flex-wrap items-center gap-3">
                 <span className="text-lg font-semibold">{isManualEntryActive ? 'Manual Entry' : 'Active Call'}</span>
-                {!isManualEntryActive && (resolvedCallContext.didNumber || resolvedCallContext.isAfterHours || isStickyContact) ? (
+                {!isManualEntryActive &&
+                (resolvedCallContext.didNumber || resolvedCallContext.isAfterHours || isStickyContact) ? (
                   <div className="flex flex-wrap items-center gap-2">
                     {resolvedCallContext.didNumber ? (
                       <Badge variant="outline">DID: {String(resolvedCallContext.didNumber).replace(/^\+91/, '')}</Badge>

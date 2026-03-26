@@ -315,7 +315,7 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
               <DropdownMenuItem
                 key={id}
                 onClick={() => handleBreakAction(type)}
-                className="gap-3 cursor-pointer rounded-lg px-3 py-2 text-sm whitespace-normal break-words"
+                className="gap-3 whitespace-nowrap cursor-pointer rounded-lg px-3 py-2 text-sm"
               >
                 <Icon className="w-4 h-4 text-muted-foreground" />
                 <span>{label}</span>
@@ -329,4 +329,3 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
 };
 
 export default BreakDropdown;
-

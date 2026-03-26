@@ -126,7 +126,8 @@ export default function Header() {
   };
 
   const handleSavePreferences = async () => {
-    const currentColorTheme = typeof window !== 'undefined' ? localStorage.getItem('color-theme') || 'default' : 'default';
+    const currentColorTheme =
+      typeof window !== 'undefined' ? localStorage.getItem('color-theme') || 'default' : 'default';
     const normalizedPreferences = normalizeAgentUiPreferences({
       ...profilePreferences,
       themeMode: theme || profilePreferences.themeMode,
@@ -282,15 +283,15 @@ export default function Header() {
       icon: <MonitorCog className="w-4 h-4" />,
     },
     {
-      href: `${typeof window !== 'undefined' ? window.location.origin : ''}/webphone/login`,
+      href: '/webphone/login',
       name: 'Stable Version',
       icon: <Settings className="w-4 h-4" />,
     },
   ];
 
   return (
-    <header className="w-full bg-white dark:bg-background shadow-md border-b border-border sticky top-0 z-[70]">
-      <div className="container mx-auto flex items-center justify-between h-16 px-4">
+    <header className="w-full bg-white dark:bg-background shadow-md border-b border-border sticky top-0 z-[50]">
+      <div className="mx-auto flex items-center justify-between h-16 px-4">
         {/* Logo and Brand */}
         <Link href={'/'} className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center shadow-sm">
@@ -306,45 +307,43 @@ export default function Header() {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-4">
-          {pathname !== '/agent-dashboard' && pathname !== '/system-monitoring' && (
-            <>
-              <nav className="flex gap-2">
-                <Button
-                  onClick={() => setDropCalls(true)}
-                  variant={dropCalls ? 'default' : 'outline'}
-                  className="relative flex items-center gap-2"
-                  aria-label="Show Missed Calls"
-                  type="button"
-                >
-                  <PhoneMissed className="w-4 h-4" />
-                  <span>Missed Calls</span>
-                  {campaignMissedCallsLength > 0 && (
-                    <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
-                      {campaignMissedCallsLength}
-                    </span>
-                  )}
-                </Button>
-                <Button
-                  onClick={() => setCallAlert(true)}
-                  variant={callAlert ? 'default' : 'outline'}
-                  className="relative flex items-center gap-2"
-                  aria-label="Show Followup"
-                  type="button"
-                >
-                  <PhoneForwarded className="w-4 h-4" />
-                  <span>Follow Ups</span>
-                  {scheduleCallsLength > 0 && (
-                    <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
-                      {scheduleCallsLength}
-                    </span>
-                  )}
-                </Button>
+          <>
+            <nav className="flex gap-2">
+              <Button
+                onClick={() => setDropCalls(true)}
+                variant={dropCalls ? 'default' : 'outline'}
+                className="relative flex items-center gap-2"
+                aria-label="Show Missed Calls"
+                type="button"
+              >
+                <PhoneMissed className="w-4 h-4" />
+                <span>Missed Calls</span>
+                {campaignMissedCallsLength > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
+                    {campaignMissedCallsLength}
+                  </span>
+                )}
+              </Button>
+              <Button
+                onClick={() => setCallAlert(true)}
+                variant={callAlert ? 'default' : 'outline'}
+                className="relative flex items-center gap-2"
+                aria-label="Show Followup"
+                type="button"
+              >
+                <PhoneForwarded className="w-4 h-4" />
+                <span>Follow Ups</span>
+                {scheduleCallsLength > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
+                    {scheduleCallsLength}
+                  </span>
+                )}
+              </Button>
 
-                <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
-              </nav>
-              <div className="h-6 w-px bg-border mx-1"></div>
-            </>
-          )}
+              <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
+            </nav>
+            <div className="h-6 w-px bg-border mx-1"></div>
+          </>
 
           {/* Modern User Dropdown */}
           <div className="relative" ref={userMenuRef}>
@@ -572,33 +571,53 @@ export default function Header() {
               </div>
 
               {/* Missed Calls & BreakDropdown */}
-              {pathname !== '/agent-dashboard' && pathname !== '/system-monitoring' && (
-                <div className="space-y-3">
-                  <button
-                    onClick={() => {
-                      setDropCalls(true);
-                      setMobileMenuOpen(false);
-                    }}
-                    className={cn(
-                      'relative flex items-center gap-2 w-full px-4 py-2 rounded-lg font-medium border transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
-                      dropCalls
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-secondary-foreground hover:bg-secondary/80',
-                    )}
-                    aria-label="Show Missed Calls"
-                    type="button"
-                  >
-                    <PhoneCall className="w-4 h-4" />
-                    <span className="sm:text-base text-sm">Missed Calls</span>
-                    {campaignMissedCallsLength > 0 && (
-                      <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
-                        {campaignMissedCallsLength}
-                      </span>
-                    )}
-                  </button>
-                  <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
-                </div>
-              )}
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    setDropCalls(true);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={cn(
+                    'relative flex items-center gap-2 w-full px-4 py-2 rounded-lg font-medium border transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                    dropCalls
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-secondary-foreground hover:bg-secondary/80',
+                  )}
+                  aria-label="Show Missed Calls"
+                  type="button"
+                >
+                  <PhoneCall className="w-4 h-4" />
+                  <span className="sm:text-base text-sm">Missed Calls</span>
+                  {campaignMissedCallsLength > 0 && (
+                    <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
+                      {campaignMissedCallsLength}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setCallAlert(true);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={cn(
+                    'relative flex items-center gap-2 w-full px-4 py-2 rounded-lg font-medium border transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                    callAlert
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-secondary-foreground hover:bg-secondary/80',
+                  )}
+                  aria-label="Show Follow Ups"
+                  type="button"
+                >
+                  <PhoneForwarded className="w-4 h-4" />
+                  <span className="sm:text-base text-sm">Follow Ups</span>
+                  {scheduleCallsLength > 0 && (
+                    <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
+                      {scheduleCallsLength}
+                    </span>
+                  )}
+                </button>
+                <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
+              </div>
 
               {/* Navigation Links */}
               <div className="space-y-1">
@@ -627,19 +646,6 @@ export default function Header() {
                     );
                   })}
               </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full justify-start gap-3"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setIsPreferencesOpen(true);
-                }}
-              >
-                <Settings className="w-4 h-4" />
-                Preferences
-              </Button>
 
               {/* Theme Toggle */}
               <div className="py-3 border-t">
@@ -709,7 +715,7 @@ export default function Header() {
             </div>
 
             <div className="grid gap-2">
-              <Label>Color Theme</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground/70">Choose Theme</Label>
               <ThemeSelector />
             </div>
 

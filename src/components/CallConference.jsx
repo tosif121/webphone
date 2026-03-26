@@ -35,7 +35,7 @@ const CallConference = ({
   };
 
   return (
-    <div className="md:p-3 p-4 h-full flex flex-col md:justify-start justify-end md:pb-0 pb-14">
+    <div className="md:p-3 p-4 h-full flex flex-col md:justify-start justify-end md:pb-3 pb-14">
       {/* Mobile: White box with shadow */}
       <div className={isMobile ? '  ' : 'w-full max-w-md mx-auto'}>
         {/* Header - Only show on desktop */}
@@ -54,8 +54,8 @@ const CallConference = ({
 
           {/* Timer */}
           <div className="flex items-center gap-1">
-                  <Clock className="w-4 h-4 sm:w-3 sm:h-3 text-secondary-foreground" />
-                  <span className="text-lg md:text-sm font-mono text-secondary-foreground">
+            <Clock className="w-4 h-4 sm:w-3 sm:h-3 text-secondary-foreground" />
+            <span className="text-lg md:text-sm font-mono text-secondary-foreground">
               {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
             </span>
           </div>
@@ -85,7 +85,9 @@ const CallConference = ({
               onClick={() => setConferenceNumber((prev) => prev.slice(0, -1).trim())}
               aria-label="Delete last digit"
             >
-              <Delete className={`w-6 h-6 sm:w-5 sm:h-5 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-70'}`} />
+              <Delete
+                className={`w-6 h-6 sm:w-5 sm:h-5 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-70'}`}
+              />
             </button>
           )}
         </div>

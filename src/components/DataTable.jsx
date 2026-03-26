@@ -121,78 +121,82 @@ const DataTable = ({
           </SelectContent>
         </Select>
       </div>
-      <div className="rounded-md border border-border bg-card">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                      <Button
-                        variant="ghost"
-                        onClick={() => header.column.toggleSorting(header.column.getIsSorted() === 'asc')}
-                        className="hover:bg-accent hover:text-accent-foreground"
-                      >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getIsSorted() === 'asc' ? (
-                          <ChevronUp className="ml-2 h-4 w-4" />
-                        ) : header.column.getIsSorted() === 'desc' ? (
-                          <ChevronDown className="ml-2 h-4 w-4" />
-                        ) : (
-                          <ChevronsUpDown className="ml-2 h-4 w-4" />
-                        )}
-                      </Button>
-                    ) : (
-                      <div>{flexRender(header.column.columnDef.header, header.getContext())}</div>
-                    )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel() && table.getRowModel().rows && table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <React.Fragment key={row.id}>
-                  <TableRow
-                    className={`group ${row.id === expandedRowId ? 'bg-accent hover:bg-muted' : 'hover:bg-muted'}`}
-                  >
-                    {row.getVisibleCells().map((cell, cellIndex) => (
-                      <TableCell key={cell.id} className="text-foreground relative">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+      <div className="overflow-hidden rounded-md border border-border bg-card">
+        <div className="overflow-x-auto">
+          <Table className="min-w-full lg:min-w-0">
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id} className="whitespace-nowrap px-2 sm:px-4 py-3">
+                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                        <Button
+                          variant="ghost"
+                          onClick={() => header.column.toggleSorting(header.column.getIsSorted() === 'asc')}
+                          className="h-8 px-2 text-xs font-semibold hover:bg-accent hover:text-accent-foreground"
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {header.column.getIsSorted() === 'asc' ? (
+                            <ChevronUp className="ml-1 h-3 w-3" />
+                          ) : header.column.getIsSorted() === 'desc' ? (
+                            <ChevronDown className="ml-1 h-3 w-3" />
+                          ) : (
+                            <ChevronsUpDown className="ml-1 h-3 w-3 opacity-30" />
+                          )}
+                        </Button>
+                      ) : (
+                        <div className="text-xs font-semibold">{flexRender(header.column.columnDef.header, header.getContext())}</div>
+                      )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel() && table.getRowModel().rows && table.getRowModel().rows.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <React.Fragment key={row.id}>
+                    <TableRow
+                      className={`group ${row.id === expandedRowId ? 'bg-accent/50' : 'hover:bg-muted/30'}`}
+                    >
+                      {row.getVisibleCells().map((cell, cellIndex) => (
+                        <TableCell key={cell.id} className="text-foreground relative px-2 sm:px-4 py-2 text-xs sm:text-sm">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
 
-                        {expandRow && cellIndex === 0 && (
-                          <div className="absolute top-2 left-2 sm:left-4 md:left-8 lg:left-12 xl:left-28 group-hover:block hidden z-10">
-                            <button
-                              className="inline-flex items-center border rounded text-xs py-1 px-2 hover:bg-primary-foreground bg-background shadow-sm"
-                              onClick={() => handleRowExpand(row)}
-                            >
-                              <PanelRight className="w-4 h-4 mr-1" />
-                              {row.id === expandedRowId ? 'Collapse' : 'Expand'}
-                            </button>
-                          </div>
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-
-                  {row.getIsExpanded() && renderSubComponent ? (
-                    <TableRow>
-                      <TableCell colSpan={columns.length}>{renderSubComponent({ row })}</TableCell>
+                          {expandRow && cellIndex === 0 && (
+                            <div className="absolute top-2 left-2 group-hover:block hidden z-10 scale-90 sm:scale-100">
+                              <button
+                                className="inline-flex items-center border rounded-full text-xs py-1 px-3 hover:bg-primary hover:text-white bg-background shadow-md transition-all"
+                                onClick={() => handleRowExpand(row)}
+                              >
+                                <PanelRight className="w-3 h-3 mr-1.5" />
+                                {row.id === expandedRowId ? 'Hide' : 'Expand'}
+                              </button>
+                            </div>
+                          )}
+                        </TableCell>
+                      ))}
                     </TableRow>
-                  ) : null}
-                </React.Fragment>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No results found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+
+                    {row.getIsExpanded() && renderSubComponent ? (
+                      <TableRow>
+                        <TableCell colSpan={columns.length} className="p-0 bg-muted/20">
+                          {renderSubComponent({ row })}
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
+                  </React.Fragment>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground italic">
+                    No matching failure events found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
       <div className="flex items-center justify-center sm:justify-between mt-4 flex-wrap gap-4 md:gap-0">
         <div className="flex items-center gap-2">

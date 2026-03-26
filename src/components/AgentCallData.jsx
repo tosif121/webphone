@@ -27,10 +27,12 @@ export default function AgentCallData() {
   const getTokenDetails = () => {
     try {
       const tokenData = localStorage.getItem('token');
+      if (!tokenData) return null;
       const parsedData = JSON.parse(tokenData);
+      if (!parsedData) return null;
       return {
-        token: parsedData.token,
-        adminUser: parsedData.userData.adminuser,
+        token: parsedData?.token,
+        adminUser: parsedData?.userData?.adminuser,
       };
     } catch (error) {
       console.error('Error parsing token:', error);
@@ -67,8 +69,9 @@ export default function AgentCallData() {
 
   // Filter call details by agent matching username
   const filteredCallDetails = useMemo(() => {
-    if (!username) return callDetails;
-    return callDetails.filter((call) => call.agent === username);
+    const safeCallDetails = Array.isArray(callDetails) ? callDetails : [];
+    if (!username) return safeCallDetails;
+    return safeCallDetails.filter((call) => call.agent === username);
   }, [callDetails, username]);
 
   // Handle date range change from DateRangePicker
@@ -456,27 +459,32 @@ export default function AgentCallData() {
   return (
     <div>
       {/* Header Controls */}
-      <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-col lg:flex-row justify-between gap-4 mb-5">
+        <div className="flex items-center gap-2.5 w-full lg:w-auto">
           <button
             onClick={handleDownloadCSV}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded flex items-center gap-2 shadow text-sm"
+            className="flex-1 lg:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 text-xs font-bold uppercase tracking-wider"
           >
-            <Download size={16} />
-            <span>CSV</span>
+            <Download size={14} />
+            CSV
           </button>
           <button
             onClick={handleDownloadPDF}
             disabled={isPdfLoading}
-            className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded flex items-center gap-2 shadow text-sm disabled:opacity-50"
+            className="flex-1 lg:flex-none bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 text-xs font-bold uppercase tracking-wider disabled:opacity-50"
           >
-            {isPdfLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <FileText size={16} />}
-            <span>PDF</span>
+            {isPdfLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <FileText size={14} />}
+            PDF
           </button>
         </div>
 
-        <div className="w-full sm:w-auto">
-          <DateRangePicker onDateChange={handleDateRangeChange} initialStartDate={startDate} initialEndDate={endDate} />
+        <div className="w-full lg:w-auto">
+          <DateRangePicker
+            onDateChange={handleDateRangeChange}
+            initialStartDate={startDate}
+            initialEndDate={endDate}
+            className="w-full h-11 sm:h-auto"
+          />
         </div>
       </div>
 

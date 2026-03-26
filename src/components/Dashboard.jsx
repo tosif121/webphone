@@ -133,7 +133,10 @@ function Dashboard() {
   const userCampaign = authUser?.campaign || '';
   const campaignName = authUser?.campaignName || 'N/A';
   const previewLeadMode = useMemo(
-    () => String(authUser?.leadDistributionStrategy || 'manual_pull').trim().toLowerCase() === 'manual_pull',
+    () =>
+      String(authUser?.leadDistributionStrategy || 'manual_pull')
+        .trim()
+        .toLowerCase() === 'manual_pull',
     [authUser?.leadDistributionStrategy],
   );
 
@@ -302,10 +305,7 @@ function Dashboard() {
       const completedLeads = Number(summary.completedLeads || 0);
       const pendingLeads = Number(summary.pendingLeads || 0);
       const assignedLeads = Number(summary.totalLeads || leads.length || 0);
-      const contactedLeads = Math.max(
-        Number(summary.contactedLeads || 0),
-        assignedLeads - pendingLeads,
-      );
+      const contactedLeads = Math.max(Number(summary.contactedLeads || 0), assignedLeads - pendingLeads);
 
       setLeadsData(leads);
       setLeadStats({
@@ -396,7 +396,9 @@ function Dashboard() {
         const connectedCalls = calls.filter((call) => {
           const durationValue = Number(call?.duration || 0);
           return (
-            String(call?.Disposition || '').trim().toLowerCase() === 'answered' ||
+            String(call?.Disposition || '')
+              .trim()
+              .toLowerCase() === 'answered' ||
             durationValue > 0 ||
             Number(call?.anstime || 0) > 0
           );
@@ -525,7 +527,9 @@ function Dashboard() {
   }, [activeLead?.leadId, clearLeadSelection, fetchNextLead, getAuthHeaders, leadLockToken]);
 
   const handleWorkspaceDatePresetChange = useCallback((nextPreset) => {
-    const normalizedPreset = String(nextPreset || 'today').trim().toLowerCase();
+    const normalizedPreset = String(nextPreset || 'today')
+      .trim()
+      .toLowerCase();
     const today = moment();
     setWorkspaceDatePreset(normalizedPreset);
 
@@ -596,7 +600,12 @@ function Dashboard() {
       return;
     }
 
-    if (activeLead?.leadId || agentLifecycle === 'dialing' || agentLifecycle === 'on_call' || agentLifecycle === 'disposition') {
+    if (
+      activeLead?.leadId ||
+      agentLifecycle === 'dialing' ||
+      agentLifecycle === 'on_call' ||
+      agentLifecycle === 'disposition'
+    ) {
       return;
     }
 
@@ -1067,9 +1076,25 @@ function Dashboard() {
       { key: 'all', label: 'Total Calls', value: callStats.totalCalls, icon: Phone },
       { key: 'incoming', label: 'Incoming Calls', value: callStats.incomingCalls, icon: PhoneIncoming },
       { key: 'outgoing', label: 'Outgoing Calls', value: callStats.outgoingCalls, icon: PhoneForwarded },
-      { key: 'connected', label: 'Avg Duration', value: formatDurationLabel(callStats.avgDurationSeconds), icon: Clock },
+      {
+        key: 'connected',
+        label: 'Avg Duration',
+        value: formatDurationLabel(callStats.avgDurationSeconds),
+        icon: Clock,
+      },
     ];
-  }, [activeMainTab, callStats.avgDurationSeconds, callStats.incomingCalls, callStats.outgoingCalls, callStats.totalCalls, formatDurationLabel, leadStats.assignedLeads, leadStats.completedLeads, leadStats.contactedLeads, leadStats.pendingLeads]);
+  }, [
+    activeMainTab,
+    callStats.avgDurationSeconds,
+    callStats.incomingCalls,
+    callStats.outgoingCalls,
+    callStats.totalCalls,
+    formatDurationLabel,
+    leadStats.assignedLeads,
+    leadStats.completedLeads,
+    leadStats.contactedLeads,
+    leadStats.pendingLeads,
+  ]);
 
   useEffect(() => {
     setActiveMetricFilter('all');
@@ -1080,10 +1105,12 @@ function Dashboard() {
       return undefined;
     }
 
-    return workspaceLayoutState.dialerDockMode === 'left'
-      ? { paddingLeft: '304px' }
-      : { paddingRight: '304px' };
-  }, [workspaceLayoutState.dialerDockMode, workspaceLayoutState.dialerLayoutMode, workspaceLayoutState.shouldReserveSpace]);
+    return workspaceLayoutState.dialerDockMode === 'left' ? { paddingLeft: '304px' } : { paddingRight: '304px' };
+  }, [
+    workspaceLayoutState.dialerDockMode,
+    workspaceLayoutState.dialerLayoutMode,
+    workspaceLayoutState.shouldReserveSpace,
+  ]);
 
   const workspaceShellRef = useRef(null);
 
@@ -1363,54 +1390,62 @@ function Dashboard() {
           })}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1">
           {status === 'start' && !dispositionModal ? (
-          <div ref={workspaceShellRef} className="h-full min-h-0 w-full min-w-0 overflow-hidden transition-all duration-300" style={workspaceReservedStyle}>
-            <ContactCentricWorkspace
-              mode={activeMainTab}
-              onModeChange={setActiveMainTab}
-              callsData={apiCallData}
-              leadsData={leadsData}
-              token={token}
-              previewLeadMode={previewLeadMode}
-              activeCardFilter={activeMetricFilter}
-              handleDialAction={handleDialAction}
-              callLoading={callDataLoading}
-              leadLoading={leadDashboardLoading}
-              workspaceErrorMessage={dashboardErrorMessage}
-              activeLead={activeLead}
-              activeLeadNumber={activeLeadNumber}
-              smartLeadLoading={smartLeadLoading}
-              smartLeadError={smartLeadError}
-              smartLeadDetailEntries={smartLeadDetailEntries}
-              agentLifecycle={agentLifecycle}
-              leadLockToken={leadLockToken}
-              datePreset={workspaceDatePreset}
-              onDatePresetChange={handleWorkspaceDatePresetChange}
-              onSkipLead={handleSkipLead}
-              onRefreshLead={() => {
-                clearLeadSelection('idle');
-                void fetchNextLead();
-              }}
-            />
-          </div>
-        ) : (
-          <div ref={workspaceShellRef} className="h-full min-h-0 w-full min-w-0 overflow-hidden transition-all duration-300" style={workspaceReservedStyle}>
-            <LeadAndCallInfoPanel
-              userCall={userCall}
-              handleCall={handleDialAction}
-              status={status}
-              formSubmitted={formSubmitted}
-              connectionStatus={connectionStatus}
-              dispositionModal={dispositionModal}
-              userCampaign={userCampaign}
-              username={username}
-              token={token}
-              callType={callType}
-              setFormSubmitted={setFormSubmitted}
-              activeCallContext={activeCallContext}
-            />
-          </div>
+            <div
+              ref={workspaceShellRef}
+              className="h-full min-h-0 w-full min-w-0 transition-all duration-300"
+              style={workspaceReservedStyle}
+            >
+              <ContactCentricWorkspace
+                mode={activeMainTab}
+                onModeChange={setActiveMainTab}
+                callsData={apiCallData}
+                leadsData={leadsData}
+                token={token}
+                previewLeadMode={previewLeadMode}
+                activeCardFilter={activeMetricFilter}
+                handleDialAction={handleDialAction}
+                callLoading={callDataLoading}
+                leadLoading={leadDashboardLoading}
+                workspaceErrorMessage={dashboardErrorMessage}
+                activeLead={activeLead}
+                activeLeadNumber={activeLeadNumber}
+                smartLeadLoading={smartLeadLoading}
+                smartLeadError={smartLeadError}
+                smartLeadDetailEntries={smartLeadDetailEntries}
+                agentLifecycle={agentLifecycle}
+                leadLockToken={leadLockToken}
+                datePreset={workspaceDatePreset}
+                onDatePresetChange={handleWorkspaceDatePresetChange}
+                onSkipLead={handleSkipLead}
+                onRefreshLead={() => {
+                  clearLeadSelection('idle');
+                  void fetchNextLead();
+                }}
+              />
+            </div>
+          ) : (
+            <div
+              ref={workspaceShellRef}
+              className="h-full min-h-0 w-full min-w-0 overflow-hidden transition-all duration-300"
+              style={workspaceReservedStyle}
+            >
+              <LeadAndCallInfoPanel
+                userCall={userCall}
+                handleCall={handleDialAction}
+                status={status}
+                formSubmitted={formSubmitted}
+                connectionStatus={connectionStatus}
+                dispositionModal={dispositionModal}
+                userCampaign={userCampaign}
+                username={username}
+                token={token}
+                callType={callType}
+                setFormSubmitted={setFormSubmitted}
+                activeCallContext={activeCallContext}
+              />
+            </div>
           )}
         </div>
       </div>

@@ -127,8 +127,12 @@ const Disposition = ({
     try {
       const parsedValue = JSON.parse(storedValue);
       const callbackId = parsedValue?.callbackId;
-      const callbackPhone = String(parsedValue?.phoneNumber || '').replace(/^\+91/, '').trim();
-      const currentPhone = String(stickyTargetNumber || '').replace(/^\+91/, '').trim();
+      const callbackPhone = String(parsedValue?.phoneNumber || '')
+        .replace(/^\+91/, '')
+        .trim();
+      const currentPhone = String(stickyTargetNumber || '')
+        .replace(/^\+91/, '')
+        .trim();
 
       if (!callbackId || (callbackPhone && currentPhone && callbackPhone !== currentPhone)) {
         return;
@@ -152,7 +156,9 @@ const Disposition = ({
   }, [getAuthHeaders, stickyTargetNumber]);
 
   const resolveLeadFinalState = useCallback((action) => {
-    const normalized = String(action || '').trim().toLowerCase();
+    const normalized = String(action || '')
+      .trim()
+      .toLowerCase();
     const failedStates = new Set([
       'busy',
       'not reachable',

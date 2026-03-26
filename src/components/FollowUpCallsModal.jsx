@@ -21,7 +21,11 @@ const resolveScheduledAt = (item = {}) => {
     return String(Math.trunc(Math.abs(numericValue))).length <= 10 ? numericValue * 1000 : numericValue;
   }
 
-  const parsedMoment = moment(`${item.date || ''} ${item.time || ''}`, ['YYYY-MM-DD hh:mm A', 'YYYY-MM-DD HH:mm'], true);
+  const parsedMoment = moment(
+    `${item.date || ''} ${item.time || ''}`,
+    ['YYYY-MM-DD hh:mm A', 'YYYY-MM-DD HH:mm'],
+    true,
+  );
   return parsedMoment.isValid() ? parsedMoment.valueOf() : null;
 };
 
@@ -53,20 +57,23 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
         const callTime = new Date(scheduledAt);
         const startOfToday = moment().startOf('day');
         const endOfToday = moment().endOf('day');
-        const normalizedStatus = String(item.status || item.computedStatus || '').trim().toLowerCase();
-        const tab = normalizedStatus === 'completed'
-          ? 'completed'
-          : normalizedStatus === 'missed'
-            ? 'missed'
-            : moment(callTime).isBetween(startOfToday, endOfToday, null, '[]')
-              ? 'today'
-              : moment(callTime).isAfter(endOfToday)
-                ? 'upcoming'
-                : 'missed';
+        const normalizedStatus = String(item.status || item.computedStatus || '')
+          .trim()
+          .toLowerCase();
+        const tab =
+          normalizedStatus === 'completed'
+            ? 'completed'
+            : normalizedStatus === 'missed'
+              ? 'missed'
+              : moment(callTime).isBetween(startOfToday, endOfToday, null, '[]')
+                ? 'today'
+                : moment(callTime).isAfter(endOfToday)
+                  ? 'upcoming'
+                  : 'missed';
         const isAlert =
-          (tab === 'today' || tab === 'upcoming')
-          && now >= new Date(callTime.getTime() - 10 * 60 * 1000)
-          && now <= callTime;
+          (tab === 'today' || tab === 'upcoming') &&
+          now >= new Date(callTime.getTime() - 10 * 60 * 1000) &&
+          now <= callTime;
 
         const normalized = {
           ...item,
@@ -229,85 +236,85 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
           {/* Tab Content */}
           <div className="relative max-h-[calc(100vh-230px)] overflow-y-auto p-6 bg-card/90">
             {activeCalls.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
-                    <Clock className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="mb-2 text-lg font-semibold text-foreground">All caught up!</h3>
-                  <p className="text-sm text-muted-foreground">No callbacks available for this tab.</p>
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
+                  <Clock className="h-8 w-8 text-primary" />
                 </div>
-              ) : (
-                <ul className="space-y-2">
-                  {activeCalls.map((call) => (
-                    <li
-                      key={call.id}
-                      className={`group relative overflow-hidden rounded-lg border border-border bg-card p-3 shadow-sm transition-all duration-300 hover:bg-accent hover:border-accent
+                <h3 className="mb-2 text-lg font-semibold text-foreground">All caught up!</h3>
+                <p className="text-sm text-muted-foreground">No callbacks available for this tab.</p>
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {activeCalls.map((call) => (
+                  <li
+                    key={call.id}
+                    className={`group relative overflow-hidden rounded-lg border border-border bg-card p-3 shadow-sm transition-all duration-300 hover:bg-accent hover:border-accent
                       ${
                         call.isAlert
                           ? 'ring-2 ring-green-400 animate-pulse animate-duration-700 bg-green-50/80 dark:bg-green-900/30 dark:ring-green-500'
                           : 'dark:bg-card/80'
                       }
                     `}
-                    >
-                      <div className="relative flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-foreground text-sm mb-1 truncate">
-                                {call.comment || 'Follow-up Call'}
-                              </div>
-                              <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  <span>{formatTimeAgo(call.callTime)}</span>
-                                </div>
-                                <span>{formatDateTime(call.callTime)}</span>
-                                {(call.user && <div>By: {call.user}</div>) || ''}
-                              </div>
-                              {call.phoneNumber && (
-                                <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-md border border-blue-200 dark:border-blue-800">
-                                  <Phone className="h-3 w-3" />
-                                  <span className="font-mono">{call.phoneNumber}</span>
-                                </div>
-                              )}
+                  >
+                    <div className="relative flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-foreground text-sm mb-1 truncate">
+                              {call.comment || 'Follow-up Call'}
                             </div>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                <span>{formatTimeAgo(call.callTime)}</span>
+                              </div>
+                              <span>{formatDateTime(call.callTime)}</span>
+                              {(call.user && <div>By: {call.user}</div>) || ''}
+                            </div>
+                            {call.phoneNumber && (
+                              <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-md border border-blue-200 dark:border-blue-800">
+                                <Phone className="h-3 w-3" />
+                                <span className="font-mono">{call.phoneNumber}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
+                      </div>
 
-                        <div className="flex items-center gap-2 ml-2">
-                          {(activeTab === 'today' || activeTab === 'upcoming') && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="rounded-full"
-                              onClick={() => updateCallbackStatus(call._id || call.id, 'completed')}
-                              disabled={updatingCallbackId === (call._id || call.id)}
-                            >
-                              Done
-                            </Button>
-                          )}
-                          {activeTab !== 'completed' && (
-                            <Button
-                              size="icon"
-                              className={`w-8 h-8 rounded-full text-white shadow-md
+                      <div className="flex items-center gap-2 ml-2">
+                        {(activeTab === 'today' || activeTab === 'upcoming') && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="rounded-full"
+                            onClick={() => updateCallbackStatus(call._id || call.id, 'completed')}
+                            disabled={updatingCallbackId === (call._id || call.id)}
+                          >
+                            Done
+                          </Button>
+                        )}
+                        {activeTab !== 'completed' && (
+                          <Button
+                            size="icon"
+                            className={`w-8 h-8 rounded-full text-white shadow-md
                           ${
                             call.isAlert
                               ? 'bg-green-600 dark:bg-green-700 animate-bounce'
                               : 'bg-green-600 hover:bg-green-700 focus-visible:ring-green-500 dark:bg-green-700 dark:hover:bg-green-800'
                           }
                         `}
-                              onClick={() => initiateCall(call)}
-                              disabled={!call.phoneNumber}
-                              aria-label={`Call ${call.phoneNumber}`}
-                            >
-                              <Phone className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
+                            onClick={() => initiateCall(call)}
+                            disabled={!call.phoneNumber}
+                            aria-label={`Call ${call.phoneNumber}`}
+                          >
+                            <Phone className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </div>

@@ -39,34 +39,30 @@ const StatusBadge = ({ status }) => (
 
 const MetricCard = ({ metric, index }) => (
   <div
-    className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-card/90 to-card/70 backdrop-blur-sm border border-border/50 shadow hover:shadow-xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 animate-fade-in-up"
+    className="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-card/90 to-card/70 backdrop-blur-sm border border-border/50 shadow-sm hover:shadow-md transition-all duration-500 animate-fade-in-up"
     style={{ animationDelay: `${index * 0.1}s` }}
   >
-    <div className="relative p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
-        <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25 group-hover:scale-110 group-hover:shadow-primary/40 transition-all duration-300">
+    <div className="relative p-3 sm:p-6">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow shadow-primary/20 transition-all duration-300">
           {metric.icon}
         </div>
-        <div className="text-left sm:text-right">
-          <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-primary group-hover:scale-105 transition-transform duration-300 leading-none">
-            {metric.value}
-          </div>
+        <div className="text-right">
+          <div className="text-lg sm:text-2xl lg:text-3xl font-bold text-primary leading-none">{metric.value}</div>
         </div>
       </div>
-      <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors duration-300 leading-tight">
-        {metric.title}
-      </h3>
+      <h3 className="text-[10px] sm:text-sm font-semibold text-muted-foreground leading-tight">{metric.title}</h3>
     </div>
   </div>
 );
 
 const TimeStatCard = ({ label, value, index }) => (
   <div
-    className="flex flex-col items-center p-3 sm:p-4 bg-gradient-to-br from-muted/80 to-muted/60 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300 animate-fade-in-up border border-border/30"
+    className="flex flex-col items-center p-2.5 sm:p-4 bg-muted/20 sm:bg-gradient-to-br from-muted/80 to-muted/60 rounded-lg sm:rounded-xl border border-border/30"
     style={{ animationDelay: `${index * 0.05}s` }}
   >
-    <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground mb-1 text-center">{value}</div>
-    <div className="text-xs sm:text-sm text-muted-foreground text-center capitalize leading-tight">
+    <div className="text-sm sm:text-xl font-bold text-foreground mb-0.5 text-center">{value}</div>
+    <div className="text-[10px] sm:text-sm text-muted-foreground text-center capitalize leading-tight">
       {label.replace(/([A-Z])/g, ' $1').trim()}
     </div>
   </div>
@@ -252,21 +248,23 @@ export default function AgentDashboard() {
         customMessage={timeoutMessage}
       />
 
-      <div className="space-y-8">
-        <div className="text-center sm:text-start px-4 sm:px-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-primary mb-2">Agent Dashboard</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Real-time performance metrics and activity tracking
-          </p>
+      <div className="space-y-8 w-full md:mb-0 mb-28">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-primary mb-1 sm:mb-2 leading-tight">Agent Dashboard</h1>
+            <p className="text-[10px] sm:text-sm text-muted-foreground opacity-80 leading-relaxed">
+              Real-time performance metrics and activity tracking
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-0">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {metrics.map((metric, index) => (
             <MetricCard key={index} metric={metric} index={index} />
           ))}
         </div>
 
-        <div className="bg-card/90 rounded-2xl border border-border/50 shadow overflow-hidden mx-4 sm:mx-0">
+        <div className="bg-card/90 rounded-2xl border border-border/50 shadow overflow-hidden">
           <div className="bg-muted/80 p-3 sm:p-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div className="flex items-center gap-3">
@@ -300,49 +298,54 @@ export default function AgentDashboard() {
               </Button>
             </div>
           </div>
-          <div className="p-3 sm:p-4">
+          <div className="p-6 sm:p-4">
             {incomingCallData ? (
-              <AgentCallData />
+              <div className="-mx-3 sm:mx-0 overflow-hidden">
+                <AgentCallData />
+              </div>
             ) : (
               <div className="space-y-4 sm:space-y-6">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
                   {Object.entries(dashboardData.timeStats)
                     .slice(0, -1)
                     .map(([key, value], index) => (
                       <TimeStatCard key={key} label={key} value={value} index={index} />
                     ))}
                 </div>
-                <div className="bg-secondary/80 rounded-xl p-3 sm:p-4 border border-secondary/30 shadow">
-                  <div className="flex flex-col lg:flex-row items-center justify-between gap-3 sm:gap-4">
-                    <div className="flex items-center gap-3 w-full lg:w-auto">
-                      <div className="p-2 bg-secondary-foreground/10 rounded-xl">
-                        <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-secondary-foreground" />
+                <div className="bg-secondary/40 sm:bg-secondary/80 rounded-xl p-3 sm:p-4 border border-secondary/20 sm:border-secondary/30 shadow-sm">
+                  <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center justify-between lg:justify-start gap-4 w-full lg:w-auto">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-secondary-foreground/10 rounded-lg sm:rounded-xl">
+                          <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-secondary-foreground" />
+                        </div>
+                        <span className="font-semibold text-secondary-foreground text-xs sm:text-sm">Total Login</span>
                       </div>
-                      <span className="font-semibold text-secondary-foreground text-xs sm:text-sm">
-                        Total Login Time
-                      </span>
-                      <label className="flex items-center gap-1.5 ml-2 cursor-pointer select-none">
+                      <label className="flex items-center gap-1.5 cursor-pointer select-none">
                         <input
                           type="checkbox"
                           checked={includeBreakTime}
                           onChange={(e) => setIncludeBreakTime(e.target.checked)}
                           className="w-3.5 h-3.5 rounded border-secondary-foreground/40 accent-primary cursor-pointer"
                         />
-                        <span className="text-xs text-secondary-foreground/80">Include Break</span>
+                        <span className="text-[10px] sm:text-xs text-secondary-foreground/80 font-medium">Break</span>
                       </label>
                     </div>
-                    <div className="text-lg sm:text-xl font-bold text-secondary-foreground">
-                      {dashboardData.timeStats.totalLoginTime}
+
+                    <div className="flex items-center justify-between lg:justify-end gap-6 w-full lg:w-auto mt-2 lg:mt-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-secondary-foreground/10">
+                      <div className="text-xl sm:text-2xl font-bold text-secondary-foreground tracking-tight">
+                        {dashboardData.timeStats.totalLoginTime}
+                      </div>
+                      <Button
+                        onClick={() => setShowActivityModal(true)}
+                        variant="secondary"
+                        size="sm"
+                        className="h-8 text-[10px] sm:text-xs font-bold uppercase tracking-wider"
+                      >
+                        <Eye className="w-3.5 h-3.5 mr-1.5" />
+                        Details
+                      </Button>
                     </div>
-                    <Button
-                      onClick={() => setShowActivityModal(true)}
-                      variant="default"
-                      size="sm"
-                      className="flex items-center gap-2 hover:scale-105 transition-all duration-300 shadow-md justify-center w-full lg:w-auto"
-                    >
-                      <Eye className="w-4 h-4" />
-                      <span className="text-xs sm:text-sm">View Details</span>
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -351,7 +354,7 @@ export default function AgentDashboard() {
         </div>
 
         {!incomingCallData && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 px-4 sm:px-0">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 pb-8">
             <div className="bg-card/90 rounded-2xl border border-border/50 shadow overflow-hidden">
               <div className="bg-muted/80 p-3 sm:p-4">
                 <div className="flex items-center gap-2 sm:gap-3">

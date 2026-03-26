@@ -5,7 +5,7 @@ import { Phone, PhoneOff, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import WebRTCStats from './WebRTCStats';
+import NetworkIndicator from './NetworkIndicator';
 
 export default function IncomingCall({
   incomingNumber,
@@ -69,7 +69,11 @@ export default function IncomingCall({
 
   return (
     <div className="p-3 h-full flex items-center justify-center">
-      {session && session.connection && <WebRTCStats peerConnection={session.connection} />}
+      {session && session.connection && (
+        <div className="absolute top-4 right-4 group">
+          <NetworkIndicator peerConnection={session.connection} />
+        </div>
+      )}
 
       {/* Mobile: White box with shadow */}
       <div className={isMobile ? 'bg-white dark:bg-card rounded-2xl border shadow-md p-6 mx-auto w-full max-w-xs' : 'w-full max-w-md mx-auto'}>

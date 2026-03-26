@@ -18,7 +18,7 @@ export default function MobileTabsWrapper() {
   useEffect(() => {
     // Set client flag first to prevent hydration mismatch
     setIsClient(true);
-    
+
     const checkMobile = () => {
       if (typeof window !== 'undefined') {
         setIsMobile(window.innerWidth < 768);
@@ -110,7 +110,7 @@ export default function MobileTabsWrapper() {
 
   // On mobile, show tabs
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen w-full">
       {/* Mobile Navigation Header - Always visible */}
       <MobileNavigation activeTab={activeTab} onTabChange={handleTabChange} isCallActive={isCallActive} />
 
