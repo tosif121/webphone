@@ -35,7 +35,7 @@ const CallConference = ({
   };
 
   return (
-    <div className="md:p-3 p-4 h-full flex flex-col md:justify-start justify-end md:pb-3 pb-14">
+    <div className="md:p-3 p-4 h-full flex flex-col md:justify-start justify-end md:pb-3 md:mt-0 mt-16">
       {/* Mobile: White box with shadow */}
       <div className={isMobile ? '  ' : 'w-full max-w-md mx-auto'}>
         {/* Header - Only show on desktop */}

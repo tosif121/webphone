@@ -35,7 +35,7 @@ const HistoryScreen = ({ setSeeLogs, setPhoneNumber, handleCall }) => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-2 sm:p-3 overflow-y-auto sm:max-h-screen md:max-h-[70vh]">
+      <div className="flex-1 p-2 sm:p-3 overflow-y-auto max-h-[70vh]">
         {history.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 sm:py-12 md:py-16 text-center px-4">
             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-muted rounded-full flex items-center justify-center mb-3 sm:mb-4">

@@ -122,10 +122,10 @@ const NetworkIndicator = ({ timeoutArray = [], peerConnection = null, timeWindow
       {showTime && currentTime && (
         <span className="text-sm font-medium text-primary/80 tabular-nums shrink-0">{currentTime}</span>
       )}
-      
+
       {showTime && <div className="flex-1" />}
 
-      <div className="group relative flex flex-col items-center ml-3">
+      <div className="group relative flex flex-col items-center me-3">
         <div className="flex items-end h-3.5 gap-1">
           {[...Array(4)].map((_, index) => (
             <div

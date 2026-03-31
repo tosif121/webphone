@@ -6,7 +6,7 @@ import { JssipContext } from '@/context/JssipContext';
 import toast from 'react-hot-toast';
 
 export default function MobileTabsWrapper() {
-  const [activeTab, setActiveTab] = useState('leads');
+  const [activeTab, setActiveTab] = useState('stats');
   const [isMobile, setIsMobile] = useState(false);
   const [dialpadOpen, setDialpadOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -54,12 +54,6 @@ export default function MobileTabsWrapper() {
   }, []);
 
   const handleTabChange = (tab) => {
-    // Prevent switching to Leads or Stats during an active call
-    if (isCallActive && (tab === 'leads' || tab === 'stats')) {
-      toast.error('Cannot access Leads or Stats during an active call');
-      return;
-    }
-
     if (tab === 'recents') {
       setActiveTab('recents');
       setDialpadOpen(true);

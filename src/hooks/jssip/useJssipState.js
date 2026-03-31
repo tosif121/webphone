@@ -44,7 +44,7 @@ export const useJssipState = () => {
   const [connectionStatus, setConnectionStatus] = useState('NOT_INUSE');
   const [isConnectionLost, setIsConnectionLost] = useState(false);
   const [timeoutArray, setTimeoutArray] = useState([]);
-  const [origin, setOrigin] = useState('devapp.iotcom.io');
+  const [origin, setOrigin] = useState('esamwad.iotcom.io');
   const [timeoutMessage, setTimeoutMessage] = useState('');
   const [isMerged, setIsMerged] = useState(false);
 
@@ -56,6 +56,7 @@ export const useJssipState = () => {
   const [incomingSession, setIncomingSession] = useState(null);
   const [incomingNumber, setIncomingNumber] = useState('');
   const [isIncomingRinging, setIsIncomingRinging] = useState(false);
+  const [isCustomerHostDisconnected, setIsCustomerHostDisconnected] = useState(false);
 
   /* ---------------------------- conference data ---------------------------- */
   const [conferenceCalls, setConferenceCalls] = useState([]);
@@ -238,5 +239,7 @@ export const useJssipState = () => {
     setIsCustomerAnswered,
     isMerged,
     setIsMerged,
+    isCustomerHostDisconnected,
+    setIsCustomerHostDisconnected,
   };
 };

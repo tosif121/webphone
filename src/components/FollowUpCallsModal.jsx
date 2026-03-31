@@ -134,7 +134,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
         );
 
         await axios.post(
-          `${window.location.origin}/dialmissedcall`,
+          `https://esamwad.iotcom.io/dialmissedcall`,
           {
             receiver: cleanPhoneNumber,
           },
@@ -164,7 +164,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
       try {
         setUpdatingCallbackId(callbackId);
         await axios.post(
-          `${window.location.origin}/callback/update-status`,
+          `https://esamwad.iotcom.io/callback/update-status`,
           {
             callbackId,
             status,

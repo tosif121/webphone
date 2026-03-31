@@ -564,7 +564,7 @@ export default function LeadAndCallInfoPanel({
     try {
       setSavingSticky(true);
       await axios.post(
-        `${window.location.origin}/contact/sticky`,
+        `https://esamwad.iotcom.io/contact/sticky`,
         {
           contactNumber: normalizedContactNumber,
           campaignId: userCampaign,
@@ -643,7 +643,7 @@ export default function LeadAndCallInfoPanel({
             throw new Error('No saved credentials found');
           }
 
-          const refreshRes = await axios.post(`${window.location.origin}/api/applogin`, {
+          const refreshRes = await axios.post(`https://esamwad.iotcom.io/api/applogin`, {
             username: savedUsername,
             password: savedPassword,
           });
@@ -714,7 +714,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`,
+          `https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`,
           token,
           refreshToken,
         );
@@ -822,7 +822,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `${window.location.origin}/getDynamicFormData/${formId}`,
+          `https://esamwad.iotcom.io/getDynamicFormData/${formId}`,
           token,
           refreshToken,
         );
@@ -857,7 +857,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/leadswithdaterange`,
+        `https://esamwad.iotcom.io/leadswithdaterange`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -888,7 +888,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/reports/calls/byAgent`,
+        `https://esamwad.iotcom.io/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -1331,7 +1331,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: authHeaders,
       });
 
@@ -1375,7 +1375,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
         headers: authHeaders,
       });
 
@@ -1478,7 +1478,7 @@ export default function LeadAndCallInfoPanel({
     try {
       setLoadingContactConversationHistory(true);
       setLoadingContactProfile(true);
-      const response = await axios.get(`${window.location.origin}/contact/${encodeURIComponent(contactNumber)}/full`, {
+      const response = await axios.get(`https://esamwad.iotcom.io/contact/${encodeURIComponent(contactNumber)}/full`, {
         params: {
           limit: 75,
         },
@@ -1529,7 +1529,7 @@ export default function LeadAndCallInfoPanel({
     try {
       setSavingNote(true);
       const response = await axios.post(
-        `${window.location.origin}/contact/notes`,
+        `https://esamwad.iotcom.io/contact/notes`,
         {
           contactNumber: normalizedContactNumber,
           text: trimmedNote,
