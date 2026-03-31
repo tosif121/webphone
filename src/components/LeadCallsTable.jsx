@@ -627,7 +627,7 @@ function LeadCallsTable({
         const formattedStartDate = moment(startDate).format('YYYY-MM-DD');
         const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
-        const response = await axios.get(`${window.location.origin}/fetchConversationsAgent`, {
+        const response = await axios.get(`https://esamwad.iotcom.io/fetchConversationsAgent`, {
           params: { startDate: formattedStartDate, endDate: formattedEndDate, agentName: username },
           headers: { Authorization: `Bearer ${token}` },
         });

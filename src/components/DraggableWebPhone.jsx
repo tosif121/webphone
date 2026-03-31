@@ -154,7 +154,9 @@ export default function DraggableWebPhone() {
         };
       };
 
-      if (savedShow) {
+      if (effectiveIsMobile) {
+        setPhoneShow(true);
+      } else if (savedShow) {
         setPhoneShow(JSON.parse(savedShow));
       }
 
@@ -305,12 +307,12 @@ export default function DraggableWebPhone() {
     };
 
     const handleCloseDialpad = () => {
-      // Only close if not in an active call
-      if (!isWorkspaceCallMode) {
+      // Only close if not in an active call and not on mobile
+      if (!isWorkspaceCallMode && !effectiveIsMobile) {
         console.log('Closing dialpad');
         setPhoneShow(false);
       } else {
-        console.log('Cannot close dialpad - call in progress');
+        console.log('Cannot close dialpad - call in progress or mobile mode');
       }
     };
 
@@ -635,7 +637,15 @@ export default function DraggableWebPhone() {
 
       {shouldShowCompactCallControls &&
         (effectiveIsMobile ? (
-          <div className="fixed inset-x-3 bottom-20 z-[1000]">
+          <div
+            className="fixed z-[1000]"
+            style={{
+              width: `calc(100% - 24px)`,
+              left: `12px`,
+              bottom: `80px`,
+            }}
+            onPointerDown={handleMiniBarPointerDown}
+          >
             <div
               className={`flex items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2.5 shadow-xl backdrop-blur ${compactBarButtonsDisabled ? 'opacity-70' : ''}`}
             >

@@ -139,7 +139,7 @@ const Disposition = ({
       }
 
       await axios.post(
-        `${window.location.origin}/callback/update-status`,
+        `https://esamwad.iotcom.io/callback/update-status`,
         {
           callbackId,
           status: 'completed',
@@ -293,7 +293,7 @@ const Disposition = ({
         stickyMode,
       };
 
-      const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
+      const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody, {
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       });
 
@@ -584,7 +584,7 @@ const Disposition = ({
         }
 
         // 1. Submit disposition FIRST
-        const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
+        const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody, {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         });
 
@@ -597,7 +597,7 @@ const Disposition = ({
             try {
               // Apply the break after disposition
               await axios.post(
-                `${window.location.origin}/user/breakuser:${username}`,
+                `https://esamwad.iotcom.io/user/breakuser:${username}`,
                 {
                   breakType: selectedBreakType,
                 },

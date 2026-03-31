@@ -137,7 +137,7 @@ export default function Header() {
     setIsSavingPreferences(true);
     try {
       await axios.patch(
-        `${window.location.origin}/agent/profile`,
+        `https://esamwad.iotcom.io/agent/profile`,
         {
           uiPreferences: normalizedPreferences,
         },
@@ -172,7 +172,7 @@ export default function Header() {
     if (typeof window !== 'undefined') {
       try {
         if (token) {
-          await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+          await axios.delete(`https://esamwad.iotcom.io/deleteFirebaseToken`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
