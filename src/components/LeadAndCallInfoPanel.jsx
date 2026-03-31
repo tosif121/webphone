@@ -446,6 +446,102 @@ export default function LeadAndCallInfoPanel({
       .replace(/[^a-z0-9]/g, '');
   }, []);
 
+  const dynamicFormFields = useMemo(() => {
+    if (!Array.isArray(formConfig?.sections)) {
+      return [];
+    }
+
+    return formConfig.sections.flatMap((section) => (Array.isArray(section?.fields) ? section.fields : []));
+  }, [formConfig]);
+
+  const resolveDynamicFieldStorageTarget = useCallback((field = {}) => {
+    const rawStorageTarget = String(field?.storageTarget || '')
+      .trim()
+      .toLowerCase();
+
+    if (rawStorageTarget === 'contact' || rawStorageTarget === 'conversation') {
+      return rawStorageTarget;
+    }
+
+    const normalizedFieldName = String(field?.name || '')
+      .replace(/[_\s]+/g, '')
+      .trim()
+      .toLowerCase();
+
+    if (
+      field?.systemField === 'callerNumber' ||
+      field?.systemField === 'callerName' ||
+      field?.systemField === 'alternateNumber' ||
+      ['contactnumber', 'callernumber', 'number', 'callername', 'alternatenumber'].includes(normalizedFieldName)
+    ) {
+      return 'contact';
+    }
+
+    return 'contact';
+  }, []);
+
+  const hasMeaningfulSubmittedValue = useCallback((value) => {
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    if (value === undefined || value === null) {
+      return false;
+    }
+
+    if (typeof value === 'string') {
+      return value.trim() !== '';
+    }
+
+    return true;
+  }, []);
+
+  const buildDynamicFormPayloads = useCallback(
+    (submittedData = {}) => {
+      const contactData = {};
+      const conversationFields = {};
+
+      dynamicFormFields.forEach((field) => {
+        const fieldName = String(field?.name || '').trim();
+        if (!fieldName || !Object.prototype.hasOwnProperty.call(submittedData, fieldName)) {
+          return;
+        }
+
+        const value = submittedData[fieldName];
+        if (!hasMeaningfulSubmittedValue(value)) {
+          return;
+        }
+
+        if (
+          field?.systemField === 'callerNumber' ||
+          ['contactnumber', 'callernumber', 'number'].includes(
+            fieldName.replace(/[_\s]+/g, '').toLowerCase(),
+          )
+        ) {
+          return;
+        }
+
+        if (resolveDynamicFieldStorageTarget(field) === 'conversation') {
+          conversationFields[fieldName] = value;
+        } else {
+          contactData[fieldName] = value;
+        }
+      });
+
+      const contactNumber = String(submittedData.contactNumber || activeUserCall?.contactNumber || '').trim();
+      if (contactNumber) {
+        contactData.contactNumber = contactNumber;
+      }
+
+      return {
+        contactData,
+        contactNumber,
+        conversationFields,
+      };
+    },
+    [activeUserCall?.contactNumber, dynamicFormFields, hasMeaningfulSubmittedValue, resolveDynamicFieldStorageTarget],
+  );
+
   const hasExistingConversation = useMemo(
     () => Boolean(latestConversation && Object.keys(latestConversation).length > 0),
     [latestConversation],
@@ -1045,9 +1141,6 @@ export default function LeadAndCallInfoPanel({
 
       return undefined;
     };
-    const allowContactFallbackForDynamicForm = !latestConversation;
-    const allowSourceFallbackForDynamicForm = !latestConversation;
-
     if (formConfig?.sections?.length > 0) {
       // Dynamic form initialization
       formConfig.sections.forEach((section) => {
@@ -1055,6 +1148,46 @@ export default function LeadAndCallInfoPanel({
           const fieldName = field.name;
           const normalizedName = String(fieldName || '').toLowerCase();
           const normalizedLabel = String(field.label || '').toLowerCase();
+          const storageTarget = resolveDynamicFieldStorageTarget(field);
+          const getSourceFallbackValue = () => {
+            if (
+              field.systemField === 'callerNumber' ||
+              normalizedName === 'contactnumber' ||
+              normalizedName === 'callernumber' ||
+              normalizedName === 'number' ||
+              normalizedLabel.includes('caller number') ||
+              normalizedLabel.includes('mobile no')
+            ) {
+              return sourceCallData.contactNumber || '';
+            }
+
+            if (
+              field.systemField === 'callerName' ||
+              normalizedName === 'caller_name' ||
+              normalizedName === 'callername' ||
+              normalizedLabel.includes('caller name')
+            ) {
+              return (
+                sourceCallData.callerName ??
+                sourceCallData.caller_name ??
+                sourceCallData.firstName ??
+                ''
+              );
+            }
+
+            if (
+              field.systemField === 'alternateNumber' ||
+              normalizedName === 'alternatenumber' ||
+              normalizedLabel.includes('alternate')
+            ) {
+              return sourceCallData.alternateNumber || '';
+            }
+
+            const lowerFieldName = fieldName.toLowerCase();
+            const userCallKeys = Object.keys(sourceCallData);
+            const matchedKey = userCallKeys.find((key) => key.toLowerCase() === lowerFieldName);
+            return matchedKey !== undefined ? (sourceCallData[matchedKey] ?? '') : '';
+          };
 
           if (
             field.systemField === 'callerNumber' ||
@@ -1075,31 +1208,17 @@ export default function LeadAndCallInfoPanel({
             normalizedLabel.includes('caller name')
           ) {
             initialFormData[fieldName] =
-              getConversationValue(
+              getContactValue(
                 fieldName,
                 field.label,
                 field.question,
                 'callerName',
                 'caller_name',
-                'Caller Name',
-                'Caller Name ',
+                'CallerName',
+                'firstName',
                 'name',
               ) ??
-              (allowContactFallbackForDynamicForm
-                ? getContactValue(
-                    fieldName,
-                    field.label,
-                    field.question,
-                    'callerName',
-                    'caller_name',
-                    'CallerName',
-                    'firstName',
-                    'name',
-                  )
-                : undefined) ??
-              sourceCallData.callerName ??
-              sourceCallData.caller_name ??
-              sourceCallData.firstName ??
+              getSourceFallbackValue() ??
               '';
             return;
           }
@@ -1110,41 +1229,31 @@ export default function LeadAndCallInfoPanel({
             normalizedLabel.includes('alternate')
           ) {
             initialFormData[fieldName] =
-              sourceCallData.alternateNumber ||
-              getConversationValue(fieldName, field.label, field.question) ||
-              (allowContactFallbackForDynamicForm
-                ? getContactValue(
-                    fieldName,
-                    field.label,
-                    field.question,
-                    'alternateNumber',
-                    'alternate number',
-                    'alternate contact',
-                  )
-                : undefined) ||
+              getContactValue(
+                fieldName,
+                field.label,
+                field.question,
+                'alternateNumber',
+                'alternate number',
+                'alternate contact',
+              ) ||
+              getSourceFallbackValue() ||
               '';
             return;
           }
 
-          const conversationValue = getConversationValue(fieldName, field.label, field.question);
-          if (conversationValue !== undefined) {
-            initialFormData[fieldName] = conversationValue;
+          const storedValue =
+            storageTarget === 'conversation'
+              ? getConversationValue(fieldName, field.label, field.question)
+              : getContactValue(fieldName, field.label, field.question);
+          if (storedValue !== undefined) {
+            initialFormData[fieldName] = storedValue;
             return;
           }
 
-          const contactValue = allowContactFallbackForDynamicForm
-            ? getContactValue(fieldName, field.label, field.question)
-            : undefined;
-          if (contactValue !== undefined) {
-            initialFormData[fieldName] = contactValue;
-            return;
-          }
-
-          if (allowSourceFallbackForDynamicForm) {
-            const lowerFieldName = fieldName.toLowerCase();
-            const userCallKeys = Object.keys(sourceCallData);
-            const matchedKey = userCallKeys.find((key) => key.toLowerCase() === lowerFieldName);
-            initialFormData[fieldName] = matchedKey !== undefined ? (sourceCallData[matchedKey] ?? '') : '';
+          const sourceFallbackValue = getSourceFallbackValue();
+          if (sourceFallbackValue !== undefined && sourceFallbackValue !== null && `${sourceFallbackValue}` !== '') {
+            initialFormData[fieldName] = sourceFallbackValue;
             return;
           }
 
@@ -1243,6 +1352,7 @@ export default function LeadAndCallInfoPanel({
     localFormData,
     manualEntryMode,
     normalizeConversationLookupKey,
+    resolveDynamicFieldStorageTarget,
   ]);
 
   useEffect(() => {
@@ -1356,20 +1466,19 @@ export default function LeadAndCallInfoPanel({
       return;
     }
 
-    const conversationData = buildConversationRecord(formDataToSubmit);
+    const { contactData, contactNumber, conversationFields } = buildDynamicFormPayloads(formDataToSubmit);
+    const conversationData = buildConversationRecord({
+      ...conversationFields,
+      contactNumber,
+    });
 
     const payload = {
       user: username,
       isFresh: activeUserCall?.isFresh,
       formObject: conversationData,
       data: {
-        ...formDataToSubmit,
+        ...contactData,
         contactNumber: conversationData.contactNumber,
-        formId: conversationData.formId,
-        formTitle: conversationData.formTitle,
-        formType: conversationData.formType,
-        campaignId: conversationData.campaignId,
-        callType: conversationData.callType,
         agentName: username,
       },
     };
