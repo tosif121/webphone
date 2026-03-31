@@ -270,7 +270,7 @@ const matchConversationsToCalls = (calls = [], conversations = []) => {
 };
 
 const mapCallRow = (call, index) => ({
-  id: String(call?._id || call?.id || `${call?.Caller || call?.contactNumber || index}`),
+  id: String(call?._id || call?.id || `${call?.Caller || call?.contactNumber || 'call'}-${index}`),
   callerNumber: normalizePhone(
     call?.Caller || call?.contactNumber || call?.dialNumber || call?.DestinationNumber || '',
   ),
@@ -310,7 +310,7 @@ const mapLeadRow = (lead, index) => {
     .toLowerCase();
   const contacted = ['completed', 'failed', 'skipped'].includes(state) || Number(lead?.lastDialedStatus || 0) > 0;
   return {
-    id: String(lead?._id || lead?.leadId || `${lead?.number || lead?.phone || index}`),
+    id: String(lead?._id || lead?.leadId || `${lead?.number || lead?.phone || 'lead'}-${index}`),
     callerNumber: normalizePhone(lead?.number || lead?.phone || lead?.phone_number || lead?.contactNumber || ''),
     callerName: String(lead?.name || lead?.fullName || lead?.patientName || '').trim() || '-',
     type: contacted ? 'Contacted' : 'Pending',
@@ -514,7 +514,7 @@ export default function ContactCentricWorkspace({
       setWorkspaceLoading(true);
       setWorkspaceError('');
       try {
-        const response = await axios.get(`https://esamwad.iotcom.io/contact/${normalizedNumber}/full`, {
+        const response = await axios.get(`${window.location.origin}/contact/${normalizedNumber}/full`, {
           params: { limit: 50 },
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -1044,8 +1044,8 @@ export default function ContactCentricWorkspace({
                 </div>
                 {Array.isArray(contact?.tags) && contact.tags.length > 0 ? (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {contact.tags.map((tag) => (
-                      <Badge key={tag} variant="outline">
+                    {contact.tags.map((tag, index) => (
+                      <Badge key={`${tag}-${index}`} variant="outline">
                         {tag}
                       </Badge>
                     ))}

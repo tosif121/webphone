@@ -51,6 +51,7 @@ export const useJssipState = () => {
   /* ---------------------------- call tracking ------------------------------ */
   const [isCallended, setIsCallended] = useState(false);
   const [callHandled, setCallHandled] = useState(false);
+  const [isAutomationLoading, setIsAutomationLoading] = useState(false);
 
   /* ---------------------------- incoming call ------------------------------ */
   const [incomingSession, setIncomingSession] = useState(null);
@@ -241,5 +242,7 @@ export const useJssipState = () => {
     setIsMerged,
     isCustomerHostDisconnected,
     setIsCustomerHostDisconnected,
+    isAutomationLoading,
+    setIsAutomationLoading,
   };
 };

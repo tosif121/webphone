@@ -137,6 +137,8 @@ const useJssip = (isMobile = false) => {
     setIsCustomerAnswered,
     isMerged,
     setIsMerged,
+    isAutomationLoading,
+    setIsAutomationLoading,
   } = state;
 
   const {
@@ -162,10 +164,10 @@ const useJssip = (isMobile = false) => {
     logSystemEvent,
   } = monitoring;
 
-  // useEffect(() => {
-  //   const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-  //   setOrigin(originWithoutProtocol);
-  // }, []);
+  useEffect(() => {
+    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    setOrigin(originWithoutProtocol);
+  }, []);
 
   const getStoredTokenPayload = useCallback(() => {
     try {
@@ -216,7 +218,7 @@ const useJssip = (isMobile = false) => {
       activeCallContextRequestRef.current = (async () => {
         try {
           const response = await axios.post(
-            `https://esamwad.iotcom.io/useroncall/${username}`,
+            `${window.location.origin}/useroncall/${username}`,
             leadLockToken ? { leadLockToken } : {},
             {
               headers: {
@@ -376,7 +378,7 @@ const useJssip = (isMobile = false) => {
 
       const response = await withTimeout(
         axios.post(
-          `https://esamwad.iotcom.io/userconnection`,
+          `${window.location.origin}/userconnection`,
           { user: username },
           {
             headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -485,7 +487,7 @@ const useJssip = (isMobile = false) => {
   const handleLogout = async (token, message) => {
     try {
       if (token) {
-        await axios.delete(`https://esamwad.iotcom.io/deleteFirebaseToken`, {
+        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -746,7 +748,7 @@ const useJssip = (isMobile = false) => {
             try {
               await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
 
-              const response = await axios.post(`https://esamwad.iotcom.io/user/breakuser:${username}`, {
+              const response = await axios.post(`${window.location.origin}/user/breakuser:${username}`, {
                 breakType: storedBreak,
               });
               if (response.status === 200) {
@@ -782,7 +784,7 @@ const useJssip = (isMobile = false) => {
 
         ua.on('newMessage', (e) => {
           const message = e.request.body;
-
+          console.log(message, 'message');
           // ✅ Check for force login request
           if (message.includes('force_login_request') || message.includes('Force Login Request')) {
             // Dispatch custom event that Layout can listen to
@@ -1226,7 +1228,7 @@ const useJssip = (isMobile = false) => {
 
       // ✅ 6. Make the API call to dial number
       const response = await axios.post(
-        `https://esamwad.iotcom.io/dialnumber`,
+        `${window.location.origin}/dialnumber`,
         {
           receiver: targetNumber,
           leadLockToken: nextLeadLockToken || undefined,
@@ -1344,11 +1346,11 @@ const useJssip = (isMobile = false) => {
   useEffect(() => {
     const callApi = async () => {
       if (isCallended) {
-        console.log('[WebPhone] Call ended detected. Starting post-call automation...');
+        setIsAutomationLoading(true);
         try {
           // 1. Call callended API
           await axios.post(
-            `https://esamwad.iotcom.io/user/callended${username}`,
+            `${window.location.origin}/user/callended${username}`,
             leadLockToken ? { leadLockToken } : {},
             {
               headers: {
@@ -1356,14 +1358,12 @@ const useJssip = (isMobile = false) => {
               },
             },
           );
-          console.log('[WebPhone] callended API successful');
 
           if (isMobile) {
-            console.log('[WebPhone] Mobile detected: Performing silent auto-disposition...');
             // 2. On Mobile, perform SILENT auto-disposition
             try {
               await axios.post(
-                `https://esamwad.iotcom.io/user/disposition${username}`,
+                `${window.location.origin}/user/disposition${username}`,
                 {
                   bridgeID: bridgeID,
                   Disposition: 'Auto Disposed',
@@ -1375,7 +1375,6 @@ const useJssip = (isMobile = false) => {
                   headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                 },
               );
-              console.log('[WebPhone] Silent disposition successful');
             } catch (dispoError) {
               console.error('[WebPhone] Silent disposition failed:', dispoError);
             }
@@ -1387,26 +1386,36 @@ const useJssip = (isMobile = false) => {
             setDispositionModal(false);
             setCallType('');
             setPhoneNumber('');
-            console.log('[WebPhone] Mobile: Returned to Home screen');
           } else {
             // 4. On Desktop, show the Disposition Modal as usual
             setIsHeld(false);
             setIsCallended(false);
             setAgentLifecycle('disposition');
             setDispositionModal(true);
-            console.log('[WebPhone] Desktop: Opening Disposition modal');
           }
         } catch (error) {
           console.error('[WebPhone] Error in post-call automation:', error);
           // Safety reset even on error
           setIsCallended(false);
           setAgentLifecycle('idle');
+        } finally {
+          setIsAutomationLoading(false);
         }
       }
     };
 
     callApi();
-  }, [isCallended, username, leadLockToken, getAuthHeaders, isMobile, setPhoneNumber]);
+  }, [
+    isCallended,
+    username,
+    leadLockToken,
+    getAuthHeaders,
+    isMobile,
+    setPhoneNumber,
+    bridgeID,
+    phoneNumber,
+    setIsAutomationLoading,
+  ]);
 
   return [
     ringtone,
@@ -1481,6 +1490,8 @@ const useJssip = (isMobile = false) => {
     workspaceActiveCall,
     setWorkspaceActiveCall,
     finalizePostCallContext,
+    isAutomationLoading,
+    setIsAutomationLoading,
   ];
 };
 

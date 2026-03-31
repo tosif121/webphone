@@ -40,7 +40,7 @@ const NetworkIndicator = ({ timeoutArray = [], peerConnection = null, timeWindow
     const checkPing = async () => {
       try {
         const start = performance.now();
-        await fetch(window.location.origin, { method: 'HEAD', cache: 'no-store' });
+        await fetch(`${window.location.origin}/sw.js`, { method: 'GET', cache: 'no-store' });
         const duration = performance.now() - start;
         setIcmp(duration.toFixed(0));
       } catch (error) {
@@ -139,7 +139,7 @@ const NetworkIndicator = ({ timeoutArray = [], peerConnection = null, timeWindow
         </div>
 
         {/* Unified Tooltip */}
-        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-[100]">
+        <div className="absolute mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-[100]">
           <div className="bg-popover/95 backdrop-blur-sm border border-border text-popover-foreground text-[10px] rounded-lg px-2.5 py-1.5 shadow-xl min-w-[90px]">
             <div className="flex flex-col gap-1">
               <div className="flex justify-between gap-3">

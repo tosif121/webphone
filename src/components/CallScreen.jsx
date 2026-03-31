@@ -73,6 +73,10 @@ const CallScreen = ({
     return () => mediaQuery.removeEventListener('change', handleResize);
   }, []);
 
+  // Determine if conference participant has actually joined (via strict socket string or fallback REST array)
+  const isConfConnected =
+    hasParticipants === 'connected' || (Array.isArray(conferenceCalls) && conferenceCalls.length > 0);
+
   // FIXED: Use ref to track processing state to avoid stale closures
   const processingRef = useRef(new Set());
   const [, forceUpdate] = useState({});
@@ -86,7 +90,7 @@ const CallScreen = ({
   useEffect(() => {
     let interval;
 
-    if (hasParticipants === 'connected' && conferenceStatus && !isMerged) {
+    if (isConfConnected && conferenceStatus && !isMerged) {
       setConfRunning(true);
       session?.unmute();
       setMuted(false);
@@ -107,7 +111,7 @@ const CallScreen = ({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [hasParticipants, conferenceStatus, isMerged]);
+  }, [isConfConnected, conferenceStatus, isMerged]);
 
   // Reset conference timer when merged
   useEffect(() => {
@@ -152,7 +156,12 @@ const CallScreen = ({
   }, [toggleHold, isHeld]);
 
   const handleMerge = useCallback(() => {
-    if (!hasParticipants) {
+    if (!conferenceStatus) {
+      toast.error('No active conference to merge');
+      return;
+    }
+
+    if (!isConfConnected) {
       toast.error('No conference participants to merge with');
       return;
     }
@@ -412,15 +421,27 @@ const CallScreen = ({
               {/* Secondary Controls Row */}
               <div className="flex justify-center gap-4 sm:gap-3">
                 {conferenceStatus ? (
-                  <ControlButton
-                    buttonId="merge-button"
-                    disabled={hasParticipants !== 'connected'}
-                    onClick={handleMerge}
-                    icon={<Merge size={isMobile ? 28 : 20} />}
-                    title="Merge"
-                    active={isMerged}
-                    debounceTime={800}
-                  />
+                  <>
+                    <ControlButton
+                      buttonId="merge-button"
+                      disabled={!isConfConnected}
+                      onClick={handleMerge}
+                      icon={<Merge size={isMobile ? 28 : 20} />}
+                      title="Merge"
+                      active={isMerged}
+                      debounceTime={800}
+                    />
+                    <ControlButton
+                      buttonId="disconnect-conf-button"
+                      onClick={handleConferenceHangup}
+                      icon={
+                        <PhoneOff size={isMobile ? 28 : 20} className={conferenceStatus ? 'text-destructive' : ''} />
+                      }
+                      title="Disconnect Conference"
+                      disabled={!conferenceStatus}
+                      debounceTime={800}
+                    />
+                  </>
                 ) : (
                   <ControlButton
                     buttonId="add-call-button"

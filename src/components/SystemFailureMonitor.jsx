@@ -55,7 +55,7 @@ const MAX_LATENCY_TROUBLESHOOT = 100;
 const PING_INTERVAL_MS = 5000;
 const HIGH_LATENCY_MS = 250;
 const KEEP_ALIVE_STALE_MS = 14000;
-const getPingUrl = () => (typeof window !== 'undefined' ? `https://esamwad.iotcom.io/` : 'https://esamwad.iotcom.io/');
+const getPingUrl = () => (typeof window !== 'undefined' ? `${window.location.origin}/` : '${window.location.origin}/');
 const BROADCAST_CHANNEL = 'jssip-sync';
 
 // ── Default shapes ───────────────────────────────────────────────────────────

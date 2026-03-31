@@ -74,6 +74,7 @@ export default function DraggableWebPhone() {
     setHasParticipants,
     isMerged,
     setIsMerged,
+    isAutomationLoading,
   } = useContext(JssipContext);
 
   const router = useRouter();
@@ -96,7 +97,9 @@ export default function DraggableWebPhone() {
   const [compactBarDisconnectedAt, setCompactBarDisconnectedAt] = useState('');
   const [rndState, setRndState] = useState({ x: 0, y: 0, width: 280, height: 500 });
 
-  useEffect(() => {}, [activeTab]);
+  useEffect(() => {
+    console.log('[WebPhone] Current Active Tab:', activeTab);
+  }, [activeTab]);
 
   const [confSeconds, setConfSeconds] = useState(0);
   const [confMinutes, setConfMinutes] = useState(0);
@@ -132,6 +135,7 @@ export default function DraggableWebPhone() {
     setIsHydrated(true);
     try {
       const savedPreferences = getStoredAgentUiPreferences();
+      console.log('[DraggableWebPhone] Initial preferences loaded:', savedPreferences);
       const savedRndState = localStorage.getItem('phoneRndState');
       const savedShow = localStorage.getItem('phoneShow');
 
@@ -185,6 +189,7 @@ export default function DraggableWebPhone() {
   useEffect(() => {
     const handleProfileUpdated = (event) => {
       const nextPreferences = event?.detail || getStoredAgentUiPreferences();
+      console.log('[DraggableWebPhone] Profile updated event received:', nextPreferences);
       setDialerDockMode(nextPreferences.dialerDockMode || 'right');
       setDialerLayoutMode(nextPreferences.dialerLayoutMode || 'overlay');
     };
@@ -237,8 +242,7 @@ export default function DraggableWebPhone() {
   const isPostCallPhase = dispositionModal && !isCallLive;
   const hasPostCallContext = Boolean(dispositionModal || workspaceActiveCall || userCall || activeCallContext);
   const hasCallUiContext = isWorkspaceCallMode || hasPostCallContext || isCallLive;
-  const shouldShowCompactCallControls =
-    isWorkspaceCallMode && !isIncomingRinging && !isExpandedDuringCall && !effectiveIsMobile;
+  const shouldShowCompactCallControls = isWorkspaceCallMode && !isIncomingRinging && !isExpandedDuringCall;
   const liveDurationLabel = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
   useEffect(() => {
@@ -303,7 +307,10 @@ export default function DraggableWebPhone() {
     const handleCloseDialpad = () => {
       // Only close if not in an active call
       if (!isWorkspaceCallMode) {
+        console.log('Closing dialpad');
         setPhoneShow(false);
+      } else {
+        console.log('Cannot close dialpad - call in progress');
       }
     };
 
@@ -365,11 +372,9 @@ export default function DraggableWebPhone() {
   ) : null;
 
   // Render phone content
-  const renderPhoneContent = () => {
-    // Priority 1: Incoming Ringing (Top Priority)
-    if (effectiveIsMobile && isIncomingRinging) {
-      console.log('[WebPhone] Current Screen: Rendering IncomingCall');
-      return (
+  const renderPhoneContent = () => (
+    <div className={effectiveIsMobile ? 'w-full flex flex-col' : 'w-full h-full flex flex-col'}>
+      {effectiveIsMobile && isIncomingRinging && (
         <IncomingCall
           incomingNumber={incomingNumber}
           incomingSession={incomingSession}
@@ -378,78 +383,15 @@ export default function DraggableWebPhone() {
           rejectIncomingCall={rejectIncomingCall}
           session={session}
         />
-      );
-    }
+      )}
 
-    // Priority 2: Active Call Screens (only if not viewing other tabs)
-    if (isCallLive && activeTab === 'dialpad' && !seeLogs) {
-      console.log(`[WebPhone] Current Screen: Rendering ${callConference ? 'Conference' : 'CallScreen'}`);
-      return callConference ? (
-        <CallConference
-          conferenceNumber={conferenceNumber}
-          setCallConference={setCallConference}
-          setConferenceNumber={setConferenceNumber}
-          handleCalls={handleCalls}
-          setSeeLogs={setSeeLogs}
-          phoneNumber={userCall?.contactNumber || phoneNumber}
-          seconds={seconds}
-          minutes={minutes}
-        />
-      ) : (
-        <CallScreen
-          conferenceNumber={conferenceNumber}
-          userCall={userCall}
-          reqUnHold={reqUnHold}
-          setCallConference={setCallConference}
-          toggleHold={toggleHold}
-          isHeld={isHeld}
-          isRecording={isRecording}
-          startRecording={startRecording}
-          stopRecording={stopRecording}
-          phoneNumber={phoneNumber}
-          session={session}
-          seconds={seconds < 10 ? `0${seconds}` : `${seconds}`}
-          minutes={minutes < 10 ? `0${minutes}` : `${minutes}`}
-          isRunning={isRunning}
-          devices={devices}
-          selectedDeviceId={selectedDeviceId}
-          changeAudioDevice={changeAudioDevice}
-          conferenceStatus={conferenceStatus}
-          status={status}
-          conferenceCalls={conferenceCalls}
-          hasParticipants={hasParticipants}
-          muted={muted}
-          setMuted={setMuted}
-          isCustomerAnswered={isCustomerAnswered}
-          setConferenceNumber={setConferenceNumber}
-          setHasParticipants={setHasParticipants}
-          confRunning={confRunning}
-          confMinutes={confMinutes}
-          confSeconds={confSeconds}
-          isMerged={isMerged}
-          setIsMerged={setIsMerged}
-          setConfRunning={setConfRunning}
-          setConfSeconds={setConfSeconds}
-          setConfMinutes={setConfMinutes}
-          headerAction={collapseButton}
-        />
-      );
-    }
-
-    // Priority 3: Tabs (Accessible anytime)
-    console.log(`[WebPhone] Current Screen: Rendering ${activeTab} tab`);
-    return (
-      <div className={effectiveIsMobile ? 'w-full h-full' : 'w-full h-full overflow-hidden'}>
-        {activeTab === 'recents' && (
-          <HistoryScreen
-            setSeeLogs={setSeeLogs}
-            phoneNumber={phoneNumber}
-            setPhoneNumber={setPhoneNumber}
-            handleCall={handleCall}
-          />
+      {/* Main Content Area */}
+      <div className={effectiveIsMobile ? 'w-full' : 'w-full h-full overflow-hidden'}>
+        {!(effectiveIsMobile && isIncomingRinging) && activeTab === 'recents' && (
+          <HistoryScreen setSeeLogs={setSeeLogs} />
         )}
 
-        {(activeTab === 'dialpad' && (seeLogs || !isCallLive)) && (
+        {!(effectiveIsMobile && isIncomingRinging) && activeTab === 'dialpad' && !isCallLive && (
           <Home
             phoneNumber={phoneNumber}
             setPhoneNumber={setPhoneNumber}
@@ -458,12 +400,79 @@ export default function DraggableWebPhone() {
             timeoutArray={timeoutArray}
             isConnectionLost={isConnectionLost}
             headerAction={collapseButton}
-            activeTab={activeTab}
           />
         )}
+
+        {!(effectiveIsMobile && isIncomingRinging) &&
+          !seeLogs &&
+          isCallLive &&
+          (callConference ? (
+            <CallConference
+              conferenceNumber={conferenceNumber}
+              setCallConference={setCallConference}
+              setConferenceNumber={setConferenceNumber}
+              handleCalls={handleCalls}
+              setSeeLogs={setSeeLogs}
+              phoneNumber={userCall?.contactNumber || phoneNumber}
+              seconds={seconds}
+              minutes={minutes}
+            />
+          ) : (
+            <CallScreen
+              conferenceNumber={conferenceNumber}
+              userCall={userCall}
+              reqUnHold={reqUnHold}
+              setCallConference={setCallConference}
+              toggleHold={toggleHold}
+              isHeld={isHeld}
+              isRecording={isRecording}
+              startRecording={startRecording}
+              stopRecording={stopRecording}
+              phoneNumber={phoneNumber}
+              session={session}
+              seconds={seconds < 10 ? `0${seconds}` : `${seconds}`}
+              minutes={minutes < 10 ? `0${minutes}` : `${minutes}`}
+              isRunning={isRunning}
+              devices={devices}
+              selectedDeviceId={selectedDeviceId}
+              changeAudioDevice={changeAudioDevice}
+              conferenceStatus={conferenceStatus}
+              status={status}
+              conferenceCalls={conferenceCalls}
+              hasParticipants={hasParticipants}
+              muted={muted}
+              setMuted={setMuted}
+              isCustomerAnswered={isCustomerAnswered}
+              setConferenceNumber={setConferenceNumber}
+              setHasParticipants={setHasParticipants}
+              confRunning={confRunning}
+              confMinutes={confMinutes}
+              confSeconds={confSeconds}
+              isMerged={isMerged}
+              setIsMerged={setIsMerged}
+              setConfRunning={setConfRunning}
+              setConfSeconds={setConfSeconds}
+              setConfMinutes={setConfMinutes}
+              headerAction={collapseButton}
+            />
+          ))}
+
+        {!(effectiveIsMobile && isIncomingRinging) &&
+          !seeLogs &&
+          activeTab === 'dialpad' &&
+          !isCallLive &&
+          status !== 'start' && (
+            <div className="flex flex-col items-center justify-center h-full text-center py-12">
+              <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center mb-4">
+                <PhoneCall className="h-6 w-6 text-slate-400 dark:text-slate-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-600 dark:text-slate-200">No Active Calls</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Ready to make or receive calls</p>
+            </div>
+          )}
       </div>
-    );
-  };
+    </div>
+  );
 
   const dockSideClass =
     dialerDockMode === 'left'
@@ -489,7 +498,7 @@ export default function DraggableWebPhone() {
     phoneNumber ||
     'Active Call';
   const compactBarStatusLabel = isPostCallPhase ? `Call ended · ${compactBarDurationRef.current}` : liveDurationLabel;
-  const compactBarButtonsDisabled = isPostCallPhase;
+  const compactBarButtonsDisabled = isPostCallPhase || isAutomationLoading;
   const isDialingPhase = callType === 'outgoing' && agentLifecycle === 'dialing' && !isPostCallPhase;
   const getDefaultMiniBarX = useCallback(() => {
     if (typeof window === 'undefined') {
@@ -770,12 +779,12 @@ export default function DraggableWebPhone() {
           </div>
         ))}
 
-      {phoneShow && (isExpandedDuringCall || !isWorkspaceCallMode || isIncomingRinging || isCallLive) && (
+      {phoneShow && (isExpandedDuringCall || !isWorkspaceCallMode || isIncomingRinging) && (
         <>
           {effectiveIsMobile ? (
             <div
-              className={`fixed left-0 right-0 z-[49] overflow-hidde mt-18 bg-card ${
-                isIncomingRinging || isCallLive ? 'top-14 bottom-16' : 'bottom-16 top-auto h-[80vh] rounded-t-[28px]'
+              className={`fixed left-0 right-0 z-[49] overflow-hidden bg-card ${
+                isIncomingRinging || isCallLive ? 'top-14 bottom-16' : 'bottom-16 top-auto h-[72vh] rounded-t-[28px]'
               }`}
             >
               {renderPhoneContent()}

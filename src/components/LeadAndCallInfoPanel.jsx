@@ -514,9 +514,7 @@ export default function LeadAndCallInfoPanel({
 
         if (
           field?.systemField === 'callerNumber' ||
-          ['contactnumber', 'callernumber', 'number'].includes(
-            fieldName.replace(/[_\s]+/g, '').toLowerCase(),
-          )
+          ['contactnumber', 'callernumber', 'number'].includes(fieldName.replace(/[_\s]+/g, '').toLowerCase())
         ) {
           return;
         }
@@ -660,7 +658,7 @@ export default function LeadAndCallInfoPanel({
     try {
       setSavingSticky(true);
       await axios.post(
-        `https://esamwad.iotcom.io/contact/sticky`,
+        `${window.location.origin}/contact/sticky`,
         {
           contactNumber: normalizedContactNumber,
           campaignId: userCampaign,
@@ -739,7 +737,7 @@ export default function LeadAndCallInfoPanel({
             throw new Error('No saved credentials found');
           }
 
-          const refreshRes = await axios.post(`https://esamwad.iotcom.io/api/applogin`, {
+          const refreshRes = await axios.post(`${window.location.origin}/api/applogin`, {
             username: savedUsername,
             password: savedPassword,
           });
@@ -810,7 +808,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`,
+          `${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`,
           token,
           refreshToken,
         );
@@ -918,7 +916,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `https://esamwad.iotcom.io/getDynamicFormData/${formId}`,
+          `${window.location.origin}/getDynamicFormData/${formId}`,
           token,
           refreshToken,
         );
@@ -953,7 +951,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/leadswithdaterange`,
+        `${window.location.origin}/leadswithdaterange`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -984,7 +982,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/reports/calls/byAgent`,
+        `${window.location.origin}/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -1167,12 +1165,7 @@ export default function LeadAndCallInfoPanel({
               normalizedName === 'callername' ||
               normalizedLabel.includes('caller name')
             ) {
-              return (
-                sourceCallData.callerName ??
-                sourceCallData.caller_name ??
-                sourceCallData.firstName ??
-                ''
-              );
+              return sourceCallData.callerName ?? sourceCallData.caller_name ?? sourceCallData.firstName ?? '';
             }
 
             if (
@@ -1441,7 +1434,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: authHeaders,
       });
 
@@ -1484,7 +1477,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: authHeaders,
       });
 
@@ -1587,7 +1580,7 @@ export default function LeadAndCallInfoPanel({
     try {
       setLoadingContactConversationHistory(true);
       setLoadingContactProfile(true);
-      const response = await axios.get(`https://esamwad.iotcom.io/contact/${encodeURIComponent(contactNumber)}/full`, {
+      const response = await axios.get(`${window.location.origin}/contact/${encodeURIComponent(contactNumber)}/full`, {
         params: {
           limit: 75,
         },
@@ -1638,7 +1631,7 @@ export default function LeadAndCallInfoPanel({
     try {
       setSavingNote(true);
       const response = await axios.post(
-        `https://esamwad.iotcom.io/contact/notes`,
+        `${window.location.origin}/contact/notes`,
         {
           contactNumber: normalizedContactNumber,
           text: trimmedNote,
@@ -1687,8 +1680,8 @@ export default function LeadAndCallInfoPanel({
                 <div className="text-sm text-muted-foreground">{displayPhone || 'No caller number available'}</div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                {workspaceContact?.tags?.map((tag) => (
-                  <Badge key={tag} variant="outline">
+                {workspaceContact?.tags?.map((tag, index) => (
+                  <Badge key={`${tag}-${index}`} variant="outline">
                     {tag}
                   </Badge>
                 ))}
@@ -1875,8 +1868,8 @@ export default function LeadAndCallInfoPanel({
                     'No caller number available'}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {workspaceContact?.tags?.map((tag) => (
-                    <Badge key={tag} variant="outline">
+                  {workspaceContact?.tags?.map((tag, index) => (
+                    <Badge key={`${tag}-${index}`} variant="outline">
                       {tag}
                     </Badge>
                   ))}

@@ -94,6 +94,8 @@ export function JssipProvider({ children }) {
     workspaceActiveCall,
     setWorkspaceActiveCall,
     finalizePostCallContext,
+    isAutomationLoading,
+    setIsAutomationLoading,
   ] = useJssip(isMobile);
 
   return (
@@ -172,6 +174,8 @@ export function JssipProvider({ children }) {
         setWorkspaceActiveCall,
         finalizePostCallContext,
         isMobile,
+        isAutomationLoading,
+        setIsAutomationLoading,
       }}
     >
       {children}
