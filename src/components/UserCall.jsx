@@ -18,7 +18,9 @@ const UserCall = ({
     firstName: localFormData?.firstName || userCall?.firstName || '',
     lastName: localFormData?.lastName || userCall?.lastName || '',
     emailId: localFormData?.emailId || userCall?.emailId || userCall?.Email || userCall?.email || '',
-    contactNumber: isManualEntry ? localFormData?.contactNumber || userCall?.contactNumber || '' : userCall?.contactNumber || localFormData?.contactNumber || '',
+    contactNumber: isManualEntry
+      ? localFormData?.contactNumber || userCall?.contactNumber || ''
+      : userCall?.contactNumber || localFormData?.contactNumber || '',
     alternateNumber: localFormData?.alternateNumber || userCall?.alternateNumber || '',
     comment: localFormData?.comment || userCall?.comment || userCall?.Remarks || '',
     Contactaddress: localFormData?.Contactaddress || userCall?.Contactaddress || userCall?.address || '',
@@ -26,11 +28,7 @@ const UserCall = ({
     ContactCity: localFormData?.ContactCity || userCall?.ContactCity || userCall?.city || userCall?.CIty || '',
     ContactState: localFormData?.ContactState || userCall?.ContactState || userCall?.state || '',
     ContactPincode:
-      localFormData?.ContactPincode ||
-      userCall?.ContactPincode ||
-      userCall?.postalCode ||
-      userCall?.['Pincode '] ||
-      '',
+      localFormData?.ContactPincode || userCall?.ContactPincode || userCall?.postalCode || userCall?.['Pincode '] || '',
   };
 
   const handleChange = (e) => {
@@ -54,7 +52,9 @@ const UserCall = ({
       firstName: currentFormData.firstName,
       lastName: currentFormData.lastName,
       emailId: currentFormData.emailId,
-      contactNumber: isManualEntry ? currentFormData.contactNumber : userCall?.contactNumber || currentFormData.contactNumber,
+      contactNumber: isManualEntry
+        ? currentFormData.contactNumber
+        : userCall?.contactNumber || currentFormData.contactNumber,
       alternateNumber: currentFormData.alternateNumber,
       comment: currentFormData.comment,
       Contactaddress: currentFormData.Contactaddress,
@@ -69,17 +69,27 @@ const UserCall = ({
 
   const userCallForm = () => {
     return (
-      <form className="space-y-6 max-h-[32rem] overflow-y-auto pr-2" onSubmit={onSubmit}>
+      <form
+        className="space-y-6 md:max-h-[calc(100vh-40rem)] lg:max-h-[calc(100vh-35rem)] xl:h-screen overflow-y-auto pr-3 pb-5 pl-1"
+        onSubmit={onSubmit}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2 rounded-xl border bg-muted/20 p-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="relative">
-                <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+                <Phone
+                  className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none"
+                  aria-hidden="true"
+                />
                 <Input
                   name="contactNumber"
                   type="tel"
                   placeholder="Caller Number"
-                  value={isManualEntry ? currentFormData.contactNumber : userCall?.contactNumber || currentFormData.contactNumber}
+                  value={
+                    isManualEntry
+                      ? currentFormData.contactNumber
+                      : userCall?.contactNumber || currentFormData.contactNumber
+                  }
                   disabled={!isManualEntry}
                   className={`pl-10 border-border ${isManualEntry ? '' : 'bg-muted/50 cursor-not-allowed'}`}
                   onChange={handleChange}
@@ -88,7 +98,10 @@ const UserCall = ({
               </div>
 
               <div className="relative">
-                <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+                <Phone
+                  className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none"
+                  aria-hidden="true"
+                />
                 <Input
                   name="alternateNumber"
                   type="tel"
@@ -104,7 +117,10 @@ const UserCall = ({
 
           {/* First Name */}
           <div className="relative">
-            <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+            <User
+              className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none"
+              aria-hidden="true"
+            />
             <Input
               name="firstName"
               type="text"
@@ -118,7 +134,10 @@ const UserCall = ({
 
           {/* Last Name */}
           <div className="relative">
-            <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+            <User
+              className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none"
+              aria-hidden="true"
+            />
             <Input
               name="lastName"
               type="text"
@@ -132,7 +151,10 @@ const UserCall = ({
 
           {/* Email */}
           <div className="relative md:col-span-2">
-            <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+            <Mail
+              className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none"
+              aria-hidden="true"
+            />
             <Input
               name="emailId"
               type="email"
@@ -146,7 +168,10 @@ const UserCall = ({
 
           {/* Address */}
           <div className="relative md:col-span-2">
-            <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+            <MapPin
+              className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none"
+              aria-hidden="true"
+            />
             <Input
               name="Contactaddress"
               type="text"
@@ -160,7 +185,10 @@ const UserCall = ({
 
           {/* City */}
           <div className="relative">
-            <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+            <Building2
+              className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none"
+              aria-hidden="true"
+            />
             <Input
               name="ContactCity"
               type="text"
@@ -174,7 +202,10 @@ const UserCall = ({
 
           {/* District */}
           <div className="relative">
-            <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+            <Building
+              className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none"
+              aria-hidden="true"
+            />
             <Input
               name="ContactDistrict"
               type="text"
@@ -188,7 +219,10 @@ const UserCall = ({
 
           {/* State */}
           <div className="relative">
-            <MapPinned className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+            <MapPinned
+              className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none"
+              aria-hidden="true"
+            />
             <Input
               name="ContactState"
               type="text"
@@ -202,7 +236,10 @@ const UserCall = ({
 
           {/* Postal Code */}
           <div className="relative">
-            <MailOpen className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+            <MailOpen
+              className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none"
+              aria-hidden="true"
+            />
             <Input
               name="ContactPincode"
               type="text"
@@ -217,7 +254,10 @@ const UserCall = ({
 
         {/* Comment */}
         <div className="relative">
-          <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+          <MessageSquare
+            className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none"
+            aria-hidden="true"
+          />
           <Textarea
             name="comment"
             placeholder="Enter your comments or notes here..."
@@ -254,8 +294,8 @@ const UserCall = ({
             <User className="text-primary" size={20} aria-hidden="true" />
           </div>
           <div>
-              <CardTitle className="text-2xl text-foreground">Contact Form</CardTitle>
-              <CardDescription className="text-muted-foreground text-sm">
+            <CardTitle className="text-2xl text-foreground">Contact Form</CardTitle>
+            <CardDescription className="text-muted-foreground text-sm">
               {isManualEntry
                 ? 'Manual contact entry'
                 : userCall?.contactNumber
