@@ -33,7 +33,7 @@ const Home = ({
   };
 
   return (
-    <div className="flex flex-col overflow-hidden px-4 pt-2.5 pb-4">
+    <div className="flex flex-col overflow-hidden md:mt-0 mt-18 px-4 pt-2.5 pb-4">
       {/* Header — desktop only */}
       {!isMobile && (
         <div className="mb-3 flex select-none items-center justify-between">

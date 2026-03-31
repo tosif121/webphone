@@ -205,7 +205,7 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
   const removeBreak = async () => {
     try {
       await axios.post(
-        `https://esamwad.iotcom.io/user/removebreakuser:${username}`,
+        `${window.location.origin}/user/removebreakuser:${username}`,
         {},
         {
           headers: {
@@ -255,7 +255,7 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
 
     try {
       await axios.post(
-        `https://esamwad.iotcom.io/user/breakuser:${username}`,
+        `${window.location.origin}/user/breakuser:${username}`,
         { breakType },
         {
           headers: {

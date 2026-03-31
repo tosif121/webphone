@@ -76,7 +76,13 @@ export default function IncomingCall({
       )}
 
       {/* Mobile: White box with shadow */}
-      <div className={isMobile ? 'bg-white dark:bg-card rounded-2xl border shadow-md p-6 mx-auto w-full max-w-xs' : 'w-full max-w-md mx-auto'}>
+      <div
+        className={
+          isMobile
+            ? 'bg-white dark:bg-card rounded-2xl mt-18 border shadow-md p-6 mx-auto w-full max-w-xs'
+            : 'w-full max-w-md mx-auto'
+        }
+      >
         {/* Header */}
         <div className="text-center pt-2 pb-3">
           <Badge
@@ -115,9 +121,7 @@ export default function IncomingCall({
 
           {/* Caller Details */}
           <div className="text-center space-y-1 mb-6">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white break-words">
-              {displayName}
-            </h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white break-words">{displayName}</h1>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">{displayNumber}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Calling...</p>
           </div>

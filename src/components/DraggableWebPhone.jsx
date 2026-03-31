@@ -274,7 +274,9 @@ export default function DraggableWebPhone() {
       if (!previousIsCallLiveRef.current) {
         phoneShowBeforeCallRef.current = phoneShow;
       }
-      setIsExpandedDuringCall(false);
+      if (effectiveIsMobile) {
+        setIsExpandedDuringCall(true);
+      }
     } else if (previousIsCallLiveRef.current && !effectiveIsMobile) {
       setPhoneShow(Boolean(phoneShowBeforeCallRef.current));
       setIsExpandedDuringCall(false);

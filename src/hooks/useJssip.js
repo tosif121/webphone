@@ -164,10 +164,10 @@ const useJssip = (isMobile = false) => {
     logSystemEvent,
   } = monitoring;
 
-  // useEffect(() => {
-  //   const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-  //   setOrigin(originWithoutProtocol);
-  // }, []);
+  useEffect(() => {
+    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    setOrigin(originWithoutProtocol);
+  }, []);
 
   const getStoredTokenPayload = useCallback(() => {
     try {
@@ -195,10 +195,13 @@ const useJssip = (isMobile = false) => {
 
   const activeCallContextLoadedRef = useRef(false);
   const activeCallContextRequestRef = useRef(null);
+  const bridgeIDRef = useRef('');
 
   const finalizePostCallContext = useCallback(() => {
+    console.log('[WebPhone] Finalizing post-call context. Clearing bridgeID ref.');
     activeCallContextLoadedRef.current = false;
     activeCallContextRequestRef.current = null;
+    bridgeIDRef.current = '';
     setBridgeID('');
     setActiveCallContext(null);
     setUserCall('');
@@ -218,7 +221,7 @@ const useJssip = (isMobile = false) => {
       activeCallContextRequestRef.current = (async () => {
         try {
           const response = await axios.post(
-            `https://esamwad.iotcom.io/useroncall/${username}`,
+            `${window.location.origin}/useroncall/${username}`,
             leadLockToken ? { leadLockToken } : {},
             {
               headers: {
@@ -231,7 +234,10 @@ const useJssip = (isMobile = false) => {
             throw new Error('Failed to process call');
           }
 
-          setBridgeID(response.data.currentcalldata?.bridgeID || '');
+          const newBridgeID = response.data.currentcalldata?.bridgeID || '';
+          console.log('[WebPhone] Context loaded. Setting bridgeID:', newBridgeID);
+          bridgeIDRef.current = newBridgeID;
+          setBridgeID(newBridgeID);
           setActiveCallContext(response.data.currentcalldata || null);
           if (response.data.contactData) {
             setUserCall(response.data.contactData);
@@ -378,7 +384,7 @@ const useJssip = (isMobile = false) => {
 
       const response = await withTimeout(
         axios.post(
-          `https://esamwad.iotcom.io/userconnection`,
+          `${window.location.origin}/userconnection`,
           { user: username },
           {
             headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -487,7 +493,7 @@ const useJssip = (isMobile = false) => {
   const handleLogout = async (token, message) => {
     try {
       if (token) {
-        await axios.delete(`https://esamwad.iotcom.io/deleteFirebaseToken`, {
+        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -595,7 +601,6 @@ const useJssip = (isMobile = false) => {
 
   const eventHandlers = {
     failed: function (e) {
-      finalizePostCallContext();
       setStatus('fail');
       setAgentLifecycle(leadLockToken ? 'lead_locked' : 'idle');
       // setPhoneNumber('');
@@ -700,7 +705,7 @@ const useJssip = (isMobile = false) => {
     setIsIncomingRinging(false);
     setStatus('start');
     setCallType('');
-    finalizePostCallContext();
+    // finalizePostCallContext(); // REMOVED: Don't clear bridgeID yet, we need it for automation
     // Update history as rejected
     setHistory((prev) => [
       ...prev.slice(0, -1),
@@ -748,7 +753,7 @@ const useJssip = (isMobile = false) => {
             try {
               await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
 
-              const response = await axios.post(`https://esamwad.iotcom.io/user/breakuser:${username}`, {
+              const response = await axios.post(`${window.location.origin}/user/breakuser:${username}`, {
                 breakType: storedBreak,
               });
               if (response.status === 200) {
@@ -793,6 +798,11 @@ const useJssip = (isMobile = false) => {
           // ✅ Check for conference messages (connected/disconnected)
           else if (/customer host channel (connected|di[s]?connected)/i.test(message)) {
             handleConferenceMessage(message);
+          }
+          // ✅ Check for customer channel disconnection (auto-reject if ringing)
+          else if (message.includes('customer channel disconnected')) {
+            console.log('[WebPhone] Customer channel disconnected while ringing - auto-rejecting');
+            rejectIncomingCall();
           }
           // ✅ Check if customer/agent channel answered (both enable Add Call button)
           else if (message.includes('customer channel answered') || message.includes('agent channel answered')) {
@@ -1228,7 +1238,7 @@ const useJssip = (isMobile = false) => {
 
       // ✅ 6. Make the API call to dial number
       const response = await axios.post(
-        `https://esamwad.iotcom.io/dialnumber`,
+        `${window.location.origin}/dialnumber`,
         {
           receiver: targetNumber,
           leadLockToken: nextLeadLockToken || undefined,
@@ -1346,37 +1356,40 @@ const useJssip = (isMobile = false) => {
   useEffect(() => {
     const callApi = async () => {
       if (isCallended) {
+        console.log('[WebPhone] Call Ended. Starting automation for:', username);
         setIsAutomationLoading(true);
         try {
           // 1. Call callended API
-          await axios.post(
-            `https://esamwad.iotcom.io/user/callended${username}`,
-            leadLockToken ? { leadLockToken } : {},
-            {
-              headers: {
-                ...getAuthHeaders({ 'Content-Type': 'application/json' }),
-              },
+          const callendedUrl = `${window.location.origin}/user/callended${username}`;
+          console.log('[WebPhone] Triggering callended API:', callendedUrl, { leadLockToken });
+
+          await axios.post(callendedUrl, leadLockToken ? { leadLockToken } : {}, {
+            headers: {
+              ...getAuthHeaders({ 'Content-Type': 'application/json' }),
             },
-          );
+          });
 
           if (isMobile) {
             // 2. On Mobile, perform SILENT auto-disposition
             try {
-              await axios.post(
-                `https://esamwad.iotcom.io/user/disposition${username}`,
-                {
-                  bridgeID: bridgeID,
-                  Disposition: 'Auto Disposed',
-                  receiver: phoneNumber,
-                  autoDialDisabled: false,
-                  leadLockToken: leadLockToken || undefined,
-                },
-                {
-                  headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-                },
-              );
+              const dispoUrl = `${window.location.origin}/user/disposition${username}`;
+              const finalBridgeID = bridgeIDRef.current || bridgeID;
+              const dispoPayload = {
+                bridgeID: finalBridgeID,
+                Disposition: 'Auto Disposed',
+                autoDialDisabled: false,
+              };
+              console.log('[WebPhone] Triggering silent disposition:', dispoUrl, dispoPayload, {
+                refValue: bridgeIDRef.current,
+                stateValue: bridgeID,
+              });
+
+              const response = await axios.post(dispoUrl, dispoPayload, {
+                headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+              });
+              console.log('[WebPhone] Disposition response:', response.data);
             } catch (dispoError) {
-              console.error('[WebPhone] Silent disposition failed:', dispoError);
+              console.error('[WebPhone] Silent disposition failed:', dispoError.response?.data || dispoError.message);
             }
 
             // 3. Reset to IDLE / Home Screen instantly on mobile
@@ -1400,6 +1413,8 @@ const useJssip = (isMobile = false) => {
           setAgentLifecycle('idle');
         } finally {
           setIsAutomationLoading(false);
+          // ✅ Clear context ONLY after automation is done or failed
+          finalizePostCallContext();
         }
       }
     };
