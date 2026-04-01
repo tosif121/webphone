@@ -227,7 +227,7 @@ export const useJssipUtils = (state) => {
     }
 
     try {
-      const url = `${window.location.origin}/userready/${username}`;
+      const url = `${window.location.origin}/userready/${username}/Web`;
       const response = await axios.post(url, {}, { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) });
       const payload = response?.data || {};
       const success = response.status === 200 && payload.message === 'success';

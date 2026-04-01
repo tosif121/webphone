@@ -250,6 +250,7 @@ export default function LeadAndCallInfoPanel({
   const [loadingConversation, setLoadingConversation] = useState(false);
   const [manualEntryMode, setManualEntryMode] = useState(false);
   const [isCampaignWebformEnabled, setIsCampaignWebformEnabled] = useState(false);
+  const [isFormAvailabilityResolved, setIsFormAvailabilityResolved] = useState(false);
   const [contactConversationHistory, setContactConversationHistory] = useState([]);
   const [latestConversation, setLatestConversation] = useState(null);
   const [loadingContactConversationHistory, setLoadingContactConversationHistory] = useState(false);
@@ -364,6 +365,10 @@ export default function LeadAndCallInfoPanel({
       return;
     }
 
+    if (!isFormAvailabilityResolved) {
+      return;
+    }
+
     if (isCampaignWebformEnabled) {
       return;
     }
@@ -385,6 +390,7 @@ export default function LeadAndCallInfoPanel({
     dispositionModal,
     finalizePostCallContext,
     formSubmitted,
+    isFormAvailabilityResolved,
     isCampaignWebformEnabled,
     isDispositionEnabled,
     setDispositionModal,
@@ -732,24 +738,29 @@ export default function LeadAndCallInfoPanel({
         try {
           const savedUsername = typeof window !== 'undefined' ? localStorage.getItem('savedUsername') : null;
           const savedPassword = typeof window !== 'undefined' ? localStorage.getItem('savedPassword') : null;
+          const existingTokenData =
+            typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('token') || 'null') || {} : {};
 
           if (!savedUsername || !savedPassword) {
             throw new Error('No saved credentials found');
           }
 
-          const refreshRes = await axios.post(`${window.location.origin}/api/applogin`, {
-            username: savedUsername,
+          const refreshRes = await axios.post(`${window.location.origin}/refresh-token-agent`, {
+            userid: savedUsername,
             password: savedPassword,
           });
 
-          const newToken = refreshRes.data.token;
-          const newRefreshToken = refreshRes.data.refreshToken;
+          const newToken = refreshRes.data?.token;
+          if (!newToken) {
+            throw new Error(refreshRes.data?.message || 'Unable to refresh agent token');
+          }
 
           const updatedTokenData = {
+            ...existingTokenData,
             token: newToken,
-            refreshToken: newRefreshToken,
           };
           localStorage.setItem('token', JSON.stringify(updatedTokenData));
+          window.dispatchEvent(new CustomEvent('auth-token-updated'));
 
           const retryRes = await axios.get(url, {
             headers: { Authorization: `Bearer ${newToken}` },
@@ -758,18 +769,6 @@ export default function LeadAndCallInfoPanel({
           return retryRes;
         } catch (refreshErr) {
           console.error('Token refresh failed:', refreshErr);
-          localStorage.removeItem('token');
-          localStorage.removeItem('savedUsername');
-          localStorage.removeItem('savedPassword');
-          localStorage.removeItem('call-history');
-          localStorage.removeItem('phoneShow');
-          localStorage.removeItem('formNavigationState');
-          localStorage.removeItem('selectedBreak');
-          Object.keys(localStorage).forEach((key) => {
-            if (key.startsWith('breakStartTime_')) {
-              localStorage.removeItem(key);
-            }
-          });
           throw refreshErr;
         }
       } else {
@@ -781,6 +780,7 @@ export default function LeadAndCallInfoPanel({
   useEffect(() => {
     if (!userCampaign) {
       setIsCampaignWebformEnabled(false);
+      setIsFormAvailabilityResolved(true);
       setFormId(null);
       setFormConfig(null);
       return;
@@ -789,6 +789,7 @@ export default function LeadAndCallInfoPanel({
     async function fetchFormList() {
       try {
         setLoading(true);
+        setIsFormAvailabilityResolved(false);
 
         const tokenData = localStorage.getItem('token');
         let token = null;
@@ -883,6 +884,7 @@ export default function LeadAndCallInfoPanel({
         setFormConfig(null);
       } finally {
         setLoading(false);
+        setIsFormAvailabilityResolved(true);
       }
     }
 

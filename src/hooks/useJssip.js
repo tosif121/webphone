@@ -198,6 +198,8 @@ const useJssip = (isMobile = false) => {
   const bridgeIDRef = useRef('');
   const readySyncInFlightRef = useRef(null);
   const readySyncLastSuccessRef = useRef(0);
+  const connectioncheckInFlightRef = useRef(false);
+  const connectionFailureCountRef = useRef(0);
 
   const waitForReadyRetry = useCallback((delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs)), []);
 
@@ -424,8 +426,26 @@ const useJssip = (isMobile = false) => {
 
   // In useJssip.js
 
-  const connectioncheck = async () => {
+  const connectioncheck = useCallback(async () => {
+    if (connectioncheckInFlightRef.current) {
+      return false;
+    }
+
+    const hasProtectedSessionPhase =
+      dispositionModal ||
+      connectionStatus === 'Disposition' ||
+      status === 'calling' ||
+      status === 'conference' ||
+      Boolean(incomingSession) ||
+      isIncomingRinging ||
+      agentLifecycle === 'dialing' ||
+      agentLifecycle === 'ringing' ||
+      agentLifecycle === 'on_call' ||
+      agentLifecycle === 'disposition' ||
+      isAutomationLoading;
+
     try {
+      connectioncheckInFlightRef.current = true;
       setIsConnectionLost(false);
 
       // Parse token data once at the beginning
@@ -459,27 +479,52 @@ const useJssip = (isMobile = false) => {
       let data = response.data;
 
       if (data.message === 'poor connection problem ,please login again') {
-        console.warn('Poor connection detected from server');
+        connectionFailureCountRef.current += 1;
+        setIsConnectionLost(true);
 
-        const recoveryResult = await syncAgentReadyState({
-          source: 'userconnection-recovery',
-          attempts: 2,
-          retryDelayMs: 800,
-        });
-
-        if (recoveryResult?.success) {
-          response = await withTimeout(
-            axios.post(
-              `${window.location.origin}/userconnection`,
-              { user: username },
-              {
-                headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-              },
-            ),
-            3000,
-          );
-          data = response.data;
+        if (connectionFailureCountRef.current >= 2) {
+          setTimeoutMessage('Connection to telephony session was lost. Please reconnect.');
+          setShowTimeoutModal(true);
         }
+        return false;
+      }
+
+      if (data.message === 'poor connection problem ,please login again') {
+        connectionFailureCountRef.current += 1;
+        setIsConnectionLost(true);
+        console.warn('Poor connection persists after recovery attempt');
+        return false;
+      }
+
+      if (response.status === 401 || !data.isUserLogin) {
+        connectionFailureCountRef.current += 1;
+        setIsConnectionLost(true);
+        console.warn('Authentication/runtime recovery failure detected');
+
+        if (!hasProtectedSessionPhase && connectionFailureCountRef.current >= 3) {
+          setTimeoutMessage(response.status === 401 ? '' : 'Agent session could not be restored. Please reconnect.');
+          if (response.status === 401) {
+            await handleLogout(token, 'Session expired. Please log in again.');
+            setUserLogin(true);
+          } else {
+            setShowTimeoutModal(true);
+          }
+        }
+        return false;
+      }
+
+      connectionFailureCountRef.current = 0;
+      setUserLogin(false);
+      if (showTimeoutModal && !userLogin) {
+        setShowTimeoutModal(false);
+        setTimeoutMessage('');
+      }
+
+      if (data.message !== 'ok connection for user') {
+        connectionFailureCountRef.current += 1;
+        setIsConnectionLost(true);
+        console.warn('Connection issue:', data.message);
+        return false;
       }
 
       // In connectioncheck function
@@ -574,8 +619,36 @@ const useJssip = (isMobile = false) => {
       // ✅ 9. Handle errors
       console.error('Connection check error:', err);
       return await handleConnectionError(err);
+    } finally {
+      connectioncheckInFlightRef.current = false;
     }
-  };
+  }, [
+    agentLifecycle,
+    connectionStatus,
+    dispositionModal,
+    getAuthHeaders,
+    incomingSession,
+    isAutomationLoading,
+    isIncomingRinging,
+    leadLockToken,
+    setAgentLifecycle,
+    setConnectionStatus,
+    setCurrentCallData,
+    setFollowUpDispoes,
+    setHasTransfer,
+    setInNotification,
+    setIsConnectionLost,
+    setQueueDetails,
+    setRingtone,
+    setShowTimeoutModal,
+    setTimeoutMessage,
+    setUserLogin,
+    showTimeoutModal,
+    status,
+    syncAgentReadyState,
+    userLogin,
+    username,
+  ]);
 
   const handleLogout = async (token, message) => {
     try {
@@ -626,6 +699,32 @@ const useJssip = (isMobile = false) => {
   // Helper function for error handling
   const handleConnectionError = async (err) => {
     console.error('Error during connection check:', err);
+    const hasProtectedSessionPhase =
+      dispositionModal ||
+      connectionStatus === 'Disposition' ||
+      status === 'calling' ||
+      status === 'conference' ||
+      Boolean(incomingSession) ||
+      isIncomingRinging ||
+      agentLifecycle === 'dialing' ||
+      agentLifecycle === 'ringing' ||
+      agentLifecycle === 'on_call' ||
+      agentLifecycle === 'disposition' ||
+      isAutomationLoading;
+
+    if (err.response?.status === 401) {
+      connectionFailureCountRef.current += 1;
+      setIsConnectionLost(true);
+
+      if (!hasProtectedSessionPhase && connectionFailureCountRef.current >= 2) {
+        setTimeoutMessage('');
+        setShowTimeoutModal(true);
+        setUserLogin(true);
+        toast.error('Session expired. Please log in again.');
+      }
+
+      return false;
+    }
 
     if (err.message === 'Timeout') {
       console.error('Connection timed out');
@@ -656,7 +755,7 @@ const useJssip = (isMobile = false) => {
     }
 
     setIsConnectionLost(true);
-    return true;
+    return false;
   };
 
   useEffect(() => {
@@ -747,6 +846,21 @@ const useJssip = (isMobile = false) => {
       window.removeEventListener('refreshFollowUps', handleRefreshFollowUps);
     };
   }, [connectioncheck]);
+
+  useEffect(() => {
+    if (!username) {
+      return undefined;
+    }
+
+    void connectioncheck();
+    const heartbeatInterval = setInterval(() => {
+      void connectioncheck();
+    }, 5000);
+
+    return () => {
+      clearInterval(heartbeatInterval);
+    };
+  }, [connectioncheck, username]);
 
   const answerIncomingCall = async () => {
     if (incomingSession) {

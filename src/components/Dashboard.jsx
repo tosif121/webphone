@@ -733,12 +733,10 @@ function Dashboard() {
   }, [dropCalls, fetchUserMissedCalls, status, username]);
 
   useEffect(() => {
-    if (selectedBreak !== 'Break' && ringtone.length >= 0) {
-      if (username) {
-        fetchUserMissedCalls();
-      }
+    if (selectedBreak !== 'Break' && username) {
+      fetchUserMissedCalls();
     }
-  }, [ringtone, username]);
+  }, [fetchUserMissedCalls, selectedBreak, username]);
 
   useEffect(() => {
     const checkUserAvailability = async () => {
