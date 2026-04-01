@@ -196,12 +196,35 @@ const useJssip = (isMobile = false) => {
   const activeCallContextLoadedRef = useRef(false);
   const activeCallContextRequestRef = useRef(null);
   const bridgeIDRef = useRef('');
+  const incomingSessionRef = useRef(null);
+  const isIncomingRingingRef = useRef(false);
+  const statusRef = useRef('start');
   const readySyncInFlightRef = useRef(null);
   const readySyncLastSuccessRef = useRef(0);
   const connectioncheckInFlightRef = useRef(false);
   const connectionFailureCountRef = useRef(0);
+  const lastAriMessageAtRef = useRef(0);
+  const lastConnectionCheckAtRef = useRef(0);
+  const lastConnectionToastAtRef = useRef(0);
+
+  const MESSAGE_HEARTBEAT_STALE_MS = 12000;
+  const CONNECTION_CHECK_TIMEOUT_MS = 8000;
+  const CONNECTION_CHECK_SCHEDULER_MS = 5000;
+  const CONNECTION_CHECK_MIN_REQUEST_GAP_MS = 10000;
 
   const waitForReadyRetry = useCallback((delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs)), []);
+
+  useEffect(() => {
+    incomingSessionRef.current = incomingSession;
+  }, [incomingSession]);
+
+  useEffect(() => {
+    isIncomingRingingRef.current = isIncomingRinging;
+  }, [isIncomingRinging]);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
 
   const syncAgentReadyState = useCallback(
     async ({ source = 'unknown', attempts = 3, retryDelayMs = 1000 } = {}) => {
@@ -424,13 +447,14 @@ const useJssip = (isMobile = false) => {
     });
   };
 
-  // In useJssip.js
-
-  const connectioncheck = useCallback(async () => {
+  const connectioncheck = useCallback(async ({ reason = 'manual', force = false } = {}) => {
     if (connectioncheckInFlightRef.current) {
       return false;
     }
 
+    const now = Date.now();
+    const hasRecentAriHeartbeat =
+      lastAriMessageAtRef.current > 0 && now - lastAriMessageAtRef.current <= MESSAGE_HEARTBEAT_STALE_MS;
     const hasProtectedSessionPhase =
       dispositionModal ||
       connectionStatus === 'Disposition' ||
@@ -444,9 +468,19 @@ const useJssip = (isMobile = false) => {
       agentLifecycle === 'disposition' ||
       isAutomationLoading;
 
+    if (!force) {
+      if (reason === 'interval' && hasRecentAriHeartbeat) {
+        return false;
+      }
+
+      if (reason === 'interval' && now - lastConnectionCheckAtRef.current < CONNECTION_CHECK_MIN_REQUEST_GAP_MS) {
+        return false;
+      }
+    }
+
     try {
       connectioncheckInFlightRef.current = true;
-      setIsConnectionLost(false);
+      lastConnectionCheckAtRef.current = now;
 
       // Parse token data once at the beginning
       const tokenDataString = localStorage.getItem('token');
@@ -465,7 +499,7 @@ const useJssip = (isMobile = false) => {
 
       const campaign = parsedTokenData.userData.campaign;
 
-      let response = await withTimeout(
+      const response = await withTimeout(
         axios.post(
           `${window.location.origin}/userconnection`,
           { user: username },
@@ -473,64 +507,45 @@ const useJssip = (isMobile = false) => {
             headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
           },
         ),
-        3000,
+        CONNECTION_CHECK_TIMEOUT_MS,
       );
 
-      let data = response.data;
+      const data = response.data;
 
-      if (data.message === 'poor connection problem ,please login again') {
+      // Treat auth expiry separately from runtime status. A live ARI heartbeat can
+      // coexist with stale userlivestatus=UNAVAILABLE, and that should not force
+      // the browser into a hard login modal.
+
+      if (data.message !== 'ok connection for user') {
         connectionFailureCountRef.current += 1;
         setIsConnectionLost(true);
 
-        if (connectionFailureCountRef.current >= 2) {
+        if (!hasProtectedSessionPhase && connectionFailureCountRef.current >= 2) {
           setTimeoutMessage('Connection to telephony session was lost. Please reconnect.');
           setShowTimeoutModal(true);
         }
         return false;
       }
 
-      if (data.message === 'poor connection problem ,please login again') {
+      if (false && (response.status === 401 || !data.isUserLogin)) {
         connectionFailureCountRef.current += 1;
         setIsConnectionLost(true);
-        console.warn('Poor connection persists after recovery attempt');
-        return false;
-      }
+        setUserLogin(true);
 
-      if (response.status === 401 || !data.isUserLogin) {
-        connectionFailureCountRef.current += 1;
-        setIsConnectionLost(true);
-        console.warn('Authentication/runtime recovery failure detected');
-
-        if (!hasProtectedSessionPhase && connectionFailureCountRef.current >= 3) {
-          setTimeoutMessage(response.status === 401 ? '' : 'Agent session could not be restored. Please reconnect.');
-          if (response.status === 401) {
-            await handleLogout(token, 'Session expired. Please log in again.');
-            setUserLogin(true);
-          } else {
-            setShowTimeoutModal(true);
-          }
+        if (!hasProtectedSessionPhase && connectionFailureCountRef.current >= 2) {
+          await handleLogout(token, 'Session expired. Please log in again.');
         }
         return false;
       }
 
       connectionFailureCountRef.current = 0;
       setUserLogin(false);
-      if (showTimeoutModal && !userLogin) {
-        setShowTimeoutModal(false);
-        setTimeoutMessage('');
-      }
-
-      if (data.message !== 'ok connection for user') {
-        connectionFailureCountRef.current += 1;
-        setIsConnectionLost(true);
-        console.warn('Connection issue:', data.message);
-        return false;
-      }
+      setIsConnectionLost(false);
 
       // In connectioncheck function
 
       // ✅ 1. Poor connection - don't set userLogin, allow re-connect
-      if (data.message === 'poor connection problem ,please login again') {
+      if (false && data.message === 'poor connection problem ,please login again') {
         console.warn('⚠️ Poor connection detected from server');
 
         if (status === 'start' && !dispositionModal) {
@@ -543,7 +558,7 @@ const useJssip = (isMobile = false) => {
       }
 
       // ✅ 2. Force logout - set userLogin to true
-      if (response.status === 401 || !data.isUserLogin) {
+      if (false && (response.status === 401 || !data.isUserLogin)) {
         console.warn('⚠️ Authentication failure detected');
 
         if (status === 'start' && !dispositionModal) {
@@ -570,7 +585,7 @@ const useJssip = (isMobile = false) => {
       }
 
       // ✅ 4. Handle other connection issues
-      if (data.message !== 'ok connection for user') {
+      if (false && data.message !== 'ok connection for user') {
         console.warn('⚠️ Connection issue:', data.message);
 
         if (status === 'start' && !dispositionModal) {
@@ -618,7 +633,7 @@ const useJssip = (isMobile = false) => {
     } catch (err) {
       // ✅ 9. Handle errors
       console.error('Connection check error:', err);
-      return await handleConnectionError(err);
+      return await handleConnectionError(err, { hasRecentAriHeartbeat, hasProtectedSessionPhase });
     } finally {
       connectioncheckInFlightRef.current = false;
     }
@@ -643,10 +658,7 @@ const useJssip = (isMobile = false) => {
     setShowTimeoutModal,
     setTimeoutMessage,
     setUserLogin,
-    showTimeoutModal,
     status,
-    syncAgentReadyState,
-    userLogin,
     username,
   ]);
 
@@ -697,20 +709,11 @@ const useJssip = (isMobile = false) => {
   };
 
   // Helper function for error handling
-  const handleConnectionError = async (err) => {
+  const handleConnectionError = async (
+    err,
+    { hasRecentAriHeartbeat = false, hasProtectedSessionPhase = false } = {},
+  ) => {
     console.error('Error during connection check:', err);
-    const hasProtectedSessionPhase =
-      dispositionModal ||
-      connectionStatus === 'Disposition' ||
-      status === 'calling' ||
-      status === 'conference' ||
-      Boolean(incomingSession) ||
-      isIncomingRinging ||
-      agentLifecycle === 'dialing' ||
-      agentLifecycle === 'ringing' ||
-      agentLifecycle === 'on_call' ||
-      agentLifecycle === 'disposition' ||
-      isAutomationLoading;
 
     if (err.response?.status === 401) {
       connectionFailureCountRef.current += 1;
@@ -728,33 +731,59 @@ const useJssip = (isMobile = false) => {
 
     if (err.message === 'Timeout') {
       console.error('Connection timed out');
-      if (status === 'start' && !dispositionModal) {
+      addTimeout('timeout');
+
+      if (hasRecentAriHeartbeat) {
+        return false;
+      }
+
+      connectionFailureCountRef.current += 1;
+      setIsConnectionLost(true);
+
+      if (!hasProtectedSessionPhase && Date.now() - lastConnectionToastAtRef.current > 15000) {
+        lastConnectionToastAtRef.current = Date.now();
         toast.error('Server appears to be unresponsive. Retrying...');
       }
-      addTimeout('timeout');
-    } else if (err.message.includes('Network')) {
+
+      if (!hasProtectedSessionPhase && connectionFailureCountRef.current >= 2) {
+        setTimeoutMessage('Connection to telephony session was lost. Please reconnect.');
+        setShowTimeoutModal(true);
+      }
+      return false;
+    }
+
+    if (err.message.includes('Network')) {
       console.error('Network error:', err.message);
-      if (status === 'start' && !dispositionModal) {
+      addTimeout('network');
+
+      if (hasRecentAriHeartbeat) {
+        return false;
+      }
+
+      connectionFailureCountRef.current += 1;
+      setIsConnectionLost(true);
+
+      if (!hasProtectedSessionPhase && Date.now() - lastConnectionToastAtRef.current > 15000) {
+        lastConnectionToastAtRef.current = Date.now();
         toast.error('Network error. Please check your connection.');
       }
-      addTimeout('network');
-    } else if (err.response?.status === 401 && status === 'start' && !dispositionModal) {
-      // Handle auth errors
-      window.location.href = '/webphone/v1';
-      toast.error('Session expired. Please log in again.');
 
-      if (session && session.status < 6) {
-        session.terminate();
+      if (!hasProtectedSessionPhase && connectionFailureCountRef.current >= 2) {
+        setTimeoutMessage('Connection to telephony session was lost. Please reconnect.');
+        setShowTimeoutModal(true);
       }
-      stopRecording();
-    } else {
-      // Generic error handling
-      if (status === 'start' && !dispositionModal) {
+      return false;
+    }
+
+    if (!hasRecentAriHeartbeat) {
+      setIsConnectionLost(true);
+
+      if (!hasProtectedSessionPhase && Date.now() - lastConnectionToastAtRef.current > 15000) {
+        lastConnectionToastAtRef.current = Date.now();
         toast.error('Connection check failed. Please try again.');
       }
     }
 
-    setIsConnectionLost(true);
     return false;
   };
 
@@ -838,7 +867,7 @@ const useJssip = (isMobile = false) => {
 
   useEffect(() => {
     const handleRefreshFollowUps = () => {
-      void connectioncheck();
+      void connectioncheck({ reason: 'refresh', force: true });
     };
 
     window.addEventListener('refreshFollowUps', handleRefreshFollowUps);
@@ -852,10 +881,10 @@ const useJssip = (isMobile = false) => {
       return undefined;
     }
 
-    void connectioncheck();
+    void connectioncheck({ reason: 'initial', force: true });
     const heartbeatInterval = setInterval(() => {
-      void connectioncheck();
-    }, 5000);
+      void connectioncheck({ reason: 'interval' });
+    }, CONNECTION_CHECK_SCHEDULER_MS);
 
     return () => {
       clearInterval(heartbeatInterval);
@@ -1002,6 +1031,9 @@ const useJssip = (isMobile = false) => {
 
         ua.on('newMessage', (e) => {
           const message = e.request.body;
+          lastAriMessageAtRef.current = Date.now();
+          connectionFailureCountRef.current = 0;
+          setIsConnectionLost(false);
           console.log(message, 'message');
           // ✅ Check for force login request
           if (message.includes('force_login_request') || message.includes('Force Login Request')) {
@@ -1014,8 +1046,18 @@ const useJssip = (isMobile = false) => {
           }
           // ✅ Check for customer channel disconnection (auto-reject if ringing)
           else if (message.includes('customer channel disconnected')) {
-            console.log('[WebPhone] Customer channel disconnected while ringing - auto-rejecting');
-            rejectIncomingCall();
+            const hasPendingIncomingRingingSession =
+              Boolean(incomingSessionRef.current) &&
+              isIncomingRingingRef.current &&
+              statusRef.current === 'incoming' &&
+              !callHandledRef.current;
+
+            if (hasPendingIncomingRingingSession) {
+              console.log('[WebPhone] Pending ringing customer channel disconnected - auto-rejecting');
+              rejectIncomingCall();
+            } else {
+              console.log('[WebPhone] Ignoring customer disconnect message after answer/without ringing session');
+            }
           }
           // ✅ Check if customer/agent channel answered (both enable Add Call button)
           else if (message.includes('customer channel answered') || message.includes('agent channel answered')) {
@@ -1051,8 +1093,6 @@ const useJssip = (isMobile = false) => {
             });
           }
 
-          // Always run connection check
-          connectioncheck();
         });
 
         ua.on('registrationFailed', (data) => {
