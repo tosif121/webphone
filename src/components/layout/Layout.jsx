@@ -1,12 +1,10 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { toast } from 'react-hot-toast';
 import { JssipContext } from '@/context/JssipContext';
 import HistoryContext from '../../context/HistoryContext';
 import DraggableWebPhone from '../DraggableWebPhone';
 import { ConsentRequestModal } from '../ForceLoginModals';
-import DropCallsModal from '../DropCallsModal';
-import FollowUpCallsModal from '../FollowUpCallsModal';
 import Footer from './Footer';
 import Header from './Header';
 
@@ -16,29 +14,7 @@ export default function Layout({ children }) {
   const {
     showSecurityAlert,
     setShowSecurityAlert,
-    dropCalls,
-    setDropCalls,
-    callAlert,
-    setCallAlert,
-    history,
-    username,
-    campaignMissedCallsLength,
-    scheduleCallsLength,
   } = useContext(HistoryContext);
-
-  const [token, setToken] = useState('');
-
-  useEffect(() => {
-    const tokenData = localStorage.getItem('token');
-    if (tokenData) {
-      try {
-        const parsed = JSON.parse(tokenData);
-        setToken(parsed.token || '');
-      } catch (e) {
-        setToken('');
-      }
-    }
-  }, []);
 
   const hiddenPhoneRoutes = ['/agent-dashboard', '/system-monitoring'];
   const shouldShowPhone = !hiddenPhoneRoutes.includes(router.pathname) && !showSecurityAlert;
@@ -129,26 +105,6 @@ export default function Layout({ children }) {
       <div style={{ display: shouldShowPhone ? 'block' : 'none' }}>
         <DraggableWebPhone />
       </div>
-
-      {dropCalls && (
-        <DropCallsModal
-          usermissedCalls={history.filter((h) => h.status === 'missed')}
-          setDropCalls={setDropCalls}
-          username={username}
-          campaignMissedCallsLength={campaignMissedCallsLength}
-          token={token}
-        />
-      )}
-
-      {callAlert && (
-        <FollowUpCallsModal
-          callAlert={callAlert}
-          setCallAlert={setCallAlert}
-          username={username}
-          scheduleCallsLength={scheduleCallsLength}
-          token={token}
-        />
-      )}
 
       <audio ref={audioRef} autoPlay playsInline style={{ display: 'none' }} />
     </>
