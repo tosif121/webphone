@@ -19,7 +19,7 @@ export default function AgentDashboardPage() {
   useEffect(() => {
     // Redirect to main page on mobile - Agent Dashboard is a mobile tab only
     if (isMobile) {
-      router.replace('/webphone/v1');
+      router.replace('/');
     }
   }, [isMobile, router]);
 

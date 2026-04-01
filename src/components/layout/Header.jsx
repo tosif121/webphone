@@ -283,7 +283,7 @@ export default function Header() {
       icon: <MonitorCog className="w-4 h-4" />,
     },
     {
-      href: '/webphone/login',
+      href: '/login',
       name: 'Stable Version',
       icon: <Settings className="w-4 h-4" />,
     },

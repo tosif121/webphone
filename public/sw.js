@@ -8,7 +8,7 @@ self.addEventListener('notificationclick', function(event) {
       if (clientList.length > 0) {
         return clientList[0].focus();
       }
-      return clients.openWindow('/');
+      return clients.openWindow(self.registration.scope || '/webphone/v1/');
     })
   );
 });

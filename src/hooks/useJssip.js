@@ -1358,6 +1358,7 @@ const useJssip = (isMobile = false) => {
       if (isCallended) {
         console.log('[WebPhone] Call Ended. Starting automation for:', username);
         setIsAutomationLoading(true);
+        let keepPostCallContext = false;
         try {
           // 1. Call callended API
           const callendedUrl = `${window.location.origin}/user/callended${username}`;
@@ -1404,6 +1405,7 @@ const useJssip = (isMobile = false) => {
             setIsHeld(false);
             setIsCallended(false);
             setAgentLifecycle('disposition');
+            keepPostCallContext = true;
             setDispositionModal(true);
           }
         } catch (error) {
@@ -1414,7 +1416,9 @@ const useJssip = (isMobile = false) => {
         } finally {
           setIsAutomationLoading(false);
           // ✅ Clear context ONLY after automation is done or failed
-          finalizePostCallContext();
+          if (!keepPostCallContext) {
+            finalizePostCallContext();
+          }
         }
       }
     };

@@ -60,7 +60,13 @@ const Disposition = ({
   setAgentLifecycle,
 }) => {
   const { username, selectedBreak } = useContext(HistoryContext);
-  const { finalizePostCallContext } = useContext(JssipContext);
+  const {
+    finalizePostCallContext,
+    bridgeID: liveBridgeID,
+    userCall: liveUserCall,
+    activeCallContext,
+    workspaceActiveCall,
+  } = useContext(JssipContext);
   const { token, user: authUser } = useAuth();
   const [selectedAction, setSelectedAction] = useState(null);
   const [isAutoLeadDialDisabled, setIsAutoLeadDialDisabled] = useState(false);
@@ -84,7 +90,30 @@ const Disposition = ({
   const campaignName = authUser?.campaignName || 'N/A';
   const stickyEnabled = authUser?.stickyEnabled !== false;
   const stickyMode = authUser?.stickyMode || 'loose';
-  const stickyTargetNumber = phoneNumber || activeLead?.number || activeLead?.phone || activeLead?.contactNumber || '';
+  const resolvedBridgeID = String(
+    bridgeID ||
+      liveBridgeID ||
+      liveUserCall?.bridgeID ||
+      workspaceActiveCall?.bridgeID ||
+      activeCallContext?.bridgeID ||
+      '',
+  ).trim();
+  const stickyTargetNumber = String(
+    phoneNumber ||
+      liveUserCall?.contactNumber ||
+      liveUserCall?.number ||
+      liveUserCall?.phone ||
+      workspaceActiveCall?.contactNumber ||
+      workspaceActiveCall?.Caller ||
+      workspaceActiveCall?.dialNumber ||
+      activeCallContext?.contactNumber ||
+      activeCallContext?.Caller ||
+      activeCallContext?.dialNumber ||
+      activeLead?.number ||
+      activeLead?.phone ||
+      activeLead?.contactNumber ||
+      '',
+  ).trim();
 
   const getAuthHeaders = useCallback(
     (extraHeaders = {}) =>
@@ -548,8 +577,13 @@ const Disposition = ({
       setIsSubmitting(true);
 
       try {
+        if (!resolvedBridgeID) {
+          toast.error('Call bridge not found. Please retry once or refresh the webphone.');
+          return;
+        }
+
         const requestBody = {
-          bridgeID,
+          bridgeID: resolvedBridgeID,
           Disposition: isDispoWithBreak ? 'dispoWithBreak' : selectedAction,
           autoDialDisabled: isAutoLeadDialDisabled,
           leadId: activeLead?.leadId,
@@ -634,7 +668,7 @@ const Disposition = ({
     },
     [
       selectedAction,
-      bridgeID,
+      resolvedBridgeID,
       username,
       isAutoLeadDialDisabled,
       followUpDate,
@@ -765,7 +799,7 @@ const Disposition = ({
                   <div className="flex flex-col">
                     <span className="text-xs text-slate-500 dark:text-slate-400">Number</span>
                     <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-100 whitespace-nowrap">
-                      {phoneNumber}
+                      {stickyTargetNumber || 'N/A'}
                     </span>
                   </div>
                 </div>
@@ -825,7 +859,7 @@ const Disposition = ({
               <div className="flex flex-col lg:flex-row gap-4 justify-end items-start border-t pt-4">
                 <div className="flex flex-row gap-2 w-full lg:w-auto md:justify-end">
                   <div>
-                    <BreakDropdown bridgeID={bridgeID} dispoWithBreak={true} selectedAction={selectedAction} />
+                    <BreakDropdown bridgeID={resolvedBridgeID} dispoWithBreak={true} selectedAction={selectedAction} />
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <Button

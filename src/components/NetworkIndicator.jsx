@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 
+import { WEBPHONE_SERVICE_WORKER_PATH } from '@/lib/basePath';
+
 /**
  * Unified Network Quality indicator
  * Merged from NetworkMonitor and WebRTCStats logic.
@@ -40,7 +42,7 @@ const NetworkIndicator = ({ timeoutArray = [], peerConnection = null, timeWindow
     const checkPing = async () => {
       try {
         const start = performance.now();
-        await fetch(`${window.location.origin}/sw.js`, { method: 'GET', cache: 'no-store' });
+        await fetch(`${window.location.origin}${WEBPHONE_SERVICE_WORKER_PATH}`, { method: 'GET', cache: 'no-store' });
         const duration = performance.now() - start;
         setIcmp(duration.toFixed(0));
       } catch (error) {
