@@ -206,11 +206,16 @@ const useJssip = (isMobile = false) => {
   const lastAriMessageAtRef = useRef(0);
   const lastConnectionCheckAtRef = useRef(0);
   const lastConnectionToastAtRef = useRef(0);
+  const uaRef = useRef(null);
+  const lastSipHeartbeatAttemptAtRef = useRef(0);
+  const sipHeartbeatFailureCountRef = useRef(0);
 
-  const MESSAGE_HEARTBEAT_STALE_MS = 12000;
+  const MESSAGE_HEARTBEAT_STALE_MS = 10000;
   const CONNECTION_CHECK_TIMEOUT_MS = 8000;
   const CONNECTION_CHECK_SCHEDULER_MS = 5000;
-  const CONNECTION_CHECK_MIN_REQUEST_GAP_MS = 10000;
+  const CONNECTION_CHECK_MIN_REQUEST_GAP_MS = 5000;
+  const SIP_HEARTBEAT_SEND_INTERVAL_MS = 4000;
+  const SIP_HEARTBEAT_MIN_GAP_MS = 2500;
 
   const waitForReadyRetry = useCallback((delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs)), []);
 
@@ -225,6 +230,10 @@ const useJssip = (isMobile = false) => {
   useEffect(() => {
     statusRef.current = status;
   }, [status]);
+
+  useEffect(() => {
+    uaRef.current = ua;
+  }, [ua]);
 
   const syncAgentReadyState = useCallback(
     async ({ source = 'unknown', attempts = 3, retryDelayMs = 1000 } = {}) => {
@@ -662,6 +671,84 @@ const useJssip = (isMobile = false) => {
     username,
   ]);
 
+  const sendSipHeartbeat = useCallback(
+    async ({ source = 'interval', force = false, minGapMs = SIP_HEARTBEAT_MIN_GAP_MS } = {}) => {
+      if (!username) {
+        return false;
+      }
+
+      const currentUa = uaRef.current;
+      if (!currentUa) {
+        return false;
+      }
+
+      const now = Date.now();
+      if (!force && now - lastSipHeartbeatAttemptAtRef.current < minGapMs) {
+        return false;
+      }
+
+      const wsStatus = getWebSocketStatus();
+      if (!wsStatus.connected || !isUARegistered()) {
+        return false;
+      }
+
+      lastSipHeartbeatAttemptAtRef.current = now;
+
+      return await new Promise((resolve) => {
+        let settled = false;
+        const finalize = (value) => {
+          if (!settled) {
+            settled = true;
+            resolve(value);
+          }
+        };
+
+        const guardId = window.setTimeout(() => finalize(false), 4000);
+
+        try {
+          currentUa.sendMessage(
+            'heartbeat',
+            JSON.stringify({
+              body: 'webphone-heartbeat',
+              source,
+              timestamp: now,
+            }),
+            {
+              contentType: 'application/json',
+              eventHandlers: {
+                succeeded: () => {
+                  window.clearTimeout(guardId);
+                  sipHeartbeatFailureCountRef.current = 0;
+                  finalize(true);
+                },
+                failed: () => {
+                  window.clearTimeout(guardId);
+                  sipHeartbeatFailureCountRef.current += 1;
+
+                  if (now - lastAriMessageAtRef.current > MESSAGE_HEARTBEAT_STALE_MS) {
+                    setIsConnectionLost(true);
+                  }
+
+                  finalize(false);
+                },
+              },
+            },
+          );
+        } catch (error) {
+          window.clearTimeout(guardId);
+          sipHeartbeatFailureCountRef.current += 1;
+
+          if (now - lastAriMessageAtRef.current > MESSAGE_HEARTBEAT_STALE_MS) {
+            setIsConnectionLost(true);
+          }
+
+          finalize(false);
+        }
+      });
+    },
+    [getWebSocketStatus, isUARegistered, setIsConnectionLost, username],
+  );
+
   const handleLogout = async (token, message) => {
     try {
       if (token) {
@@ -990,6 +1077,8 @@ const useJssip = (isMobile = false) => {
             return;
           }
 
+          void sendSipHeartbeat({ source: 'sip-registered', force: true });
+
           const storedBreak = localStorage.getItem('selectedBreak');
           if (storedBreak && storedBreak !== 'Break') {
             try {
@@ -1030,10 +1119,16 @@ const useJssip = (isMobile = false) => {
         });
 
         ua.on('newMessage', (e) => {
-          const message = e.request.body;
+          if (e.originator === 'local') {
+            return;
+          }
+
+          const message = e.request?.body || '';
           lastAriMessageAtRef.current = Date.now();
           connectionFailureCountRef.current = 0;
+          sipHeartbeatFailureCountRef.current = 0;
           setIsConnectionLost(false);
+          void sendSipHeartbeat({ source: 'incoming-message' });
           console.log(message, 'message');
           // ✅ Check for force login request
           if (message.includes('force_login_request') || message.includes('Force Login Request')) {
@@ -1409,8 +1504,9 @@ const useJssip = (isMobile = false) => {
 
     // Function to check socket connection status periodically
     const checkSocketConnection = () => {
-      if (ua && ua.transport && ua.transport.socket) {
-        const socketState = ua.transport.socket.readyState;
+      const currentUa = uaRef.current;
+      if (currentUa && currentUa.transport && currentUa.transport.socket) {
+        const socketState = currentUa.transport.socket.readyState;
 
         // WebSocket.CLOSED = 3, WebSocket.CLOSING = 2
         if (socketState === 3 || socketState === 2) {
@@ -1438,16 +1534,48 @@ const useJssip = (isMobile = false) => {
       }
       clearInterval(socketCheckInterval);
 
-      if (ua) {
-        ua.off('newMessage');
+      const activeUa = uaRef.current;
+      if (activeUa) {
+        activeUa.off('newMessage');
         try {
-          ua.stop();
+          activeUa.stop();
         } catch (error) {
           console.error('Error stopping UA:', error);
         }
       }
     };
-  }, [origin, password, syncAgentReadyState, username]);
+  }, [origin, password, sendSipHeartbeat, syncAgentReadyState, username]);
+
+  useEffect(() => {
+    if (!ua || !username) {
+      return undefined;
+    }
+
+    void sendSipHeartbeat({ source: 'ua-ready', force: true });
+
+    const heartbeatId = setInterval(() => {
+      void sendSipHeartbeat({ source: 'interval' });
+    }, SIP_HEARTBEAT_SEND_INTERVAL_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void sendSipHeartbeat({ source: 'visibility', force: true });
+      }
+    };
+
+    const handleOnline = () => {
+      void sendSipHeartbeat({ source: 'online', force: true });
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      clearInterval(heartbeatId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [sendSipHeartbeat, ua, username]);
 
   const handleCall = async (formattedNumber, metadata = {}) => {
     // ✅ 1. Early return - Check connection status
