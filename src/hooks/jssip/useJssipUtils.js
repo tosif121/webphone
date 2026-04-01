@@ -217,16 +217,37 @@ export const useJssipUtils = (state) => {
     }
   }
 
-  const checkUserReady = async () => {
+  const checkUserReady = useCallback(async () => {
+    if (!username) {
+      return {
+        success: false,
+        message: 'Missing username for userready sync.',
+        status: null,
+      };
+    }
+
     try {
       const url = `${window.location.origin}/userready/${username}`;
       const response = await axios.post(url, {}, { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) });
-      return response.data;
+      const payload = response?.data || {};
+      const success = response.status === 200 && payload.message === 'success';
+
+      return {
+        success,
+        status: response.status,
+        payload,
+        message: payload.message || (success ? 'success' : 'Userready sync failed.'),
+      };
     } catch (error) {
       console.error('Error sending login request:', error);
-      return null;
+      return {
+        success: false,
+        status: error?.response?.status || null,
+        payload: error?.response?.data || null,
+        message: error?.response?.data?.message || error.message || 'Userready sync failed.',
+      };
     }
-  };
+  }, [getAuthHeaders, username]);
 
   const removeBreak = async () => {
     try {

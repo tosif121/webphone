@@ -196,6 +196,69 @@ const useJssip = (isMobile = false) => {
   const activeCallContextLoadedRef = useRef(false);
   const activeCallContextRequestRef = useRef(null);
   const bridgeIDRef = useRef('');
+  const readySyncInFlightRef = useRef(null);
+  const readySyncLastSuccessRef = useRef(0);
+
+  const waitForReadyRetry = useCallback((delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs)), []);
+
+  const syncAgentReadyState = useCallback(
+    async ({ source = 'unknown', attempts = 3, retryDelayMs = 1000 } = {}) => {
+      if (!username) {
+        return {
+          success: false,
+          message: 'Missing username for agent ready sync.',
+          source,
+        };
+      }
+
+      if (readySyncInFlightRef.current) {
+        return readySyncInFlightRef.current;
+      }
+
+      readySyncInFlightRef.current = (async () => {
+        let lastResult = {
+          success: false,
+          message: 'Agent ready sync was not attempted.',
+          source,
+        };
+
+        for (let attempt = 1; attempt <= attempts; attempt += 1) {
+          lastResult = await checkUserReady();
+          if (lastResult?.success) {
+            readySyncLastSuccessRef.current = Date.now();
+            logSystemEvent('success', 'Agent Ready Sync', `Agent runtime synced via ${source} on attempt ${attempt}`);
+            return {
+              ...lastResult,
+              attempt,
+              source,
+            };
+          }
+
+          console.warn(
+            `[WebPhone] Agent ready sync failed via ${source} on attempt ${attempt}/${attempts}:`,
+            lastResult?.message,
+          );
+
+          if (attempt < attempts) {
+            await waitForReadyRetry(retryDelayMs);
+          }
+        }
+
+        logSystemEvent('error', 'Agent Ready Sync', `Agent runtime sync failed via ${source}`);
+        return {
+          ...lastResult,
+          source,
+        };
+      })();
+
+      try {
+        return await readySyncInFlightRef.current;
+      } finally {
+        readySyncInFlightRef.current = null;
+      }
+    },
+    [checkUserReady, logSystemEvent, username, waitForReadyRetry],
+  );
 
   const finalizePostCallContext = useCallback(() => {
     console.log('[WebPhone] Finalizing post-call context. Clearing bridgeID ref.');
@@ -382,7 +445,7 @@ const useJssip = (isMobile = false) => {
 
       const campaign = parsedTokenData.userData.campaign;
 
-      const response = await withTimeout(
+      let response = await withTimeout(
         axios.post(
           `${window.location.origin}/userconnection`,
           { user: username },
@@ -393,7 +456,31 @@ const useJssip = (isMobile = false) => {
         3000,
       );
 
-      const data = response.data;
+      let data = response.data;
+
+      if (data.message === 'poor connection problem ,please login again') {
+        console.warn('Poor connection detected from server');
+
+        const recoveryResult = await syncAgentReadyState({
+          source: 'userconnection-recovery',
+          attempts: 2,
+          retryDelayMs: 800,
+        });
+
+        if (recoveryResult?.success) {
+          response = await withTimeout(
+            axios.post(
+              `${window.location.origin}/userconnection`,
+              { user: username },
+              {
+                headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+              },
+            ),
+            3000,
+          );
+          data = response.data;
+        }
+      }
 
       // In connectioncheck function
 
@@ -700,7 +787,7 @@ const useJssip = (isMobile = false) => {
     if (incomingSession && incomingSession.status < 6) {
       incomingSession.terminate();
     }
-    checkUserReady();
+    void syncAgentReadyState({ source: 'rejectIncomingCall', attempts: 2, retryDelayMs: 500 });
     setIncomingSession(null);
     setIsIncomingRinging(false);
     setStatus('start');
@@ -716,7 +803,7 @@ const useJssip = (isMobile = false) => {
   };
 
   useEffect(() => {
-    if (!username || !password) {
+    if (!username || !password || !origin) {
       return;
     }
     const initializeJsSIP = () => {
@@ -747,7 +834,19 @@ const useJssip = (isMobile = false) => {
         ua.start();
 
         ua.on('registered', async (data) => {
-          checkUserReady();
+          const readySync = await syncAgentReadyState({
+            source: 'sip-registered',
+            attempts: 4,
+            retryDelayMs: 1000,
+          });
+
+          if (!readySync?.success) {
+            console.error('[WebPhone] Agent session sync failed after SIP registration:', readySync?.message);
+            setTimeoutMessage('Agent session could not be restored. Please log in again.');
+            setShowTimeoutModal(true);
+            return;
+          }
+
           const storedBreak = localStorage.getItem('selectedBreak');
           if (storedBreak && storedBreak !== 'Break') {
             try {
@@ -886,7 +985,11 @@ const useJssip = (isMobile = false) => {
 
                 // If still no data, refresh and wait briefly
                 if (!callData) {
-                  await checkUserReady();
+                  await syncAgentReadyState({
+                    source: 'autodial-refresh',
+                    attempts: 2,
+                    retryDelayMs: 500,
+                  });
                   // Wait a bit for the data to be available
                   await new Promise((resolve) => setTimeout(resolve, 300));
                   callData = currentCallData || (ringtone && ringtone.length > 0 ? ringtone[0] : null);
@@ -946,7 +1049,11 @@ const useJssip = (isMobile = false) => {
 
                     e.session.on('ended', () => {
                       stopRingtone();
-                      checkUserReady();
+                      void syncAgentReadyState({
+                        source: 'incoming-session-ended',
+                        attempts: 2,
+                        retryDelayMs: 500,
+                      });
                       setIncomingSession(null);
                       setIsIncomingRinging(false);
                       setIsCustomerAnswered(false);
@@ -966,7 +1073,11 @@ const useJssip = (isMobile = false) => {
 
                     e.session.on('failed', () => {
                       stopRingtone();
-                      checkUserReady();
+                      void syncAgentReadyState({
+                        source: 'incoming-session-failed',
+                        attempts: 2,
+                        retryDelayMs: 500,
+                      });
                       setIncomingSession(null);
                       setIsIncomingRinging(false);
                       setStatus('start');
@@ -1182,7 +1293,7 @@ const useJssip = (isMobile = false) => {
         }
       }
     };
-  }, [username, password]);
+  }, [origin, password, syncAgentReadyState, username]);
 
   const handleCall = async (formattedNumber, metadata = {}) => {
     // ✅ 1. Early return - Check connection status
