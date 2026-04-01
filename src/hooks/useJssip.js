@@ -202,6 +202,7 @@ const useJssip = (isMobile = false) => {
   const readySyncInFlightRef = useRef(null);
   const readySyncLastSuccessRef = useRef(0);
   const connectioncheckInFlightRef = useRef(false);
+  const connectioncheckRef = useRef(null);
   const connectionFailureCountRef = useRef(0);
   const lastAriMessageAtRef = useRef(0);
   const lastConnectionCheckAtRef = useRef(0);
@@ -209,6 +210,7 @@ const useJssip = (isMobile = false) => {
   const uaRef = useRef(null);
   const lastSipHeartbeatAttemptAtRef = useRef(0);
   const sipHeartbeatFailureCountRef = useRef(0);
+  const lastRuntimeResyncAttemptAtRef = useRef(0);
 
   const MESSAGE_HEARTBEAT_STALE_MS = 10000;
   const CONNECTION_CHECK_TIMEOUT_MS = 8000;
@@ -216,6 +218,7 @@ const useJssip = (isMobile = false) => {
   const CONNECTION_CHECK_MIN_REQUEST_GAP_MS = 5000;
   const SIP_HEARTBEAT_SEND_INTERVAL_MS = 4000;
   const SIP_HEARTBEAT_MIN_GAP_MS = 2500;
+  const RUNTIME_RESYNC_MIN_GAP_MS = 3000;
 
   const waitForReadyRetry = useCallback((delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs)), []);
 
@@ -234,6 +237,18 @@ const useJssip = (isMobile = false) => {
   useEffect(() => {
     uaRef.current = ua;
   }, [ua]);
+
+  useEffect(() => {
+    readySyncLastSuccessRef.current = 0;
+    readySyncInFlightRef.current = null;
+    connectioncheckInFlightRef.current = false;
+    connectionFailureCountRef.current = 0;
+    lastAriMessageAtRef.current = 0;
+    lastConnectionCheckAtRef.current = 0;
+    lastSipHeartbeatAttemptAtRef.current = 0;
+    sipHeartbeatFailureCountRef.current = 0;
+    lastRuntimeResyncAttemptAtRef.current = 0;
+  }, [username]);
 
   const syncAgentReadyState = useCallback(
     async ({ source = 'unknown', attempts = 3, retryDelayMs = 1000 } = {}) => {
@@ -491,6 +506,22 @@ const useJssip = (isMobile = false) => {
       connectioncheckInFlightRef.current = true;
       lastConnectionCheckAtRef.current = now;
 
+      if (readySyncLastSuccessRef.current === 0) {
+        if (!isUARegistered()) {
+          return false;
+        }
+
+        const readySync = await syncAgentReadyState({
+          source: `connectioncheck-${reason}`,
+          attempts: 2,
+          retryDelayMs: 500,
+        });
+
+        if (!readySync?.success) {
+          return false;
+        }
+      }
+
       // Parse token data once at the beginning
       const tokenDataString = localStorage.getItem('token');
       if (!tokenDataString) {
@@ -507,19 +538,40 @@ const useJssip = (isMobile = false) => {
       }
 
       const campaign = parsedTokenData.userData.campaign;
+      const requestUserConnection = () =>
+        withTimeout(
+          axios.post(
+            `${window.location.origin}/userconnection`,
+            { user: username },
+            {
+              headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+            },
+          ),
+          CONNECTION_CHECK_TIMEOUT_MS,
+        );
 
-      const response = await withTimeout(
-        axios.post(
-          `${window.location.origin}/userconnection`,
-          { user: username },
-          {
-            headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-          },
-        ),
-        CONNECTION_CHECK_TIMEOUT_MS,
-      );
+      let response = await requestUserConnection();
+      let data = response.data;
 
-      const data = response.data;
+      const shouldAttemptRuntimeResync =
+        data.message === 'poor connection problem ,please login again'
+        && isUARegistered()
+        && now - lastRuntimeResyncAttemptAtRef.current >= RUNTIME_RESYNC_MIN_GAP_MS;
+
+      if (shouldAttemptRuntimeResync) {
+        lastRuntimeResyncAttemptAtRef.current = Date.now();
+
+        const readySync = await syncAgentReadyState({
+          source: `userconnection-recovery-${reason}`,
+          attempts: 2,
+          retryDelayMs: 500,
+        });
+
+        if (readySync?.success) {
+          response = await requestUserConnection();
+          data = response.data;
+        }
+      }
 
       // Treat auth expiry separately from runtime status. A live ARI heartbeat can
       // coexist with stale userlivestatus=UNAVAILABLE, and that should not force
@@ -654,6 +706,7 @@ const useJssip = (isMobile = false) => {
     incomingSession,
     isAutomationLoading,
     isIncomingRinging,
+    isUARegistered,
     leadLockToken,
     setAgentLifecycle,
     setConnectionStatus,
@@ -668,6 +721,7 @@ const useJssip = (isMobile = false) => {
     setTimeoutMessage,
     setUserLogin,
     status,
+    syncAgentReadyState,
     username,
   ]);
 
@@ -748,6 +802,10 @@ const useJssip = (isMobile = false) => {
     },
     [getWebSocketStatus, isUARegistered, setIsConnectionLost, username],
   );
+
+  useEffect(() => {
+    connectioncheckRef.current = connectioncheck;
+  }, [connectioncheck]);
 
   const handleLogout = async (token, message) => {
     try {
@@ -1116,6 +1174,8 @@ const useJssip = (isMobile = false) => {
           } else {
             // console.log('[Re-apply Break] No valid break found in localStorage to re-apply.');
           }
+
+          void connectioncheckRef.current?.({ reason: 'post-ready', force: true });
         });
 
         ua.on('newMessage', (e) => {

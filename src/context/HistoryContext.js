@@ -57,10 +57,20 @@ export const HistoryProvider = ({ children }) => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        // Try 'username' first, then fall back to 'savedUsername'
-        const storedUsername = localStorage.getItem('username') ?? localStorage.getItem('savedUsername');
-        // Try 'password' first, then fall back to 'savedPassword'
-        const storedPassword = localStorage.getItem('password') ?? localStorage.getItem('savedPassword');
+        const tokenPayload = localStorage.getItem('token');
+        let tokenUsername = '';
+
+        if (tokenPayload) {
+          try {
+            const parsedToken = JSON.parse(tokenPayload);
+            tokenUsername = parsedToken?.userData?.userid || parsedToken?.userData?.username || '';
+          } catch (error) {
+            console.error('Error parsing token for stored username:', error);
+          }
+        }
+
+        const storedUsername = tokenUsername || localStorage.getItem('savedUsername') || localStorage.getItem('username');
+        const storedPassword = localStorage.getItem('savedPassword') || localStorage.getItem('password');
 
         // Update state only if values exist
         if (storedUsername) setUsername(storedUsername);
