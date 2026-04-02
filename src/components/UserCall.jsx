@@ -70,7 +70,7 @@ const UserCall = ({
   const userCallForm = () => {
     return (
       <form
-        className="space-y-6 md:max-h-[calc(100vh-40rem)] lg:max-h-[calc(100vh-35rem)] xl:h-screen overflow-y-auto pr-3 pb-5 pl-1"
+        className="space-y-6 md:h-[calc(100vh-18rem)] lg:h-[calc(100vh-20rem)] overflow-y-auto pr-3 pb-5 pl-1"
         onSubmit={onSubmit}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -281,7 +281,7 @@ const UserCall = ({
   if (userCallDialog) {
     return (
       <Card className="rounded-xl border shadow-sm">
-        <CardContent className="pt-6">{userCallForm()}</CardContent>
+        <CardContent>{userCallForm()}</CardContent>
       </Card>
     );
   }

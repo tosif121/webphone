@@ -471,259 +471,213 @@ const useJssip = (isMobile = false) => {
     });
   };
 
-  const connectioncheck = useCallback(async ({ reason = 'manual', force = false } = {}) => {
-    if (connectioncheckInFlightRef.current) {
-      return false;
-    }
-
-    const now = Date.now();
-    const hasRecentAriHeartbeat =
-      lastAriMessageAtRef.current > 0 && now - lastAriMessageAtRef.current <= MESSAGE_HEARTBEAT_STALE_MS;
-    const hasProtectedSessionPhase =
-      dispositionModal ||
-      connectionStatus === 'Disposition' ||
-      status === 'calling' ||
-      status === 'conference' ||
-      Boolean(incomingSession) ||
-      isIncomingRinging ||
-      agentLifecycle === 'dialing' ||
-      agentLifecycle === 'ringing' ||
-      agentLifecycle === 'on_call' ||
-      agentLifecycle === 'disposition' ||
-      isAutomationLoading;
-
-    if (!force) {
-      if (reason === 'interval' && hasRecentAriHeartbeat) {
+  const connectioncheck = useCallback(
+    async ({ reason = 'manual', force = false } = {}) => {
+      if (connectioncheckInFlightRef.current) {
         return false;
       }
 
-      if (reason === 'interval' && now - lastConnectionCheckAtRef.current < CONNECTION_CHECK_MIN_REQUEST_GAP_MS) {
-        return false;
-      }
-    }
+      const now = Date.now();
+      const hasRecentAriHeartbeat =
+        lastAriMessageAtRef.current > 0 && now - lastAriMessageAtRef.current <= MESSAGE_HEARTBEAT_STALE_MS;
+      const hasProtectedSessionPhase =
+        dispositionModal ||
+        connectionStatus === 'Disposition' ||
+        status === 'calling' ||
+        status === 'conference' ||
+        Boolean(incomingSession) ||
+        isIncomingRinging ||
+        agentLifecycle === 'dialing' ||
+        agentLifecycle === 'ringing' ||
+        agentLifecycle === 'on_call' ||
+        agentLifecycle === 'disposition' ||
+        isAutomationLoading;
 
-    try {
-      connectioncheckInFlightRef.current = true;
-      lastConnectionCheckAtRef.current = now;
-
-      if (readySyncLastSuccessRef.current === 0) {
-        if (!isUARegistered()) {
+      if (!force) {
+        if (reason === 'interval' && hasRecentAriHeartbeat) {
           return false;
         }
 
-        const readySync = await syncAgentReadyState({
-          source: `connectioncheck-${reason}`,
-          attempts: 2,
-          retryDelayMs: 500,
-        });
-
-        if (!readySync?.success) {
+        if (reason === 'interval' && now - lastConnectionCheckAtRef.current < CONNECTION_CHECK_MIN_REQUEST_GAP_MS) {
           return false;
         }
       }
 
-      // Parse token data once at the beginning
-      const tokenDataString = localStorage.getItem('token');
-      if (!tokenDataString) {
-        console.error('No token data found');
-        return false;
-      }
+      try {
+        connectioncheckInFlightRef.current = true;
+        lastConnectionCheckAtRef.current = now;
 
-      const parsedTokenData = JSON.parse(tokenDataString);
-      const token = parsedTokenData.token;
+        if (readySyncLastSuccessRef.current === 0) {
+          if (!isUARegistered()) {
+            return false;
+          }
 
-      if (!parsedTokenData?.userData?.campaign) {
-        console.error('Campaign information missing in token data');
-        return false;
-      }
+          const readySync = await syncAgentReadyState({
+            source: `connectioncheck-${reason}`,
+            attempts: 2,
+            retryDelayMs: 500,
+          });
 
-      const campaign = parsedTokenData.userData.campaign;
-      const requestUserConnection = () =>
-        withTimeout(
+          if (!readySync?.success) {
+            return false;
+          }
+        }
+
+        setIsConnectionLost(false);
+
+        // Parse token data once at the beginning
+        const tokenDataString = localStorage.getItem('token');
+        if (!tokenDataString) {
+          console.error('No token data found');
+          return false;
+        }
+
+        const parsedTokenData = JSON.parse(tokenDataString);
+        const token = parsedTokenData.token;
+
+        if (!parsedTokenData?.userData?.campaign) {
+          console.error('Campaign information missing in token data');
+          return false;
+        }
+
+        const campaign = parsedTokenData.userData.campaign;
+
+        const response = await withTimeout(
           axios.post(
             `${window.location.origin}/userconnection`,
             { user: username },
-            {
-              headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-            },
+            { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
           ),
           CONNECTION_CHECK_TIMEOUT_MS,
         );
 
-      let response = await requestUserConnection();
-      let data = response.data;
+        const data = response.data;
 
-      const shouldAttemptRuntimeResync =
-        data.message === 'poor connection problem ,please login again'
-        && isUARegistered()
-        && now - lastRuntimeResyncAttemptAtRef.current >= RUNTIME_RESYNC_MIN_GAP_MS;
+        // ✅ 1. Poor connection - don't set userLogin, allow re-connect
+        if (data.message === 'poor connection problem ,please login again') {
+          console.warn('⚠️ Poor connection detected from server');
 
-      if (shouldAttemptRuntimeResync) {
-        lastRuntimeResyncAttemptAtRef.current = Date.now();
+          if (status === 'start' && !dispositionModal) {
+            setTimeoutMessage('Poor connection problem. Please login again.');
+            setShowTimeoutModal(true);
 
-        const readySync = await syncAgentReadyState({
-          source: `userconnection-recovery-${reason}`,
-          attempts: 2,
-          retryDelayMs: 500,
-        });
-
-        if (readySync?.success) {
-          response = await requestUserConnection();
-          data = response.data;
+            return true;
+          }
+          return false;
         }
-      }
 
-      // Treat auth expiry separately from runtime status. A live ARI heartbeat can
-      // coexist with stale userlivestatus=UNAVAILABLE, and that should not force
-      // the browser into a hard login modal.
+        // ✅ 2. Force logout - set userLogin to true
+        if (response.status === 401 || !data.isUserLogin) {
+          console.warn('⚠️ Authentication failure detected');
 
-      if (data.message !== 'ok connection for user') {
-        connectionFailureCountRef.current += 1;
-        setIsConnectionLost(true);
+          if (status === 'start' && !dispositionModal) {
+            setTimeoutMessage('');
+            await handleLogout(token, 'Force logout. Please log in again.');
 
-        if (!hasProtectedSessionPhase && connectionFailureCountRef.current >= 2) {
-          setTimeoutMessage('Connection to telephony session was lost. Please reconnect.');
-          setShowTimeoutModal(true);
+            // ✅ SET userLogin to true - force to login page
+            setUserLogin(true);
+
+            return true;
+          }
+          return false;
         }
-        return false;
-      }
 
-      if (false && (response.status === 401 || !data.isUserLogin)) {
-        connectionFailureCountRef.current += 1;
-        setIsConnectionLost(true);
-        setUserLogin(true);
+        // ✅ 3. Set follow-up dispositions and connection status
+        setFollowUpDispoes(data.followUpDispoes || []);
+        setConnectionStatus(data.status);
 
-        if (!hasProtectedSessionPhase && connectionFailureCountRef.current >= 2) {
-          await handleLogout(token, 'Session expired. Please log in again.');
+        // Update agent lifecycle based on status
+        if (data.status === 'Disposition') {
+          setAgentLifecycle('disposition');
+        } else if (data.status === 'INUSE') {
+          setAgentLifecycle('on_call');
+        } else if (data.status === 'NOT_INUSE' || data.status === 'UNAVAILABLE') {
+          setAgentLifecycle(leadLockToken ? 'lead_locked' : 'idle');
         }
-        return false;
-      }
 
-      connectionFailureCountRef.current = 0;
-      setUserLogin(false);
-      setIsConnectionLost(false);
+        // ✅ 4. Handle other connection issues
+        if (data.message !== 'ok connection for user') {
+          console.warn('⚠️ Connection issue:', data.message);
 
-      // In connectioncheck function
+          if (status === 'start' && !dispositionModal) {
+            // Clear custom timeout message
+            setTimeoutMessage('');
 
-      // ✅ 1. Poor connection - don't set userLogin, allow re-connect
-      if (false && data.message === 'poor connection problem ,please login again') {
-        console.warn('⚠️ Poor connection detected from server');
-
-        if (status === 'start' && !dispositionModal) {
-          setTimeoutMessage('Poor connection problem. Please login again.');
-          setShowTimeoutModal(true);
-
-          return true;
+            await handleConnectionLost();
+            return true;
+          }
+          return false;
         }
-        return false;
-      }
 
-      // ✅ 2. Force logout - set userLogin to true
-      if (false && (response.status === 401 || !data.isUserLogin)) {
-        console.warn('⚠️ Authentication failure detected');
+        // ✅ 5. Update conference calls
+        setConferenceCalls(data.conferenceCalls || []);
 
-        if (status === 'start' && !dispositionModal) {
-          setTimeoutMessage('');
-          await handleLogout(token, 'Force logout. Please log in again.');
-
-          // ✅ SET userLogin to true - force to login page
-          setUserLogin(true);
-
-          return true;
-        }
-        return false;
-      }
-
-      // ✅ 3. Set follow-up dispositions and connection status
-      setFollowUpDispoes(data.followUpDispoes || []);
-      setConnectionStatus(data.status);
-      if (data.status === 'Disposition') {
-        setAgentLifecycle('disposition');
-      } else if (data.status === 'INUSE') {
-        setAgentLifecycle('on_call');
-      } else if (data.status === 'NOT_INUSE' || data.status === 'UNAVAILABLE') {
-        setAgentLifecycle(leadLockToken ? 'lead_locked' : 'idle');
-      }
-
-      // ✅ 4. Handle other connection issues
-      if (false && data.message !== 'ok connection for user') {
-        console.warn('⚠️ Connection issue:', data.message);
-
-        if (status === 'start' && !dispositionModal) {
-          // Clear custom timeout message
-          setTimeoutMessage('');
-
-          await handleConnectionLost();
-          return true;
-        }
-        return false;
-      }
-
-      // ✅ 5. Update conference calls
-      setConferenceCalls(data.conferenceCalls || []);
-
-      // ✅ 6. Update queue details
-      if (data.currentCallqueue?.length > 0 && data.currentCallqueue[0].queueDetail) {
-        setQueueDetails(data.currentCallqueue[0].queueDetail);
-        setHasTransfer(data.currentCallqueue[0].queueTransfered === true);
-        setCurrentCallData(data.currentCallqueue[0]);
-      } else {
-        setQueueDetails([]);
-        setHasTransfer(false);
-        setCurrentCallData(null);
-      }
-
-      // ✅ 7. Handle ringtone/incoming calls
-      if (data.currentCallqueue?.length > 0) {
-        // Check if campaign matches
-        if (campaign === data.currentCallqueue[0].campaign) {
-          setRingtone(data.currentCallqueue);
-          setInNotification(data.currentCallqueue.map((call) => call.Caller));
+        // ✅ 6. Update queue details
+        if (data.currentCallqueue?.length > 0 && data.currentCallqueue[0].queueDetail) {
+          setQueueDetails(data.currentCallqueue[0].queueDetail);
+          setHasTransfer(data.currentCallqueue[0].queueTransfered === true);
+          setCurrentCallData(data.currentCallqueue[0]);
         } else {
-          // Campaign mismatch - clear ringtone
+          setQueueDetails([]);
+          setHasTransfer(false);
+          setCurrentCallData(null);
+        }
+
+        // ✅ 7. Handle ringtone/incoming calls
+        if (data.currentCallqueue?.length > 0) {
+          // Check if campaign matches
+          if (campaign === data.currentCallqueue[0].campaign) {
+            setRingtone(data.currentCallqueue);
+            setInNotification(data.currentCallqueue.map((call) => call.Caller || data.currentCallqueue[0].Caller));
+          } else {
+            // Campaign mismatch - clear ringtone
+            setRingtone([]);
+          }
+        } else {
+          // No calls in queue - clear ringtone
           setRingtone([]);
         }
-      } else {
-        // No calls in queue - clear ringtone
-        setRingtone([]);
-      }
 
-      // ✅ 8. Connection successful
-      setIsConnectionLost(false);
-      return false;
-    } catch (err) {
-      // ✅ 9. Handle errors
-      console.error('Connection check error:', err);
-      return await handleConnectionError(err, { hasRecentAriHeartbeat, hasProtectedSessionPhase });
-    } finally {
-      connectioncheckInFlightRef.current = false;
-    }
-  }, [
-    agentLifecycle,
-    connectionStatus,
-    dispositionModal,
-    getAuthHeaders,
-    incomingSession,
-    isAutomationLoading,
-    isIncomingRinging,
-    isUARegistered,
-    leadLockToken,
-    setAgentLifecycle,
-    setConnectionStatus,
-    setCurrentCallData,
-    setFollowUpDispoes,
-    setHasTransfer,
-    setInNotification,
-    setIsConnectionLost,
-    setQueueDetails,
-    setRingtone,
-    setShowTimeoutModal,
-    setTimeoutMessage,
-    setUserLogin,
-    status,
-    syncAgentReadyState,
-    username,
-  ]);
+        // ✅ 8. Connection successful
+        if (status === 'start') {
+          setIsConnectionLost(false);
+        }
+        return false;
+      } catch (err) {
+        // ✅ 9. Handle errors
+        console.error('Connection check error:', err);
+        return await handleConnectionError(err, { hasRecentAriHeartbeat, hasProtectedSessionPhase });
+      } finally {
+        connectioncheckInFlightRef.current = false;
+      }
+    },
+    [
+      agentLifecycle,
+      connectionStatus,
+      dispositionModal,
+      getAuthHeaders,
+      incomingSession,
+      isAutomationLoading,
+      isIncomingRinging,
+      isUARegistered,
+      leadLockToken,
+      setAgentLifecycle,
+      setConnectionStatus,
+      setCurrentCallData,
+      setFollowUpDispoes,
+      setHasTransfer,
+      setInNotification,
+      setIsConnectionLost,
+      setQueueDetails,
+      setRingtone,
+      setShowTimeoutModal,
+      setTimeoutMessage,
+      setUserLogin,
+      status,
+      syncAgentReadyState,
+      username,
+    ],
+  );
 
   const sendSipHeartbeat = useCallback(
     async ({ source = 'interval', force = false, minGapMs = SIP_HEARTBEAT_MIN_GAP_MS } = {}) => {
@@ -1188,8 +1142,10 @@ const useJssip = (isMobile = false) => {
           connectionFailureCountRef.current = 0;
           sipHeartbeatFailureCountRef.current = 0;
           setIsConnectionLost(false);
-          void sendSipHeartbeat({ source: 'incoming-message' });
+          // void sendSipHeartbeat({ source: 'incoming-message' }); // DISABLED as it may interfere with SIP signaling
           console.log(message, 'message');
+          // Always run connection check as per request
+          void connectioncheck({ reason: 'sip-message' });
           // ✅ Check for force login request
           if (message.includes('force_login_request') || message.includes('Force Login Request')) {
             // Dispatch custom event that Layout can listen to
@@ -1247,7 +1203,6 @@ const useJssip = (isMobile = false) => {
               return updatedDifferences;
             });
           }
-
         });
 
         ua.on('registrationFailed', (data) => {
