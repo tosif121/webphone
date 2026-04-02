@@ -24,6 +24,7 @@ export function JssipProvider({ children }) {
   const [
     ringtone,
     conferenceStatus,
+    setConferenceStatus,
     reqUnHold,
     conferenceNumber,
     setConferenceNumber,
@@ -33,6 +34,7 @@ export function JssipProvider({ children }) {
     seconds,
     minutes,
     status,
+    setStatus,
     phoneNumber,
     setPhoneNumber,
     handleCall,
@@ -103,6 +105,7 @@ export function JssipProvider({ children }) {
       value={{
         ringtone,
         conferenceStatus,
+        setConferenceStatus,
         reqUnHold,
         conferenceNumber,
         setConferenceNumber,
@@ -112,6 +115,7 @@ export function JssipProvider({ children }) {
         seconds,
         minutes,
         status,
+        setStatus,
         phoneNumber,
         setPhoneNumber,
         handleCall,

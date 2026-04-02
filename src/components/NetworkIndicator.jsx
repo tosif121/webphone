@@ -1,16 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 
-import { WEBPHONE_SERVICE_WORKER_PATH } from '@/lib/basePath';
-
-/**
- * Unified Network Quality indicator
- * Merged from NetworkMonitor and WebRTCStats logic.
- *
- * @param {Array} timeoutArray - (Optional) Current timeout logs for Idle mode.
- * @param {Object} peerConnection - (Optional) RTCPeerConnection for Call mode detailed stats.
- * @param {number} timeWindow - Time window in ms for timeout calculation (default 30s).
- * @param {boolean} showTime - Whether to show the current time alongside bars.
- */
+// Unified Network Quality indicator
 const NetworkIndicator = ({ timeoutArray = [], peerConnection = null, timeWindow = 30000, showTime = false }) => {
   // WebRTC Stats
   const [jitter, setJitter] = useState(null);
@@ -42,12 +32,18 @@ const NetworkIndicator = ({ timeoutArray = [], peerConnection = null, timeWindow
     const checkPing = async () => {
       try {
         const start = performance.now();
-        await fetch(`${window.location.origin}${WEBPHONE_SERVICE_WORKER_PATH}`, { method: 'GET', cache: 'no-store' });
+        // Use a lightweight HEAD request to favicon for more reliable ping
+        await fetch('${window.location.origin}/favicon.ico', {
+          method: 'HEAD',
+          mode: 'no-cors',
+          cache: 'no-store',
+        });
         const duration = performance.now() - start;
         setIcmp(duration.toFixed(0));
       } catch (error) {
-        // Fallback to rtt if fetch fails
-        setIcmp(navigator.connection?.rtt || null);
+        // Fallback to browser's RTT if available
+        const rtt = navigator.connection?.rtt;
+        setIcmp(rtt || null);
       }
     };
 

@@ -1105,10 +1105,18 @@ export default function LeadAndCallInfoPanel({
       : [];
     const getConversationValue = (...candidates) => {
       for (const candidate of candidates) {
-        const normalizedCandidate = normalizeConversationLookupKey(candidate);
-        if (!normalizedCandidate) {
-          continue;
+        if (!candidate) continue;
+        const searchKey = String(candidate).trim().toLowerCase();
+
+        // Exact match (ignoring case but keeping symbols like _)
+        const exactMatch = conversationEntries.find(([key]) => String(key).trim().toLowerCase() === searchKey);
+        if (exactMatch && exactMatch[1] !== undefined && exactMatch[1] !== null && `${exactMatch[1]}` !== '') {
+          return exactMatch[1];
         }
+
+        // Greedy normalization fallback
+        const normalizedCandidate = normalizeConversationLookupKey(candidate);
+        if (!normalizedCandidate) continue;
 
         const matchedEntry = conversationEntries.find(([entryKey]) => {
           const normalizedEntryKey = normalizeConversationLookupKey(entryKey);
@@ -1124,10 +1132,18 @@ export default function LeadAndCallInfoPanel({
     };
     const getContactValue = (...candidates) => {
       for (const candidate of candidates) {
-        const normalizedCandidate = normalizeConversationLookupKey(candidate);
-        if (!normalizedCandidate) {
-          continue;
+        if (!candidate) continue;
+        const searchKey = String(candidate).trim().toLowerCase();
+
+        // Exact match (ignoring case but keeping symbols like _)
+        const exactMatch = contactEntries.find(([key]) => String(key).trim().toLowerCase() === searchKey);
+        if (exactMatch && exactMatch[1] !== undefined && exactMatch[1] !== null && `${exactMatch[1]}` !== '') {
+          return exactMatch[1];
         }
+
+        // Greedy normalization fallback
+        const normalizedCandidate = normalizeConversationLookupKey(candidate);
+        if (!normalizedCandidate) continue;
 
         const matchedEntry = contactEntries.find(([entryKey]) => {
           const normalizedEntryKey = normalizeConversationLookupKey(entryKey);
@@ -1180,6 +1196,11 @@ export default function LeadAndCallInfoPanel({
 
             const lowerFieldName = fieldName.toLowerCase();
             const userCallKeys = Object.keys(sourceCallData);
+
+            // Exact match prioritized
+            if (sourceCallData.hasOwnProperty(fieldName)) return sourceCallData[fieldName] ?? '';
+
+            // Case-insensitive match fallback
             const matchedKey = userCallKeys.find((key) => key.toLowerCase() === lowerFieldName);
             return matchedKey !== undefined ? (sourceCallData[matchedKey] ?? '') : '';
           };

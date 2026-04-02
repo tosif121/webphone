@@ -56,6 +56,9 @@ const CallScreen = ({
   setConfRunning,
   setConfSeconds,
   setConfMinutes,
+  setStatus,
+  setConferenceNumber,
+  setConferenceStatus,
   headerAction = null,
 }) => {
   const [currNum, setCurrNum] = useState('');
@@ -245,20 +248,17 @@ const CallScreen = ({
       } else if (error.response?.status === 401 || error.response?.status === 403) {
         toast.error('Not authorized to end conference');
       } else {
-        toast.error('Error disconnecting conference');
-
-        if (session?.status < 6) {
-          session.terminate();
-        }
-        if (stopRecording && typeof stopRecording === 'function') {
-          stopRecording();
-        }
       }
     } finally {
       setIsMerged(false);
       setConfRunning(false);
       setConfSeconds(0);
       setConfMinutes(0);
+      setStatus?.('on_call');
+      setConferenceNumber?.('');
+      setConferenceStatus?.(false);
+      setCallConference?.(false);
+      reqUnHold?.('manual_hangup_cleanup');
     }
   };
 
@@ -424,7 +424,7 @@ const CallScreen = ({
                   <>
                     <ControlButton
                       buttonId="merge-button"
-                      disabled={!isConfConnected}
+                      disabled={hasParticipants !== 'connected'}
                       onClick={handleMerge}
                       icon={<Merge size={isMobile ? 28 : 20} />}
                       title="Merge"
@@ -439,7 +439,7 @@ const CallScreen = ({
                       }
                       title="Disconnect Conference"
                       disabled={!conferenceStatus}
-                      debounceTime={800}
+                      debounceTime={300}
                     />
                   </>
                 ) : (

@@ -738,7 +738,7 @@ export default function ContactCentricWorkspace({
     );
   }
   const renderList = () => (
-    <Card className="flex h-full min-h-0 w-full min-w-0 flex-col border border-border/70 shadow-sm">
+    <Card className="flex h-auto min-h-0 w-full min-w-0 flex-col border border-border/70 shadow-sm">
       <CardHeader className="shrink-0 space-y-2 px-5">
         <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
           <div>
@@ -793,7 +793,7 @@ export default function ContactCentricWorkspace({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex min-h-0 flex-1 flex-col px-5 pb-4 pt-0">
+      <CardContent className="flex min-h-0 h-auto flex-col px-5 pb-4 pt-0">
         {workspaceErrorMessage ? (
           <div className="mb-4 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             {workspaceErrorMessage}
@@ -814,9 +814,9 @@ export default function ContactCentricWorkspace({
           </div>
         ) : (
           <>
-            <div className="min-h-0 min-w-0 flex-1 overflow-hidden lg:rounded-2xl lg:border lg:border-border/70">
-              <div className="flex h-full min-h-0 flex-col">
-                <div className="min-h-0 flex-1 overflow-auto">
+            <div className="min-h-0 min-w-0 h-auto overflow-hidden lg:rounded-2xl lg:border lg:border-border/70">
+              <div className="flex h-auto min-h-0 flex-col">
+                <div className="min-h-0 h-auto overflow-auto">
                   {isMobile ? (
                     <div className="space-y-3 pb-4">
                       {pagedRows.map((row) => (
@@ -994,7 +994,7 @@ export default function ContactCentricWorkspace({
   );
 
   const renderSplit = () => (
-    <Card className="flex h-full min-h-0 w-full min-w-0 flex-col border border-border/70 shadow-sm">
+    <Card className="flex h-auto min-h-0 w-full min-w-0 flex-col border border-border/70 shadow-sm">
       <CardHeader className="shrink-0 space-y-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-wrap items-center gap-3">
@@ -1014,10 +1014,10 @@ export default function ContactCentricWorkspace({
           <Tabs mode={mode} onModeChange={onModeChange} />
         </div>
       </CardHeader>
-      <CardContent className="flex min-h-0 flex-1 flex-col pt-0">
-        <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,0.3fr)_minmax(0,0.7fr)]">
+      <CardContent className="flex min-h-0 h-auto flex-col pt-0">
+        <div className="grid min-h-0 h-auto gap-4 xl:grid-cols-[minmax(0,0.3fr)_minmax(0,0.7fr)]">
           <div className="min-h-0">
-            <div className="flex h-full flex-col rounded-3xl border border-border/70 bg-card shadow-sm">
+            <div className="flex h-auto flex-col rounded-3xl border border-border/70 bg-card shadow-sm">
               <div className="border-b border-border/60 px-5 py-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -1052,7 +1052,7 @@ export default function ContactCentricWorkspace({
                   </div>
                 ) : null}
               </div>
-              <div className="flex-1 overflow-y-auto px-5 py-4">
+              <div className="h-auto overflow-y-auto px-5 py-4">
                 {workspaceLoading ? (
                   <SkeletonRows />
                 ) : workspaceError ? (
@@ -1126,7 +1126,7 @@ export default function ContactCentricWorkspace({
             </div>
           </div>
           <div className="min-h-0">
-            <div className="flex h-full flex-col rounded-3xl border border-border/70 bg-card shadow-sm">
+            <div className="flex h-auto flex-col rounded-3xl border border-border/70 bg-card shadow-sm">
               <div className="flex flex-col gap-3 border-b border-border/60 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <div className="text-lg font-semibold text-foreground">Call History + Tagging</div>
@@ -1165,7 +1165,7 @@ export default function ContactCentricWorkspace({
                   </Select>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto px-5 py-4">
+              <div className="h-auto overflow-y-auto px-5 py-4">
                 {workspaceLoading ? (
                   <SkeletonRows />
                 ) : historyRowsWithConversations.length === 0 ? (

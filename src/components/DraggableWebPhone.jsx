@@ -16,6 +16,7 @@ export default function DraggableWebPhone() {
   const {
     ringtone,
     conferenceStatus,
+    setConferenceStatus,
     reqUnHold,
     conferenceNumber,
     setConferenceNumber,
@@ -25,6 +26,7 @@ export default function DraggableWebPhone() {
     seconds,
     minutes,
     status,
+    setStatus,
     phoneNumber,
     setPhoneNumber,
     handleCall,
@@ -97,9 +99,7 @@ export default function DraggableWebPhone() {
   const [compactBarDisconnectedAt, setCompactBarDisconnectedAt] = useState('');
   const [rndState, setRndState] = useState({ x: 0, y: 0, width: 280, height: 500 });
 
-  useEffect(() => {
-    console.log('[WebPhone] Current Active Tab:', activeTab);
-  }, [activeTab]);
+    /* tab change log removed */
 
   const [confSeconds, setConfSeconds] = useState(0);
   const [confMinutes, setConfMinutes] = useState(0);
@@ -135,7 +135,7 @@ export default function DraggableWebPhone() {
     setIsHydrated(true);
     try {
       const savedPreferences = getStoredAgentUiPreferences();
-      console.log('[DraggableWebPhone] Initial preferences loaded:', savedPreferences);
+      /* console.log('[DraggableWebPhone] Initial preferences loaded:', savedPreferences); */
       const savedRndState = localStorage.getItem('phoneRndState');
       const savedShow = localStorage.getItem('phoneShow');
 
@@ -191,7 +191,7 @@ export default function DraggableWebPhone() {
   useEffect(() => {
     const handleProfileUpdated = (event) => {
       const nextPreferences = event?.detail || getStoredAgentUiPreferences();
-      console.log('[DraggableWebPhone] Profile updated event received:', nextPreferences);
+      /* console.log('[DraggableWebPhone] Profile updated event received:', nextPreferences); */
       setDialerDockMode(nextPreferences.dialerDockMode || 'right');
       setDialerLayoutMode(nextPreferences.dialerLayoutMode || 'overlay');
     };
@@ -457,6 +457,9 @@ export default function DraggableWebPhone() {
               setConfRunning={setConfRunning}
               setConfSeconds={setConfSeconds}
               setConfMinutes={setConfMinutes}
+              setStatus={setStatus}
+              setConferenceStatus={setConferenceStatus}
+              setCallConference={setCallConference}
               headerAction={collapseButton}
             />
           ))}

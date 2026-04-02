@@ -12,7 +12,11 @@ export const DEFAULT_AGENT_UI_PREFERENCES = {
 
 export function normalizeAgentUiPreferences(rawPreferences = {}) {
   const source = rawPreferences && typeof rawPreferences === 'object' ? rawPreferences : {};
-  const leadViewMode = ['list', 'smart'].includes(String(source.leadViewMode || '').trim().toLowerCase())
+  const leadViewMode = ['list', 'smart'].includes(
+    String(source.leadViewMode || '')
+      .trim()
+      .toLowerCase(),
+  )
     ? String(source.leadViewMode).trim().toLowerCase()
     : DEFAULT_AGENT_UI_PREFERENCES.leadViewMode;
   const resolvedDefaultTab = String(source.defaultWorkspaceTab || source.defaultMainTab || '').trim();
@@ -27,7 +31,11 @@ export function normalizeAgentUiPreferences(rawPreferences = {}) {
   const dialerLayoutMode = ['overlay', 'docked'].includes(String(source.dialerLayoutMode || '').trim())
     ? String(source.dialerLayoutMode).trim()
     : DEFAULT_AGENT_UI_PREFERENCES.dialerLayoutMode;
-  const themeMode = ['light', 'dark', 'system'].includes(String(source.themeMode || '').trim().toLowerCase())
+  const themeMode = ['light', 'dark', 'system'].includes(
+    String(source.themeMode || '')
+      .trim()
+      .toLowerCase(),
+  )
     ? String(source.themeMode).trim().toLowerCase()
     : DEFAULT_AGENT_UI_PREFERENCES.themeMode;
   const colorTheme = COLOR_THEME_VALUES.includes(String(source.colorTheme || '').trim())
@@ -79,16 +87,11 @@ export function getStoredAgentUiPreferences() {
     const rawLocalPreferences = localStorage.getItem('agent-ui-preferences');
     const parsedLocalPreferences = rawLocalPreferences ? JSON.parse(rawLocalPreferences) : null;
     const tokenPreferences = getStoredTokenPayload()?.userData?.uiPreferences || {};
-    
+
     const finalPreferences = normalizeAgentUiPreferences({
       ...DEFAULT_AGENT_UI_PREFERENCES,
       ...tokenPreferences,
       ...(parsedLocalPreferences || {}),
-    });
-
-    console.log('[Preferences] Loaded preferences:', {
-      source: parsedLocalPreferences ? 'LocalStorage' : 'Token/Default',
-      preferences: finalPreferences
     });
 
     return finalPreferences;
@@ -102,7 +105,7 @@ export function applyAgentUiPreferencesToDom(preferences) {
   if (typeof window === 'undefined') return;
 
   const normalized = normalizeAgentUiPreferences(preferences);
-  console.log('[Preferences] Applying and saving preferences:', normalized);
+  /* console.log('[Preferences] Applying and saving preferences:', normalized); */
   localStorage.setItem('agent-ui-preferences', JSON.stringify(normalized));
 
   if (normalized.themeMode) {

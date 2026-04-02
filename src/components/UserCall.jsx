@@ -15,20 +15,20 @@ const UserCall = ({
   submitLabel = 'Save Data',
 }) => {
   const currentFormData = {
-    firstName: localFormData?.firstName || userCall?.firstName || '',
-    lastName: localFormData?.lastName || userCall?.lastName || '',
-    emailId: localFormData?.emailId || userCall?.emailId || userCall?.Email || userCall?.email || '',
+    firstName: localFormData?.firstName ?? userCall?.firstName ?? '',
+    lastName: localFormData?.lastName ?? userCall?.lastName ?? '',
+    emailId: localFormData?.emailId ?? userCall?.emailId ?? userCall?.Email ?? userCall?.email ?? '',
     contactNumber: isManualEntry
-      ? localFormData?.contactNumber || userCall?.contactNumber || ''
-      : userCall?.contactNumber || localFormData?.contactNumber || '',
-    alternateNumber: localFormData?.alternateNumber || userCall?.alternateNumber || '',
-    comment: localFormData?.comment || userCall?.comment || userCall?.Remarks || '',
-    Contactaddress: localFormData?.Contactaddress || userCall?.Contactaddress || userCall?.address || '',
-    ContactDistrict: localFormData?.ContactDistrict || userCall?.ContactDistrict || '',
-    ContactCity: localFormData?.ContactCity || userCall?.ContactCity || userCall?.city || userCall?.CIty || '',
-    ContactState: localFormData?.ContactState || userCall?.ContactState || userCall?.state || '',
+      ? (localFormData?.contactNumber ?? userCall?.contactNumber ?? '')
+      : (userCall?.contactNumber ?? localFormData?.contactNumber ?? ''),
+    alternateNumber: localFormData?.alternateNumber ?? userCall?.alternateNumber ?? '',
+    comment: localFormData?.comment ?? userCall?.comment ?? userCall?.Remarks ?? '',
+    Contactaddress: localFormData?.Contactaddress ?? userCall?.Contactaddress ?? userCall?.address ?? '',
+    ContactDistrict: localFormData?.ContactDistrict ?? userCall?.ContactDistrict ?? '',
+    ContactCity: localFormData?.ContactCity ?? userCall?.ContactCity ?? userCall?.city ?? userCall?.CIty ?? '',
+    ContactState: localFormData?.ContactState ?? userCall?.ContactState ?? userCall?.state ?? '',
     ContactPincode:
-      localFormData?.ContactPincode || userCall?.ContactPincode || userCall?.postalCode || userCall?.['Pincode '] || '',
+      localFormData?.ContactPincode ?? userCall?.ContactPincode ?? userCall?.postalCode ?? userCall?.['Pincode '] ?? '',
   };
 
   const handleChange = (e) => {

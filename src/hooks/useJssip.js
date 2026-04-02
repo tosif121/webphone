@@ -283,10 +283,7 @@ const useJssip = (isMobile = false) => {
             };
           }
 
-          console.warn(
-            `[WebPhone] Agent ready sync failed via ${source} on attempt ${attempt}/${attempts}:`,
-            lastResult?.message,
-          );
+          /* Log removed for production */
 
           if (attempt < attempts) {
             await waitForReadyRetry(retryDelayMs);
@@ -310,7 +307,7 @@ const useJssip = (isMobile = false) => {
   );
 
   const finalizePostCallContext = useCallback(() => {
-    console.log('[WebPhone] Finalizing post-call context. Clearing bridgeID ref.');
+    /* console.log('[WebPhone] Finalizing post-call context. Clearing bridgeID ref.'); */
     activeCallContextLoadedRef.current = false;
     activeCallContextRequestRef.current = null;
     bridgeIDRef.current = '';
@@ -347,7 +344,7 @@ const useJssip = (isMobile = false) => {
           }
 
           const newBridgeID = response.data.currentcalldata?.bridgeID || '';
-          console.log('[WebPhone] Context loaded. Setting bridgeID:', newBridgeID);
+          /* console.log('[WebPhone] Context loaded. Setting bridgeID:', newBridgeID); */
           bridgeIDRef.current = newBridgeID;
           setBridgeID(newBridgeID);
           setActiveCallContext(response.data.currentcalldata || null);
@@ -536,7 +533,7 @@ const useJssip = (isMobile = false) => {
         const token = parsedTokenData.token;
 
         if (!parsedTokenData?.userData?.campaign) {
-          console.error('Campaign information missing in token data');
+          /* console.error('Campaign information missing in token data'); */
           return false;
         }
 
@@ -555,7 +552,7 @@ const useJssip = (isMobile = false) => {
 
         // ✅ 1. Poor connection - don't set userLogin, allow re-connect
         if (data.message === 'poor connection problem ,please login again') {
-          console.warn('⚠️ Poor connection detected from server');
+          /* console.warn('⚠️ Poor connection detected from server'); */
 
           if (status === 'start' && !dispositionModal) {
             setTimeoutMessage('Poor connection problem. Please login again.');
@@ -568,7 +565,7 @@ const useJssip = (isMobile = false) => {
 
         // ✅ 2. Force logout - set userLogin to true
         if (response.status === 401 || !data.isUserLogin) {
-          console.warn('⚠️ Authentication failure detected');
+          /* console.warn('⚠️ Authentication failure detected'); */
 
           if (status === 'start' && !dispositionModal) {
             setTimeoutMessage('');
@@ -597,7 +594,7 @@ const useJssip = (isMobile = false) => {
 
         // ✅ 4. Handle other connection issues
         if (data.message !== 'ok connection for user') {
-          console.warn('⚠️ Connection issue:', data.message);
+          /* console.warn('⚠️ Connection issue:', data.message); */
 
           if (status === 'start' && !dispositionModal) {
             // Clear custom timeout message
@@ -1138,12 +1135,13 @@ const useJssip = (isMobile = false) => {
           }
 
           const message = e.request?.body || '';
+          console.log(message);
           lastAriMessageAtRef.current = Date.now();
           connectionFailureCountRef.current = 0;
           sipHeartbeatFailureCountRef.current = 0;
           setIsConnectionLost(false);
           // void sendSipHeartbeat({ source: 'incoming-message' }); // DISABLED as it may interfere with SIP signaling
-          console.log(message, 'message');
+          /* console.log(message, 'message'); */
           // Always run connection check as per request
           void connectioncheck({ reason: 'sip-message' });
           // ✅ Check for force login request
@@ -1847,6 +1845,7 @@ const useJssip = (isMobile = false) => {
   return [
     ringtone,
     conferenceStatus,
+    setConferenceStatus,
     reqUnHold,
     conferenceNumber,
     setConferenceNumber,
@@ -1856,6 +1855,7 @@ const useJssip = (isMobile = false) => {
     seconds,
     minutes,
     status,
+    setStatus,
     phoneNumber,
     setPhoneNumber,
     handleCall,

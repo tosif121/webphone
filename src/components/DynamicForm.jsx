@@ -813,35 +813,59 @@ export default function DynamicForm({
 
   useEffect(() => {
     if (userCall && formConfig?.sections && !isInitialized) {
+      console.log('[DynamicForm] Starting generic pre-fill with userCall data keys:', Object.keys(userCall));
       const initialData = {};
       const initialVals = {};
 
+      const getUserCallValue = (fieldName) => {
+        if (!userCall) return undefined;
+        const searchKey = fieldName.trim().toLowerCase();
+        
+        if (userCall.hasOwnProperty(fieldName)) return userCall[fieldName];
+        
+        const userCallKeys = Object.keys(userCall);
+        const foundKey = userCallKeys.find(key => key.trim().toLowerCase() === searchKey);
+        if (foundKey) return userCall[foundKey];
+
+        const fuzzyKey = userCallKeys.find(key => {
+          const k = key.trim().toLowerCase();
+          return k.length > 2 && (searchKey.includes(k) || k.includes(searchKey));
+        });
+        return fuzzyKey ? userCall[fuzzyKey] : undefined;
+      };
+
       formConfig.sections.forEach((section) => {
         section.fields.forEach((field) => {
-          const systemValue = getSystemFieldValue(field);
-          if (systemValue !== undefined && systemValue !== '') {
-            initialData[field.name] = systemValue;
-            initialVals[field.name] = systemValue;
+          const sysValue = getSystemFieldValue(field);
+          if (sysValue !== undefined && sysValue !== '') {
+            initialData[field.name] = sysValue;
+            initialVals[field.name] = sysValue;
             return;
           }
 
-          if (userCallDialog) {
-            return;
+          let actualValue = getUserCallValue(field.name);
+          
+          if (actualValue !== undefined && actualValue !== '' && (field.type === 'select' || field.type === 'radio' || field.type === 'checkbox')) {
+             const options = field.options || [];
+             const searchVal = String(actualValue).trim().toLowerCase();
+             const matchingOption = options.find(opt => String(opt.value).trim().toLowerCase() === searchVal);
+             if (matchingOption) {
+               actualValue = matchingOption.value;
+             }
           }
 
-          const keyMatch = Object.keys(userCall).find((key) => key.toLowerCase() === field.name.toLowerCase());
-          if (keyMatch && userCall[keyMatch] !== undefined && userCall[keyMatch] !== '') {
-            const value = userCall[keyMatch];
+          if (actualValue !== undefined && actualValue !== '') {
             if (!userModifiedFields.has(field.name)) {
-              initialData[field.name] = value;
-              initialVals[field.name] = value;
+              initialData[field.name] = actualValue;
+              initialVals[field.name] = actualValue;
+              console.log(`[DynamicForm] [Pre-fill] ${field.name} => "${actualValue}"`);
             }
           }
         });
       });
 
       setInitialValues(initialVals);
-      setCurrentFormData((prev) => ({ ...initialData, ...prev }));
+      setCurrentFormData((prev) => ({ ...prev, ...initialData }));
       setIsInitialized(true);
     }
   }, [formConfig, getSystemFieldValue, isInitialized, userCall, userCallDialog, userModifiedFields]);
@@ -898,9 +922,16 @@ export default function DynamicForm({
 
     if (currentFormData.hasOwnProperty(fieldName)) {
       const value = currentFormData[fieldName];
+      if (fieldName === 'patient_type' || fieldName === 'Patient Type') {
+        console.log(`[DynamicForm] getFieldValue(${fieldName}) from currentFormData:`, value);
+      }
       return value !== undefined && value !== null ? value : '';
     }
-    return initialValues[fieldName] || '';
+    const val = initialValues[fieldName] || '';
+    if (fieldName === 'patient_type' || fieldName === 'Patient Type') {
+      console.log(`[DynamicForm] getFieldValue(${fieldName}) from initialValues:`, val);
+    }
+    return val;
   };
 
   if (!formConfig || !currentSection) {

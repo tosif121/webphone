@@ -248,6 +248,7 @@ export const useJssipConference = (state, utils) => {
       setHasParticipants('disconnected');
       setIsCustomerAnswered(true);
       setIsMerged(false);
+      setStatus('on_call');
 
       logMergeEvent('participant_disconnected', {
         message,

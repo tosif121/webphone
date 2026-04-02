@@ -9,7 +9,6 @@ import { Toaster } from 'react-hot-toast';
 import Layout from '@/components/layout/Layout';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { logError, checkHydrationIssues } from '@/utils/debugUtils';
-import { WEBPHONE_SERVICE_WORKER_PATH } from '@/lib/basePath';
 
 const jostSans = Jost({
   variable: '--font-jost-sans',
@@ -37,20 +36,6 @@ export default function App({ Component, pageProps }) {
       router.push('/');
     }
   }, [isPublicPage, router.pathname]);
-
-  // Register service worker for notifications
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register(WEBPHONE_SERVICE_WORKER_PATH)
-        .then(function (registration) {
-          // Service Worker registered successfully
-        })
-        .catch(function (error) {
-          // Service Worker registration failed
-        });
-    }
-  }, []);
 
   // Add global error handlers for unhandled errors
   useEffect(() => {
