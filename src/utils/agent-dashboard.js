@@ -1,11 +1,11 @@
 import React from 'react';
 import { Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
-// Helper function to convert milliseconds to "h:m:s" format
 export const msToHMS = (duration) => {
+  if (duration < 0) duration = 0;
   const seconds = Math.floor((duration / 1000) % 60);
   const minutes = Math.floor((duration / (1000 * 60)) % 60);
-  const hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+  const hours = Math.floor(duration / (1000 * 60 * 60));
   return `${hours}h ${minutes}m ${seconds}s`;
 };
 
@@ -19,14 +19,17 @@ export const calculateActivityDurations = (filterData, includeBreakTime = false)
     totalLoginTime: 0,
   };
 
+  // Sort ascending by time to ensure positive durations
+  const sortedData = [...filterData].sort((a, b) => new Date(a.Time).getTime() - new Date(b.Time).getTime());
+
   // Process the time differences between consecutive events
-  for (let i = 0; i < filterData.length - 1; i++) {
-    const startTime = new Date(filterData[i].Time).getTime();
-    const endTime = new Date(filterData[i + 1].Time).getTime();
-    const duration = endTime - startTime;
+  for (let i = 0; i < sortedData.length - 1; i++) {
+    const startTime = new Date(sortedData[i].Time).getTime();
+    const endTime = new Date(sortedData[i + 1].Time).getTime();
+    const duration = Math.max(0, endTime - startTime);
 
     // Determine the activity type based on status
-    const status = filterData[i].Status;
+    const status = sortedData[i].Status;
     if (status === 'NOT_INUSE') {
       summary.waitingForCall += duration;
     } else if (status === 'INUSE') {

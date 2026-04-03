@@ -1162,10 +1162,9 @@ const useJssip = (isMobile = false) => {
               !callHandledRef.current;
 
             if (hasPendingIncomingRingingSession) {
-              console.log('[WebPhone] Pending ringing customer channel disconnected - auto-rejecting');
               rejectIncomingCall();
             } else {
-              console.log('[WebPhone] Ignoring customer disconnect message after answer/without ringing session');
+              // Ignore
             }
           }
           // ✅ Check if customer/agent channel answered (both enable Add Call button)
@@ -1762,13 +1761,11 @@ const useJssip = (isMobile = false) => {
   useEffect(() => {
     const callApi = async () => {
       if (isCallended) {
-        console.log('[WebPhone] Call Ended. Starting automation for:', username);
         setIsAutomationLoading(true);
         let keepPostCallContext = false;
         try {
           // 1. Call callended API
           const callendedUrl = `${window.location.origin}/user/callended${username}`;
-          console.log('[WebPhone] Triggering callended API:', callendedUrl, { leadLockToken });
 
           await axios.post(callendedUrl, leadLockToken ? { leadLockToken } : {}, {
             headers: {
@@ -1786,15 +1783,10 @@ const useJssip = (isMobile = false) => {
                 Disposition: 'Auto Disposed',
                 autoDialDisabled: false,
               };
-              console.log('[WebPhone] Triggering silent disposition:', dispoUrl, dispoPayload, {
-                refValue: bridgeIDRef.current,
-                stateValue: bridgeID,
-              });
 
               const response = await axios.post(dispoUrl, dispoPayload, {
                 headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
               });
-              console.log('[WebPhone] Disposition response:', response.data);
             } catch (dispoError) {
               console.error('[WebPhone] Silent disposition failed:', dispoError.response?.data || dispoError.message);
             }
