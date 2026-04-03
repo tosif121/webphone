@@ -1228,7 +1228,7 @@ function Dashboard() {
   );
 
   return (
-    <>
+    <div className="flex-1 overflow-y-auto">
       <audio ref={endCallAudioRef} preload="auto" style={{ display: 'none' }} src={endCallAudioBase64} />
 
       {(() => {
@@ -1449,7 +1449,7 @@ function Dashboard() {
       </div>
 
       {/* Mobile Bottom Navigation - Handled by parent */}
-    </>
+    </div>
   );
 }
 
