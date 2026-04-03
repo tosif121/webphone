@@ -1093,9 +1093,11 @@ const useJssip = (isMobile = false) => {
             try {
               await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
 
-              const response = await axios.post(`${window.location.origin}/user/breakuser:${username}`, {
-                breakType: storedBreak,
-              });
+              const response = await axios.post(
+                `${window.location.origin}/user/breakuser:${username}`,
+                { breakType: storedBreak },
+                { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
+              );
               if (response.status === 200) {
                 setSelectedBreak(storedBreak);
               } else {
