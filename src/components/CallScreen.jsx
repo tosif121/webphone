@@ -233,32 +233,25 @@ const CallScreen = ({
         },
       );
 
-      if (response.data.success) {
+      console.log('[CallScreen] Conference Hangup Response:', response.data);
+
+      if (response.data.success || response.data.message === 'Host channel not found in conference') {
         toast.success(response.data.message || 'Conference disconnected successfully');
         setHasParticipants('Conference disconnected');
       } else {
-        if (response.data.message === 'Host channel not found in conference') {
-          setHasParticipants('Conference disconnected');
-        } else {
-          toast.error('Failed to disconnect conference');
-        }
+        toast.error('Failed to disconnect conference');
       }
     } catch (error) {
-      if (error.response?.status === 404) {
-      } else if (error.response?.status === 401 || error.response?.status === 403) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
         toast.error('Not authorized to end conference');
-      } else {
       }
     } finally {
       setIsMerged(false);
       setConfRunning(false);
       setConfSeconds(0);
       setConfMinutes(0);
-      setStatus?.('on_call');
-      setConferenceNumber?.('');
       setConferenceStatus?.(false);
       setCallConference?.(false);
-      reqUnHold?.('manual_hangup_cleanup');
     }
   };
 
@@ -273,7 +266,6 @@ const CallScreen = ({
     return maybeMask(userCall?.contactNumber) || '';
   })();
 
-  // FIXED: Enhanced ControlButton with proper click handling
   const ControlButton = ({ onClick, disabled, active, icon, title, className = '', buttonId, debounceTime = 300 }) => {
     const isProcessing = processingRef.current.has(buttonId);
     const isDisabled = disabled || isProcessing;
@@ -285,11 +277,6 @@ const CallScreen = ({
 
         // FIXED: Check processing state from ref
         if (processingRef.current.has(buttonId) || disabled || !onClick) {
-          console.log(
-            `🚫 Button ${buttonId} click ignored - processing: ${processingRef.current.has(
-              buttonId,
-            )}, disabled: ${disabled}`,
-          );
           return;
         }
 

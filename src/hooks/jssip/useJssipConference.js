@@ -229,7 +229,7 @@ export const useJssipConference = (state, utils) => {
   };
 
   const handleConferenceMessage = (message) => {
-    if (message.includes('customer host channel connected') || message.includes('customer channel answered')) {
+    if (message.includes('customer host channel connected')) {
       setHasParticipants('connected');
 
       logMergeEvent('participant_connected', {
@@ -293,6 +293,7 @@ export const useJssipConference = (state, utils) => {
       setHasParticipants(null);
       setIsCustomerAnswered(true);
       setIsMerged(false);
+      setStatus('on_call');
       reqUnHold('auto_unhold_on_disconnect');
     }
   }, [hasParticipants]);

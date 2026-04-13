@@ -187,12 +187,6 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
-
-      Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith('breakStartTime_')) {
-          localStorage.removeItem(key);
-        }
-      });
     }
   }, [selectedBreak]);
 

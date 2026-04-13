@@ -328,11 +328,11 @@ export default function Header() {
                 onClick={() => setCallAlert(true)}
                 variant={callAlert ? 'default' : 'outline'}
                 className="relative flex items-center gap-2"
-                aria-label="Show Followup"
+                aria-label="Show Follow-up Calls"
                 type="button"
               >
                 <PhoneForwarded className="w-4 h-4" />
-                <span>Follow Ups</span>
+                <span>Follow-up Calls</span>
                 {scheduleCallsLength > 0 && (
                   <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
                     {scheduleCallsLength}
@@ -477,27 +477,58 @@ export default function Header() {
           </div>
         </div>
 
+        {/* Mobile View Indicators */}
+        <div className="flex md:hidden items-center gap-3 mr-4">
+          <Button
+            onClick={() => setDropCalls(true)}
+            variant="ghost"
+            size="icon"
+            className="relative h-9 w-9 rounded-full"
+            aria-label="Show Missed Calls"
+          >
+            <PhoneMissed className="w-5 h-5 text-muted-foreground" />
+            {campaignMissedCallsLength > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[1.125rem] h-4.5 flex items-center justify-center rounded-full bg-destructive text-white text-[10px] font-bold px-1 shadow-sm border-2 border-background">
+                {campaignMissedCallsLength}
+              </span>
+            )}
+          </Button>
+
+          <Button
+            onClick={() => setCallAlert(true)}
+            variant="ghost"
+            size="icon"
+            className="relative h-9 w-9 rounded-full"
+            aria-label="Show Followup"
+          >
+            <PhoneForwarded className="w-5 h-5 text-muted-foreground" />
+            {scheduleCallsLength > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[1.125rem] h-4.5 flex items-center justify-center rounded-full bg-destructive text-white text-[10px] font-bold px-1 shadow-sm border-2 border-background">
+                {scheduleCallsLength}
+              </span>
+            )}
+          </Button>
+        </div>
+
         {/* Mobile Menu Button */}
         <div className="flex md:hidden items-center">
-          <>
-            <div
-              className="relative w-5 h-5 transition-transform duration-200 hover:scale-105"
-              onClick={toggleMobileMenu}
-            >
-              <Menu
-                className={cn(
-                  'w-6 h-6 absolute inset-0 transition-all duration-300 ease-in-out',
-                  mobileMenuOpen ? 'opacity-0 rotate-90 scale-75' : 'opacity-100 rotate-0 scale-100',
-                )}
-              />
-              <X
-                className={cn(
-                  'w-6 h-6 absolute inset-0 transition-all duration-300 ease-in-out',
-                  mobileMenuOpen ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-75',
-                )}
-              />
-            </div>
-          </>
+          <div
+            className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors duration-200 cursor-pointer"
+            onClick={toggleMobileMenu}
+          >
+            <Menu
+              className={cn(
+                'w-6 h-6 absolute transition-all duration-300 ease-in-out',
+                mobileMenuOpen ? 'opacity-0 rotate-90 scale-75' : 'opacity-100 rotate-0 scale-100',
+              )}
+            />
+            <X
+              className={cn(
+                'w-6 h-6 absolute transition-all duration-300 ease-in-out',
+                mobileMenuOpen ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-75',
+              )}
+            />
+          </div>
         </div>
       </div>
 
@@ -605,11 +636,11 @@ export default function Header() {
                       ? 'bg-primary text-primary-foreground'
                       : 'text-secondary-foreground hover:bg-secondary/80',
                   )}
-                  aria-label="Show Follow Ups"
+                  aria-label="Show Follow-up Calls"
                   type="button"
                 >
                   <PhoneForwarded className="w-4 h-4" />
-                  <span className="sm:text-base text-sm">Follow Ups</span>
+                  <span className="sm:text-base text-sm">Follow-up Calls</span>
                   {scheduleCallsLength > 0 && (
                     <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
                       {scheduleCallsLength}

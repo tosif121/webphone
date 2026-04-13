@@ -1611,6 +1611,7 @@ export default function LeadAndCallInfoPanel({
       });
 
       const result = response.data?.result || null;
+      console.log('[ContactDetails] FETCH result:', result);
       setContactWorkspace(result);
       setContactConversationHistory(Array.isArray(result?.conversations) ? result.conversations : []);
       setLatestConversation(result?.latestConversation || null);
@@ -1867,6 +1868,9 @@ export default function LeadAndCallInfoPanel({
 
   // Render contact form tab
   const renderContactDetailsTab = () => {
+    console.log('[ContactDetails] Rendering with Profile:', contactProfile);
+    console.log('[ContactDetails] Quick Stats:', workspaceQuickStats);
+
     const detailEntries = Object.entries(contactProfile || {})
       .filter(([key, value]) => {
         if (!key || key.startsWith('_')) return false;
@@ -1875,6 +1879,8 @@ export default function LeadAndCallInfoPanel({
         return value !== undefined && value !== null && `${value}`.trim() !== '' && typeof value !== 'object';
       })
       .slice(0, 10);
+
+    console.log('[ContactDetails] Filtered Detail Entries:', detailEntries);
 
     return (
       <div className="h-full overflow-y-auto pr-1">

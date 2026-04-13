@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useContext, useCallback } from 'react';
 import HistoryContext from '../context/HistoryContext';
+import moment from 'moment';
 import { useStopwatch } from 'react-timer-hook';
 import JsSIP from 'jssip';
 import axios from 'axios';
@@ -11,7 +12,8 @@ import { useJssipRecording } from './jssip/useJssipRecording';
 import { useJssipMonitoring } from './jssip/useJssipMonitoring';
 
 const useJssip = (isMobile = false) => {
-  const { setHistory, username, password, setSelectedBreak, selectedBreak } = useContext(HistoryContext);
+  const { setHistory, username, password, setSelectedBreak, selectedBreak, setScheduleCallsLength } =
+    useContext(HistoryContext);
   const state = useJssipState();
   const utils = useJssipUtils(state);
   const conference = useJssipConference(state, utils);
@@ -416,6 +418,66 @@ const useJssip = (isMobile = false) => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [connectionStatus, incomingSession, status, isIncomingRinging, selectedBreak]);
+
+  const [fupRefreshKey, setFupRefreshKey] = useState(0);
+
+  useEffect(() => {
+    // Refresh every minute to update badge as call times approach the 5-min window
+    const timer = setInterval(() => {
+      setFupRefreshKey((prev) => prev + 1);
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!followUpDispoes || followUpDispoes.length === 0) {
+      setScheduleCallsLength(0);
+      return;
+    }
+
+    const processed = followUpDispoes
+      .map((item, index) => {
+        let scheduledAtMs = null;
+        const numericValue = Number(item.scheduledAt);
+
+        if (Number.isFinite(numericValue) && numericValue > 0) {
+          scheduledAtMs = String(Math.trunc(Math.abs(numericValue))).length <= 10 ? numericValue * 1000 : numericValue;
+        } else {
+          const parsedMoment = moment(
+            `${item.date || ''} ${item.time || ''}`,
+            ['YYYY-MM-DD hh:mm A', 'YYYY-MM-DD HH:mm', 'YYYY-MM-DD HH:mm:ss'],
+            true,
+          );
+          if (parsedMoment.isValid()) {
+            scheduledAtMs = parsedMoment.valueOf();
+          }
+        }
+
+        const callTime = scheduledAtMs ? new Date(scheduledAtMs) : null;
+
+        return {
+          ...item,
+          callTime,
+          id: item._id || item.id || `fup-${index}`,
+        };
+      })
+      .filter((item) => item.callTime !== null);
+
+    const activeFollowUps = processed.filter((item) => {
+      const normalizedStatus = String(item.status || item.computedStatus || '')
+        .trim()
+        .toLowerCase();
+      // Match FollowUpCallsModal logic: exclude completed and explicitly missed
+      if (normalizedStatus === 'completed' || normalizedStatus === 'missed') return false;
+
+      const callMoment = moment(item.callTime);
+
+      // Match 'today' tab: scheduled for today's date
+      return callMoment.isSame(moment(), 'day');
+    });
+
+    setScheduleCallsLength(activeFollowUps.length);
+  }, [followUpDispoes, setScheduleCallsLength, fupRefreshKey]);
 
   // In useJssip.js
 
@@ -936,6 +998,7 @@ const useJssip = (isMobile = false) => {
     },
 
     ended: function (e) {
+      console.log('[SIP] Call session ended (BYE received or local termination)');
       if (isRecording) {
         stopRecording();
       }
@@ -1137,7 +1200,7 @@ const useJssip = (isMobile = false) => {
           }
 
           const message = e.request?.body || '';
-          console.log(message);
+          console.log('[UA Message received]:', message);
           lastAriMessageAtRef.current = Date.now();
           connectionFailureCountRef.current = 0;
           sipHeartbeatFailureCountRef.current = 0;
@@ -1153,6 +1216,7 @@ const useJssip = (isMobile = false) => {
           }
           // ✅ Check for conference messages (connected/disconnected)
           else if (/customer host channel (connected|di[s]?connected)/i.test(message)) {
+            console.log('[useJssip] Handling conference host message:', message);
             handleConferenceMessage(message);
           }
           // ✅ Check for customer channel disconnection (auto-reject if ringing)
@@ -1171,7 +1235,12 @@ const useJssip = (isMobile = false) => {
           }
           // ✅ Check if customer/agent channel answered (both enable Add Call button)
           else if (message.includes('customer channel answered') || message.includes('agent channel answered')) {
+            console.log('[useJssip] Channel answered:', message);
             setIsCustomerAnswered(true);
+            // Also update participant status if it's the customer channel
+            if (message.includes('customer channel answered')) {
+              handleConferenceMessage(message);
+            }
 
             const objectToPush = {
               messageTime: Date.now(),
@@ -1311,6 +1380,7 @@ const useJssip = (isMobile = false) => {
                     ]);
 
                     e.session.on('ended', () => {
+                      console.log('[SIP] Call session ended (BYE received or local termination)');
                       stopRingtone();
                       void syncAgentReadyState({
                         source: 'incoming-session-ended',
@@ -1550,7 +1620,6 @@ const useJssip = (isMobile = false) => {
 
       const activeUa = uaRef.current;
       if (activeUa) {
-        activeUa.off('newMessage');
         try {
           activeUa.stop();
         } catch (error) {

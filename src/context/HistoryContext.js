@@ -33,7 +33,7 @@ export const HistoryProvider = ({ children }) => {
   const [scheduleCallsLength, setScheduleCallsLength] = useState(0);
   const [showSecurityAlert, setShowSecurityAlert] = useState(false);
 
-  // Load call history from localStorage on client-side hydration
+  // Load call history and break state from localStorage on client-side hydration
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -41,11 +41,27 @@ export const HistoryProvider = ({ children }) => {
         if (callHistory) {
           setHistory(JSON.parse(callHistory));
         }
+
+        const storedBreak = localStorage.getItem('selectedBreak');
+        if (storedBreak && storedBreak !== 'Break') {
+          setSelectedBreak(storedBreak);
+        }
       } catch (error) {
-        console.error('Error loading call history from localStorage:', error);
+        console.error('Error loading data from localStorage:', error);
       }
     }
   }, []);
+
+  // Save selectedBreak to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (selectedBreak && selectedBreak !== 'Break') {
+        localStorage.setItem('selectedBreak', selectedBreak);
+      } else {
+        localStorage.removeItem('selectedBreak');
+      }
+    }
+  }, [selectedBreak]);
 
   // Save call history to localStorage whenever it changes
   useEffect(() => {

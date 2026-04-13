@@ -813,7 +813,6 @@ export default function DynamicForm({
 
   useEffect(() => {
     if (userCall && formConfig?.sections && !isInitialized) {
-      console.log('[DynamicForm] Starting generic pre-fill with userCall data keys:', Object.keys(userCall));
       const initialData = {};
       const initialVals = {};
 
@@ -858,7 +857,6 @@ export default function DynamicForm({
             if (!userModifiedFields.has(field.name)) {
               initialData[field.name] = actualValue;
               initialVals[field.name] = actualValue;
-              console.log(`[DynamicForm] [Pre-fill] ${field.name} => "${actualValue}"`);
             }
           }
         });
@@ -922,15 +920,9 @@ export default function DynamicForm({
 
     if (currentFormData.hasOwnProperty(fieldName)) {
       const value = currentFormData[fieldName];
-      if (fieldName === 'patient_type' || fieldName === 'Patient Type') {
-        console.log(`[DynamicForm] getFieldValue(${fieldName}) from currentFormData:`, value);
-      }
       return value !== undefined && value !== null ? value : '';
     }
     const val = initialValues[fieldName] || '';
-    if (fieldName === 'patient_type' || fieldName === 'Patient Type') {
-      console.log(`[DynamicForm] getFieldValue(${fieldName}) from initialValues:`, val);
-    }
     return val;
   };
 

@@ -571,25 +571,7 @@ function Dashboard() {
     }
   }, [dispositionModal, endDate, queueLeadDashboardFetch, startDate, token, userCampaign, username]);
 
-  useEffect(() => {
-    const now = new Date();
-    const processed = (followUpDispoes || [])
-      .filter((item) => item.date && item.time)
-      .map((item) => {
-        const dateTimeStr = `${item.date} ${item.time}`;
-        const callTime = moment(dateTimeStr, 'YYYY-MM-DD hh:mm A').toDate();
-        return {
-          ...item,
-          callTime,
-          id: `${item.date}-${item.time}-${item.comment || 'call'}`,
-        };
-      });
-
-    // Show all upcoming calls (where call time is in the future or now)
-    const upcomingCalls = processed.filter((item) => item.callTime >= now);
-
-    setScheduleCallsLength(upcomingCalls.length);
-  }, [followUpDispoes, setScheduleCallsLength]);
+  // (Schedule calls count moved to useJssip hook for global coverage)
 
   useEffect(() => {
     if (!token || !username || !userCampaign) {
