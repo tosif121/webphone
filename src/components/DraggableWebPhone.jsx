@@ -77,6 +77,7 @@ export default function DraggableWebPhone() {
     isMerged,
     setIsMerged,
     isAutomationLoading,
+    currentCallData,
   } = useContext(JssipContext);
 
   const router = useRouter();
@@ -386,6 +387,7 @@ export default function DraggableWebPhone() {
           answerIncomingCall={answerIncomingCall}
           rejectIncomingCall={rejectIncomingCall}
           session={session}
+          isSticky={currentCallData?.isSticky}
         />
       )}
 

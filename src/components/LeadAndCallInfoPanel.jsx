@@ -38,6 +38,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import DynamicForm from './DynamicForm';
 import UserCall from './UserCall';
+import { Checkbox } from './ui/checkbox';
+import { Label } from './ui/label';
 import { JssipContext } from '@/context/JssipContext';
 
 const PAGE_OPTIONS = [10, 15, 25];
@@ -275,7 +277,6 @@ export default function LeadAndCallInfoPanel({
       const parsedData = JSON.parse(tokenData);
       return parsedData?.userData?.allowManualEntry === true;
     } catch (error) {
-      console.warn('Failed to read manual entry permission:', error);
       return false;
     }
   }, [token]);
@@ -288,7 +289,6 @@ export default function LeadAndCallInfoPanel({
       const parsedData = JSON.parse(tokenData);
       return parsedData?.userData?.disposition !== false;
     } catch (error) {
-      console.warn('Failed to read disposition permission:', error);
       return true;
     }
   }, [token]);
@@ -310,7 +310,6 @@ export default function LeadAndCallInfoPanel({
         mode: parsedData?.userData?.stickyMode || 'loose',
       };
     } catch (error) {
-      console.warn('Failed to read sticky preferences:', error);
       return { enabled: false, mode: 'loose' };
     }
   }, [token]);
@@ -648,10 +647,11 @@ export default function LeadAndCallInfoPanel({
       isSticky:
         activeCallContext?.isSticky === true ||
         activeUserCall?.isSticky === true ||
-        Boolean(activeUserCall?.stickyAgent),
+        Boolean(activeUserCall?.stickyAgent) ||
+        contactProfile?.isSticky === true,
       stickyAgent: activeCallContext?.stickyAgent || activeUserCall?.stickyAgent || null,
     }),
-    [activeCallContext, activeUserCall],
+    [activeCallContext, activeUserCall, contactProfile],
   );
 
   const isStickyContact = stickyOverride ?? resolvedCallContext.isSticky;
@@ -768,7 +768,6 @@ export default function LeadAndCallInfoPanel({
           });
           return retryRes;
         } catch (refreshErr) {
-          console.error('Token refresh failed:', refreshErr);
           throw refreshErr;
         }
       } else {
@@ -802,7 +801,6 @@ export default function LeadAndCallInfoPanel({
         }
 
         if (!token) {
-          console.warn('LeadAndCallInfoPanel - No token found, will use static form');
           setFormId(null);
           setFormConfig(null);
           return;
@@ -877,7 +875,6 @@ export default function LeadAndCallInfoPanel({
           setFormConfig(null);
         }
       } catch (err) {
-        console.error('LeadAndCallInfoPanel - Error fetching form list:', err.response?.data || err.message);
         // On error, fall back to static form
         setIsCampaignWebformEnabled(false);
         setFormId(null);
@@ -912,7 +909,6 @@ export default function LeadAndCallInfoPanel({
         }
 
         if (!token) {
-          console.warn('LeadAndCallInfoPanel - No token for form details, will use static form');
           setFormConfig(null);
           return;
         }
@@ -928,11 +924,9 @@ export default function LeadAndCallInfoPanel({
         if (formConfigData && formConfigData.sections && formConfigData.sections.length > 0) {
           setFormConfig(formConfigData);
         } else {
-          console.warn('LeadAndCallInfoPanel - Form config invalid or empty, will use static form');
           setFormConfig(null);
         }
       } catch (err) {
-        console.error('LeadAndCallInfoPanel - Error fetching form details:', err.response?.data || err.message);
         // On error, fall back to static form
         setFormConfig(null);
       } finally {
@@ -968,7 +962,6 @@ export default function LeadAndCallInfoPanel({
       const leads = response.data.data || [];
       setLeadsData(leads);
     } catch (error) {
-      console.error('Error fetching leads:', error.response?.data || error.message);
       setLeadsData([]);
     } finally {
       setLoading(false);
@@ -1001,7 +994,6 @@ export default function LeadAndCallInfoPanel({
       const calls = response.data.result || [];
       setApiCallData(calls);
     } catch (error) {
-      console.error('Error fetching API data for Call Info tab:', error);
       setApiCallData([]);
     } finally {
       setLoading(false);
@@ -1346,15 +1338,16 @@ export default function LeadAndCallInfoPanel({
       if (savedDraft) {
         Object.assign(initialFormData, JSON.parse(savedDraft));
       }
-    } catch (error) {
-      console.warn('Failed to restore saved form draft:', error);
-    }
+    } catch (error) {}
 
     if (manualEntryMode && localFormData && Object.keys(localFormData).length > 0) {
       Object.assign(initialFormData, localFormData);
     }
 
     initialFormData.contactNumber = sourceCallData.contactNumber || initialFormData.contactNumber || '';
+    initialFormData.isSticky = isStickyContact;
+    if (isStickyContact) {
+    }
     setLocalFormData(initialFormData);
     setLastDraftKey(initializationSignature);
     setIsFormDataInitialized(true);
@@ -1369,6 +1362,7 @@ export default function LeadAndCallInfoPanel({
     manualEntryMode,
     normalizeConversationLookupKey,
     resolveDynamicFieldStorageTarget,
+    isStickyContact,
   ]);
 
   useEffect(() => {
@@ -1436,9 +1430,12 @@ export default function LeadAndCallInfoPanel({
       formTitle: 'Contact Form',
     });
 
+    const isStickyContact = formDataToSubmit?.isSticky;
+    console.log('[LeadAndCallInfoPanel] handleContact isSticky:', isStickyContact);
+
     const payload = {
       user: username,
-      isFresh: activeUserCall?.isFresh,
+
       formObject: conversationData,
       data: {
         firstName: formDataToSubmit.firstName || '',
@@ -1452,6 +1449,8 @@ export default function LeadAndCallInfoPanel({
         ContactCity: formDataToSubmit.ContactCity || '',
         ContactState: formDataToSubmit.ContactState || '',
         ContactPincode: formDataToSubmit.ContactPincode || '',
+        isSticky: isStickyContact,
+        agent: username,
         agentName: username,
       },
     };
@@ -1472,7 +1471,6 @@ export default function LeadAndCallInfoPanel({
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error occurred.');
-      console.error('Add/Modify contact error:', err);
     }
   };
 
@@ -1483,6 +1481,8 @@ export default function LeadAndCallInfoPanel({
     }
 
     const { contactData, contactNumber, conversationFields } = buildDynamicFormPayloads(formDataToSubmit);
+    const isStickyContact = localFormData?.isSticky;
+    console.log(isStickyContact, 'isStickyContact');
     const conversationData = buildConversationRecord({
       ...conversationFields,
       contactNumber,
@@ -1490,11 +1490,13 @@ export default function LeadAndCallInfoPanel({
 
     const payload = {
       user: username,
-      isFresh: activeUserCall?.isFresh,
+
       formObject: conversationData,
       data: {
         ...contactData,
+        isSticky: isStickyContact,
         contactNumber: conversationData.contactNumber,
+        agent: username,
         agentName: username,
       },
     };
@@ -1516,7 +1518,6 @@ export default function LeadAndCallInfoPanel({
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error occurred.');
-      console.error('Add/Modify contact error:', err);
     }
   };
 
@@ -1611,13 +1612,12 @@ export default function LeadAndCallInfoPanel({
       });
 
       const result = response.data?.result || null;
-      console.log('[ContactDetails] FETCH result:', result);
+
       setContactWorkspace(result);
       setContactConversationHistory(Array.isArray(result?.conversations) ? result.conversations : []);
       setLatestConversation(result?.latestConversation || null);
       setContactProfile(result?.contactProfile || null);
     } catch (error) {
-      console.error('Error fetching contact workspace:', error);
       setContactWorkspace(null);
       setContactConversationHistory([]);
       setLatestConversation(null);
@@ -1868,9 +1868,6 @@ export default function LeadAndCallInfoPanel({
 
   // Render contact form tab
   const renderContactDetailsTab = () => {
-    console.log('[ContactDetails] Rendering with Profile:', contactProfile);
-    console.log('[ContactDetails] Quick Stats:', workspaceQuickStats);
-
     const detailEntries = Object.entries(contactProfile || {})
       .filter(([key, value]) => {
         if (!key || key.startsWith('_')) return false;
@@ -1879,8 +1876,6 @@ export default function LeadAndCallInfoPanel({
         return value !== undefined && value !== null && `${value}`.trim() !== '' && typeof value !== 'object';
       })
       .slice(0, 10);
-
-    console.log('[ContactDetails] Filtered Detail Entries:', detailEntries);
 
     return (
       <div className="h-full overflow-y-auto pr-1">
@@ -1999,10 +1994,25 @@ export default function LeadAndCallInfoPanel({
       );
     }
 
+    const stickyCheckbox = (
+      <div className="flex items-center space-x-2 rounded-lg border bg-muted/20 px-3 py-2 mb-2">
+        <Checkbox
+          id="isSticky"
+          checked={localFormData?.isSticky || false}
+          onCheckedChange={(checked) => updateLocalFormData({ isSticky: !!checked })}
+        />
+        <Label htmlFor="isSticky" className="text-sm font-medium leading-none cursor-pointer">
+          Sticky Contact
+        </Label>
+        <span className="text-[10px] text-muted-foreground ml-auto">Pin this contact to you for future calls</span>
+      </div>
+    );
+
     if (formConfig && formConfig?.sections && formConfig?.sections?.length > 0) {
       return (
         <div className="h-full overflow-hidden">
           <div className="h-full space-y-4">
+            {stickyCheckbox}
             <DynamicForm
               key={formConfig.formId}
               formConfig={formConfig}
@@ -2027,6 +2037,7 @@ export default function LeadAndCallInfoPanel({
       return (
         <div className="h-full overflow-hidden">
           <div className="h-full space-y-4">
+            {stickyCheckbox}
             <UserCall
               localFormData={localFormData}
               setLocalFormData={updateLocalFormData}

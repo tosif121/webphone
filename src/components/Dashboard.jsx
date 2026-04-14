@@ -1239,7 +1239,7 @@ function Dashboard() {
                     scrollamount="4"
                     className="truncate font-medium text-muted-foreground"
                   >
-                    {filteredCalls.map((call) => call.Caller).join(', ')}
+                    {filteredCalls.map((call) => `${call.Caller}${call.isSticky ? ' (Sticky)' : ''}`).join(', ')}
                   </marquee>
                 </div>
               </div>

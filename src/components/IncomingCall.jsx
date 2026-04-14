@@ -15,6 +15,7 @@ export default function IncomingCall({
   answerIncomingCall,
   rejectIncomingCall,
   session,
+  isSticky,
 }) {
   const [pulseKey, setPulseKey] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
@@ -91,6 +92,11 @@ export default function IncomingCall({
           >
             Incoming call
           </Badge>
+          {isSticky && (
+            <div className="flex justify-center mt-1">
+              <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-primary/20">Sticky Contact</Badge>
+            </div>
+          )}
         </div>
 
         {/* Main Content */}

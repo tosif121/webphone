@@ -90,6 +90,13 @@ const Disposition = ({
   const campaignName = authUser?.campaignName || 'N/A';
   const stickyEnabled = authUser?.stickyEnabled !== false;
   const stickyMode = authUser?.stickyMode || 'loose';
+
+  useEffect(() => {
+    const isSticky = activeCallContext?.stickyAgent === username || liveUserCall?.stickyAgent === username;
+    if (isSticky) {
+      setMakeSticky(true);
+    }
+  }, [activeCallContext?.stickyAgent, liveUserCall?.stickyAgent, username]);
   const resolvedBridgeID = String(
     bridgeID ||
       liveBridgeID ||
@@ -584,7 +591,8 @@ const Disposition = ({
 
         const requestBody = {
           bridgeID: resolvedBridgeID,
-          Disposition: isDispoWithBreak ? 'dispoWithBreak' : selectedAction,
+          Disposition: selectedAction,
+          isDiposedWithBreak: isDispoWithBreak,
           autoDialDisabled: isAutoLeadDialDisabled,
           leadId: activeLead?.leadId,
           leadLockToken,
@@ -618,6 +626,7 @@ const Disposition = ({
         }
 
         // 1. Submit disposition FIRST
+        console.log('[Disposition] submitForm requestBody:', requestBody);
         const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         });
@@ -780,7 +789,12 @@ const Disposition = ({
 
             <div className="p-6 space-y-6 overflow-auto">
               <div className="space-y-1 pr-8">
-                <DialogTitle className="text-xl font-bold text-foreground">Select Disposition</DialogTitle>
+                <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+                  Select Disposition
+                  {makeSticky && (
+                    <Badge className="bg-primary/10 text-primary hover:bg-primary/10 transition-all">Sticky</Badge>
+                  )}
+                </DialogTitle>
                 <p className="text-sm text-muted-foreground">Choose the appropriate outcome for this call</p>
               </div>
               <div className="flex flex-row gap-2 sm:gap-4 items-start justify-start overflow-x-auto">
@@ -833,7 +847,7 @@ const Disposition = ({
                   );
                 })}
               </div>
-              {stickyEnabled && stickyTargetNumber ? (
+              {stickyTargetNumber ? (
                 <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-3">
                   <div className="space-y-1">
                     <Label htmlFor="sticky-customer" className="text-sm font-medium text-foreground">

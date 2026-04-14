@@ -1,6 +1,6 @@
 import React from 'react';
 
-const WEB_VERSION = '0.2.24';
+const WEB_VERSION = '0.2.25';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
