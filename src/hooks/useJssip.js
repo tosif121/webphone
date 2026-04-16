@@ -775,13 +775,9 @@ const useJssip = (isMobile = false) => {
         try {
           currentUa.sendMessage(
             'heartbeat',
-            JSON.stringify({
-              body: 'webphone-heartbeat',
-              source,
-              timestamp: now,
-            }),
+            `webphone-heartbeat|${source}|${now}`,
             {
-              contentType: 'application/json',
+              contentType: 'text/plain',
               eventHandlers: {
                 succeeded: () => {
                   window.clearTimeout(guardId);
