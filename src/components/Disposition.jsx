@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import BreakDropdown from './BreakDropdown';
 import Callback from './Callback';
 import UserCall from './UserCall';
@@ -89,7 +90,36 @@ const Disposition = ({
   const [makeSticky, setMakeSticky] = useState(false);
   const campaignName = authUser?.campaignName || 'N/A';
   const stickyEnabled = authUser?.stickyEnabled !== false;
-  const stickyMode = authUser?.stickyMode || 'loose';
+  const [stickyMode, setStickyMode] = useState('');
+  const [savingStickyMode, setSavingStickyMode] = useState(false);
+
+  const handleStickyModeChange = async (value) => {
+    if (value === 'disabled') {
+      setStickyMode('disabled');
+      setMakeSticky(false);
+      return;
+    }
+    setStickyMode(value);
+    setMakeSticky(true);
+    const campaignId = campaignID || authUser?.campaign;
+    if (!campaignId) {
+      toast.error('No campaign found');
+      return;
+    }
+    setSavingStickyMode(true);
+    try {
+      await axios.post(
+        `https://esamwad.iotcom.io/campaign/${campaignId}`,
+        { stickyMode: value, stickyEnabled: true },
+        { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
+      );
+      toast.success(`Sticky mode: ${value}`);
+    } catch {
+      toast.error('Failed to update sticky mode');
+    } finally {
+      setSavingStickyMode(false);
+    }
+  };
 
   useEffect(() => {
     const isSticky = activeCallContext?.stickyAgent === username || liveUserCall?.stickyAgent === username;
@@ -175,7 +205,7 @@ const Disposition = ({
       }
 
       await axios.post(
-        `${window.location.origin}/callback/update-status`,
+        `https://esamwad.iotcom.io/callback/update-status`,
         {
           callbackId,
           status: 'completed',
@@ -329,7 +359,7 @@ const Disposition = ({
         stickyMode,
       };
 
-      const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
+      const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody, {
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       });
 
@@ -627,7 +657,7 @@ const Disposition = ({
 
         // 1. Submit disposition FIRST
         console.log('[Disposition] submitForm requestBody:', requestBody);
-        const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
+        const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody, {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         });
 
@@ -640,7 +670,7 @@ const Disposition = ({
             try {
               // Apply the break after disposition
               await axios.post(
-                `${window.location.origin}/user/breakuser:${username}`,
+                `https://esamwad.iotcom.io/user/breakuser:${username}`,
                 {
                   breakType: selectedBreakType,
                 },
@@ -858,15 +888,19 @@ const Disposition = ({
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="capitalize">
-                      {stickyMode}
-                    </Badge>
-                    <Checkbox
-                      id="sticky-customer"
-                      checked={makeSticky}
-                      onCheckedChange={(checked) => setMakeSticky(Boolean(checked))}
-                      disabled={isSubmitting || hasSubmittedSuccessfully}
-                    />
+                    <Select
+                      value={stickyMode}
+                      onValueChange={handleStickyModeChange}
+                      disabled={isSubmitting || hasSubmittedSuccessfully || savingStickyMode}
+                    >
+                      <SelectTrigger className="h-7 w-32 text-xs">
+                        <SelectValue placeholder="Select mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="loose">Loose </SelectItem>
+                        <SelectItem value="strict">Strict</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               ) : null}

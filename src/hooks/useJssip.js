@@ -166,10 +166,10 @@ const useJssip = (isMobile = false) => {
     logSystemEvent,
   } = monitoring;
 
-  useEffect(() => {
-    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-    setOrigin(originWithoutProtocol);
-  }, []);
+  // useEffect(() => {
+  //   const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+  //   setOrigin(originWithoutProtocol);
+  // }, []);
 
   const getStoredTokenPayload = useCallback(() => {
     try {
@@ -210,16 +210,12 @@ const useJssip = (isMobile = false) => {
   const lastConnectionCheckAtRef = useRef(0);
   const lastConnectionToastAtRef = useRef(0);
   const uaRef = useRef(null);
-  const lastSipHeartbeatAttemptAtRef = useRef(0);
-  const sipHeartbeatFailureCountRef = useRef(0);
   const lastRuntimeResyncAttemptAtRef = useRef(0);
 
   const MESSAGE_HEARTBEAT_STALE_MS = 10000;
   const CONNECTION_CHECK_TIMEOUT_MS = 8000;
   const CONNECTION_CHECK_SCHEDULER_MS = 5000;
   const CONNECTION_CHECK_MIN_REQUEST_GAP_MS = 5000;
-  const SIP_HEARTBEAT_SEND_INTERVAL_MS = 4000;
-  const SIP_HEARTBEAT_MIN_GAP_MS = 2500;
   const RUNTIME_RESYNC_MIN_GAP_MS = 3000;
 
   const waitForReadyRetry = useCallback((delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs)), []);
@@ -247,8 +243,6 @@ const useJssip = (isMobile = false) => {
     connectionFailureCountRef.current = 0;
     lastAriMessageAtRef.current = 0;
     lastConnectionCheckAtRef.current = 0;
-    lastSipHeartbeatAttemptAtRef.current = 0;
-    sipHeartbeatFailureCountRef.current = 0;
     lastRuntimeResyncAttemptAtRef.current = 0;
   }, [username]);
 
@@ -332,7 +326,7 @@ const useJssip = (isMobile = false) => {
       activeCallContextRequestRef.current = (async () => {
         try {
           const response = await axios.post(
-            `${window.location.origin}/useroncall/${username}`,
+            `https://esamwad.iotcom.io/useroncall/${username}`,
             leadLockToken ? { leadLockToken } : {},
             {
               headers: {
@@ -603,7 +597,7 @@ const useJssip = (isMobile = false) => {
 
         const response = await withTimeout(
           axios.post(
-            `${window.location.origin}/userconnection`,
+            `https://esamwad.iotcom.io/userconnection`,
             { user: username },
             { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
           ),
@@ -738,80 +732,6 @@ const useJssip = (isMobile = false) => {
     ],
   );
 
-  const sendSipHeartbeat = useCallback(
-    async ({ source = 'interval', force = false, minGapMs = SIP_HEARTBEAT_MIN_GAP_MS } = {}) => {
-      if (!username) {
-        return false;
-      }
-
-      const currentUa = uaRef.current;
-      if (!currentUa) {
-        return false;
-      }
-
-      const now = Date.now();
-      if (!force && now - lastSipHeartbeatAttemptAtRef.current < minGapMs) {
-        return false;
-      }
-
-      const wsStatus = getWebSocketStatus();
-      if (!wsStatus.connected || !isUARegistered()) {
-        return false;
-      }
-
-      lastSipHeartbeatAttemptAtRef.current = now;
-
-      return await new Promise((resolve) => {
-        let settled = false;
-        const finalize = (value) => {
-          if (!settled) {
-            settled = true;
-            resolve(value);
-          }
-        };
-
-        const guardId = window.setTimeout(() => finalize(false), 4000);
-
-        try {
-          currentUa.sendMessage(
-            'heartbeat',
-            `webphone-heartbeat|${source}|${now}`,
-            {
-              contentType: 'text/plain',
-              eventHandlers: {
-                succeeded: () => {
-                  window.clearTimeout(guardId);
-                  sipHeartbeatFailureCountRef.current = 0;
-                  finalize(true);
-                },
-                failed: () => {
-                  window.clearTimeout(guardId);
-                  sipHeartbeatFailureCountRef.current += 1;
-
-                  if (now - lastAriMessageAtRef.current > MESSAGE_HEARTBEAT_STALE_MS) {
-                    setIsConnectionLost(true);
-                  }
-
-                  finalize(false);
-                },
-              },
-            },
-          );
-        } catch (error) {
-          window.clearTimeout(guardId);
-          sipHeartbeatFailureCountRef.current += 1;
-
-          if (now - lastAriMessageAtRef.current > MESSAGE_HEARTBEAT_STALE_MS) {
-            setIsConnectionLost(true);
-          }
-
-          finalize(false);
-        }
-      });
-    },
-    [getWebSocketStatus, isUARegistered, setIsConnectionLost, username],
-  );
-
   useEffect(() => {
     connectioncheckRef.current = connectioncheck;
   }, [connectioncheck]);
@@ -819,7 +739,7 @@ const useJssip = (isMobile = false) => {
   const handleLogout = async (token, message) => {
     try {
       if (token) {
-        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+        await axios.delete(`https://esamwad.iotcom.io/deleteFirebaseToken`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -1124,19 +1044,80 @@ const useJssip = (isMobile = false) => {
         var configuration = {
           sockets: [socket],
           session_timers: false,
-          uri: `${username.replace('@', '-')}@${origin}:8089`,
+          uri: `sip:${username.replace('@', '-')}@${origin}:8089`,
           password: password,
+          connection_recovery_min_interval: 2,
+          connection_recovery_max_interval: 30,
+          register_expires: 600,
+          user_agent: 'WebPhone Web',
+          keep_alive_interval: 30,
+          keep_alive_expires: 15,
+          hack_via_tcp: true,
+          hack_ip_in_contact: true,
         };
 
         var ua = new JsSIP.UA(configuration);
+
         ua.start();
+        console.log('[UA] Started', { uri: `sip:${username.replace('@', '-')}@${origin}:8089` });
+
+        // Asterisk sends MESSAGE to the random contact URI (e.g. sip:abc@IP:port).
+        // JsSIP's parser rejects it because ruri.user doesn't match config/contact user.
+        // Solution: intercept Transport.ondata AFTER UA sets it up, patch the raw SIP
+        // string so ruri and To match our registered URI, then let JsSIP parse normally.
+        setTimeout(() => {
+          try {
+            const transport = ua._transport;
+            if (transport) {
+              const origOnData = transport.ondata;
+              const myUser = username.replace('@', '-');
+              transport.ondata = function (data) {
+                try {
+                  const msg = data.message;
+                  if (typeof msg === 'string' && msg.startsWith('MESSAGE ')) {
+                    const myUri = `sip:${myUser}@${origin}`;
+                    // Patch request line URI and To header
+                    let patched = msg.replace(/^(MESSAGE )sip:[^ \r\n]+( SIP\/2\.0)/m, `$1${myUri}$2`);
+                    patched = patched.replace(/^(To:\s*<)[^>]+(>)/m, `$1${myUri}$2`);
+                    if (patched !== msg) {
+                      console.log('[UA] ✅ Patched first 200 chars:', patched.substring(0, 200));
+                      console.log('[UA] calling origOnData with patched msg');
+                      try {
+                        const result = origOnData({ transport: data.transport, message: patched });
+                        console.log('[UA] origOnData returned', result);
+                        return result;
+                      } catch (e) {
+                        console.error('[UA] origOnData threw:', e?.message, e?.stack);
+                      }
+                    }
+                  }
+                } catch (_) {
+                  /* never break */
+                }
+                return origOnData(data);
+              };
+              console.log('[UA] Transport.ondata interceptor installed', {
+                hasTransport: !!transport,
+                ondataType: typeof origOnData,
+                ondataName: origOnData?.name,
+              });
+            } else {
+              console.warn('[UA] ua._transport not available yet');
+            }
+          } catch (err) {
+            console.error('[UA] Interceptor error', err?.message);
+          }
+        }, 500);
 
         ua.on('registered', async (data) => {
+          const contact = data?.response?.getHeader?.('Contact') || '';
+          console.log('[UA] Registered', { contact, hasInvalidContact: contact.includes('.invalid') });
           const readySync = await syncAgentReadyState({
             source: 'sip-registered',
             attempts: 4,
             retryDelayMs: 1000,
           });
+          console.log('[UA] syncAgentReadyState', { success: readySync?.success });
 
           if (!readySync?.success) {
             console.error('[WebPhone] Agent session sync failed after SIP registration:', readySync?.message);
@@ -1145,15 +1126,13 @@ const useJssip = (isMobile = false) => {
             return;
           }
 
-          void sendSipHeartbeat({ source: 'sip-registered', force: true });
-
           const storedBreak = localStorage.getItem('selectedBreak');
           if (storedBreak && storedBreak !== 'Break') {
             try {
               await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
 
               const response = await axios.post(
-                `${window.location.origin}/user/breakuser:${username}`,
+                `https://esamwad.iotcom.io/user/breakuser:${username}`,
                 { breakType: storedBreak },
                 { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
               );
@@ -1199,9 +1178,7 @@ const useJssip = (isMobile = false) => {
           console.log('[UA Message received]:', message);
           lastAriMessageAtRef.current = Date.now();
           connectionFailureCountRef.current = 0;
-          sipHeartbeatFailureCountRef.current = 0;
           setIsConnectionLost(false);
-          // void sendSipHeartbeat({ source: 'incoming-message' }); // DISABLED as it may interfere with SIP signaling
           /* console.log(message, 'message'); */
           // Always run connection check as per request
           void connectioncheck({ reason: 'sip-message' });
@@ -1697,42 +1674,12 @@ const useJssip = (isMobile = false) => {
         }
       }
     };
-  }, [origin, password, sendSipHeartbeat, syncAgentReadyState, username]);
-
-  useEffect(() => {
-    if (!ua || !username) {
-      return undefined;
-    }
-
-    void sendSipHeartbeat({ source: 'ua-ready', force: true });
-
-    const heartbeatId = setInterval(() => {
-      void sendSipHeartbeat({ source: 'interval' });
-    }, SIP_HEARTBEAT_SEND_INTERVAL_MS);
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        void sendSipHeartbeat({ source: 'visibility', force: true });
-      }
-    };
-
-    const handleOnline = () => {
-      void sendSipHeartbeat({ source: 'online', force: true });
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('online', handleOnline);
-
-    return () => {
-      clearInterval(heartbeatId);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('online', handleOnline);
-    };
-  }, [sendSipHeartbeat, ua, username]);
+  }, [origin, password, syncAgentReadyState, username]);
 
   const handleCall = async (formattedNumber, metadata = {}) => {
-    // ✅ 1. Early return - Check connection status
-    if (isConnectionLost) {
+    // ✅ 1. Early return - Check connection status (mirrors RN: check live transport)
+    const wsStatus = getWebSocketStatus();
+    if (!wsStatus.connected || !isUARegistered()) {
       toast.error('Connection lost. Please check your internet connection.');
       return;
     }
@@ -1784,7 +1731,7 @@ const useJssip = (isMobile = false) => {
 
       // ✅ 6. Make the API call to dial number
       const response = await axios.post(
-        `${window.location.origin}/dialnumber`,
+        `https://esamwad.iotcom.io/dialnumber`,
         {
           receiver: targetNumber,
           leadLockToken: nextLeadLockToken || undefined,
@@ -1906,7 +1853,7 @@ const useJssip = (isMobile = false) => {
         let keepPostCallContext = false;
         try {
           // 1. Call callended API
-          const callendedUrl = `${window.location.origin}/user/callended${username}`;
+          const callendedUrl = `https://esamwad.iotcom.io/user/callended${username}`;
 
           await axios.post(callendedUrl, leadLockToken ? { leadLockToken } : {}, {
             headers: {
@@ -1917,7 +1864,7 @@ const useJssip = (isMobile = false) => {
           if (isMobile) {
             // 2. On Mobile, perform SILENT auto-disposition
             try {
-              const dispoUrl = `${window.location.origin}/user/disposition${username}`;
+              const dispoUrl = `https://esamwad.iotcom.io/user/disposition${username}`;
               const finalBridgeID = bridgeIDRef.current || bridgeID;
               const dispoPayload = {
                 bridgeID: finalBridgeID,

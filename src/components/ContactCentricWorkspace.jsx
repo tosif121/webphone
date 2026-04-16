@@ -514,7 +514,7 @@ export default function ContactCentricWorkspace({
       setWorkspaceLoading(true);
       setWorkspaceError('');
       try {
-        const response = await axios.get(`${window.location.origin}/contact/${normalizedNumber}/full`, {
+        const response = await axios.get(`https://esamwad.iotcom.io/contact/${normalizedNumber}/full`, {
           params: { limit: 50 },
           headers: { Authorization: `Bearer ${token}` },
         });

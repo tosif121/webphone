@@ -32,9 +32,8 @@ const NetworkIndicator = ({ timeoutArray = [], peerConnection = null, timeWindow
     const checkPing = async () => {
       try {
         const start = performance.now();
-        // Use a lightweight HEAD request to favicon for more reliable ping
-        await fetch('${window.location.origin}/favicon.ico', {
-          method: 'HEAD',
+        await fetch('https://esamwad.iotcom.io', {
+          method: 'GET',
           mode: 'no-cors',
           cache: 'no-store',
         });
