@@ -1285,12 +1285,33 @@ const useJssip = (isMobile = false) => {
           toast.error('Connection lost');
         });
         ua.on('newRTCSession', function (e) {
+          const inviteCallId =
+            e.request?.call_id || e.session?.request?.call_id || e.request?.headers?.['Call-ID']?.[0]?.raw || null;
+          const sessionDirection = e.session?.direction || null;
+          const remoteSessionUser = e.session?.remote_identity?.uri?.user || null;
+          console.log('[WebPhone][newRTCSession] Event received', {
+            callId: inviteCallId,
+            direction: sessionDirection,
+            remoteUser: remoteSessionUser,
+            dialingNumber: dialingNumberRef.current || null,
+          });
+
           if (e.session.direction === 'incoming') {
             const remoteNumber = e.session.remote_identity.uri.user;
             const isActuallyOutgoing = dialingNumberRef.current && remoteNumber === dialingNumberRef.current;
+            console.log('[WebPhone][newRTCSession] Incoming branch selected', {
+              callId: inviteCallId,
+              remoteNumber,
+              dialingNumber: dialingNumberRef.current || null,
+              isActuallyOutgoing,
+            });
 
             if (isActuallyOutgoing) {
               dialingNumberRef.current = '';
+              console.log('[WebPhone][newRTCSession] Treating incoming INVITE as outgoing call leg', {
+                callId: inviteCallId,
+                remoteNumber,
+              });
 
               // Even for outgoing calls, check if user is away and show notification
               const incomingNumber = e.request.from._uri._user;
@@ -1301,6 +1322,10 @@ const useJssip = (isMobile = false) => {
                 startTimerImmediately: false,
               }); // Outgoing leg should start timer only after answer
             } else {
+              console.log('[WebPhone][newRTCSession] Treating INVITE as regular incoming/autodial candidate', {
+                callId: inviteCallId,
+                remoteNumber,
+              });
               // Check if this is an autodial call
               const checkAutodialAndHandle = async () => {
                 // Try multiple sources for call data
@@ -1353,6 +1378,10 @@ const useJssip = (isMobile = false) => {
                   if (isMobile) {
                     // Mobile: Show UI with ringtone
                     const incomingNumber = e.request.from._uri._user;
+                    console.log('[WebPhone][newRTCSession] Mobile incoming flow', {
+                      callId: inviteCallId,
+                      incomingNumber,
+                    });
                     setIncomingSession(e.session);
                     setIncomingNumber(incomingNumber);
                     setIsIncomingRinging(true);
@@ -1422,6 +1451,10 @@ const useJssip = (isMobile = false) => {
                   } else {
                     // Desktop: Check if user is away and show notification before auto-answer
                     const incomingNumber = e.request.from._uri._user;
+                    console.log('[WebPhone][newRTCSession] Desktop auto-answer flow', {
+                      callId: inviteCallId,
+                      incomingNumber,
+                    });
 
                     // Always trigger notification check (will only show if user is away)
                     setInNotification(incomingNumber);
@@ -1450,6 +1483,10 @@ const useJssip = (isMobile = false) => {
             }
           } else {
             // Handle normal outgoing calls (when direction is actually "outgoing")
+            console.log('[WebPhone][newRTCSession] Outgoing session branch selected', {
+              callId: inviteCallId,
+              remoteUser: remoteSessionUser,
+            });
             setSession(e.session);
             setStatus('calling');
             setAgentLifecycle('dialing');
@@ -1521,7 +1558,30 @@ const useJssip = (isMobile = false) => {
       { addIncomingHistory = false, startTimerImmediately = true } = {},
     ) => {
       const incomingNumber = request.from._uri._user;
-      session.answer(options); // Auto-answers (good for outgoing)
+      const answerCallId =
+        request?.call_id || session?.request?.call_id || request?.headers?.['Call-ID']?.[0]?.raw || null;
+      console.log('[WebPhone][handleIncomingCall] Preparing to answer session', {
+        callId: answerCallId,
+        incomingNumber,
+        startTimerImmediately,
+        addIncomingHistory,
+      });
+      try {
+        session.answer(options); // Auto-answers (good for outgoing)
+        console.log('[WebPhone][handleIncomingCall] session.answer invoked successfully', {
+          callId: answerCallId,
+          incomingNumber,
+        });
+      } catch (error) {
+        console.error('[WebPhone][handleIncomingCall] session.answer threw before SIP response', {
+          callId: answerCallId,
+          incomingNumber,
+          message: error?.message || error,
+          name: error?.name || null,
+          stack: error?.stack || null,
+        });
+        throw error;
+      }
       setSession(session);
       setStatus('calling');
       setAgentLifecycle('on_call');
@@ -1529,6 +1589,10 @@ const useJssip = (isMobile = false) => {
       void ensureActiveCallContextLoaded({ incomingNumber, addIncomingHistory });
 
       session.once('confirmed', () => {
+        console.log('[WebPhone][handleIncomingCall] Session confirmed', {
+          callId: answerCallId,
+          incomingNumber,
+        });
         if (!startTimerImmediately) {
           reset(undefined, true);
         }
@@ -1542,6 +1606,10 @@ const useJssip = (isMobile = false) => {
 
       // Your existing event listeners...
       session.once('ended', () => {
+        console.log('[WebPhone][handleIncomingCall] Session ended', {
+          callId: answerCallId,
+          incomingNumber,
+        });
         setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
         pause();
         setStatus('start');
@@ -1551,7 +1619,13 @@ const useJssip = (isMobile = false) => {
         setDispositionModal(true);
       });
 
-      session.once('failed', () => {
+      session.once('failed', (failureEvent) => {
+        console.error('[WebPhone][handleIncomingCall] Session failed', {
+          callId: answerCallId,
+          incomingNumber,
+          cause: failureEvent?.cause || null,
+          originator: failureEvent?.originator || null,
+        });
         finalizePostCallContext();
         setHistory((prev) => [
           ...prev.slice(0, -1),
