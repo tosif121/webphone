@@ -109,7 +109,7 @@ const Disposition = ({
     setSavingStickyMode(true);
     try {
       await axios.post(
-        `https://esamwad.iotcom.io/campaign/${campaignId}`,
+        `${window.location.origin}/campaign/${campaignId}`,
         { stickyMode: value, stickyEnabled: true },
         { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
       );
@@ -205,7 +205,7 @@ const Disposition = ({
       }
 
       await axios.post(
-        `https://esamwad.iotcom.io/callback/update-status`,
+        `${window.location.origin}/callback/update-status`,
         {
           callbackId,
           status: 'completed',
@@ -359,7 +359,7 @@ const Disposition = ({
         stickyMode,
       };
 
-      const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody, {
+      const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       });
 
@@ -657,7 +657,7 @@ const Disposition = ({
 
         // 1. Submit disposition FIRST
         console.log('[Disposition] submitForm requestBody:', requestBody);
-        const response = await axios.post(`https://esamwad.iotcom.io/user/disposition${username}`, requestBody, {
+        const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         });
 
@@ -670,7 +670,7 @@ const Disposition = ({
             try {
               // Apply the break after disposition
               await axios.post(
-                `https://esamwad.iotcom.io/user/breakuser:${username}`,
+                `${window.location.origin}/user/breakuser:${username}`,
                 {
                   breakType: selectedBreakType,
                 },

@@ -49,7 +49,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
         setLoadingCaller(caller);
         const sanitizedCaller = removeCountryCode(caller);
         await axios.post(
-          `https://esamwad.iotcom.io/dialmissedcall`,
+          `${window.location.origin}/dialmissedcall`,
           {
             receiver: sanitizedCaller,
           },

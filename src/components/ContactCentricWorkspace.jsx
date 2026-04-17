@@ -514,7 +514,7 @@ export default function ContactCentricWorkspace({
       setWorkspaceLoading(true);
       setWorkspaceError('');
       try {
-        const response = await axios.get(`https://esamwad.iotcom.io/contact/${normalizedNumber}/full`, {
+        const response = await axios.get(`${window.location.origin}/contact/${normalizedNumber}/full`, {
           params: { limit: 50 },
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -963,6 +963,8 @@ export default function ContactCentricWorkspace({
                 <div className="flex shrink-0 items-center justify-between border-t border-border/60 px-4 py-2.5">
                   <div className="text-sm text-muted-foreground">
                     Page {pageIndex + 1} of {totalPages}
+                    <span className="mx-2 text-border">|</span>
+                    <span className="text-muted-foreground">{rows.length} total rows</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -1321,6 +1323,8 @@ export default function ContactCentricWorkspace({
               <div className="flex items-center justify-between border-t border-border/60 px-5 py-4">
                 <div className="text-sm text-muted-foreground">
                   Page {historyPage + 1} of {historyTotalPages}
+                  <span className="mx-2 text-border">|</span>
+                  <span className="text-muted-foreground">{filteredHistoryRows.length} total rows</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

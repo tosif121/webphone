@@ -22,10 +22,10 @@ const KeyPad = ({ setPhoneNumber }) => (
         <button
           key={num}
           type="button"
-          className="flex h-14 w-14 flex-col items-center justify-center rounded-full bg-muted/80 transition-all touch-manipulation hover:bg-muted active:bg-muted/60 focus:outline-none focus:ring-2 ring-primary/50"
+          className="flex lg:h-14 lg:w-14 h-10 w-10 flex-col items-center justify-center rounded-full bg-muted/80 transition-all touch-manipulation hover:bg-muted active:bg-muted/60 focus:outline-none focus:ring-2 ring-primary/50"
           onClick={() => setPhoneNumber((prev) => prev + String(num))}
         >
-          <span className="select-none text-2xl font-normal text-foreground">{num}</span>
+          <span className="select-none lg:text-2xl font-normal text-foreground">{num}</span>
           {text && (
             <span className="select-none text-[9px] uppercase tracking-wider text-muted-foreground">{text}</span>
           )}

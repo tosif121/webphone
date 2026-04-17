@@ -264,8 +264,9 @@ const DataTable = ({
           </Button>
         </div>
         <div className="text-sm text-muted-foreground flex items-center gap-2">
-          Page {pagination.pageIndex + 1} of {table.getPageCount()} | {table.getFilteredRowModel().rows.length} total
-          rows
+          <span>Page {pagination.pageIndex + 1} of {table.getPageCount()}</span>
+          <span className="text-border">|</span>
+          <span className="text-muted-foreground">{table.getFilteredRowModel().rows.length} total rows</span>
         </div>
       </div>
     </div>

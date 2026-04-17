@@ -137,7 +137,7 @@ const CallScreen = ({
 
   const handleTransfer = async () => {
     try {
-      await axios.post(`https://esamwad.iotcom.io/reqTransfer/${username}`, {});
+      await axios.post(`${window.location.origin}/reqTransfer/${username}`, {});
       toast.success('Request successful!');
     } catch (error) {
       toast.error('Request failed. Please try again.');
@@ -220,7 +220,7 @@ const CallScreen = ({
       }
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/hangup/hostChannel/Conf`,
+        `${window.location.origin}/hangup/hostChannel/Conf`,
         {
           user: username,
           hostNumber: cleanNumber,
@@ -323,7 +323,7 @@ const CallScreen = ({
   };
 
   return (
-    <div className="flex flex-col overflow-hidden md:mt-0 mt-18 px-4 pt-2.5 pb-4">
+    <div className="flex flex-col overflow-auto md:mt-0 mt-18 px-4 pt-2.5 pb-4">
       {session && session.connection && (
         <div className="flex items-center gap-3 mb-1">
           <NetworkIndicator peerConnection={session.connection} showTime={true} />

@@ -292,7 +292,7 @@ function Dashboard() {
     setLeadError('');
 
     try {
-      const leadDashboardResponse = await axios.get(`https://esamwad.iotcom.io/lead/dashboard`, {
+      const leadDashboardResponse = await axios.get(`${window.location.origin}/lead/dashboard`, {
         params: {
           limit: 200,
         },
@@ -368,7 +368,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/reports/calls/byAgent`,
+        `${window.location.origin}/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -444,7 +444,7 @@ function Dashboard() {
 
     try {
       const response = await axios.post(
-        `https://esamwad.iotcom.io/userMissedCalls/${username}`,
+        `${window.location.origin}/userMissedCalls/${username}`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -482,7 +482,7 @@ function Dashboard() {
     setSmartLeadError('');
     try {
       const response = await axios.post(
-        `https://esamwad.iotcom.io/lead/next`,
+        `${window.location.origin}/lead/next`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -510,7 +510,7 @@ function Dashboard() {
 
     try {
       await axios.post(
-        `https://esamwad.iotcom.io/lead/skip`,
+        `${window.location.origin}/lead/skip`,
         {
           leadId: activeLead.leadId,
           lockToken: leadLockToken,
@@ -726,7 +726,7 @@ function Dashboard() {
       if (userCampaign === currentCallData?.campaign && connectionStatus === 'NOT_INUSE' && queueDetails?.length > 0) {
         try {
           const { data } = await axios.post(
-            `https://esamwad.iotcom.io/user/agentAvailable/${username}`,
+            `${window.location.origin}/user/agentAvailable/${username}`,
             {},
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -1075,7 +1075,7 @@ function Dashboard() {
     leadStats.contactedLeads,
     leadStats.pendingLeads,
   ]);
-
+console.log("callStats", callStats)
   useEffect(() => {
     setActiveMetricFilter('all');
   }, [activeMainTab]);
@@ -1172,7 +1172,7 @@ function Dashboard() {
       if (sourceLead?.leadId && token) {
         try {
           const response = await axios.post(
-            `https://esamwad.iotcom.io/lead/lock`,
+            `${window.location.origin}/lead/lock`,
             {
               leadId: sourceLead.leadId,
               lockToken: sourceLead.lockToken || leadLockToken || undefined,
@@ -1347,7 +1347,7 @@ function Dashboard() {
           </div>
         )}
 
-        <div className="grid shrink-0 grid-cols-2 gap-3 xl:grid-cols-4">
+        <div className="grid shrink-0 grid-cols-2 gap-3 md:grid-cols-4">
           {dashboardCards.map((card) => {
             const Icon = card.icon;
             const isActive = activeMetricFilter === card.key || (card.key === 'all' && activeMetricFilter === 'all');

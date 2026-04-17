@@ -32,7 +32,7 @@ const NetworkIndicator = ({ timeoutArray = [], peerConnection = null, timeWindow
     const checkPing = async () => {
       try {
         const start = performance.now();
-        await fetch('https://esamwad.iotcom.io', {
+        await fetch('${window.location.origin}', {
           method: 'GET',
           mode: 'no-cors',
           cache: 'no-store',

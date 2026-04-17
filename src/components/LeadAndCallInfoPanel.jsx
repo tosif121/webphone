@@ -664,7 +664,7 @@ export default function LeadAndCallInfoPanel({
     try {
       setSavingSticky(true);
       await axios.post(
-        `https://esamwad.iotcom.io/contact/sticky`,
+        `${window.location.origin}/contact/sticky`,
         {
           contactNumber: normalizedContactNumber,
           campaignId: userCampaign,
@@ -745,7 +745,7 @@ export default function LeadAndCallInfoPanel({
             throw new Error('No saved credentials found');
           }
 
-          const refreshRes = await axios.post(`https://esamwad.iotcom.io/refresh-token-agent`, {
+          const refreshRes = await axios.post(`${window.location.origin}/refresh-token-agent`, {
             userid: savedUsername,
             password: savedPassword,
           });
@@ -807,7 +807,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `https://esamwad.iotcom.io/getDynamicFormDataAgent/${userCampaign}`,
+          `${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`,
           token,
           refreshToken,
         );
@@ -914,7 +914,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `https://esamwad.iotcom.io/getDynamicFormData/${formId}`,
+          `${window.location.origin}/getDynamicFormData/${formId}`,
           token,
           refreshToken,
         );
@@ -947,7 +947,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/leadswithdaterange`,
+        `${window.location.origin}/leadswithdaterange`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -977,7 +977,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://esamwad.iotcom.io/reports/calls/byAgent`,
+        `${window.location.origin}/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -1456,7 +1456,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: authHeaders,
       });
 
@@ -1502,7 +1502,7 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`https://esamwad.iotcom.io/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
         headers: authHeaders,
       });
 
@@ -1604,7 +1604,7 @@ export default function LeadAndCallInfoPanel({
     try {
       setLoadingContactConversationHistory(true);
       setLoadingContactProfile(true);
-      const response = await axios.get(`https://esamwad.iotcom.io/contact/${encodeURIComponent(contactNumber)}/full`, {
+      const response = await axios.get(`${window.location.origin}/contact/${encodeURIComponent(contactNumber)}/full`, {
         params: {
           limit: 75,
         },
@@ -1655,7 +1655,7 @@ export default function LeadAndCallInfoPanel({
     try {
       setSavingNote(true);
       const response = await axios.post(
-        `https://esamwad.iotcom.io/contact/notes`,
+        `${window.location.origin}/contact/notes`,
         {
           contactNumber: normalizedContactNumber,
           text: trimmedNote,
@@ -2458,7 +2458,11 @@ export default function LeadAndCallInfoPanel({
         <div className="flex shrink-0 items-center justify-between">
           <div className="text-sm text-muted-foreground">
             Page {callHistoryPage + 1} of {callHistoryTotalPages}
+            <span className="mx-2 text-border">|</span>
+            <span className="text-muted-foreground">{filteredWorkspaceCalls.length} total rows</span>
           </div>
+
+
           <div className="flex items-center gap-2">
             <Button
               type="button"

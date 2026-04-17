@@ -392,7 +392,7 @@ export default function DraggableWebPhone() {
       )}
 
       {/* Main Content Area */}
-      <div className={effectiveIsMobile ? 'w-full' : 'w-full h-full overflow-hidden'}>
+      <div className={effectiveIsMobile ? 'w-full' : 'w-full h-full overflow-auto'}>
         {!(effectiveIsMobile && isIncomingRinging) && activeTab === 'recents' && (
           <HistoryScreen setSeeLogs={setSeeLogs} />
         )}
@@ -859,8 +859,8 @@ export default function DraggableWebPhone() {
             </div>
           ) : (
             <div
-              className={`fixed ${desktopDockClass} bottom-10 z-[49] w-[280px] overflow-hidden rounded-[28px] border border-border bg-card shadow-xl transition-all duration-300`}
-              style={fullDockedDialerStyle}
+              className={`fixed ${desktopDockClass} bottom-10 z-[49] w-[250px] lg:w-[280px] overflow-hidden rounded-[28px] border border-border bg-card shadow-xl transition-all duration-300`}
+              // style={fullDockedDialerStyle}
             >
               {renderPhoneContent()}
             </div>
