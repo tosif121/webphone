@@ -248,16 +248,29 @@ export const useJssipConference = (state, utils) => {
       setHasParticipants('disconnected');
       setIsCustomerAnswered(true);
       setIsMerged(false);
-      setStatus('on_call');
+
+      // Only go back to on_call if the main SIP session is still active
+      const mainSession = state.session;
+      const isMainSessionAlive =
+        mainSession &&
+        !mainSession.isEnded() &&
+        !mainSession.isTerminated?.();
+
+      if (isMainSessionAlive) {
+        setStatus('on_call');
+        reqUnHold('auto_unhold_on_disconnect');
+      } else {
+        // Main session already ended — go straight to disposition
+        setStatus('start');
+      }
 
       logMergeEvent('participant_disconnected', {
         message,
         autoMergeTriggered: true,
         reason: 'conference_message',
+        mainSessionAlive: isMainSessionAlive,
       });
-      reqUnHold('auto_unhold_on_disconnect');
 
-      // reqUnHold will be called automatically by useEffect below
       toast.error('Conference disconnected');
     }
 
@@ -293,8 +306,19 @@ export const useJssipConference = (state, utils) => {
       setHasParticipants(null);
       setIsCustomerAnswered(true);
       setIsMerged(false);
-      setStatus('on_call');
-      reqUnHold('auto_unhold_on_disconnect');
+
+      const mainSession = state.session;
+      const isMainSessionAlive =
+        mainSession &&
+        !mainSession.isEnded() &&
+        !mainSession.isTerminated?.();
+
+      if (isMainSessionAlive) {
+        setStatus('on_call');
+        reqUnHold('auto_unhold_on_disconnect');
+      } else {
+        setStatus('start');
+      }
     }
   }, [hasParticipants]);
 

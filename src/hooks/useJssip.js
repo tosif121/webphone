@@ -1493,6 +1493,10 @@ const useJssip = (isMobile = false) => {
               setAgentLifecycle('disposition');
               setDispositionModal(true);
               setConferenceNumber('');
+              // Clean up any lingering conference state
+              setCallConference(false);
+              setConferenceStatus(false);
+              setHasParticipants(null);
             });
 
             e.session.on('failed', () => {

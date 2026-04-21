@@ -1075,7 +1075,7 @@ function Dashboard() {
     leadStats.contactedLeads,
     leadStats.pendingLeads,
   ]);
-console.log("callStats", callStats)
+
   useEffect(() => {
     setActiveMetricFilter('all');
   }, [activeMainTab]);
@@ -1376,7 +1376,6 @@ console.log("callStats", callStats)
             );
           })}
         </div>
-
         <div className="min-h-0 flex-1">
           {status === 'start' && !dispositionModal ? (
             <div
