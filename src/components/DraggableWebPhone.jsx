@@ -104,9 +104,9 @@ export default function DraggableWebPhone() {
   const compactBarDurationRef = useRef('00:00');
   const previousPostCallPhaseRef = useRef(false);
   const [compactBarDisconnectedAt, setCompactBarDisconnectedAt] = useState('');
-  const [rndState, setRndState] = useState({ x: 0, y: 0, width: 280, height: 500 });
+  const [rndState, setRndState] = useState({ x: 0, y: 0, width: 300, height: 500 });
 
-    /* tab change log removed */
+  /* tab change log removed */
 
   const [confSeconds, setConfSeconds] = useState(0);
   const [confMinutes, setConfMinutes] = useState(0);
@@ -146,7 +146,7 @@ export default function DraggableWebPhone() {
       const savedRndState = localStorage.getItem('phoneRndState');
       const savedShow = localStorage.getItem('phoneShow');
 
-      const PHONE_W = 280;
+      const PHONE_W = 300;
       const PHONE_H = 500;
       const MARGIN = 24;
       const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
@@ -652,8 +652,6 @@ export default function DraggableWebPhone() {
         </div>
       )}
 
-      {console.log(phoneShow)}
-
       {shouldShowCompactCallControls &&
         (effectiveIsMobile ? (
           <div
@@ -830,7 +828,7 @@ export default function DraggableWebPhone() {
               <Rnd
                 position={{ x: rndState.x, y: rndState.y }}
                 size={{ width: rndState.width, height: rndState.height }}
-                minWidth={280}
+                minWidth={300}
                 minHeight={480}
                 maxWidth={480}
                 maxHeight={700}
@@ -871,7 +869,7 @@ export default function DraggableWebPhone() {
             </div>
           ) : (
             <div
-              className={`fixed ${desktopDockClass} bottom-10 z-[49] w-[250px] lg:w-[280px] overflow-hidden rounded-[28px] border border-border bg-card shadow-xl transition-all duration-300`}
+              className={`fixed ${desktopDockClass} bottom-10 z-[49] w-[300px] overflow-hidden rounded-[28px] border border-border bg-card shadow-xl transition-all duration-300`}
               // style={fullDockedDialerStyle}
             >
               {renderPhoneContent()}

@@ -166,10 +166,10 @@ const useJssip = (isMobile = false) => {
     logSystemEvent,
   } = monitoring;
 
-  // useEffect(() => {
-  //   const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-  //   setOrigin(originWithoutProtocol);
-  // }, []);
+  useEffect(() => {
+    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    setOrigin(originWithoutProtocol);
+  }, []);
 
   const getStoredTokenPayload = useCallback(() => {
     try {
@@ -332,7 +332,7 @@ const useJssip = (isMobile = false) => {
       activeCallContextRequestRef.current = (async () => {
         try {
           const response = await axios.post(
-            `https://esamwad.iotcom.io/useroncall/${username}`,
+            `${window.location.origin}/useroncall/${username}`,
             leadLockToken ? { leadLockToken } : {},
             {
               headers: {
@@ -603,7 +603,7 @@ const useJssip = (isMobile = false) => {
 
         const response = await withTimeout(
           axios.post(
-            `https://esamwad.iotcom.io/userconnection`,
+            `${window.location.origin}/userconnection`,
             { user: username },
             { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
           ),
@@ -823,7 +823,7 @@ const useJssip = (isMobile = false) => {
   const handleLogout = async (token, message) => {
     try {
       if (token) {
-        await axios.delete(`https://esamwad.iotcom.io/deleteFirebaseToken`, {
+        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -1157,7 +1157,7 @@ const useJssip = (isMobile = false) => {
               await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
 
               const response = await axios.post(
-                `https://esamwad.iotcom.io/user/breakuser:${username}`,
+                `${window.location.origin}/user/breakuser:${username}`,
                 { breakType: storedBreak },
                 { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
               );
@@ -1471,6 +1471,7 @@ const useJssip = (isMobile = false) => {
               startRecording();
               void ensureActiveCallContextLoaded();
               setAgentLifecycle('on_call');
+              setIsCustomerAnswered(true);
               setHistory((prev) => [
                 ...prev.slice(0, -1),
                 {
@@ -1718,7 +1719,7 @@ const useJssip = (isMobile = false) => {
 
       // ✅ 6. Make the API call to dial number
       const response = await axios.post(
-        `https://esamwad.iotcom.io/dialnumber`,
+        `${window.location.origin}/dialnumber`,
         {
           receiver: targetNumber,
           leadLockToken: nextLeadLockToken || undefined,
@@ -1840,7 +1841,7 @@ const useJssip = (isMobile = false) => {
         let keepPostCallContext = false;
         try {
           // 1. Call callended API
-          const callendedUrl = `https://esamwad.iotcom.io/user/callended${username}`;
+          const callendedUrl = `${window.location.origin}/user/callended${username}`;
 
           await axios.post(callendedUrl, leadLockToken ? { leadLockToken } : {}, {
             headers: {
@@ -1851,7 +1852,7 @@ const useJssip = (isMobile = false) => {
           if (isMobile) {
             // 2. On Mobile, perform SILENT auto-disposition
             try {
-              const dispoUrl = `https://esamwad.iotcom.io/user/disposition${username}`;
+              const dispoUrl = `${window.location.origin}/user/disposition${username}`;
               const finalBridgeID = bridgeIDRef.current || bridgeID;
               const dispoPayload = {
                 bridgeID: finalBridgeID,

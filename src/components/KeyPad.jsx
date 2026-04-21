@@ -16,16 +16,16 @@ const keyboard = [
 ];
 
 const KeyPad = ({ setPhoneNumber }) => (
-  <div className="flex items-center justify-center">
-    <div className="mx-auto grid max-w-[232px] grid-cols-3 gap-8 sm:gap-4">
+  <div className="flex items-center justify-center w-full">
+    <div className="w-full grid grid-cols-3 gap-3 px-2">
       {keyboard.map(({ num, text }) => (
         <button
           key={num}
           type="button"
-          className="flex lg:h-14 lg:w-14 h-10 w-10 flex-col items-center justify-center rounded-full bg-muted/80 transition-all touch-manipulation hover:bg-muted active:bg-muted/60 focus:outline-none focus:ring-2 ring-primary/50"
+          className="flex h-14 w-14 mx-auto flex-col items-center justify-center rounded-full bg-muted/80 transition-all touch-manipulation hover:bg-muted active:bg-muted/60 focus:outline-none focus:ring-2 ring-primary/50"
           onClick={() => setPhoneNumber((prev) => prev + String(num))}
         >
-          <span className="select-none lg:text-2xl font-normal text-foreground">{num}</span>
+          <span className="select-none md:text-lg text-xl font-normal text-foreground">{num}</span>
           {text && (
             <span className="select-none text-[9px] uppercase tracking-wider text-muted-foreground">{text}</span>
           )}
