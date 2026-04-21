@@ -963,7 +963,7 @@ export default function DynamicForm({
           </div>
         )}
       </CardHeader>
-      <CardContent className={userCallDialog ? 'flex flex-1 min-h-0 flex-col overflow-hidden' : undefined}>
+      <CardContent className={userCallDialog ? 'flex flex-1 min-h-0 flex-col overflow-hidden pb-0' : undefined}>
         <div className={userCallDialog ? 'mb-4 min-h-0 flex-1 overflow-y-auto pr-1' : ''}>
           <div className="space-y-6">
             <div className="rounded-xl border bg-muted/20 p-4">
@@ -1391,9 +1391,9 @@ export default function DynamicForm({
         </div>
 
         <div
-          className={`flex items-center justify-between border-t pt-6 ${
+          className={`flex items-center justify-between border-t pt-4 pb-2 ${
             userCallDialog
-              ? 'sticky bottom-0 z-10 shrink-0 bg-card/95 pb-2 backdrop-blur supports-[backdrop-filter]:bg-card/90'
+              ? 'sticky bottom-0 z-10 shrink-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90'
               : ''
           }`}
         >

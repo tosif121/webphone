@@ -2010,9 +2010,9 @@ export default function LeadAndCallInfoPanel({
 
     if (formConfig && formConfig?.sections && formConfig?.sections?.length > 0) {
       return (
-        <div className="h-full overflow-hidden">
-          <div className="h-full space-y-4">
-            {stickyCheckbox}
+        <div className="flex flex-col h-full min-h-0 overflow-hidden">
+          {stickyCheckbox && <div className="shrink-0">{stickyCheckbox}</div>}
+          <div className="flex-1 min-h-0 overflow-hidden">
             <DynamicForm
               key={formConfig.formId}
               formConfig={formConfig}
@@ -2733,14 +2733,14 @@ export default function LeadAndCallInfoPanel({
     return (
       <>
         <AlertDialog open={true}>
-          <AlertDialogContent className="!left-4 !right-4 !top-[92px] !bottom-[72px] !m-0 !grid !max-w-none !translate-x-0 !translate-y-0 overflow-hidden p-0 sm:!left-6 sm:!right-6">
+          <AlertDialogContent className="!max-w-7xl w-full max-h-[85vh] overflow-hidden p-0 rounded-xl">
             <AlertDialogHeader className="sr-only">
               <AlertDialogTitle>Active call workspace</AlertDialogTitle>
               <AlertDialogDescription>
                 Review the current caller information, contact details, history, and any required post-call updates.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <Card className="flex h-full min-h-0 w-full flex-col border-0 shadow-none !gap-0">
+            <Card className="flex h-full min-h-0 w-full flex-col border-0 shadow-none !gap-0" style={{ maxHeight: '85vh' }}>
               {!activeUserCall ? (
                 <CardContent className="flex flex-1 items-center justify-center">
                   <div className="text-center py-8">
