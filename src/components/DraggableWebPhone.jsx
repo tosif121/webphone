@@ -92,6 +92,12 @@ export default function DraggableWebPhone() {
   const [miniBarX, setMiniBarX] = useState(null);
   const [workspaceBounds, setWorkspaceBounds] = useState(null);
   const phoneShowBeforeCallRef = useRef(true);
+  const phoneShowUserOverrideRef = useRef(false);
+
+  const setPhoneShowWithTracking = useCallback((val) => {
+    phoneShowUserOverrideRef.current = true;
+    setPhoneShow(val);
+  }, []);
   const previousIsCallLiveRef = useRef(false);
   const previousHasWorkspaceActiveCallRef = useRef(false);
   const previousStatusRef = useRef(status);
@@ -233,6 +239,7 @@ export default function DraggableWebPhone() {
     if (isIncomingRinging) {
       if (!previousIsCallLiveRef.current) {
         phoneShowBeforeCallRef.current = phoneShow;
+        phoneShowUserOverrideRef.current = false;
       }
       setPhoneShow(true);
     }
@@ -274,12 +281,15 @@ export default function DraggableWebPhone() {
     if (isCallLive) {
       if (!previousIsCallLiveRef.current) {
         phoneShowBeforeCallRef.current = phoneShow;
+        phoneShowUserOverrideRef.current = false;
       }
       if (effectiveIsMobile) {
         setIsExpandedDuringCall(true);
       }
     } else if (previousIsCallLiveRef.current && !effectiveIsMobile) {
-      setPhoneShow(Boolean(phoneShowBeforeCallRef.current));
+      if (!phoneShowUserOverrideRef.current) {
+        setPhoneShow(Boolean(phoneShowBeforeCallRef.current));
+      }
       setIsExpandedDuringCall(false);
     }
     previousIsCallLiveRef.current = isCallLive;
@@ -289,7 +299,7 @@ export default function DraggableWebPhone() {
     if (previousHasWorkspaceActiveCallRef.current && !isWorkspaceCallMode) {
       setActiveTab('dialpad');
       setSeeLogs(false);
-      if (!effectiveIsMobile) {
+      if (!effectiveIsMobile && !phoneShowUserOverrideRef.current) {
         setPhoneShow(Boolean(phoneShowBeforeCallRef.current));
       }
     }
@@ -634,13 +644,15 @@ export default function DraggableWebPhone() {
             type="button"
             size="sm"
             className="rounded-full w-12 h-12 hover:scale-105 transition-transform"
-            onClick={() => setPhoneShow((prev) => !prev)}
+            onClick={() => setPhoneShowWithTracking((prev) => !prev)}
             aria-label={phoneShow ? 'Hide phone interface' : 'Show phone interface'}
           >
             {!phoneShow ? <PhoneOff className="h-5 w-5" /> : <Phone className="h-5 w-5" />}
           </Button>
         </div>
       )}
+
+      {console.log(phoneShow)}
 
       {shouldShowCompactCallControls &&
         (effectiveIsMobile ? (

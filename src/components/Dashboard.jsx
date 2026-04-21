@@ -292,7 +292,7 @@ function Dashboard() {
     setLeadError('');
 
     try {
-      const leadDashboardResponse = await axios.get(`${window.location.origin}/lead/dashboard`, {
+      const leadDashboardResponse = await axios.get(`https://esamwad.iotcom.io/lead/dashboard`, {
         params: {
           limit: 200,
         },
@@ -368,7 +368,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/reports/calls/byAgent`,
+        `https://esamwad.iotcom.io/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -444,7 +444,7 @@ function Dashboard() {
 
     try {
       const response = await axios.post(
-        `${window.location.origin}/userMissedCalls/${username}`,
+        `https://esamwad.iotcom.io/userMissedCalls/${username}`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -482,7 +482,7 @@ function Dashboard() {
     setSmartLeadError('');
     try {
       const response = await axios.post(
-        `${window.location.origin}/lead/next`,
+        `https://esamwad.iotcom.io/lead/next`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -510,7 +510,7 @@ function Dashboard() {
 
     try {
       await axios.post(
-        `${window.location.origin}/lead/skip`,
+        `https://esamwad.iotcom.io/lead/skip`,
         {
           leadId: activeLead.leadId,
           lockToken: leadLockToken,
@@ -726,7 +726,7 @@ function Dashboard() {
       if (userCampaign === currentCallData?.campaign && connectionStatus === 'NOT_INUSE' && queueDetails?.length > 0) {
         try {
           const { data } = await axios.post(
-            `${window.location.origin}/user/agentAvailable/${username}`,
+            `https://esamwad.iotcom.io/user/agentAvailable/${username}`,
             {},
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -1172,7 +1172,7 @@ function Dashboard() {
       if (sourceLead?.leadId && token) {
         try {
           const response = await axios.post(
-            `${window.location.origin}/lead/lock`,
+            `https://esamwad.iotcom.io/lead/lock`,
             {
               leadId: sourceLead.leadId,
               lockToken: sourceLead.lockToken || leadLockToken || undefined,
