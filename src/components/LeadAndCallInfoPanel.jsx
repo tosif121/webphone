@@ -232,13 +232,8 @@ export default function LeadAndCallInfoPanel({
   setFormSubmitted,
   activeCallContext,
 }) {
-  const { 
-    setWorkspaceActiveCall, 
-    setDispositionModal, 
-    finalizePostCallContext,
-    isSticky,
-    setIsSticky
-  } = useContext(JssipContext);
+  const { setWorkspaceActiveCall, setDispositionModal, finalizePostCallContext, isSticky, setIsSticky } =
+    useContext(JssipContext);
   const [activeTab, setActiveTab] = useState('callerInfo');
   const [localFormData, setLocalFormData] = useState({});
   const [lastDraftKey, setLastDraftKey] = useState(null);

@@ -62,6 +62,9 @@ const Disposition = ({
 }) => {
   const { username, selectedBreak } = useContext(HistoryContext);
   const {
+    finalizePostCallContext,
+    bridgeID: liveBridgeID,
+    userCall: liveUserCall,
     activeCallContext,
     workspaceActiveCall,
     isSticky,
@@ -108,9 +111,9 @@ const Disposition = ({
     try {
       await axios.post(
         `${window.location.origin}/campaign/${campaignId}`,
-        { 
-          stickyMode: isNone ? '' : value, 
-          stickyEnabled: !isNone 
+        {
+          stickyMode: isNone ? '' : value,
+          stickyEnabled: !isNone,
         },
         { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
       );
