@@ -62,11 +62,10 @@ const Disposition = ({
 }) => {
   const { username, selectedBreak } = useContext(HistoryContext);
   const {
-    finalizePostCallContext,
-    bridgeID: liveBridgeID,
-    userCall: liveUserCall,
     activeCallContext,
     workspaceActiveCall,
+    isSticky,
+    setIsSticky,
   } = useContext(JssipContext);
   const { token, user: authUser } = useAuth();
   const [selectedAction, setSelectedAction] = useState(null);
@@ -87,33 +86,35 @@ const Disposition = ({
   const [isDispositionModalOpen, setDispositionModalOpen] = useState(false);
   const [isCallbackDialogOpen, setCallbackDialogOpen] = useState(false);
   const [callbackIncomplete, setCallbackIncomplete] = useState(false);
-  const [makeSticky, setMakeSticky] = useState(false);
+  const makeSticky = isSticky;
+  const setMakeSticky = setIsSticky;
   const campaignName = authUser?.campaignName || 'N/A';
   const stickyEnabled = authUser?.stickyEnabled !== false;
   const [stickyMode, setStickyMode] = useState('');
   const [savingStickyMode, setSavingStickyMode] = useState(false);
 
   const handleStickyModeChange = async (value) => {
-    if (value === 'disabled') {
-      setStickyMode('disabled');
-      setMakeSticky(false);
-      return;
-    }
+    const isNone = value === 'disabled';
     setStickyMode(value);
-    setMakeSticky(true);
+    setMakeSticky(!isNone);
+
     const campaignId = campaignID || authUser?.campaign;
     if (!campaignId) {
       toast.error('No campaign found');
       return;
     }
+
     setSavingStickyMode(true);
     try {
       await axios.post(
         `${window.location.origin}/campaign/${campaignId}`,
-        { stickyMode: value, stickyEnabled: true },
+        { 
+          stickyMode: isNone ? '' : value, 
+          stickyEnabled: !isNone 
+        },
         { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
       );
-      toast.success(`Sticky mode: ${value}`);
+      toast.success(isNone ? 'Sticky mode disabled' : `Sticky mode: ${value}`);
     } catch {
       toast.error('Failed to update sticky mode');
     } finally {
@@ -121,12 +122,8 @@ const Disposition = ({
     }
   };
 
-  useEffect(() => {
-    const isSticky = activeCallContext?.stickyAgent === username || liveUserCall?.stickyAgent === username;
-    if (isSticky) {
-      setMakeSticky(true);
-    }
-  }, [activeCallContext?.stickyAgent, liveUserCall?.stickyAgent, username]);
+  // Initialization of isSticky moved to useJssip.js
+  /* useEffect removed */
   const resolvedBridgeID = String(
     bridgeID ||
       liveBridgeID ||
@@ -356,7 +353,7 @@ const Disposition = ({
         leadFinalState: resolveLeadFinalState('Auto Disposed'),
         contactNumber: stickyTargetNumber,
         makeSticky,
-        stickyMode,
+        stickyMode: stickyMode === 'disabled' ? '' : stickyMode,
       };
 
       const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
@@ -629,7 +626,7 @@ const Disposition = ({
           leadFinalState: resolveLeadFinalState(selectedAction),
           contactNumber: stickyTargetNumber,
           makeSticky,
-          stickyMode,
+          stickyMode: stickyMode === 'disabled' ? '' : stickyMode,
         };
 
         // Handle callback data
@@ -905,7 +902,7 @@ const Disposition = ({
                       <SelectContent>
                         <SelectItem value="loose">Loose</SelectItem>
                         <SelectItem value="strict">Strict</SelectItem>
-                        <SelectItem value="">none</SelectItem>
+                        <SelectItem value="disabled">none</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

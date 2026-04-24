@@ -232,7 +232,13 @@ export default function LeadAndCallInfoPanel({
   setFormSubmitted,
   activeCallContext,
 }) {
-  const { setWorkspaceActiveCall, setDispositionModal, finalizePostCallContext } = useContext(JssipContext);
+  const { 
+    setWorkspaceActiveCall, 
+    setDispositionModal, 
+    finalizePostCallContext,
+    isSticky,
+    setIsSticky
+  } = useContext(JssipContext);
   const [activeTab, setActiveTab] = useState('callerInfo');
   const [localFormData, setLocalFormData] = useState({});
   const [lastDraftKey, setLastDraftKey] = useState(null);
@@ -1389,11 +1395,30 @@ export default function LeadAndCallInfoPanel({
   }, [draftStorageKey, localFormData]);
 
   // Update local form data handler
-  const updateLocalFormData = useCallback((newData) => {
-    setLocalFormData((prev) => {
-      return typeof newData === 'function' ? newData(prev) : { ...prev, ...newData };
-    });
-  }, []);
+  const updateLocalFormData = useCallback(
+    (newData) => {
+      setLocalFormData((prev) => {
+        const next = typeof newData === 'function' ? newData(prev) : { ...prev, ...newData };
+
+        // Sync isSticky back to context if it changed in form data
+        const nextIsSticky = !!next.isSticky;
+        const prevIsSticky = !!prev.isSticky;
+        if (nextIsSticky !== prevIsSticky) {
+          setIsSticky(nextIsSticky);
+        }
+
+        return next;
+      });
+    },
+    [setIsSticky],
+  );
+
+  // Sync context isSticky to localFormData
+  useEffect(() => {
+    if (localFormData?.isSticky !== isSticky) {
+      setLocalFormData((prev) => ({ ...prev, isSticky }));
+    }
+  }, [isSticky, localFormData?.isSticky]);
 
   const buildConversationRecord = useCallback(
     (submittedData, overrides = {}) => ({

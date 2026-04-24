@@ -98,6 +98,8 @@ export function JssipProvider({ children }) {
     finalizePostCallContext,
     isAutomationLoading,
     setIsAutomationLoading,
+    isSticky,
+    setIsSticky,
   ] = useJssip(isMobile);
 
   return (
@@ -180,6 +182,8 @@ export function JssipProvider({ children }) {
         isMobile,
         isAutomationLoading,
         setIsAutomationLoading,
+        isSticky,
+        setIsSticky,
       }}
     >
       {children}

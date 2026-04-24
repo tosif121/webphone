@@ -317,7 +317,8 @@ const useJssip = (isMobile = false) => {
     setActiveCallContext(null);
     setUserCall('');
     setWorkspaceActiveCall(null);
-  }, [setActiveCallContext, setBridgeID, setUserCall, setWorkspaceActiveCall]);
+    setIsSticky(false);
+  }, [setActiveCallContext, setBridgeID, setUserCall, setWorkspaceActiveCall, setIsSticky]);
 
   const ensureActiveCallContextLoaded = useCallback(
     async ({ incomingNumber = null, addIncomingHistory = false } = {}) => {
@@ -355,6 +356,15 @@ const useJssip = (isMobile = false) => {
           }
           setAgentLifecycle('on_call');
           setConferenceStatus(false);
+
+          // Initialize shared sticky state
+          const stickyByAgent =
+            response.data.currentcalldata?.stickyAgent === username ||
+            response.data.contactData?.stickyAgent === username ||
+            response.data.currentcalldata?.isSticky === true ||
+            response.data.contactData?.isSticky === true;
+          setIsSticky(!!stickyByAgent);
+
           activeCallContextLoadedRef.current = true;
 
           if (addIncomingHistory && incomingNumber) {

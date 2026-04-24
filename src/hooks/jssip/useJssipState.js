@@ -15,6 +15,7 @@ export const useJssipState = () => {
   const [conferenceStatus, setConferenceStatus] = useState(false);
   const [muted, setMuted] = useState(false);
   const [isCustomerAnswered, setIsCustomerAnswered] = useState(false);
+  const [isSticky, setIsSticky] = useState(false);
 
   /* ----------------------------- device control ---------------------------- */
   const [devices, setDevices] = useState([]);
@@ -113,6 +114,8 @@ export const useJssipState = () => {
     setStatus,
     callType,
     setCallType,
+    isSticky,
+    setIsSticky,
     isHeld,
     setIsHeld,
     conferenceStatus,
