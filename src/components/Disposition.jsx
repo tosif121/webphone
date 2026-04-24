@@ -887,7 +887,13 @@ const Disposition = ({
                       Route this contact back to the same agent when possible.
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-4">
+                    <Checkbox
+                      id="sticky-customer"
+                      checked={makeSticky}
+                      onCheckedChange={(checked) => setMakeSticky(checked)}
+                      disabled={isSubmitting || hasSubmittedSuccessfully}
+                    />
                     <Select
                       value={stickyMode}
                       onValueChange={handleStickyModeChange}
@@ -897,8 +903,9 @@ const Disposition = ({
                         <SelectValue placeholder="Select mode" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="loose">Loose </SelectItem>
+                        <SelectItem value="loose">Loose</SelectItem>
                         <SelectItem value="strict">Strict</SelectItem>
+                        <SelectItem value="">none</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

@@ -251,10 +251,7 @@ export const useJssipConference = (state, utils) => {
 
       // Only go back to on_call if the main SIP session is still active
       const mainSession = state.session;
-      const isMainSessionAlive =
-        mainSession &&
-        !mainSession.isEnded() &&
-        !mainSession.isTerminated?.();
+      const isMainSessionAlive = mainSession && !mainSession.isEnded() && !mainSession.isTerminated?.();
 
       if (isMainSessionAlive) {
         setStatus('on_call');
@@ -307,10 +304,7 @@ export const useJssipConference = (state, utils) => {
       setIsMerged(false);
 
       const mainSession = state.session;
-      const isMainSessionAlive =
-        mainSession &&
-        !mainSession.isEnded() &&
-        !mainSession.isTerminated?.();
+      const isMainSessionAlive = mainSession && !mainSession.isEnded() && !mainSession.isTerminated?.();
 
       if (isMainSessionAlive) {
         setStatus('on_call');

@@ -431,15 +431,22 @@ const CallScreen = ({
                   </>
                 ) : (
                   <>
-                    {console.log('[add-call-button]', { session: !!session, isCustomerAnswered, isMerged, conferenceStatus, status, disabled: !session || !isCustomerAnswered || isMerged || conferenceStatus })}
-                  <ControlButton
-                    buttonId="add-call-button"
-                    disabled={!session || !isCustomerAnswered || isMerged || conferenceStatus}
-                    onClick={() => setCallConference?.(true)}
-                    icon={<UserPlus size={isMobile ? 28 : 20} />}
-                    title="Add Call"
-                    debounceTime={500}
-                  />
+                    {console.log('[add-call-button]', {
+                      session: !!session,
+                      isCustomerAnswered,
+                      isMerged,
+                      conferenceStatus,
+                      status,
+                      disabled: !session || !isCustomerAnswered || isMerged || conferenceStatus,
+                    })}
+                    <ControlButton
+                      buttonId="add-call-button"
+                      disabled={!session || !isCustomerAnswered || isMerged || conferenceStatus}
+                      onClick={() => setCallConference?.(true)}
+                      icon={<UserPlus size={isMobile ? 28 : 20} />}
+                      title="Add Call"
+                      debounceTime={500}
+                    />
                   </>
                 )}
 

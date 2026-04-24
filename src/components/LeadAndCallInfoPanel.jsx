@@ -1978,7 +1978,6 @@ export default function LeadAndCallInfoPanel({
     if (!activeUserCall) return null;
 
     const submitLabel = hasExistingConversation ? 'Update Data' : 'Save Data';
-
     if (!isCampaignWebformEnabled && !isManualEntryActive) {
       return (
         <div className="h-full overflow-y-auto pr-1">
@@ -2462,7 +2461,6 @@ export default function LeadAndCallInfoPanel({
             <span className="text-muted-foreground">{filteredWorkspaceCalls.length} total rows</span>
           </div>
 
-
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -2740,7 +2738,10 @@ export default function LeadAndCallInfoPanel({
                 Review the current caller information, contact details, history, and any required post-call updates.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <Card className="flex h-full min-h-0 w-full flex-col border-0 shadow-none !gap-0" style={{ maxHeight: '85vh' }}>
+            <Card
+              className="flex h-full min-h-0 w-full flex-col border-0 shadow-none !gap-0"
+              style={{ maxHeight: '85vh' }}
+            >
               {!activeUserCall ? (
                 <CardContent className="flex flex-1 items-center justify-center">
                   <div className="text-center py-8">
