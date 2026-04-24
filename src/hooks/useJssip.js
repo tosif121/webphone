@@ -141,6 +141,8 @@ const useJssip = (isMobile = false) => {
     setIsMerged,
     isAutomationLoading,
     setIsAutomationLoading,
+    isSticky,
+    setIsSticky,
   } = state;
 
   const {
@@ -1997,6 +1999,8 @@ const useJssip = (isMobile = false) => {
     finalizePostCallContext,
     isAutomationLoading,
     setIsAutomationLoading,
+    isSticky,
+    setIsSticky,
   ];
 };
 
