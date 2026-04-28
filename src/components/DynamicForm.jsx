@@ -170,7 +170,7 @@ const FileUploadField = ({ value, onChange, field, required }) => {
   return (
     <div className="space-y-3">
       <Label
-        className={`mb-2 block text-sm font-medium ${required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}
+        className={`mb-2 block text-sm font-medium capitalize ${required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}
       >
         {field.label}
       </Label>
@@ -599,6 +599,9 @@ export default function DynamicForm({
   );
 
   const handleChange = (fieldName, value) => {
+    if (fieldName.toLowerCase().includes('name')) {
+      console.log(`[DynamicForm] Field ${fieldName} changed to:`, value);
+    }
     const lockedCallerField = currentSection?.fields?.find(
       (field) => field.name === fieldName && getFieldSystemRole(field) === 'callerNumber',
     );
@@ -819,14 +822,14 @@ export default function DynamicForm({
       const getUserCallValue = (fieldName) => {
         if (!userCall) return undefined;
         const searchKey = fieldName.trim().toLowerCase();
-        
+
         if (userCall.hasOwnProperty(fieldName)) return userCall[fieldName];
-        
+
         const userCallKeys = Object.keys(userCall);
-        const foundKey = userCallKeys.find(key => key.trim().toLowerCase() === searchKey);
+        const foundKey = userCallKeys.find((key) => key.trim().toLowerCase() === searchKey);
         if (foundKey) return userCall[foundKey];
 
-        const fuzzyKey = userCallKeys.find(key => {
+        const fuzzyKey = userCallKeys.find((key) => {
           const k = key.trim().toLowerCase();
           return k.length > 2 && (searchKey.includes(k) || k.includes(searchKey));
         });
@@ -843,14 +846,18 @@ export default function DynamicForm({
           }
 
           let actualValue = getUserCallValue(field.name);
-          
-          if (actualValue !== undefined && actualValue !== '' && (field.type === 'select' || field.type === 'radio' || field.type === 'checkbox')) {
-             const options = field.options || [];
-             const searchVal = String(actualValue).trim().toLowerCase();
-             const matchingOption = options.find(opt => String(opt.value).trim().toLowerCase() === searchVal);
-             if (matchingOption) {
-               actualValue = matchingOption.value;
-             }
+
+          if (
+            actualValue !== undefined &&
+            actualValue !== '' &&
+            (field.type === 'select' || field.type === 'radio' || field.type === 'checkbox')
+          ) {
+            const options = field.options || [];
+            const searchVal = String(actualValue).trim().toLowerCase();
+            const matchingOption = options.find((opt) => String(opt.value).trim().toLowerCase() === searchVal);
+            if (matchingOption) {
+              actualValue = matchingOption.value;
+            }
           }
 
           if (actualValue !== undefined && actualValue !== '') {
@@ -862,6 +869,7 @@ export default function DynamicForm({
         });
       });
 
+      console.log('[DynamicForm] Initial Form Data:', initialData);
       setInitialValues(initialVals);
       setCurrentFormData((prev) => ({ ...prev, ...initialData }));
       setIsInitialized(true);
@@ -879,6 +887,13 @@ export default function DynamicForm({
     formDataRef.current = {};
     setErrors({});
   }, [draftStorageKey]);
+
+  useEffect(() => {
+    if (formSubmitted) {
+      setIsInitialized(false);
+      setUserModifiedFields(new Set());
+    }
+  }, [formSubmitted]);
 
   useEffect(() => {
     const savedState = localStorage.getItem(navigationStorageKey);
@@ -911,6 +926,11 @@ export default function DynamicForm({
   }, [currentSectionIndex, isFormComplete, navigationPath, navigationStorageKey, userModifiedFields, visitedSections]);
 
   const getFieldValue = (fieldName) => {
+    if (userModifiedFields.has(fieldName) && currentFormData.hasOwnProperty(fieldName)) {
+      const value = currentFormData[fieldName];
+      return value !== undefined && value !== null ? value : '';
+    }
+
     const matchedField = currentSection?.fields?.find((field) => field.name === fieldName);
     const systemValue = matchedField ? getSystemFieldValue(matchedField) : undefined;
 
@@ -1059,7 +1079,7 @@ export default function DynamicForm({
                     <div key={fieldId}>
                       <Label
                         htmlFor={fieldId}
-                        className={`mb-2 block text-sm font-medium ${
+                        className={`mb-2 block text-sm font-medium capitalize ${
                           field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
                         }`}
                       >
@@ -1095,7 +1115,7 @@ export default function DynamicForm({
                     <div key={fieldId}>
                       <Label
                         htmlFor={fieldId}
-                        className={`mb-2 block text-sm font-medium ${
+                        className={`mb-2 block text-sm font-medium capitalize ${
                           field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
                         }`}
                       >
@@ -1147,7 +1167,7 @@ export default function DynamicForm({
                   return (
                     <div key={fieldId}>
                       <Label
-                        className={`mb-2 block text-sm font-medium ${field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}
+                        className={`mb-2 block text-sm font-medium capitalize ${field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}
                       >
                         {fieldLabel}
                       </Label>
@@ -1181,7 +1201,7 @@ export default function DynamicForm({
                   return (
                     <div key={fieldId}>
                       <Label
-                        className={`mb-2 block text-sm font-medium ${field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}
+                        className={`mb-2 block text-sm font-medium capitalize ${field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''}`}
                       >
                         {fieldLabel}
                       </Label>
@@ -1219,7 +1239,7 @@ export default function DynamicForm({
                   return (
                     <div className="space-y-3" key={fieldId}>
                       <Label
-                        className={`mb-2 block text-sm font-medium ${
+                        className={`mb-2 block text-sm font-medium capitalize ${
                           field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
                         }`}
                       >
@@ -1322,7 +1342,7 @@ export default function DynamicForm({
                     <div key={fieldId}>
                       <Label
                         htmlFor={fieldId}
-                        className={`mb-2 block text-sm font-medium ${
+                        className={`mb-2 block text-sm font-medium capitalize ${
                           field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
                         }`}
                       >
@@ -1353,7 +1373,7 @@ export default function DynamicForm({
                   <div key={fieldId}>
                     <Label
                       htmlFor={fieldId}
-                      className={`mb-2 block text-sm font-medium ${
+                      className={`mb-2 block text-sm font-medium capitalize ${
                         field.required ? "after:content-['*'] after:ml-0.5 after:text-red-500" : ''
                       }`}
                     >

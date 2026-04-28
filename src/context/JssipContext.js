@@ -100,6 +100,8 @@ export function JssipProvider({ children }) {
     setIsAutomationLoading,
     isSticky,
     setIsSticky,
+    activeFollowUpData,
+    setActiveFollowUpData,
   ] = useJssip(isMobile);
 
   return (
@@ -184,6 +186,8 @@ export function JssipProvider({ children }) {
         setIsAutomationLoading,
         isSticky,
         setIsSticky,
+        activeFollowUpData,
+        setActiveFollowUpData,
       }}
     >
       {children}

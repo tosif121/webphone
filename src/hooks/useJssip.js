@@ -2001,6 +2001,8 @@ const useJssip = (isMobile = false) => {
     setIsAutomationLoading,
     isSticky,
     setIsSticky,
+    state.activeFollowUpData,
+    state.setActiveFollowUpData,
   ];
 };
 

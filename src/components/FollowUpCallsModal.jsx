@@ -1,10 +1,11 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useContext } from 'react';
 import { Phone, Clock, PhoneForwarded } from 'lucide-react';
 import moment from 'moment';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from './ui/button';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { JssipContext } from '@/context/JssipContext';
 
 const ACTIVE_CALLBACK_STORAGE_KEY = 'activeFollowUpCallback';
 
@@ -33,6 +34,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
   const [activeTab, setActiveTab] = useState('today');
   const [loadingCaller, setLoadingCaller] = useState(null);
   const [updatingCallbackId, setUpdatingCallbackId] = useState(null);
+  const { setActiveFollowUpData } = useContext(JssipContext);
 
   const authHeaders = useMemo(
     () =>
@@ -124,14 +126,14 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
           return;
         }
 
-        localStorage.setItem(
-          ACTIVE_CALLBACK_STORAGE_KEY,
-          JSON.stringify({
-            callbackId: callbackRecord?._id || callbackRecord?.id || null,
-            phoneNumber: cleanPhoneNumber,
-            startedAt: Date.now(),
-          }),
-        );
+        setActiveFollowUpData({
+          callbackId: callbackRecord?._id || callbackRecord?.id || null,
+          phoneNumber: cleanPhoneNumber,
+          startedAt: Date.now(),
+          comment: callbackRecord?.comment || '',
+          scheduledAt: callbackRecord?.scheduledAt || '',
+        });
+        console.log('[FollowUpCallsModal] Initiating call and saving data to context:', callbackRecord);
 
         await axios.post(
           `${window.location.origin}/dialmissedcall`,

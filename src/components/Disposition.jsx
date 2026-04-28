@@ -285,12 +285,6 @@ const Disposition = ({
           ? 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-700 dark:hover:bg-orange-900/30'
           : 'text-orange-700 border-orange-200 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-800 dark:hover:bg-orange-900/10',
       },
-      'Callback Scheduled': {
-        variant: 'outline',
-        className: isSelected
-          ? 'bg-teal-100 text-teal-800 border-teal-300 hover:bg-teal-200 dark:bg-teal-900/20 dark:text-teal-300 dark:border-teal-700 dark:hover:bg-teal-900/30'
-          : 'text-teal-700 border-teal-200 hover:bg-teal-50 dark:text-teal-400 dark:border-teal-800 dark:hover:bg-teal-900/10',
-      },
       'Wrong Number': {
         variant: 'outline',
         className: isSelected
@@ -334,6 +328,15 @@ const Disposition = ({
           : 'text-rose-700 border-rose-200 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-800 dark:hover:bg-rose-900/10',
       },
     };
+
+    if (/follow.?up|callback|call.?back/i.test(action)) {
+      return {
+        variant: 'outline',
+        className: isSelected
+          ? 'bg-teal-100 text-teal-800 border-teal-300 hover:bg-teal-200 dark:bg-teal-900/20 dark:text-teal-300 dark:border-teal-700 dark:hover:bg-teal-900/30'
+          : 'text-teal-700 border-teal-200 hover:bg-teal-50 dark:text-teal-400 dark:border-teal-800 dark:hover:bg-teal-900/10',
+      };
+    }
 
     return (
       actionStyles[action] || {
@@ -478,9 +481,10 @@ const Disposition = ({
     setTimeout(() => {
       setSelectedAction((prevAction) => {
         const newAction = prevAction === action ? null : action;
-        setCallbackDialogOpen(newAction === 'Callback Scheduled');
+        const isFollowUpAction = newAction && /follow.?up|callback|call.?back/i.test(newAction);
+        setCallbackDialogOpen(isFollowUpAction);
         // Track if callback was opened
-        if (newAction === 'Callback Scheduled') {
+        if (isFollowUpAction) {
           setCallbackIncomplete(true);
         } else {
           setCallbackIncomplete(false);
@@ -633,7 +637,7 @@ const Disposition = ({
         };
 
         // Handle callback data
-        if (selectedAction === 'Callback Scheduled') {
+        if (selectedAction && /follow.?up|callback|call.?back/i.test(selectedAction)) {
           if (callbackData) {
             requestBody.followUpDisposition = {
               date: callbackData.date,
@@ -732,7 +736,7 @@ const Disposition = ({
   const handleCallbackSubmit = useCallback(
     (callbackData) => {
       let date, time, details;
-      if (selectedAction === 'Callback Scheduled') {
+      if (selectedAction && /follow.?up|callback|call.?back/i.test(selectedAction)) {
         if (callbackData) {
           date = callbackData.date;
           time = callbackData.time;

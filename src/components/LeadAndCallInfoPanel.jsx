@@ -232,8 +232,15 @@ export default function LeadAndCallInfoPanel({
   setFormSubmitted,
   activeCallContext,
 }) {
-  const { setWorkspaceActiveCall, setDispositionModal, finalizePostCallContext, isSticky, setIsSticky } =
-    useContext(JssipContext);
+  const {
+    setWorkspaceActiveCall,
+    setDispositionModal,
+    finalizePostCallContext,
+    isSticky,
+    setIsSticky,
+    activeFollowUpData,
+    setActiveFollowUpData,
+  } = useContext(JssipContext);
   const [activeTab, setActiveTab] = useState('callerInfo');
   const [localFormData, setLocalFormData] = useState({});
   const [lastDraftKey, setLastDraftKey] = useState(null);
@@ -328,10 +335,33 @@ export default function LeadAndCallInfoPanel({
 
   const isManualEntryActive = manualEntryMode && !userCall && !retainedUserCall;
 
-  const activeUserCall = useMemo(
-    () => (dispositionModal ? userCall || retainedUserCall || manualEntryCall : userCall || manualEntryCall),
-    [dispositionModal, manualEntryCall, retainedUserCall, userCall],
-  );
+  const activeUserCall = useMemo(() => {
+    const base = dispositionModal ? userCall || retainedUserCall || manualEntryCall : userCall || manualEntryCall;
+    if (!base) return null;
+
+    let followUpData = {};
+    if (activeFollowUpData) {
+      const storedPhone = String(activeFollowUpData.phoneNumber || '').replace(/\D/g, '');
+      const currentPhone = String(base.contactNumber || base.phoneNumber || '').replace(/\D/g, '');
+
+      // Only apply follow-up data if the phone number matches
+      if (storedPhone && currentPhone && (storedPhone.includes(currentPhone) || currentPhone.includes(storedPhone))) {
+        followUpData = {
+          followUpComment: activeFollowUpData.comment || '',
+          followUpCallbackId: activeFollowUpData.callbackId || '',
+          isFollowUpCall: true,
+        };
+        console.log('[LeadAndCallInfoPanel] Found matching Follow-up Data from context:', followUpData);
+      }
+    }
+
+    return {
+      ...base,
+      ...latestConversation,
+      ...contactProfile,
+      ...followUpData,
+    };
+  }, [contactProfile, dispositionModal, latestConversation, manualEntryCall, retainedUserCall, userCall]);
 
   useEffect(() => {
     if (activeUserCall) {
@@ -563,8 +593,11 @@ export default function LeadAndCallInfoPanel({
       contactProfile?.firstName ||
       '';
 
+    const finalName = String(fallbackName || '').trim();
+    console.log('[LeadAndCallInfoPanel] Current Display Name:', finalName);
+
     return {
-      name: String(fallbackName || '').trim(),
+      name: finalName,
       phone: normalizedContactNumber !== 'no-contact' ? normalizedContactNumber : '',
       tags: [],
       lastDisposition: '',
@@ -1372,6 +1405,7 @@ export default function LeadAndCallInfoPanel({
         localStorage.removeItem(draftStorageKey);
         localStorage.removeItem(`formNavigationState:${draftStorageKey}`);
       }
+      setActiveFollowUpData(null);
       setLocalFormData({});
       setIsFormDataInitialized(false);
       setLastDraftKey(null);
@@ -1379,7 +1413,7 @@ export default function LeadAndCallInfoPanel({
       setWorkspaceActiveCall(null);
       setManualEntryMode(false);
     }
-  }, [draftStorageKey, formSubmitted, setWorkspaceActiveCall]);
+  }, [draftStorageKey, formSubmitted, setActiveFollowUpData, setWorkspaceActiveCall]);
 
   useEffect(() => {
     if (!draftStorageKey) return;
@@ -1501,11 +1535,12 @@ export default function LeadAndCallInfoPanel({
     }
 
     const { contactData, contactNumber, conversationFields } = buildDynamicFormPayloads(formDataToSubmit);
+    console.log('[LeadAndCallInfoPanel] Submission Payload:', { contactData, conversationFields });
     const isStickyContact = localFormData?.isSticky;
-    console.log(isStickyContact, 'isStickyContact');
     const conversationData = buildConversationRecord({
       ...conversationFields,
       contactNumber,
+      followUpRemark: localFormData?.followUpRemark || '',
     });
 
     const payload = {
@@ -1529,6 +1564,22 @@ export default function LeadAndCallInfoPanel({
       if (response.data?.success) {
         toast.success(response.data.message || 'Contact saved successfully.');
         setFormSubmitted(true);
+
+        // Update local state to reflect changes immediately
+        if (latestConversation) {
+          setLatestConversation((prev) => ({
+            ...prev,
+            ...conversationFields,
+          }));
+        }
+
+        if (contactProfile) {
+          setContactProfile((prev) => ({
+            ...prev,
+            ...contactData,
+          }));
+        }
+
         // Clear form after successful submission
         setTimeout(() => {
           setLocalFormData({});
@@ -2031,6 +2082,28 @@ export default function LeadAndCallInfoPanel({
       return (
         <div className="flex flex-col h-full min-h-0 overflow-hidden">
           {stickyCheckbox && <div className="shrink-0">{stickyCheckbox}</div>}
+          {activeUserCall?.isFollowUpCall && (
+            <div className="shrink-0 p-4 mb-4 rounded-xl border bg-card/50 space-y-3">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-primary" />
+                <Label className="text-sm font-semibold">Follow-up Remark</Label>
+              </div>
+              <Textarea
+                className="min-h-[100px] bg-background border-input text-sm"
+                placeholder="Enter your follow-up remark here..."
+                value={localFormData?.followUpRemark ?? activeUserCall?.followUpComment ?? ''}
+                onChange={(e) => updateLocalFormData({ followUpRemark: e.target.value })}
+              />
+              <div className="flex justify-between items-center px-1">
+                <p className="text-[10px] text-muted-foreground italic">
+                  {localFormData?.followUpRemark === undefined ||
+                  localFormData?.followUpRemark === activeUserCall?.followUpComment
+                    ? 'Showing previous remark. You can edit it above.'
+                    : 'Remark modified. It will be saved upon submission.'}
+                </p>
+              </div>
+            </div>
+          )}
           <div className="flex-1 min-h-0 overflow-hidden">
             <DynamicForm
               key={formConfig.formId}

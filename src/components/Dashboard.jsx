@@ -709,15 +709,40 @@ function Dashboard() {
   }, [fetchUserMissedCalls, token, username]);
 
   useEffect(() => {
+    let isMounted = true;
+    let timeoutId;
+
     if ((status == 'start' && username) || dropCalls) {
-      fetchUserMissedCalls();
+      fetchUserMissedCalls(); // Initial fetch
+
+      // Fetch again after 2.5s to allow backend to process and log the missed call
+      timeoutId = setTimeout(() => {
+        if (isMounted) fetchUserMissedCalls();
+      }, 2500);
     }
+
+    return () => {
+      isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [dropCalls, fetchUserMissedCalls, status, username]);
 
   useEffect(() => {
-    if (selectedBreak !== 'Break' && username) {
+    let isMounted = true;
+    let timeoutId;
+
+    if (username && selectedBreak) {
       fetchUserMissedCalls();
+
+      timeoutId = setTimeout(() => {
+        if (isMounted) fetchUserMissedCalls();
+      }, 2500);
     }
+
+    return () => {
+      isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [fetchUserMissedCalls, selectedBreak, username]);
 
   useEffect(() => {
@@ -1242,9 +1267,7 @@ function Dashboard() {
                     {filteredCalls
                       .map((call) => {
                         if (!call.isSticky) return call.Caller;
-
-                        const agent = call?.stickyAgent ?? 'Unknown';
-                        return `${call.Caller} (Sticky by ${agent})`;
+                        return `${call.Caller}${call?.stickyAgent ? ` (Sticky by ${call.stickyAgent})` : ''}`;
                       })
                       .join(', ')}{' '}
                   </marquee>
