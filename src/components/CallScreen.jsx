@@ -409,15 +409,17 @@ const CallScreen = ({
               <div className="flex justify-center gap-4 sm:gap-3">
                 {conferenceStatus ? (
                   <>
-                    <ControlButton
-                      buttonId="merge-button"
-                      disabled={hasParticipants !== 'connected'}
-                      onClick={handleMerge}
-                      icon={<Merge size={isMobile ? 28 : 20} />}
-                      title="Merge"
-                      active={isMerged}
-                      debounceTime={800}
-                    />
+                    {!isMerged && (
+                      <ControlButton
+                        buttonId="merge-button"
+                        disabled={hasParticipants !== 'connected'}
+                        onClick={handleMerge}
+                        icon={<Merge size={isMobile ? 28 : 20} />}
+                        title="Merge"
+                        active={isMerged}
+                        debounceTime={800}
+                      />
+                    )}
                     <ControlButton
                       buttonId="disconnect-conf-button"
                       onClick={handleConferenceHangup}
@@ -431,14 +433,6 @@ const CallScreen = ({
                   </>
                 ) : (
                   <>
-                    {console.log('[add-call-button]', {
-                      session: !!session,
-                      isCustomerAnswered,
-                      isMerged,
-                      conferenceStatus,
-                      status,
-                      disabled: !session || !isCustomerAnswered || isMerged || conferenceStatus,
-                    })}
                     <ControlButton
                       buttonId="add-call-button"
                       disabled={!session || !isCustomerAnswered || isMerged || conferenceStatus}

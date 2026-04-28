@@ -72,6 +72,7 @@ export const useJssipConference = (state, utils) => {
           setBridgeID(data.result);
           setConferenceStatus(true);
           setStatus('conference');
+          setIsHeld(true);
 
           logMergeEvent('conference_created', {
             message: data.message,
@@ -95,6 +96,7 @@ export const useJssipConference = (state, utils) => {
         setConferenceNumber('');
         setHasParticipants(null);
         setIsCustomerAnswered(true);
+        reqUnHold('conference_failed_response');
         logMergeEvent('conference_failed', {
           error: data.message,
           reason: 'api_error',
@@ -108,6 +110,7 @@ export const useJssipConference = (state, utils) => {
         setConferenceNumber('');
         setHasParticipants(null);
         setIsCustomerAnswered(true);
+        reqUnHold('conference_failed_unexpected');
         logMergeEvent('conference_failed', {
           error: data.message,
           reason: 'unexpected_response',
@@ -119,7 +122,7 @@ export const useJssipConference = (state, utils) => {
       setConferenceStatus(false);
       setCallConference(false);
       setHasParticipants(null);
-      setIsCustomerAnswered(false);
+      reqUnHold('conference_network_error');
 
       logMergeEvent('conference_failed', {
         error: error.message,
@@ -155,7 +158,6 @@ export const useJssipConference = (state, utils) => {
           audioRef.current.play();
         }
         setIsHeld(false);
-        setConferenceStatus(false);
 
         logMergeEvent('unhold_success', {
           triggerSource,
@@ -242,33 +244,14 @@ export const useJssipConference = (state, utils) => {
       message.includes('customer host channel diconnected') ||
       message.includes('customer host channel disconnected')
     ) {
-      setCallConference(false);
-      setConferenceNumber('');
-      setConferenceStatus(false);
-      setHasParticipants('disconnected');
-      setIsCustomerAnswered(true);
-      setIsMerged(false);
-
-      // Only go back to on_call if the main SIP session is still active
-      const mainSession = state.session;
-      const isMainSessionAlive = mainSession && !mainSession.isEnded() && !mainSession.isTerminated?.();
-
-      if (isMainSessionAlive) {
-        setStatus('on_call');
-        reqUnHold('auto_unhold_on_disconnect');
-      } else {
-        // Main session already ended — go straight to disposition
-        setStatus('start');
-      }
-
       logMergeEvent('participant_disconnected', {
         message,
         autoMergeTriggered: true,
         reason: 'conference_message',
-        mainSessionAlive: isMainSessionAlive,
       });
 
       toast.error('Conference disconnected');
+      setHasParticipants('disconnected_message');
     }
 
     const objectToPush = {
@@ -295,7 +278,7 @@ export const useJssipConference = (state, utils) => {
 
   // ✅ NEW: Auto reqUnHold when participant disconnects
   useEffect(() => {
-    if (hasParticipants === 'Conference disconnected') {
+    if (hasParticipants === 'Conference disconnected' || hasParticipants === 'disconnected_message') {
       setCallConference(false);
       setConferenceNumber('');
       setConferenceStatus(false);
@@ -308,12 +291,14 @@ export const useJssipConference = (state, utils) => {
 
       if (isMainSessionAlive) {
         setStatus('on_call');
-        reqUnHold('auto_unhold_on_disconnect');
+        reqUnHold(
+          hasParticipants === 'disconnected_message' ? 'auto_unhold_on_disconnect' : 'conference_hangup_success',
+        );
       } else {
         setStatus('start');
       }
     }
-  }, [hasParticipants]);
+  }, [hasParticipants, state.session]);
 
   //   useEffect(() => {
   //   if (conferenceCalls && conferenceCalls.length > 0 && status === 'conference') {
