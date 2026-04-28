@@ -1744,7 +1744,7 @@ const useJssip = (isMobile = false) => {
               'X-User-ID': username,
             }),
           },
-          timeout: 10000, // 10 second timeout
+          timeout: 10000,
         },
       );
 
