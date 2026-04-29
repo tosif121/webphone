@@ -239,6 +239,10 @@ const useJssip = (isMobile = false) => {
   }, [status]);
 
   useEffect(() => {
+    console.log('[status]', status);
+  }, [status]);
+
+  useEffect(() => {
     uaRef.current = ua;
   }, [ua]);
 
@@ -1410,7 +1414,6 @@ const useJssip = (isMobile = false) => {
                       setStatus('start');
                       setIsCallended(true);
                       setAgentLifecycle('disposition');
-                      setDispositionModal(true);
                       setCallHandled(false);
                       callHandledRef.current = false;
                       setConferenceNumber('');
@@ -1504,7 +1507,6 @@ const useJssip = (isMobile = false) => {
               setStatus('start');
               setIsCallended(true);
               setAgentLifecycle('disposition');
-              setDispositionModal(true);
               setConferenceNumber('');
               // Clean up any lingering conference state
               setCallConference(false);
@@ -1569,7 +1571,6 @@ const useJssip = (isMobile = false) => {
         setAgentLifecycle('disposition');
         setIsCallended(true);
         setConferenceNumber('');
-        setDispositionModal(true);
       });
 
       session.once('failed', () => {

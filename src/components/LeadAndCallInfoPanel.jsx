@@ -2963,6 +2963,12 @@ export default function LeadAndCallInfoPanel({
               </div>
             </CardHeader>
             <CardContent className="flex-1 min-h-0 overflow-hidden pt-0">
+              {!activeUserCall && ['calling', 'on_call', 'conference', 'incoming'].includes(status) ? (
+                <div className="flex flex-col items-center justify-center h-full py-16 gap-3">
+                  <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                  <p className="text-muted-foreground text-sm">Loading call details...</p>
+                </div>
+              ) : (
               <div className="rounded-2xl border border-dashed border-border/60 px-4 py-8 sm:px-6 sm:py-16 text-center">
                 <Phone
                   size={48}
@@ -2974,6 +2980,7 @@ export default function LeadAndCallInfoPanel({
                     : 'No active call to display details.'}
                 </p>
               </div>
+              )}
             </CardContent>
           </>
         ) : (

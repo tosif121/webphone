@@ -135,6 +135,7 @@ const Disposition = ({
       activeCallContext?.bridgeID ||
       '',
   ).trim();
+
   const stickyTargetNumber = String(
     phoneNumber ||
       liveUserCall?.contactNumber ||
@@ -460,6 +461,11 @@ const Disposition = ({
     }
 
     if (dispoData?.length > 0) {
+      if (!resolvedBridgeID) {
+        toast.error('Call bridge not found. Disposition skipped.');
+        closeDispositionFlow();
+        return;
+      }
       setDispositionActions(
         dispoData.map((item) => ({
           action: item.value,
@@ -472,7 +478,15 @@ const Disposition = ({
       setIsAutoDispositionInProgress(true);
       autoDispoFunc();
     }
-  }, [authUser, autoDispoFunc, formSubmitted, isAutoDispositionComplete, isAutoDispositionInProgress]);
+  }, [
+    authUser,
+    autoDispoFunc,
+    closeDispositionFlow,
+    formSubmitted,
+    isAutoDispositionComplete,
+    isAutoDispositionInProgress,
+    resolvedBridgeID,
+  ]);
 
   const handleActionClick = useCallback((action, event) => {
     event.preventDefault();
@@ -620,6 +634,8 @@ const Disposition = ({
       try {
         if (!resolvedBridgeID) {
           toast.error('Call bridge not found. Please retry once or refresh the webphone.');
+          setIsSubmitting(false);
+          closeDispositionFlow();
           return;
         }
 
