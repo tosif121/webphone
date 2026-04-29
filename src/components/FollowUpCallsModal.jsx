@@ -133,7 +133,6 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
           comment: callbackRecord?.comment || '',
           scheduledAt: callbackRecord?.scheduledAt || '',
         });
-        console.log('[FollowUpCallsModal] Initiating call and saving data to context:', callbackRecord);
 
         await axios.post(
           `${window.location.origin}/dialmissedcall`,

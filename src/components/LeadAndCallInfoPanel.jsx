@@ -291,8 +291,6 @@ export default function LeadAndCallInfoPanel({
     }
   }, [token]);
 
-  console.log(allowManualEntry, 'allowManualEntry');
-
   const isDispositionEnabled = useMemo(() => {
     if (typeof window === 'undefined') return true;
     try {
@@ -355,7 +353,6 @@ export default function LeadAndCallInfoPanel({
           followUpCallbackId: activeFollowUpData.callbackId || '',
           isFollowUpCall: true,
         };
-        console.log('[LeadAndCallInfoPanel] Found matching Follow-up Data from context:', followUpData);
       }
     }
 
@@ -365,7 +362,6 @@ export default function LeadAndCallInfoPanel({
       ...contactProfile,
       ...followUpData,
     };
-    console.log('[LeadAndCallInfoPanel] activeUserCall computed:', merged);
     return merged;
   }, [
     contactProfile,
@@ -586,7 +582,6 @@ export default function LeadAndCallInfoPanel({
         contactNumber,
         conversationFields,
       };
-      console.log('[LeadAndCallInfoPanel] buildDynamicFormPayloads result:', result);
       return result;
     },
     [activeUserCall?.contactNumber, dynamicFormFields, hasMeaningfulSubmittedValue, resolveDynamicFieldStorageTarget],
@@ -610,7 +605,6 @@ export default function LeadAndCallInfoPanel({
       '';
 
     const finalName = String(fallbackName || '').trim();
-    console.log('[LeadAndCallInfoPanel] Current Display Name:', finalName);
 
     return {
       name: finalName,
@@ -1501,7 +1495,6 @@ export default function LeadAndCallInfoPanel({
     });
 
     const isStickyContact = formDataToSubmit?.isSticky;
-    console.log('[LeadAndCallInfoPanel] handleContact isSticky:', isStickyContact);
 
     const payload = {
       user: username,
@@ -1551,7 +1544,6 @@ export default function LeadAndCallInfoPanel({
     }
 
     const { contactData, contactNumber, conversationFields } = buildDynamicFormPayloads(formDataToSubmit);
-    console.log('[LeadAndCallInfoPanel] Submission Payload:', { contactData, conversationFields });
     const isStickyContact = localFormData?.isSticky;
     const conversationData = buildConversationRecord({
       ...conversationFields,
@@ -1588,13 +1580,11 @@ export default function LeadAndCallInfoPanel({
         void fetchContactWorkspace?.(); // Refresh contact history/remarks
 
         // Update local state to reflect changes immediately
-        console.log('[LeadAndCallInfoPanel] Updating latestConversation with:', conversationFields);
         setLatestConversation((prev) => ({
           ...(prev || {}),
           ...conversationFields,
         }));
 
-        console.log('[LeadAndCallInfoPanel] Updating contactProfile with:', contactData);
         setContactProfile((prev) => ({
           ...(prev || {}),
           ...contactData,

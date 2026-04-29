@@ -233,8 +233,6 @@ const CallScreen = ({
         },
       );
 
-      console.log('[CallScreen] Conference Hangup Response:', response.data);
-
       if (response.data.success || response.data.message === 'Host channel not found in conference') {
         toast.success(response.data.message || 'Conference disconnected successfully');
         setHasParticipants('Conference disconnected');

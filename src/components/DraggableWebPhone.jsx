@@ -418,7 +418,6 @@ export default function DraggableWebPhone() {
             headerAction={collapseButton}
           />
         )}
-        {console.log(isCallLive, 'isCallLive')}
 
         {!(effectiveIsMobile && isIncomingRinging) &&
           !seeLogs &&

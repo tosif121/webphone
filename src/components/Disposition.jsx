@@ -660,7 +660,6 @@ const Disposition = ({
         }
 
         // 1. Submit disposition FIRST
-        console.log('[Disposition] submitForm requestBody:', requestBody);
         const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         });

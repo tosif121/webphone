@@ -598,7 +598,6 @@ export default function DynamicForm({
   );
 
   const handleChange = (fieldName, value) => {
-    console.log(`[DynamicForm] Field change: ${fieldName} =`, value);
     const lockedCallerField = currentSection?.fields?.find(
       (field) => field.name === fieldName && getFieldSystemRole(field) === 'callerNumber',
     );
@@ -649,7 +648,6 @@ export default function DynamicForm({
     setIsSubmitting(true);
     try {
       const finalData = getFinalFormData();
-      console.log('[DynamicForm] Submitting final data:', finalData);
 
       if (handleSubmit) {
         await handleSubmit(finalData);
