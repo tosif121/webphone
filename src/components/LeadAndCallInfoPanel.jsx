@@ -291,6 +291,8 @@ export default function LeadAndCallInfoPanel({
     }
   }, [token]);
 
+  console.log(allowManualEntry, 'allowManualEntry');
+
   const isDispositionEnabled = useMemo(() => {
     if (typeof window === 'undefined') return true;
     try {
