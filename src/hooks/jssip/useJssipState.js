@@ -46,7 +46,7 @@ export const useJssipState = () => {
   const [connectionStatus, setConnectionStatus] = useState('NOT_INUSE');
   const [isConnectionLost, setIsConnectionLost] = useState(false);
   const [timeoutArray, setTimeoutArray] = useState([]);
-  const [origin, setOrigin] = useState('esamwad.iotcom.io');
+  const [origin, setOrigin] = useState('app.samvaad.io');
   const [timeoutMessage, setTimeoutMessage] = useState('');
   const [isMerged, setIsMerged] = useState(false);
 

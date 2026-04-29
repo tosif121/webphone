@@ -328,30 +328,29 @@ export default function DynamicForm({
   const getSystemFieldValue = useCallback(
     (field) => {
       const role = getFieldSystemRole(field);
+      let value = undefined;
 
       if (role === 'callerNumber') {
-        return isManualEntry ? currentFormData.contactNumber || '' : userCall?.contactNumber || '';
-      }
-
-      if (role === 'callerName') {
-        return (
+        value = isManualEntry ? currentFormData.contactNumber || '' : userCall?.contactNumber || '';
+      } else if (role === 'callerName') {
+        value =
           currentFormData[field.name] ||
           currentFormData.callerName ||
           currentFormData.caller_name ||
           userCall?.callerName ||
           userCall?.caller_name ||
           userCall?.firstName ||
-          ''
-        );
+          '';
+      } else if (role === 'alternateNumber') {
+        value = currentFormData[field.name] || userCall?.alternateNumber || '';
       }
 
-      if (role === 'alternateNumber') {
-        return currentFormData[field.name] || userCall?.alternateNumber || '';
+      if (value !== undefined) {
+        console.log(`[DynamicForm] System Field ${field.name} (${role}) retrieval:`, value);
       }
-
-      return undefined;
+      return value;
     },
-    [currentFormData, getFieldSystemRole, userCall],
+    [currentFormData, getFieldSystemRole, userCall, isManualEntry],
   );
 
   const matchesFieldVisibility = useCallback(
@@ -599,9 +598,7 @@ export default function DynamicForm({
   );
 
   const handleChange = (fieldName, value) => {
-    if (fieldName.toLowerCase().includes('name')) {
-      console.log(`[DynamicForm] Field ${fieldName} changed to:`, value);
-    }
+    console.log(`[DynamicForm] Field change: ${fieldName} =`, value);
     const lockedCallerField = currentSection?.fields?.find(
       (field) => field.name === fieldName && getFieldSystemRole(field) === 'callerNumber',
     );
@@ -652,6 +649,7 @@ export default function DynamicForm({
     setIsSubmitting(true);
     try {
       const finalData = getFinalFormData();
+      console.log('[DynamicForm] Submitting final data:', finalData);
 
       if (handleSubmit) {
         await handleSubmit(finalData);

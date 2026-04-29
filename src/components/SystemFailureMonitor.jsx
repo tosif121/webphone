@@ -74,7 +74,7 @@ const DEFAULT_CONN = {
   isConnectionLost: false,
   userLogin: false,
   showTimeoutModal: false,
-  origin: 'esamwad.iotcom.io',
+  origin: 'app.samvaad.io',
   networkStatus: true,
   socketState: null,
   lastConnectionCheck: Date.now(),

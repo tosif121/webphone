@@ -355,13 +355,23 @@ export default function LeadAndCallInfoPanel({
       }
     }
 
-    return {
+    const merged = {
       ...base,
       ...latestConversation,
       ...contactProfile,
       ...followUpData,
     };
-  }, [contactProfile, dispositionModal, latestConversation, manualEntryCall, retainedUserCall, userCall]);
+    console.log('[LeadAndCallInfoPanel] activeUserCall computed:', merged);
+    return merged;
+  }, [
+    contactProfile,
+    dispositionModal,
+    latestConversation,
+    manualEntryCall,
+    retainedUserCall,
+    userCall,
+    activeFollowUpData,
+  ]);
 
   useEffect(() => {
     if (activeUserCall) {
@@ -538,7 +548,7 @@ export default function LeadAndCallInfoPanel({
       const conversationFields = {};
 
       dynamicFormFields.forEach((field) => {
-        const fieldName = String(field?.name || '').trim();
+        const fieldName = field?.name;
         if (!fieldName || !Object.prototype.hasOwnProperty.call(submittedData, fieldName)) {
           return;
         }
@@ -567,11 +577,13 @@ export default function LeadAndCallInfoPanel({
         contactData.contactNumber = contactNumber;
       }
 
-      return {
+      const result = {
         contactData,
         contactNumber,
         conversationFields,
       };
+      console.log('[LeadAndCallInfoPanel] buildDynamicFormPayloads result:', result);
+      return result;
     },
     [activeUserCall?.contactNumber, dynamicFormFields, hasMeaningfulSubmittedValue, resolveDynamicFieldStorageTarget],
   );
@@ -1566,19 +1578,17 @@ export default function LeadAndCallInfoPanel({
         setFormSubmitted(true);
 
         // Update local state to reflect changes immediately
-        if (latestConversation) {
-          setLatestConversation((prev) => ({
-            ...prev,
-            ...conversationFields,
-          }));
-        }
+        console.log('[LeadAndCallInfoPanel] Updating latestConversation with:', conversationFields);
+        setLatestConversation((prev) => ({
+          ...(prev || {}),
+          ...conversationFields,
+        }));
 
-        if (contactProfile) {
-          setContactProfile((prev) => ({
-            ...prev,
-            ...contactData,
-          }));
-        }
+        console.log('[LeadAndCallInfoPanel] Updating contactProfile with:', contactData);
+        setContactProfile((prev) => ({
+          ...(prev || {}),
+          ...contactData,
+        }));
 
         // Clear form after successful submission
         setTimeout(() => {
