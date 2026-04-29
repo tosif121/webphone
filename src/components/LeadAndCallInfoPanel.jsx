@@ -231,6 +231,8 @@ export default function LeadAndCallInfoPanel({
   callType,
   setFormSubmitted,
   activeCallContext,
+  fetchCallDataByAgent: refreshCalls,
+  fetchLeadsWithDateRange: refreshLeads,
 }) {
   const {
     setWorkspaceActiveCall,
@@ -1576,6 +1578,12 @@ export default function LeadAndCallInfoPanel({
       if (response.data?.success) {
         toast.success(response.data.message || 'Contact saved successfully.');
         setFormSubmitted(true);
+
+        // Refresh global data
+        void refreshCalls?.();
+        void refreshLeads?.();
+        void fetchCallDataByAgent?.(); // Also refresh local data
+        void fetchContactWorkspace?.(); // Refresh contact history/remarks
 
         // Update local state to reflect changes immediately
         console.log('[LeadAndCallInfoPanel] Updating latestConversation with:', conversationFields);

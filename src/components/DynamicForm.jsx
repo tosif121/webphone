@@ -867,9 +867,8 @@ export default function DynamicForm({
         });
       });
 
-      console.log('[DynamicForm] Initial Form Data:', initialData);
       setInitialValues(initialVals);
-      setCurrentFormData((prev) => ({ ...prev, ...initialData }));
+      setCurrentFormData((prev) => ({ ...initialData, ...prev }));
       setIsInitialized(true);
     }
   }, [formConfig, getSystemFieldValue, isInitialized, userCall, userCallDialog, userModifiedFields]);

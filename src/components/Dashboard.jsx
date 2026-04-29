@@ -372,6 +372,7 @@ function Dashboard() {
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
+          agentName: username,
         },
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -1453,6 +1454,8 @@ function Dashboard() {
                 callType={callType}
                 setFormSubmitted={setFormSubmitted}
                 activeCallContext={activeCallContext}
+                fetchCallDataByAgent={fetchCallDataByAgent}
+                fetchLeadsWithDateRange={fetchLeadsWithDateRange}
               />
             </div>
           )}
