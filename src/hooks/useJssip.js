@@ -240,6 +240,13 @@ const useJssip = (isMobile = false) => {
 
   useEffect(() => {
     console.log('[status]', status);
+    if (status === 'start' && !isCallended) {
+      setDispositionModal(false);
+      setShowTimeoutModal(false);
+      setIsIncomingRinging(false);
+      setCallConference(false);
+      setConferenceStatus(false);
+    }
   }, [status]);
 
   useEffect(() => {
@@ -1002,6 +1009,7 @@ const useJssip = (isMobile = false) => {
     confirmed: function (e) {
       reset(undefined, true);
       startRecording();
+      setStatus('on_call');
       setAgentLifecycle('on_call');
       setHistory((prev) => [
         ...prev.slice(0, -1),
@@ -1014,7 +1022,6 @@ const useJssip = (isMobile = false) => {
     },
 
     ended: function (e) {
-      console.log('[SIP] Call session ended (BYE received or local termination)');
       if (isRecording) {
         stopRecording();
       }
@@ -1216,7 +1223,6 @@ const useJssip = (isMobile = false) => {
           }
 
           const message = e.request?.body || '';
-          console.log('[UA Message received]:', message);
           lastAriMessageAtRef.current = Date.now();
           connectionFailureCountRef.current = 0;
           sipHeartbeatFailureCountRef.current = 0;
@@ -1232,7 +1238,6 @@ const useJssip = (isMobile = false) => {
           }
           // ✅ Check for conference messages (connected/disconnected)
           else if (/customer host channel (connected|di[s]?connected)/i.test(message)) {
-            console.log('[useJssip] Handling conference host message:', message);
             handleConferenceMessage(message);
           }
           // ✅ Check for customer channel disconnection (auto-reject if ringing)
@@ -1251,7 +1256,6 @@ const useJssip = (isMobile = false) => {
           }
           // ✅ Check if customer/agent channel answered (both enable Add Call button)
           else if (message.includes('customer channel answered') || message.includes('agent channel answered')) {
-            console.log('[useJssip] Channel answered:', message);
             setIsCustomerAnswered(true);
             // Also update participant status if it's the customer channel
             if (message.includes('customer channel answered')) {
@@ -1396,7 +1400,6 @@ const useJssip = (isMobile = false) => {
                     ]);
 
                     e.session.on('ended', () => {
-                      console.log('[SIP] Call session ended (BYE received or local termination)');
                       stopRingtone();
                       void syncAgentReadyState({
                         source: 'incoming-session-ended',
@@ -1485,6 +1488,7 @@ const useJssip = (isMobile = false) => {
               reset(undefined, true);
               startRecording();
               void ensureActiveCallContextLoaded();
+              setStatus('on_call');
               setAgentLifecycle('on_call');
               setIsCustomerAnswered(true);
               setHistory((prev) => [
@@ -1555,6 +1559,7 @@ const useJssip = (isMobile = false) => {
         if (!startTimerImmediately) {
           reset(undefined, true);
         }
+        setStatus('on_call');
       });
 
       session.connection.addEventListener('addstream', (event) => {

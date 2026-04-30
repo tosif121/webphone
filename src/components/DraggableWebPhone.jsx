@@ -322,10 +322,7 @@ export default function DraggableWebPhone() {
     const handleCloseDialpad = () => {
       // Only close if not in an active call and not on mobile
       if (!isWorkspaceCallMode && !effectiveIsMobile) {
-        console.log('Closing dialpad');
         setPhoneShow(false);
-      } else {
-        console.log('Cannot close dialpad - call in progress or mobile mode');
       }
     };
 

@@ -856,11 +856,8 @@ export default function LeadAndCallInfoPanel({
           refreshToken,
         );
 
-        console.log('[WebForm] API response:', res.data);
-
         const forms = res.data.agentWebForm || [];
         const webformEnabled = res.data?.webformEnabled === true;
-        console.log('[WebForm] webformEnabled:', webformEnabled, '| forms:', forms.length, '| callType:', callType);
         setIsCampaignWebformEnabled(webformEnabled);
 
         if (!webformEnabled) {
@@ -916,15 +913,12 @@ export default function LeadAndCallInfoPanel({
         if (matchingForm) {
           // Try different property names for formId
           const formId = matchingForm.formId || matchingForm.id || matchingForm.Id || matchingForm.form_id;
-          console.log('[WebForm] matched form:', matchingForm, '| resolved formId:', formId);
           setFormId(formId);
         } else {
-          console.log('[WebForm] no matching form found for targetType:', targetType, '| forms:', forms);
           setFormId(null);
           setFormConfig(null);
         }
       } catch (err) {
-        console.error('[WebForm] fetch error:', err);
         // On error, fall back to static form
         setIsCampaignWebformEnabled(false);
         setFormId(null);
@@ -970,16 +964,13 @@ export default function LeadAndCallInfoPanel({
         );
 
         const formConfigData = res.data.result;
-        console.log('[WebForm] formConfig result:', formConfigData);
 
         if (formConfigData && formConfigData.sections && formConfigData.sections.length > 0) {
           setFormConfig(formConfigData);
         } else {
-          console.log('[WebForm] formConfig invalid or empty sections');
           setFormConfig(null);
         }
       } catch (err) {
-        console.error('[WebForm] formConfig fetch error:', err);
         setFormConfig(null);
       } finally {
         setLoading(false);
