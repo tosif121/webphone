@@ -32,6 +32,7 @@ export default function DraggableWebPhone() {
     handleCall,
     session,
     isRunning,
+    endCurrentCall,
     audioRef,
     devices,
     selectedDeviceId,
@@ -441,6 +442,7 @@ export default function DraggableWebPhone() {
               isRecording={isRecording}
               startRecording={startRecording}
               stopRecording={stopRecording}
+              endCurrentCall={endCurrentCall}
               phoneNumber={phoneNumber}
               session={session}
               seconds={seconds < 10 ? `0${seconds}` : `${seconds}`}
@@ -468,7 +470,6 @@ export default function DraggableWebPhone() {
               setConfMinutes={setConfMinutes}
               setStatus={setStatus}
               setConferenceStatus={setConferenceStatus}
-              setCallConference={setCallConference}
               headerAction={collapseButton}
             />
           ))}
@@ -584,14 +585,9 @@ export default function DraggableWebPhone() {
     setMuted(nextMuted);
   };
 
-  const handleEndCurrentCall = () => {
-    try {
-      session?.terminate();
-      stopRecording?.();
-    } catch (error) {
-      console.warn('Failed to terminate current session cleanly:', error);
-    }
-  };
+  const handleEndCurrentCall = useCallback(() => {
+    endCurrentCall?.();
+  }, [endCurrentCall]);
 
   const handleExpandDuringCall = () => {
     setPhoneShow(true);

@@ -203,6 +203,13 @@ const useJssip = (isMobile = false) => {
   const incomingSessionRef = useRef(null);
   const isIncomingRingingRef = useRef(false);
   const statusRef = useRef('start');
+  const dispositionModalRef = useRef(false);
+  const connectionStatusRef = useRef('');
+  const agentLifecycleRef = useRef('idle');
+  const isAutomationLoadingRef = useRef(false);
+  const isCallendedRef = useRef(false);
+  const callTypeRef = useRef('');
+  const manualHangupRequestedRef = useRef(false);
   const readySyncInFlightRef = useRef(null);
   const readySyncLastSuccessRef = useRef(0);
   const connectioncheckInFlightRef = useRef(false);
@@ -239,6 +246,30 @@ const useJssip = (isMobile = false) => {
   }, [status]);
 
   useEffect(() => {
+    dispositionModalRef.current = dispositionModal;
+  }, [dispositionModal]);
+
+  useEffect(() => {
+    connectionStatusRef.current = connectionStatus;
+  }, [connectionStatus]);
+
+  useEffect(() => {
+    agentLifecycleRef.current = agentLifecycle;
+  }, [agentLifecycle]);
+
+  useEffect(() => {
+    isAutomationLoadingRef.current = isAutomationLoading;
+  }, [isAutomationLoading]);
+
+  useEffect(() => {
+    isCallendedRef.current = isCallended;
+  }, [isCallended]);
+
+  useEffect(() => {
+    callTypeRef.current = callType;
+  }, [callType]);
+
+  useEffect(() => {
     console.log('[status]', status);
     if (status === 'start' && !isCallended) {
       setDispositionModal(false);
@@ -265,12 +296,44 @@ const useJssip = (isMobile = false) => {
     lastRuntimeResyncAttemptAtRef.current = 0;
   }, [username]);
 
+  const shouldSkipReadySync = useCallback((source) => {
+    const bypassSources = new Set(['sip-registered']);
+    if (bypassSources.has(source)) {
+      return false;
+    }
+
+    const hasProtectedSessionPhase =
+      dispositionModalRef.current ||
+      connectionStatusRef.current === 'Disposition' ||
+      statusRef.current === 'calling' ||
+      statusRef.current === 'conference' ||
+      Boolean(incomingSessionRef.current) ||
+      isIncomingRingingRef.current ||
+      agentLifecycleRef.current === 'dialing' ||
+      agentLifecycleRef.current === 'ringing' ||
+      agentLifecycleRef.current === 'on_call' ||
+      agentLifecycleRef.current === 'disposition' ||
+      isAutomationLoadingRef.current ||
+      isCallendedRef.current;
+
+    return hasProtectedSessionPhase;
+  }, []);
+
   const syncAgentReadyState = useCallback(
     async ({ source = 'unknown', attempts = 3, retryDelayMs = 1000 } = {}) => {
       if (!username) {
         return {
           success: false,
           message: 'Missing username for agent ready sync.',
+          source,
+        };
+      }
+
+      if (shouldSkipReadySync(source)) {
+        return {
+          success: false,
+          skipped: true,
+          message: 'Agent ready sync skipped because the agent is still in an active or post-call phase.',
           source,
         };
       }
@@ -318,7 +381,7 @@ const useJssip = (isMobile = false) => {
         readySyncInFlightRef.current = null;
       }
     },
-    [checkUserReady, logSystemEvent, username, waitForReadyRetry],
+    [checkUserReady, logSystemEvent, shouldSkipReadySync, username, waitForReadyRetry],
   );
 
   const finalizePostCallContext = useCallback(() => {
@@ -332,6 +395,36 @@ const useJssip = (isMobile = false) => {
     setWorkspaceActiveCall(null);
     setIsSticky(false);
   }, [setActiveCallContext, setBridgeID, setUserCall, setWorkspaceActiveCall, setIsSticky]);
+
+  const finalizeEndedCallState = useCallback(() => {
+    manualHangupRequestedRef.current = false;
+    setIsCustomerAnswered(false);
+    pause();
+    setStatus('start');
+    setIsCallended(true);
+    setAgentLifecycle('disposition');
+    setConferenceNumber('');
+    setCallConference(false);
+    setConferenceStatus(false);
+    setHasParticipants(null);
+  }, [pause, setAgentLifecycle, setCallConference, setConferenceNumber, setConferenceStatus, setHasParticipants, setIsCallended, setIsCustomerAnswered, setStatus]);
+
+  const endCurrentCall = useCallback(() => {
+    manualHangupRequestedRef.current = true;
+
+    try {
+      if (session && typeof session.terminate === 'function') {
+        session.terminate();
+      } else {
+        finalizeEndedCallState();
+      }
+    } catch (error) {
+      console.error('Failed to terminate current session cleanly:', error);
+      finalizeEndedCallState();
+    } finally {
+      stopRecording();
+    }
+  }, [finalizeEndedCallState, session, stopRecording]);
 
   const ensureActiveCallContextLoaded = useCallback(
     async ({ incomingNumber = null, addIncomingHistory = false } = {}) => {
@@ -1112,7 +1205,6 @@ const useJssip = (isMobile = false) => {
     if (incomingSession && incomingSession.status < 6) {
       incomingSession.terminate();
     }
-    void syncAgentReadyState({ source: 'rejectIncomingCall', attempts: 2, retryDelayMs: 500 });
     setIncomingSession(null);
     setIsIncomingRinging(false);
     setStatus('start');
@@ -1125,6 +1217,7 @@ const useJssip = (isMobile = false) => {
     ]);
 
     setDispositionModal(false);
+    void syncAgentReadyState({ source: 'rejectIncomingCall', attempts: 2, retryDelayMs: 500 });
   };
 
   useEffect(() => {
@@ -1424,11 +1517,7 @@ const useJssip = (isMobile = false) => {
 
                     e.session.on('failed', () => {
                       stopRingtone();
-                      void syncAgentReadyState({
-                        source: 'incoming-session-failed',
-                        attempts: 2,
-                        retryDelayMs: 500,
-                      });
+                      const shouldRestoreReadyState = !callHandledRef.current;
                       setIncomingSession(null);
                       setIsIncomingRinging(false);
                       setStatus('start');
@@ -1440,6 +1529,14 @@ const useJssip = (isMobile = false) => {
                       setDispositionModal(callHandledRef.current);
                       setCallHandled(false);
                       callHandledRef.current = false;
+
+                      if (shouldRestoreReadyState) {
+                        void syncAgentReadyState({
+                          source: 'incoming-session-failed',
+                          attempts: 2,
+                          retryDelayMs: 500,
+                        });
+                      }
                     });
                   } else {
                     // Desktop: Check if user is away and show notification before auto-answer
@@ -1505,26 +1602,26 @@ const useJssip = (isMobile = false) => {
               if (isRecordingRef.current) {
                 stopRecording();
               }
-              setIsCustomerAnswered(false);
               setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: Date.now() }]);
-              pause();
-              setStatus('start');
-              setIsCallended(true);
-              setAgentLifecycle('disposition');
-              setConferenceNumber('');
-              // Clean up any lingering conference state
-              setCallConference(false);
-              setConferenceStatus(false);
-              setHasParticipants(null);
+              finalizeEndedCallState();
             });
 
             e.session.on('failed', () => {
+              const manualHangupRequested = manualHangupRequestedRef.current;
               finalizePostCallContext();
-              setStatus('fail');
-              setAgentLifecycle(leadLockToken ? 'lead_locked' : 'idle');
               if (isRecording) {
                 stopRecording();
               }
+
+              if (manualHangupRequested) {
+                setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: Date.now() }]);
+                finalizeEndedCallState();
+                return;
+              }
+
+              manualHangupRequestedRef.current = false;
+              setStatus('fail');
+              setAgentLifecycle(leadLockToken ? 'lead_locked' : 'idle');
               setHistory((prev) => [
                 ...prev.slice(0, -1),
                 { ...prev[prev.length - 1], status: 'Fail', start: 0, end: 0 },
@@ -1571,15 +1668,20 @@ const useJssip = (isMobile = false) => {
       // Your existing event listeners...
       session.once('ended', () => {
         setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
-        pause();
-        setStatus('start');
-        setAgentLifecycle('disposition');
-        setIsCallended(true);
-        setConferenceNumber('');
+        finalizeEndedCallState();
       });
 
       session.once('failed', () => {
+        const manualHangupRequested = manualHangupRequestedRef.current;
         finalizePostCallContext();
+
+        if (manualHangupRequested) {
+          setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
+          finalizeEndedCallState();
+          return;
+        }
+
+        manualHangupRequestedRef.current = false;
         setHistory((prev) => [
           ...prev.slice(0, -1),
           { ...prev[prev.length - 1], end: new Date().getTime(), status: 'Fail' },
@@ -1947,6 +2049,7 @@ const useJssip = (isMobile = false) => {
     handleCall,
     session,
     isRunning,
+    endCurrentCall,
     audioRef,
     devices,
     selectedDeviceId,

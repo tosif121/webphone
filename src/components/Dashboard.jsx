@@ -773,7 +773,7 @@ function Dashboard() {
       return true;
     };
 
-    checkUserAvailability();
+    // checkUserAvailability();
   }, [connectionStatus, currentCallData, getAuthHeaders, queueDetails, userCampaign, username]);
 
   useEffect(() => {

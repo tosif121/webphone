@@ -38,6 +38,7 @@ const CallScreen = ({
   isRecording,
   startRecording,
   stopRecording,
+  endCurrentCall,
   setCallConference,
   conferenceStatus,
   userCall,
@@ -496,8 +497,7 @@ const CallScreen = ({
                 if (conferenceNumber) {
                   handleConferenceHangup();
                 } else {
-                  session?.terminate();
-                  stopRecording?.();
+                  endCurrentCall?.();
                 }
               }}
               aria-label="End Call"
