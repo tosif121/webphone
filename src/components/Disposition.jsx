@@ -69,6 +69,7 @@ const Disposition = ({
     workspaceActiveCall,
     isSticky,
     setIsSticky,
+    setUserCall,
   } = useContext(JssipContext);
   const { token, user: authUser } = useAuth();
   const [selectedAction, setSelectedAction] = useState(null);
@@ -175,11 +176,12 @@ const Disposition = ({
 
   const closeDispositionFlow = useCallback(() => {
     finalizePostCallContext?.();
+    setUserCall('');
     setFormSubmitted(false);
     setDispositionModal(false);
     setPhoneNumber('');
     setCallType('');
-  }, [finalizePostCallContext, setCallType, setDispositionModal, setFormSubmitted, setPhoneNumber]);
+  }, [finalizePostCallContext, setUserCall, setCallType, setDispositionModal, setFormSubmitted, setPhoneNumber]);
 
   const completeActiveFollowUpCallback = useCallback(async () => {
     if (typeof window === 'undefined') {

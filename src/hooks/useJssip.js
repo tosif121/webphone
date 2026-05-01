@@ -391,10 +391,11 @@ const useJssip = (isMobile = false) => {
     bridgeIDRef.current = '';
     setBridgeID('');
     setActiveCallContext(null);
-    setUserCall('');
     setWorkspaceActiveCall(null);
     setIsSticky(false);
-  }, [setActiveCallContext, setBridgeID, setUserCall, setWorkspaceActiveCall, setIsSticky]);
+    // Note: setUserCall('') intentionally omitted here — userCall is retained
+    // for the disposition modal and cleared by LeadAndCallInfoPanel after disposition completes
+  }, [setActiveCallContext, setBridgeID, setWorkspaceActiveCall, setIsSticky]);
 
   const finalizeEndedCallState = useCallback(() => {
     manualHangupRequestedRef.current = false;
@@ -2061,6 +2062,7 @@ const useJssip = (isMobile = false) => {
     dispositionModal,
     setDispositionModal,
     userCall,
+    setUserCall,
     timeoutArray,
     isConnectionLost,
     followUpDispoes,
