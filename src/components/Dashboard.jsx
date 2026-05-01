@@ -763,6 +763,10 @@ function Dashboard() {
         console.log('[agentAvailable] skipped — disposition modal open');
         return;
       }
+      if (selectedBreak && selectedBreak !== 'Break') {
+        console.log('[agentAvailable] skipped — agent on break', { selectedBreak });
+        return;
+      }
       if (agentAvailableInFlightRef.current) {
         console.log('[agentAvailable] skipped — request in flight');
         return;
@@ -821,7 +825,7 @@ function Dashboard() {
       if (agentAvailableDebounceRef.current) clearTimeout(agentAvailableDebounceRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agentLifecycle, connectionStatus, dispositionModal, queueDetails?.length, status, userCampaign, username]);
+  }, [agentLifecycle, connectionStatus, dispositionModal, queueDetails?.length, selectedBreak, status, userCampaign, username]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {

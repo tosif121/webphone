@@ -302,10 +302,18 @@ const useJssip = (isMobile = false) => {
       return false;
     }
 
+    // Block if agent is on break
+    const currentBreak = localStorage.getItem('selectedBreak');
+    const isOnBreak = currentBreak && currentBreak !== 'Break';
+    if (isOnBreak) {
+      return true;
+    }
+
     const hasProtectedSessionPhase =
       dispositionModalRef.current ||
       connectionStatusRef.current === 'Disposition' ||
       connectionStatusRef.current === 'INUSE' ||
+      connectionStatusRef.current === 'Break' ||
       statusRef.current === 'calling' ||
       statusRef.current === 'on_call' ||
       statusRef.current === 'conference' ||
