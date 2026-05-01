@@ -187,6 +187,9 @@ function Dashboard() {
   const leadDashboardDebounceRef = useRef(null);
   const callStatsFetchInFlightRef = useRef(false);
   const nextLeadFetchInFlightRef = useRef(false);
+  const agentAvailableDebounceRef = useRef(null);
+  const agentAvailableInFlightRef = useRef(false);
+  const agentAvailableLastCalledRef = useRef(0);
 
   useEffect(() => {
     const storedPreferences = getStoredAgentUiPreferences();
@@ -748,8 +751,49 @@ function Dashboard() {
 
   useEffect(() => {
     const checkUserAvailability = async () => {
-      // Check the conditions first
-      if (userCampaign === currentCallData?.campaign && connectionStatus === 'NOT_INUSE' && queueDetails?.length > 0) {
+      const isCallLive =
+        ['dialing', 'ringing', 'on_call'].includes(agentLifecycle) ||
+        ['calling', 'ringing', 'conference', 'incoming'].includes(status);
+
+      if (isCallLive) {
+        console.log('[agentAvailable] skipped — call is live', { agentLifecycle, status });
+        return;
+      }
+      if (dispositionModal) {
+        console.log('[agentAvailable] skipped — disposition modal open');
+        return;
+      }
+      if (agentAvailableInFlightRef.current) {
+        console.log('[agentAvailable] skipped — request in flight');
+        return;
+      }
+
+      const now = Date.now();
+      if (now - agentAvailableLastCalledRef.current < 10000) {
+        console.log('[agentAvailable] skipped — cooldown active', { msSinceLast: now - agentAvailableLastCalledRef.current });
+        return;
+      }
+
+      const firstQueueCall = queueDetails?.[0] ?? currentCallData;
+      const queueCampaign = firstQueueCall?.campaign ?? currentCallData?.campaign;
+
+      console.log('[agentAvailable] checking conditions', {
+        userCampaign,
+        queueCampaign,
+        campaignMatch: String(userCampaign) === String(queueCampaign),
+        connectionStatus,
+        queueLength: queueDetails?.length ?? 0,
+        firstCaller: currentCallData?.Caller,
+      });
+
+      if (
+        String(userCampaign) === String(queueCampaign) &&
+        connectionStatus === 'NOT_INUSE' &&
+        queueDetails?.length > 0
+      ) {
+        agentAvailableInFlightRef.current = true;
+        agentAvailableLastCalledRef.current = Date.now();
+        console.log('[agentAvailable] calling API for index-0 call:', currentCallData?.Caller);
         try {
           const { data } = await axios.post(
             `${window.location.origin}/user/agentAvailable/${username}`,
@@ -758,23 +802,26 @@ function Dashboard() {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             },
           );
-
+          console.log('[agentAvailable] response:', data);
           if (data.message === 'User is not live.') {
             toast.error('You are not available for calls. Please make yourself available to handle conference calls.');
-            return false;
           }
-          return true;
         } catch (error) {
-          console.error('Error checking user availability:', error);
-          toast.error('Failed to check user availability');
-          return false;
+          console.error('[agentAvailable] error:', error);
+        } finally {
+          agentAvailableInFlightRef.current = false;
         }
       }
-      return true;
     };
 
-    checkUserAvailability();
-  }, [connectionStatus, currentCallData, getAuthHeaders, queueDetails, userCampaign, username]);
+    if (agentAvailableDebounceRef.current) clearTimeout(agentAvailableDebounceRef.current);
+    agentAvailableDebounceRef.current = setTimeout(checkUserAvailability, 500);
+
+    return () => {
+      if (agentAvailableDebounceRef.current) clearTimeout(agentAvailableDebounceRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agentLifecycle, connectionStatus, dispositionModal, queueDetails?.length, status, userCampaign, username]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {

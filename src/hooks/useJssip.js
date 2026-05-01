@@ -305,7 +305,9 @@ const useJssip = (isMobile = false) => {
     const hasProtectedSessionPhase =
       dispositionModalRef.current ||
       connectionStatusRef.current === 'Disposition' ||
+      connectionStatusRef.current === 'INUSE' ||
       statusRef.current === 'calling' ||
+      statusRef.current === 'on_call' ||
       statusRef.current === 'conference' ||
       Boolean(incomingSessionRef.current) ||
       isIncomingRingingRef.current ||
