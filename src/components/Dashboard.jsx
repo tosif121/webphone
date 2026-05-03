@@ -712,6 +712,16 @@ function Dashboard() {
     }
   }, [fetchUserMissedCalls, token, username]);
 
+  // Periodic polling: refresh missed calls every 30 seconds so agents see new
+  // queue misses without needing a manual click or a state-change trigger.
+  useEffect(() => {
+    if (!token || !username) return;
+    const intervalId = setInterval(() => {
+      fetchUserMissedCalls();
+    }, 30000);
+    return () => clearInterval(intervalId);
+  }, [fetchUserMissedCalls, token, username]);
+
   useEffect(() => {
     let isMounted = true;
     let timeoutId;
