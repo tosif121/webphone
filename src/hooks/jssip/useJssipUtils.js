@@ -3,6 +3,7 @@ import { useCallback, useContext, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import HistoryContext from '../../context/HistoryContext';
+import { withWebphoneBasePath } from '../../lib/basePath';
 
 export const useJssipUtils = (state) => {
   const { username, setSelectedBreak } = useContext(HistoryContext);
@@ -152,8 +153,8 @@ export const useJssipUtils = (state) => {
 
           return registration.showNotification('Incoming Call', {
             body: `Incoming call from ${displayNumber}`,
-            icon: '/badge.png',
-            badge: '/badge.png',
+            icon: withWebphoneBasePath('/badge.png'),
+            badge: withWebphoneBasePath('/badge.png'),
             vibrate: [200, 100, 200],
             tag: 'incoming-call',
             renotify: true,
@@ -183,8 +184,8 @@ export const useJssipUtils = (state) => {
   function createRegularNotification(displayNumber) {
     const notifiOptions = {
       body: `Incoming call from ${displayNumber}`,
-      icon: '/badge.png',
-      badge: '/badge.png',
+      icon: withWebphoneBasePath('/badge.png'),
+      badge: withWebphoneBasePath('/badge.png'),
       vibrate: [200, 100, 200],
       tag: 'incoming-call',
       renotify: true,
@@ -326,7 +327,7 @@ export const useJssipUtils = (state) => {
         try {
           const testNotif = new Notification('Test Notification', {
             body: 'This should play system notification sound',
-            icon: '/badge.png',
+            icon: withWebphoneBasePath('/badge.png'),
             tag: 'test-notification',
             requireInteraction: true,
             silent: false, // Use system notification sound

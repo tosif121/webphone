@@ -151,7 +151,6 @@ const useJssip = (isMobile = false) => {
     notifyMe,
     createNotification,
     checkUserReady,
-    removeBreak,
     validatePhoneNumber,
     storeInLocalStorage,
     getFromLocalStorage,
@@ -208,6 +207,8 @@ const useJssip = (isMobile = false) => {
   const agentLifecycleRef = useRef('idle');
   const isAutomationLoadingRef = useRef(false);
   const isCallendedRef = useRef(false);
+  const isCustomerAnsweredRef = useRef(false);
+  const callConnectedRef = useRef(false);
   const callTypeRef = useRef('');
   const manualHangupRequestedRef = useRef(false);
   const readySyncInFlightRef = useRef(null);
@@ -264,6 +265,10 @@ const useJssip = (isMobile = false) => {
   useEffect(() => {
     isCallendedRef.current = isCallended;
   }, [isCallended]);
+
+  useEffect(() => {
+    isCustomerAnsweredRef.current = isCustomerAnswered;
+  }, [isCustomerAnswered]);
 
   useEffect(() => {
     callTypeRef.current = callType;
@@ -408,17 +413,35 @@ const useJssip = (isMobile = false) => {
   }, [setActiveCallContext, setBridgeID, setWorkspaceActiveCall, setIsSticky]);
 
   const finalizeEndedCallState = useCallback(() => {
+    const shouldOpenDisposition =
+      callConnectedRef.current || isCustomerAnsweredRef.current || statusRef.current === 'on_call';
+
     manualHangupRequestedRef.current = false;
     setIsCustomerAnswered(false);
+    callConnectedRef.current = false;
     pause();
     setStatus('start');
-    setIsCallended(true);
-    setAgentLifecycle('disposition');
+    setIsCallended(shouldOpenDisposition);
+    setAgentLifecycle(shouldOpenDisposition ? 'disposition' : 'idle');
+    if (!shouldOpenDisposition) {
+      setDispositionModal(false);
+    }
     setConferenceNumber('');
     setCallConference(false);
     setConferenceStatus(false);
     setHasParticipants(null);
-  }, [pause, setAgentLifecycle, setCallConference, setConferenceNumber, setConferenceStatus, setHasParticipants, setIsCallended, setIsCustomerAnswered, setStatus]);
+  }, [
+    pause,
+    setAgentLifecycle,
+    setCallConference,
+    setConferenceNumber,
+    setConferenceStatus,
+    setDispositionModal,
+    setHasParticipants,
+    setIsCallended,
+    setIsCustomerAnswered,
+    setStatus,
+  ]);
 
   const endCurrentCall = useCallback(() => {
     manualHangupRequestedRef.current = true;
@@ -1181,6 +1204,7 @@ const useJssip = (isMobile = false) => {
     if (incomingSession) {
       try {
         stopRingtone(); // Stop ringtone when call is answered
+        callConnectedRef.current = false;
         setCallHandled(true);
         callHandledRef.current = true;
         incomingSession.answer(options);
@@ -1360,6 +1384,7 @@ const useJssip = (isMobile = false) => {
           }
           // ✅ Check if customer/agent channel answered (both enable Add Call button)
           else if (message.includes('customer channel answered') || message.includes('agent channel answered')) {
+            callConnectedRef.current = true;
             setIsCustomerAnswered(true);
             // Also update participant status if it's the customer channel
             if (message.includes('customer channel answered')) {
@@ -1580,6 +1605,7 @@ const useJssip = (isMobile = false) => {
             }
           } else {
             // Handle normal outgoing calls (when direction is actually "outgoing")
+            callConnectedRef.current = false;
             setSession(e.session);
             setStatus('calling');
             setAgentLifecycle('dialing');
@@ -1593,6 +1619,7 @@ const useJssip = (isMobile = false) => {
 
             // Add event listeners for outgoing calls
             e.session.on('confirmed', () => {
+              callConnectedRef.current = true;
               reset(undefined, true);
               startRecording();
               void ensureActiveCallContextLoaded();
@@ -1656,6 +1683,7 @@ const useJssip = (isMobile = false) => {
       { addIncomingHistory = false, startTimerImmediately = true } = {},
     ) => {
       const incomingNumber = request.from._uri._user;
+      callConnectedRef.current = false;
       session.answer(options); // Auto-answers (good for outgoing)
       setSession(session);
       setStatus('calling');
@@ -1664,6 +1692,8 @@ const useJssip = (isMobile = false) => {
       void ensureActiveCallContextLoaded({ incomingNumber, addIncomingHistory });
 
       session.once('confirmed', () => {
+        callConnectedRef.current = true;
+        setIsCustomerAnswered(true);
         if (!startTimerImmediately) {
           reset(undefined, true);
         }
@@ -1806,15 +1836,16 @@ const useJssip = (isMobile = false) => {
     const targetNumber = phoneNumber || formattedNumber;
     const nextLead = metadata?.lead || activeLead;
     const nextLeadLockToken = metadata?.leadLockToken || leadLockToken;
+    const isOnBreakAtDialStart = selectedBreak && selectedBreak !== 'Break';
+    callConnectedRef.current = false;
 
     try {
-      // ✅ 2. Handle break removal if needed
-      if (selectedBreak !== 'Break') {
-        const breakRemoved = await removeBreak();
-        if (!breakRemoved) {
-          console.warn('Break removal failed');
-          return; // Stop if break removal failed
-        }
+      // ✅ 2. Keep break active during outbound dial.
+      // Do NOT remove break on backend; this keeps queue calls waiting.
+      if (isOnBreakAtDialStart) {
+        setConnectionStatus('INUSE');
+        setStatus('calling');
+        setAgentLifecycle('on_call');
       }
 
       // ✅ 3. Clean and store the number
@@ -1895,6 +1926,9 @@ const useJssip = (isMobile = false) => {
         // ✅ 7b. Other API errors
         toast.error(errorMessage || 'Failed to initiate call');
         setStatus('start');
+        if (isOnBreakAtDialStart) {
+          setConnectionStatus('UNAVAILABLE');
+        }
         setPhoneNumber('');
         dialingNumberRef.current = '';
         setCallType('');
@@ -1908,6 +1942,9 @@ const useJssip = (isMobile = false) => {
 
       // ✅ 9. Reset state on error
       setStatus('start');
+      if (isOnBreakAtDialStart) {
+        setConnectionStatus('UNAVAILABLE');
+      }
       setPhoneNumber('');
       dialingNumberRef.current = '';
       setCallType('');
