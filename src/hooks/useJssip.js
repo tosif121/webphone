@@ -795,6 +795,17 @@ const useJssip = (isMobile = false) => {
         setFollowUpDispoes(data.followUpDispoes || []);
         setConnectionStatus(data.status);
 
+        if (data.runtimeLiveness?.likelyIssue && data.runtimeLiveness.likelyIssue !== 'healthy_or_unknown') {
+          console.warn('[runtimeLiveness] possible issue detected', {
+            likelyIssue: data.runtimeLiveness.likelyIssue,
+            heartbeatFailedCount: data.runtimeLiveness.heartbeatFailedCount,
+            hasLiveEntry: data.runtimeLiveness.hasLiveEntry,
+            hasConnectionEntry: data.runtimeLiveness.hasConnectionEntry,
+            hasHeartbeatEntry: data.runtimeLiveness.hasHeartbeatEntry,
+            clientPingFresh: data.runtimeLiveness.clientPingFresh,
+          });
+        }
+
         // Update agent lifecycle based on status
         if (data.status === 'Disposition') {
           setAgentLifecycle('disposition');

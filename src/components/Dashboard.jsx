@@ -800,11 +800,9 @@ function Dashboard() {
         firstCaller: currentCallData?.Caller,
       });
 
-      if (
-        String(userCampaign) === String(queueCampaign) &&
-        connectionStatus === 'NOT_INUSE' &&
-        queueDetails?.length > 0
-      ) {
+      // Backend eligibility check already validates campaign/admin matching against
+      // all queued calls; avoid blocking this trigger on only the first queue item.
+      if (connectionStatus === 'NOT_INUSE' && queueDetails?.length > 0) {
         agentAvailableInFlightRef.current = true;
         agentAvailableLastCalledRef.current = Date.now();
         console.log('[agentAvailable] calling API for index-0 call:', currentCallData?.Caller);
@@ -835,7 +833,7 @@ function Dashboard() {
       if (agentAvailableDebounceRef.current) clearTimeout(agentAvailableDebounceRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agentLifecycle, connectionStatus, dispositionModal, queueDetails?.length, selectedBreak, status, userCampaign, username]);
+  }, [agentLifecycle, connectionStatus, currentCallData?.campaign, dispositionModal, queueDetails?.length, selectedBreak, status, userCampaign, username]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
