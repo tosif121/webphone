@@ -1263,26 +1263,13 @@ const useJssip = (isMobile = false) => {
         ua.start();
 
         ua.on('registered', async (data) => {
-          const readySync = await syncAgentReadyState({
-            source: 'sip-registered',
-            attempts: 4,
-            retryDelayMs: 1000,
-          });
-
-          if (!readySync?.success) {
-            console.error('[WebPhone] Agent session sync failed after SIP registration:', readySync?.message);
-            setTimeoutMessage('Agent session could not be restored. Please log in again.');
-            setShowTimeoutModal(true);
-            return;
-          }
-
-          void sendSipHeartbeat({ source: 'sip-registered', force: true });
-
+          // ✅ STEP 1: Re-apply break on backend FIRST — before marking agent as userready.
+          // Previously the break was applied 1s AFTER syncAgentReadyState, which opened a
+          // race window where the backend could dispatch a queued call to an agent who
+          // should have been on break.
           const storedBreak = localStorage.getItem('selectedBreak');
           if (storedBreak && storedBreak !== 'Break') {
             try {
-              await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
-
               const response = await axios.post(
                 `${window.location.origin}/user/breakuser:${username}`,
                 { breakType: storedBreak },
@@ -1290,6 +1277,7 @@ const useJssip = (isMobile = false) => {
               );
               if (response.status === 200) {
                 setSelectedBreak(storedBreak);
+                console.log(`[Re-apply Break] Break "${storedBreak}" re-applied before userready.`);
               } else {
                 console.error(
                   `[Re-apply Break] Backend responded with status ${response.status} for break re-application.`,
@@ -1314,10 +1302,23 @@ const useJssip = (isMobile = false) => {
               });
               setSelectedBreak('Break');
             }
-          } else {
-            // console.log('[Re-apply Break] No valid break found in localStorage to re-apply.');
           }
 
+          // ✅ STEP 2: NOW call userready — if agent had a break, backend already has it set.
+          const readySync = await syncAgentReadyState({
+            source: 'sip-registered',
+            attempts: 4,
+            retryDelayMs: 1000,
+          });
+
+          if (!readySync?.success) {
+            console.error('[WebPhone] Agent session sync failed after SIP registration:', readySync?.message);
+            setTimeoutMessage('Agent session could not be restored. Please log in again.');
+            setShowTimeoutModal(true);
+            return;
+          }
+
+          void sendSipHeartbeat({ source: 'sip-registered', force: true });
           void connectioncheckRef.current?.({ reason: 'post-ready', force: true });
         });
 
