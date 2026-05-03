@@ -778,15 +778,6 @@ function Dashboard() {
         return;
       }
 
-      // ✅ Cross-tab lock: prevents a second browser tab for the same agent from firing
-      // agentAvailable simultaneously. useRef is per-tab only; localStorage is shared.
-      const crossTabLockKey = `agentAvailableLock_${username}`;
-      const crossTabLockTs = parseInt(localStorage.getItem(crossTabLockKey) || '0', 10);
-      if (now - crossTabLockTs < 10000) {
-        console.log('[agentAvailable] skipped — cross-tab lock active', { msSinceLock: now - crossTabLockTs });
-        return;
-      }
-
       const firstQueueCall = queueDetails?.[0] ?? currentCallData;
       const queueCampaign = firstQueueCall?.campaign ?? currentCallData?.campaign;
 
@@ -806,8 +797,6 @@ function Dashboard() {
       ) {
         agentAvailableInFlightRef.current = true;
         agentAvailableLastCalledRef.current = Date.now();
-        // ✅ Claim cross-tab lock before firing the request
-        localStorage.setItem(crossTabLockKey, String(Date.now()));
         console.log('[agentAvailable] calling API for index-0 call:', currentCallData?.Caller);
         try {
           const { data } = await axios.post(
