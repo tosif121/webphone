@@ -190,6 +190,8 @@ function Dashboard() {
   const agentAvailableDebounceRef = useRef(null);
   const agentAvailableInFlightRef = useRef(false);
   const agentAvailableLastCalledRef = useRef(0);
+  const agentAvailableRetryTimerRef = useRef(null);
+  const agentAvailableRetryAttemptRef = useRef(0);
 
   useEffect(() => {
     const storedPreferences = getStoredAgentUiPreferences();
@@ -760,10 +762,25 @@ function Dashboard() {
   }, [fetchUserMissedCalls, selectedBreak, username]);
 
   useEffect(() => {
-    const checkUserAvailability = async () => {
+    const checkUserAvailability = async ({ ignoreCooldown = false } = {}) => {
       const isCallLive =
         ['dialing', 'ringing', 'on_call'].includes(agentLifecycle) ||
         ['calling', 'ringing', 'conference', 'incoming'].includes(status);
+      const effectiveQueuePresent = Boolean(currentCallData) || (queueDetails?.length ?? 0) > 0;
+      const canTakeCalls =
+        !isCallLive &&
+        !dispositionModal &&
+        !(selectedBreak && selectedBreak !== 'Break') &&
+        connectionStatus === 'NOT_INUSE';
+
+      if (!canTakeCalls || !effectiveQueuePresent) {
+        agentAvailableRetryAttemptRef.current = 0;
+        if (agentAvailableRetryTimerRef.current) {
+          clearTimeout(agentAvailableRetryTimerRef.current);
+          agentAvailableRetryTimerRef.current = null;
+        }
+        return;
+      }
 
       if (isCallLive) {
         console.log('[agentAvailable] skipped — call is live', { agentLifecycle, status });
@@ -783,7 +800,7 @@ function Dashboard() {
       }
 
       const now = Date.now();
-      if (now - agentAvailableLastCalledRef.current < 10000) {
+      if (!ignoreCooldown && now - agentAvailableLastCalledRef.current < 10000) {
         console.log('[agentAvailable] skipped — cooldown active', { msSinceLast: now - agentAvailableLastCalledRef.current });
         return;
       }
@@ -802,7 +819,7 @@ function Dashboard() {
 
       // Backend eligibility check already validates campaign/admin matching against
       // all queued calls; avoid blocking this trigger on only the first queue item.
-      if (connectionStatus === 'NOT_INUSE' && queueDetails?.length > 0) {
+      if (connectionStatus === 'NOT_INUSE' && effectiveQueuePresent) {
         agentAvailableInFlightRef.current = true;
         agentAvailableLastCalledRef.current = Date.now();
         console.log('[agentAvailable] calling API for index-0 call:', currentCallData?.Caller);
@@ -812,14 +829,48 @@ function Dashboard() {
             {},
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+              timeout: 5000,
             },
           );
           console.log('[agentAvailable] response:', data);
+          agentAvailableRetryAttemptRef.current = 0;
+          if (agentAvailableRetryTimerRef.current) {
+            clearTimeout(agentAvailableRetryTimerRef.current);
+            agentAvailableRetryTimerRef.current = null;
+          }
           if (data.message === 'User is not live.') {
             toast.error('You are not available for calls. Please make yourself available to handle conference calls.');
           }
         } catch (error) {
           console.error('[agentAvailable] error:', error);
+          const isTimeout = error?.code === 'ECONNABORTED' || String(error?.message || '').toLowerCase().includes('timeout');
+          const isNetworkError =
+            !error?.response && String(error?.message || '').toLowerCase().includes('network');
+          const nextAttempt = agentAvailableRetryAttemptRef.current + 1;
+          const maxRetryAttempts = 5;
+
+          if (isTimeout) {
+            toast.error('Queue is waiting but agent availability request timed out. Retrying automatically...');
+          } else if (isNetworkError) {
+            toast.error('Queue is waiting but network is unstable. Retrying agent availability...');
+          } else {
+            toast.error('Queue is waiting but availability sync failed. Retrying automatically...');
+          }
+
+          if (nextAttempt <= maxRetryAttempts && canTakeCalls && effectiveQueuePresent) {
+            agentAvailableRetryAttemptRef.current = nextAttempt;
+            const retryDelayMs = Math.min(2000 * 2 ** (nextAttempt - 1), 20000);
+
+            if (agentAvailableRetryTimerRef.current) {
+              clearTimeout(agentAvailableRetryTimerRef.current);
+            }
+
+            agentAvailableRetryTimerRef.current = setTimeout(() => {
+              if (!agentAvailableInFlightRef.current) {
+                void checkUserAvailability({ ignoreCooldown: true });
+              }
+            }, retryDelayMs);
+          }
         } finally {
           agentAvailableInFlightRef.current = false;
         }
@@ -831,9 +882,24 @@ function Dashboard() {
 
     return () => {
       if (agentAvailableDebounceRef.current) clearTimeout(agentAvailableDebounceRef.current);
+      if (agentAvailableRetryTimerRef.current) {
+        clearTimeout(agentAvailableRetryTimerRef.current);
+        agentAvailableRetryTimerRef.current = null;
+      }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agentLifecycle, connectionStatus, currentCallData?.campaign, dispositionModal, queueDetails?.length, selectedBreak, status, userCampaign, username]);
+  }, [
+    agentLifecycle,
+    connectionStatus,
+    currentCallData?.campaign,
+    currentCallData?.channelID,
+    dispositionModal,
+    queueDetails?.length,
+    selectedBreak,
+    status,
+    userCampaign,
+    username,
+  ]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -939,6 +1005,21 @@ function Dashboard() {
       playAudio();
     }
   }, [dispositionModal]);
+
+  useEffect(() => {
+    // If backend reports Disposition, force-open the disposition flow on frontend.
+    if (connectionStatus !== 'Disposition' || status !== 'start') {
+      return;
+    }
+
+    if (!dispositionModal) {
+      setDispositionModal(true);
+    }
+
+    if (!formSubmitted) {
+      setFormSubmitted(true);
+    }
+  }, [connectionStatus, dispositionModal, formSubmitted, setDispositionModal, status]);
 
   // In your Dashboard useEffect, replace the complex logging with this simple version:
 

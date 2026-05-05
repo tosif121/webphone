@@ -219,12 +219,15 @@ const useJssip = (isMobile = false) => {
   const lastAriMessageAtRef = useRef(0);
   const lastConnectionCheckAtRef = useRef(0);
   const lastConnectionToastAtRef = useRef(0);
+  const lastDegradedCallToastAtRef = useRef(0);
   const uaRef = useRef(null);
   const lastSipHeartbeatAttemptAtRef = useRef(0);
   const sipHeartbeatFailureCountRef = useRef(0);
   const lastRuntimeResyncAttemptAtRef = useRef(0);
 
   const MESSAGE_HEARTBEAT_STALE_MS = 10000;
+  const SEVERE_NETWORK_GAP_MS = 30000;
+  const SEVERE_FAILURE_THRESHOLD = 6;
   const CONNECTION_CHECK_TIMEOUT_MS = 8000;
   const CONNECTION_CHECK_SCHEDULER_MS = 5000;
   const CONNECTION_CHECK_MIN_REQUEST_GAP_MS = 5000;
@@ -413,6 +416,38 @@ const useJssip = (isMobile = false) => {
   }, [setActiveCallContext, setBridgeID, setWorkspaceActiveCall, setIsSticky]);
 
   const finalizeEndedCallState = useCallback(() => {
+    const now = Date.now();
+    const heartbeatGapMs =
+      lastAriMessageAtRef.current > 0 ? now - lastAriMessageAtRef.current : Number.POSITIVE_INFINITY;
+    const wasOnActiveCall =
+      callConnectedRef.current ||
+      isCustomerAnsweredRef.current ||
+      statusRef.current === 'on_call' ||
+      connectionStatusRef.current === 'INUSE' ||
+      agentLifecycleRef.current === 'on_call';
+    const shouldPreserveCallForDegradedNetwork =
+      wasOnActiveCall && navigator.onLine && heartbeatGapMs > MESSAGE_HEARTBEAT_STALE_MS;
+
+    if (shouldPreserveCallForDegradedNetwork) {
+      setIsConnectionLost(true);
+      setStatus('on_call');
+      setAgentLifecycle('on_call');
+      setIsCallended(false);
+      setDispositionModal(false);
+      setTimeoutMessage(
+        'Network degraded during active call. Call details are preserved. Voice interruption may happen until connection stabilizes.',
+      );
+
+      if (now - lastDegradedCallToastAtRef.current > 15000) {
+        lastDegradedCallToastAtRef.current = now;
+        toast.error(
+          'Network degraded: active call preserved. Voice interruption is possible. We are trying to recover.',
+        );
+      }
+
+      return;
+    }
+
     const shouldOpenDisposition =
       callConnectedRef.current || isCustomerAnsweredRef.current || statusRef.current === 'on_call';
 
@@ -431,6 +466,7 @@ const useJssip = (isMobile = false) => {
     setConferenceStatus(false);
     setHasParticipants(null);
   }, [
+    MESSAGE_HEARTBEAT_STALE_MS,
     pause,
     setAgentLifecycle,
     setCallConference,
@@ -439,8 +475,10 @@ const useJssip = (isMobile = false) => {
     setDispositionModal,
     setHasParticipants,
     setIsCallended,
+    setIsConnectionLost,
     setIsCustomerAnswered,
     setStatus,
+    setTimeoutMessage,
   ]);
 
   const endCurrentCall = useCallback(() => {
@@ -833,10 +871,27 @@ const useJssip = (isMobile = false) => {
         setConferenceCalls(data.conferenceCalls || []);
 
         // ✅ 6. Update queue details
-        if (data.currentCallqueue?.length > 0 && data.currentCallqueue[0].queueDetail) {
-          setQueueDetails(data.currentCallqueue[0].queueDetail);
-          setHasTransfer(data.currentCallqueue[0].queueTransfered === true);
-          setCurrentCallData(data.currentCallqueue[0]);
+        if (data.currentCallqueue?.length > 0) {
+          const firstQueueCall = data.currentCallqueue[0] || {};
+          const fallbackQueueDetail = [
+            {
+              queueName: firstQueueCall?.queueName || 'campaign',
+              ID: firstQueueCall?.campaign ?? firstQueueCall?.queueId ?? null,
+              queueStartTime:
+                firstQueueCall?.queueStartTime ||
+                firstQueueCall?.createdAt ||
+                firstQueueCall?.startTime ||
+                Date.now(),
+            },
+          ];
+          const normalizedQueueDetails =
+            Array.isArray(firstQueueCall?.queueDetail) && firstQueueCall.queueDetail.length > 0
+              ? firstQueueCall.queueDetail
+              : fallbackQueueDetail;
+
+          setQueueDetails(normalizedQueueDetails);
+          setHasTransfer(firstQueueCall?.queueTransfered === true);
+          setCurrentCallData(firstQueueCall);
         } else {
           setQueueDetails([]);
           setHasTransfer(false);
@@ -1059,6 +1114,24 @@ const useJssip = (isMobile = false) => {
       connectionFailureCountRef.current += 1;
       setIsConnectionLost(true);
 
+      if (
+        hasProtectedSessionPhase &&
+        connectionFailureCountRef.current >= SEVERE_FAILURE_THRESHOLD &&
+        Date.now() - lastAriMessageAtRef.current > SEVERE_NETWORK_GAP_MS
+      ) {
+        setConnectionStatus('UNAVAILABLE');
+        setTimeoutMessage('Network is severely unstable. Agent session is unavailable. Please log in again.');
+        setShowTimeoutModal(true);
+        setUserLogin(true);
+        toast.error('Agent unavailable due to severe network interruption. Please log in again.');
+        return false;
+      }
+
+      if (hasProtectedSessionPhase && Date.now() - lastConnectionToastAtRef.current > 15000) {
+        lastConnectionToastAtRef.current = Date.now();
+        toast.error('Network degraded during call. Voice interruption may occur while reconnecting.');
+      }
+
       if (!hasProtectedSessionPhase && Date.now() - lastConnectionToastAtRef.current > 15000) {
         lastConnectionToastAtRef.current = Date.now();
         toast.error('Server appears to be unresponsive. Retrying...');
@@ -1081,6 +1154,24 @@ const useJssip = (isMobile = false) => {
 
       connectionFailureCountRef.current += 1;
       setIsConnectionLost(true);
+
+      if (
+        hasProtectedSessionPhase &&
+        connectionFailureCountRef.current >= SEVERE_FAILURE_THRESHOLD &&
+        Date.now() - lastAriMessageAtRef.current > SEVERE_NETWORK_GAP_MS
+      ) {
+        setConnectionStatus('UNAVAILABLE');
+        setTimeoutMessage('Network is severely unstable. Agent session is unavailable. Please log in again.');
+        setShowTimeoutModal(true);
+        setUserLogin(true);
+        toast.error('Agent unavailable due to severe network interruption. Please log in again.');
+        return false;
+      }
+
+      if (hasProtectedSessionPhase && Date.now() - lastConnectionToastAtRef.current > 15000) {
+        lastConnectionToastAtRef.current = Date.now();
+        toast.error('Network degraded during call. Voice interruption may occur while reconnecting.');
+      }
 
       if (!hasProtectedSessionPhase && Date.now() - lastConnectionToastAtRef.current > 15000) {
         lastConnectionToastAtRef.current = Date.now();

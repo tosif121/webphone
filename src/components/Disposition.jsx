@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useContext, useEffect } from 'react';
+import React, { useState, useCallback, useContext, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -70,6 +70,8 @@ const Disposition = ({
     isSticky,
     setIsSticky,
     setUserCall,
+    setTimeoutMessage,
+    setShowTimeoutModal,
   } = useContext(JssipContext);
   const { token, user: authUser } = useAuth();
   const [selectedAction, setSelectedAction] = useState(null);
@@ -90,6 +92,8 @@ const Disposition = ({
   const [isDispositionModalOpen, setDispositionModalOpen] = useState(false);
   const [isCallbackDialogOpen, setCallbackDialogOpen] = useState(false);
   const [callbackIncomplete, setCallbackIncomplete] = useState(false);
+  const dispositionNetworkFailureCountRef = useRef(0);
+  const lastDispositionSubmitPayloadRef = useRef({ callbackData: null, isDispoWithBreak: false });
   const makeSticky = isSticky;
   const setMakeSticky = setIsSticky;
   const campaignName = authUser?.campaignName || 'N/A';
@@ -182,6 +186,45 @@ const Disposition = ({
     setPhoneNumber('');
     setCallType('');
   }, [finalizePostCallContext, setUserCall, setCallType, setDispositionModal, setFormSubmitted, setPhoneNumber]);
+
+  const isNetworkLevelDispositionError = useCallback((error) => {
+    const errorCode = String(error?.code || '').toUpperCase();
+    const errorMessage = String(error?.message || '').toLowerCase();
+    return (
+      !error?.response ||
+      errorCode === 'ECONNABORTED' ||
+      errorMessage.includes('timeout') ||
+      errorMessage.includes('network')
+    );
+  }, []);
+
+  const showDispositionRetryToast = useCallback(() => {
+    toast(
+      (toastState) => (
+        <div className="flex items-center gap-3">
+          <span className="text-sm">Disposition submit failed due to network issue.</span>
+          <button
+            type="button"
+            className="rounded bg-primary px-2 py-1 text-xs font-medium text-primary-foreground"
+            onClick={() => {
+              toast.dismiss(toastState.id);
+              const payload = lastDispositionSubmitPayloadRef.current || {};
+              submitForm(payload.callbackData || null, Boolean(payload.isDispoWithBreak));
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      ),
+      { duration: 8000 },
+    );
+  }, []);
+
+  const escalateDispositionNetworkFailure = useCallback(() => {
+    setTimeoutMessage('Disposition submission failed repeatedly due to network issues. Please reconnect and log in again.');
+    setShowTimeoutModal(true);
+    toast.error('Network is unstable. Reconnect and login again to become available.');
+  }, [setShowTimeoutModal, setTimeoutMessage]);
 
   const completeActiveFollowUpCallback = useCallback(async () => {
     if (typeof window === 'undefined') {
@@ -632,6 +675,10 @@ const Disposition = ({
       }
 
       setIsSubmitting(true);
+      lastDispositionSubmitPayloadRef.current = {
+        callbackData,
+        isDispoWithBreak,
+      };
 
       try {
         if (!resolvedBridgeID) {
@@ -683,6 +730,7 @@ const Disposition = ({
         });
 
         if (response.data.success) {
+          dispositionNetworkFailureCountRef.current = 0;
           await completeActiveFollowUpCallback();
           // 2. AFTER successful disposition, check if break is selected
           const selectedBreakType = localStorage.getItem('selectedBreak');
@@ -716,9 +764,22 @@ const Disposition = ({
           toast.error(response.data.message || 'Submission failed');
         }
       } catch (error) {
+        const isNetworkError = isNetworkLevelDispositionError(error);
+        if (isNetworkError) {
+          dispositionNetworkFailureCountRef.current += 1;
+
+          if (dispositionNetworkFailureCountRef.current === 1) {
+            showDispositionRetryToast();
+          } else {
+            escalateDispositionNetworkFailure();
+          }
+        } else {
+          dispositionNetworkFailureCountRef.current = 0;
+        }
+
         if (error.response?.status === 400) {
           toast.error('Bad request: Please check your input and try again');
-        } else {
+        } else if (!isNetworkError) {
           toast.error(error.response?.data?.message || 'An unexpected error occurred');
         }
         console.error('Disposition error:', error);
@@ -747,6 +808,9 @@ const Disposition = ({
       resolveLeadFinalState,
       stickyMode,
       completeActiveFollowUpCallback,
+      escalateDispositionNetworkFailure,
+      isNetworkLevelDispositionError,
+      showDispositionRetryToast,
     ],
   );
 
