@@ -132,12 +132,28 @@ function Dashboard() {
   const endCallAudioRef = useRef(null);
   const userCampaign = authUser?.campaign || '';
   const campaignName = authUser?.campaignName || 'N/A';
+  const leadWorkflowV2Enabled = authUser?.leadWorkflowV2Enabled === true;
+  const normalizedLeadViewMode = String(authUser?.leadViewMode || '')
+    .trim()
+    .toLowerCase();
   const previewLeadMode = useMemo(
-    () =>
-      String(authUser?.leadDistributionStrategy || 'manual_pull')
-        .trim()
-        .toLowerCase() === 'manual_pull',
-    [authUser?.leadDistributionStrategy],
+    () => {
+      if (leadWorkflowV2Enabled) {
+        if (normalizedLeadViewMode === 'assigned_list') {
+          return false;
+        }
+        if (normalizedLeadViewMode === 'preview_dial') {
+          return true;
+        }
+      }
+
+      return (
+        String(authUser?.leadDistributionStrategy || 'manual_pull')
+          .trim()
+          .toLowerCase() === 'manual_pull'
+      );
+    },
+    [authUser?.leadDistributionStrategy, leadWorkflowV2Enabled, normalizedLeadViewMode],
   );
 
   const router = useRouter();
