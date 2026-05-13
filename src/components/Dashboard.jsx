@@ -136,25 +136,22 @@ function Dashboard() {
   const normalizedLeadViewMode = String(authUser?.leadViewMode || '')
     .trim()
     .toLowerCase();
-  const previewLeadMode = useMemo(
-    () => {
-      if (leadWorkflowV2Enabled) {
-        if (normalizedLeadViewMode === 'assigned_list') {
-          return false;
-        }
-        if (normalizedLeadViewMode === 'preview_dial') {
-          return true;
-        }
+  const previewLeadMode = useMemo(() => {
+    if (leadWorkflowV2Enabled) {
+      if (normalizedLeadViewMode === 'assigned_list') {
+        return false;
       }
+      if (normalizedLeadViewMode === 'preview_dial') {
+        return true;
+      }
+    }
 
-      return (
-        String(authUser?.leadDistributionStrategy || 'manual_pull')
-          .trim()
-          .toLowerCase() === 'manual_pull'
-      );
-    },
-    [authUser?.leadDistributionStrategy, leadWorkflowV2Enabled, normalizedLeadViewMode],
-  );
+    return (
+      String(authUser?.leadDistributionStrategy || 'manual_pull')
+        .trim()
+        .toLowerCase() === 'manual_pull'
+    );
+  }, [authUser?.leadDistributionStrategy, leadWorkflowV2Enabled, normalizedLeadViewMode]);
 
   const router = useRouter();
   const computedMissedCallsLength = useMemo(() => {
@@ -800,7 +797,9 @@ function Dashboard() {
 
       const now = Date.now();
       if (now - agentAvailableLastCalledRef.current < 10000) {
-        console.log('[agentAvailable] skipped — cooldown active', { msSinceLast: now - agentAvailableLastCalledRef.current });
+        console.log('[agentAvailable] skipped — cooldown active', {
+          msSinceLast: now - agentAvailableLastCalledRef.current,
+        });
         return;
       }
 
@@ -850,8 +849,17 @@ function Dashboard() {
     return () => {
       if (agentAvailableDebounceRef.current) clearTimeout(agentAvailableDebounceRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agentLifecycle, connectionStatus, dispositionModal, queueDetails?.length, selectedBreak, status, userCampaign, username]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    agentLifecycle,
+    connectionStatus,
+    dispositionModal,
+    queueDetails?.length,
+    selectedBreak,
+    status,
+    userCampaign,
+    username,
+  ]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {

@@ -220,6 +220,7 @@ const useJssip = (isMobile = false) => {
   const lastConnectionCheckAtRef = useRef(0);
   const lastConnectionToastAtRef = useRef(0);
   const uaRef = useRef(null);
+  const activeCallRef = useRef(null);
   const lastSipHeartbeatAttemptAtRef = useRef(0);
   const sipHeartbeatFailureCountRef = useRef(0);
   const lastRuntimeResyncAttemptAtRef = useRef(0);
@@ -490,8 +491,31 @@ const useJssip = (isMobile = false) => {
           /* console.log('[WebPhone] Context loaded. Setting bridgeID:', newBridgeID); */
           bridgeIDRef.current = newBridgeID;
           setBridgeID(newBridgeID);
+          // Backend may return stale contact data when calls arrive simultaneously
+          if (incomingNumber && response.data.currentcalldata) {
+            const apiCaller =
+              response.data.currentcalldata?.Caller || response.data.currentcalldata?.contactNumber || '';
+            if (apiCaller && apiCaller !== incomingNumber) {
+              console.warn(
+                `[CallGuard] currentcalldata — FIXING caller mismatch: API returned ${apiCaller}, actual incoming=${incomingNumber}`,
+              );
+              response.data.currentcalldata.Caller = incomingNumber;
+              response.data.currentcalldata.contactNumber = incomingNumber;
+            }
+          }
           setActiveCallContext(response.data.currentcalldata || null);
           if (response.data.contactData) {
+            const apiContactNum = response.data.contactData?.contactNumber;
+            // Backend may return stale/wrong contactNumber when calls arrive simultaneously
+            if (incomingNumber && apiContactNum && apiContactNum !== incomingNumber) {
+              console.warn(
+                `[CallGuard] setUserCall — FIXING contactNumber mismatch: API returned ${apiContactNum}, actual incoming=${incomingNumber}`,
+              );
+              response.data.contactData.contactNumber = incomingNumber;
+            }
+            console.log(
+              `[CallGuard] setUserCall — contactNumber=${response.data.contactData?.contactNumber || 'unknown'}, incomingNumber=${incomingNumber}`,
+            );
             setUserCall(response.data.contactData);
           }
           setAgentLifecycle('on_call');
@@ -821,30 +845,32 @@ const useJssip = (isMobile = false) => {
         // ✅ 5. Update conference calls
         setConferenceCalls(data.conferenceCalls || []);
 
-        // ✅ 6. Update queue details
-        if (data.currentCallqueue?.length > 0 && data.currentCallqueue[0].queueDetail) {
-          setQueueDetails(data.currentCallqueue[0].queueDetail);
-          setHasTransfer(data.currentCallqueue[0].queueTransfered === true);
-          setCurrentCallData(data.currentCallqueue[0]);
-        } else {
-          setQueueDetails([]);
-          setHasTransfer(false);
-          setCurrentCallData(null);
-        }
-
-        // ✅ 7. Handle ringtone/incoming calls
-        if (data.currentCallqueue?.length > 0) {
-          // Check if campaign matches
-          if (campaign === data.currentCallqueue[0].campaign) {
-            setRingtone(data.currentCallqueue);
-            setInNotification(data.currentCallqueue.map((call) => call.Caller || data.currentCallqueue[0].Caller));
+        // ✅ 6. Update queue details (skip if a call is already active to prevent overwriting active call data)
+        if (!activeCallRef.current) {
+          if (data.currentCallqueue?.length > 0 && data.currentCallqueue[0].queueDetail) {
+            setQueueDetails(data.currentCallqueue[0].queueDetail);
+            setHasTransfer(data.currentCallqueue[0].queueTransfered === true);
+            setCurrentCallData(data.currentCallqueue[0]);
           } else {
-            // Campaign mismatch - clear ringtone
+            setQueueDetails([]);
+            setHasTransfer(false);
+            setCurrentCallData(null);
+          }
+
+          // ✅ 7. Handle ringtone/incoming calls
+          if (data.currentCallqueue?.length > 0) {
+            // Check if campaign matches
+            if (campaign === data.currentCallqueue[0].campaign) {
+              setRingtone(data.currentCallqueue);
+              setInNotification(data.currentCallqueue.map((call) => call.Caller || data.currentCallqueue[0].Caller));
+            } else {
+              // Campaign mismatch - clear ringtone
+              setRingtone([]);
+            }
+          } else {
+            // No calls in queue - clear ringtone
             setRingtone([]);
           }
-        } else {
-          // No calls in queue - clear ringtone
-          setRingtone([]);
         }
 
         // ✅ 8. Connection successful
@@ -1204,7 +1230,15 @@ const useJssip = (isMobile = false) => {
     if (incomingSession) {
       try {
         stopRingtone(); // Stop ringtone when call is answered
+        if (incomingSession.isAutoRejected) {
+          console.log('[CallGuard] BLOCKED answerIncomingCall — session was auto-rejected');
+          setIncomingSession(null);
+          setIsIncomingRinging(false);
+          return;
+        }
+        console.log(`[CallGuard] answerIncomingCall for ${incomingSession?.remote_identity?.uri?.user || 'unknown'}`);
         callConnectedRef.current = false;
+        activeCallRef.current = incomingSession;
         setCallHandled(true);
         callHandledRef.current = true;
         incomingSession.answer(options);
@@ -1236,6 +1270,8 @@ const useJssip = (isMobile = false) => {
 
   const rejectIncomingCall = () => {
     stopRingtone();
+    console.log('[CallGuard] Call rejected by agent, releasing lock');
+    activeCallRef.current = null;
 
     if (incomingSession && incomingSession.status < 6) {
       incomingSession.terminate();
@@ -1427,17 +1463,72 @@ const useJssip = (isMobile = false) => {
           toast.error('Registration failed');
         });
 
-        ua.on('stopped', (e) => {
-          console.error('stopped', e);
-          // Add logout behavior for stopped event
+        ua.on('stopped', () => {
           toast.error('Connection stopped');
         });
 
-        ua.on('disconnected', (e) => {
-          console.error('UA disconnected', e);
+        ua.on('disconnected', () => {
           toast.error('Connection lost');
         });
         ua.on('newRTCSession', function (e) {
+          const session = e.session;
+          const remoteUser = session?.remote_identity?.uri?.user || 'unknown';
+
+          // Log all active sessions for debugging
+          const allSessions = ua.sessions || {};
+          const sessionIds = Object.keys(allSessions);
+          console.log(
+            `[CallGuard] newRTCSession — new=${remoteUser}, dir=${session.direction}, totalSessions=${sessionIds.length}, activeLock=${!!activeCallRef.current}`,
+          );
+
+          // Guard: only one call at a time
+          // Primary: activeCallRef (reliable), Secondary: ua.sessions (JsSIP built-in, may be empty in some versions)
+          if (activeCallRef.current || sessionIds.length > 1) {
+            console.log(
+              `[CallGuard] REJECTING incoming from ${remoteUser} — already on call (activeLock=${!!activeCallRef.current}, ua.sessions=${sessionIds.length})`,
+            );
+            session.isAutoRejected = true;
+            session.isAcceptedCall = false;
+            session.terminate({ status_code: 486, reason_phrase: 'Busy Here' });
+            return;
+          }
+
+          // Assign this session as the active call
+          activeCallRef.current = session;
+          session.isAcceptedCall = true;
+          console.log(
+            `[CallGuard] Lock ACQUIRED — ${session.direction} from ${remoteUser}, session=${session.id || session.call_id || 'unknown'}`,
+          );
+
+          // Immediately mark agent as busy to prevent PBX from sending more calls
+          setConnectionStatus('INUSE');
+          setAgentLifecycle('on_call');
+
+          // Notify backend immediately that agent is on a call
+          void axios
+            .post(
+              `${window.location.origin}/useroncall/${username}`,
+              {},
+              { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
+            )
+            .catch((err) => console.error('[CallGuard] useroncall notify failed:', err));
+
+          console.log(`[CallGuard] Registered cleanup for accepted session (${remoteUser})`);
+
+          // Register cleanup handlers — skip if this was an auto-rejected session
+          session.on('failed', () => {
+            if (session.isAutoRejected) {
+              console.log(`[CallGuard] Ignored failed from auto-rejected session (${remoteUser})`);
+              return;
+            }
+            console.log(`[CallGuard] Session failed — releasing lock (${remoteUser})`);
+            activeCallRef.current = null;
+          });
+          session.on('ended', () => {
+            console.log(`[CallGuard] Session ended — releasing lock (${remoteUser})`);
+            activeCallRef.current = null;
+          });
+
           if (e.session.direction === 'incoming') {
             const remoteNumber = e.session.remote_identity.uri.user;
             const isActuallyOutgoing = dialingNumberRef.current && remoteNumber === dialingNumberRef.current;
@@ -1502,13 +1593,23 @@ const useJssip = (isMobile = false) => {
                 .then((wasAutodial) => {
                   if (wasAutodial) return; // Exit if autodial was handled
 
+                  // SAFETY: Verify this session is still the accepted active call
+                  if (activeCallRef.current !== e.session) {
+                    console.log(
+                      `[CallGuard] SKIPPING .then() — session no longer active (${e.session?.remote_identity?.uri?.user || 'unknown'})`,
+                    );
+                    return;
+                  }
+
                   // Continue with normal mobile incoming call flow
                   if (isMobile) {
                     // Mobile: Show UI with ringtone
                     const incomingNumber = e.request.from._uri._user;
+                    console.log(`[CallGuard] Setting incoming UI for ${incomingNumber}`);
                     setIncomingSession(e.session);
                     setIncomingNumber(incomingNumber);
                     setIsIncomingRinging(true);
+
                     setStatus('incoming');
                     setAgentLifecycle('ringing');
 
@@ -1582,12 +1683,19 @@ const useJssip = (isMobile = false) => {
                     setInNotification(incomingNumber);
 
                     // Auto-answer the call (existing logic)
+                    console.log(`[CallGuard] Auto-answering desk call from ${incomingNumber}`);
                     handleIncomingCall(e.session, e.request, { addIncomingHistory: true });
                   }
                 })
                 .catch((error) => {
                   console.error('Error in autodial check:', error);
                   // Fallback to normal incoming call flow on error
+                  if (activeCallRef.current !== e.session) {
+                    console.log(
+                      `[CallGuard] SKIPPING .catch() — session no longer active (${e.session?.remote_identity?.uri?.user || 'unknown'})`,
+                    );
+                    return;
+                  }
                   if (isMobile) {
                     const incomingNumber = e.request.from._uri._user;
                     setIncomingSession(e.session);
@@ -1606,6 +1714,7 @@ const useJssip = (isMobile = false) => {
           } else {
             // Handle normal outgoing calls (when direction is actually "outgoing")
             callConnectedRef.current = false;
+
             setSession(e.session);
             setStatus('calling');
             setAgentLifecycle('dialing');
@@ -1683,7 +1792,20 @@ const useJssip = (isMobile = false) => {
       { addIncomingHistory = false, startTimerImmediately = true } = {},
     ) => {
       const incomingNumber = request.from._uri._user;
+      // SAFETY: Never process an auto-rejected session
+      if (session.isAutoRejected) {
+        console.log(`[CallGuard] BLOCKED handleIncomingCall for rejected session (${incomingNumber})`);
+        return;
+      }
+      if (session.isAcceptedCall) {
+        console.log(
+          `[CallGuard] handleIncomingCall: answering ${incomingNumber}, session=${session.id || session.call_id || 'unknown'}`,
+        );
+      } else {
+        console.log(`[CallGuard] handleIncomingCall: answering ${incomingNumber} (no accepted tag)`);
+      }
       callConnectedRef.current = false;
+
       session.answer(options); // Auto-answers (good for outgoing)
       setSession(session);
       setStatus('calling');

@@ -2968,17 +2968,17 @@ export default function LeadAndCallInfoPanel({
                   <p className="text-muted-foreground text-sm">Loading call details...</p>
                 </div>
               ) : (
-              <div className="rounded-2xl border border-dashed border-border/60 px-4 py-8 sm:px-6 sm:py-16 text-center">
-                <Phone
-                  size={48}
-                  className="mx-auto text-muted-foreground mb-4 opacity-50 transition-opacity group-hover:opacity-100"
-                />
-                <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto">
-                  {allowManualEntry
-                    ? 'No active call to display details. You can still create a manual form entry.'
-                    : 'No active call to display details.'}
-                </p>
-              </div>
+                <div className="rounded-2xl border border-dashed border-border/60 px-4 py-8 sm:px-6 sm:py-16 text-center">
+                  <Phone
+                    size={48}
+                    className="mx-auto text-muted-foreground mb-4 opacity-50 transition-opacity group-hover:opacity-100"
+                  />
+                  <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto">
+                    {allowManualEntry
+                      ? 'No active call to display details. You can still create a manual form entry.'
+                      : 'No active call to display details.'}
+                  </p>
+                </div>
               )}
             </CardContent>
           </>

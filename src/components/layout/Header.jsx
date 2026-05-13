@@ -319,7 +319,9 @@ export default function Header() {
                 aria-label="Show Missed Calls"
                 type="button"
               >
-                <PhoneMissed className={cn('w-4 h-4', campaignMissedCallsLength > 0 && !dropCalls && 'text-destructive')} />
+                <PhoneMissed
+                  className={cn('w-4 h-4', campaignMissedCallsLength > 0 && !dropCalls && 'text-destructive')}
+                />
                 <span>Missed Calls</span>
                 {campaignMissedCallsLength > 0 && (
                   <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
@@ -492,7 +494,12 @@ export default function Header() {
             )}
             aria-label="Show Missed Calls"
           >
-            <PhoneMissed className={cn('w-5 h-5', campaignMissedCallsLength > 0 && !dropCalls ? 'text-destructive' : 'text-muted-foreground')} />
+            <PhoneMissed
+              className={cn(
+                'w-5 h-5',
+                campaignMissedCallsLength > 0 && !dropCalls ? 'text-destructive' : 'text-muted-foreground',
+              )}
+            />
             {campaignMissedCallsLength > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[1.125rem] h-4.5 flex items-center justify-center rounded-full bg-destructive text-white text-[10px] font-bold px-1 shadow-sm border-2 border-background">
                 {campaignMissedCallsLength}
@@ -619,12 +626,16 @@ export default function Header() {
                     dropCalls
                       ? 'bg-primary text-primary-foreground'
                       : 'text-secondary-foreground hover:bg-secondary/80',
-                    campaignMissedCallsLength > 0 && !dropCalls && 'animate-pulse ring-2 ring-destructive ring-offset-1',
+                    campaignMissedCallsLength > 0 &&
+                      !dropCalls &&
+                      'animate-pulse ring-2 ring-destructive ring-offset-1',
                   )}
                   aria-label="Show Missed Calls"
                   type="button"
                 >
-                  <PhoneCall className={cn('w-4 h-4', campaignMissedCallsLength > 0 && !dropCalls && 'text-destructive')} />
+                  <PhoneCall
+                    className={cn('w-4 h-4', campaignMissedCallsLength > 0 && !dropCalls && 'text-destructive')}
+                  />
                   <span className="sm:text-base text-sm">Missed Calls</span>
                   {campaignMissedCallsLength > 0 && (
                     <span className="absolute -top-2 -right-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-destructive text-white text-xs font-medium px-1.5 shadow-sm border-2 border-background">
