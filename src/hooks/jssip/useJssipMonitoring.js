@@ -8,6 +8,7 @@ export const MONITORING_KEYS = {
   CONNECTION_STATUS: 'jssip_connection_status',
   MONITORING_DATA: 'jssip_monitoring_data',
   TROUBLESHOOTING_MODE: 'jssip_troubleshooting_mode',
+  SESSION_LOGS: 'jssip_session_logs',
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -86,6 +87,16 @@ export const useJssipMonitoring = (state, utils) => {
     setSuccessCount,
     errorCount,
     setErrorCount,
+    sessionLogs,
+    setSessionLogs,
+    activeSessionCount,
+    setActiveSessionCount,
+    totalSessionsCreated,
+    setTotalSessionsCreated,
+    totalSessionsEnded,
+    setTotalSessionsEnded,
+    totalSessionsFailed,
+    setTotalSessionsFailed,
   } = state;
 
   // Internal refs — avoid stale closures in interval callbacks
@@ -96,6 +107,12 @@ export const useJssipMonitoring = (state, utils) => {
   const systemEventsRef = useRef([]);
   const successCountRef = useRef(0);
   const errorCountRef = useRef(0);
+  const sessionLogsRef = useRef([]);
+  const activeSessionCountRef = useRef(0);
+  const totalSessionsCreatedRef = useRef(0);
+  const totalSessionsEndedRef = useRef(0);
+  const totalSessionsFailedRef = useRef(0);
+  const lastKnownSessionIdsRef = useRef(new Set());
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -116,6 +133,21 @@ export const useJssipMonitoring = (state, utils) => {
   useEffect(() => {
     errorCountRef.current = errorCount;
   }, [errorCount]);
+  useEffect(() => {
+    sessionLogsRef.current = sessionLogs;
+  }, [sessionLogs]);
+  useEffect(() => {
+    activeSessionCountRef.current = activeSessionCount;
+  }, [activeSessionCount]);
+  useEffect(() => {
+    totalSessionsCreatedRef.current = totalSessionsCreated;
+  }, [totalSessionsCreated]);
+  useEffect(() => {
+    totalSessionsEndedRef.current = totalSessionsEnded;
+  }, [totalSessionsEnded]);
+  useEffect(() => {
+    totalSessionsFailedRef.current = totalSessionsFailed;
+  }, [totalSessionsFailed]);
 
   // ── Helpers exposed to useJssip ──────────────────────────────────────
 
@@ -137,6 +169,91 @@ export const useJssipMonitoring = (state, utils) => {
     },
     [setSystemEvents],
   );
+
+  const logSessionEvent = useCallback(
+    (eventType, details = {}) => {
+      const sessionId = details.sessionId || details.callId || 'unknown';
+      const remoteUser = details.remoteUser || 'unknown';
+      const direction = details.direction || 'unknown';
+
+      const entry = {
+        id: `sess_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        eventType,
+        sessionId,
+        remoteUser,
+        direction,
+        timestamp: Date.now(),
+        ...details,
+      };
+
+      console.log(
+        `[SessionLog] ${eventType} | id=${sessionId} | ${direction} | ${remoteUser} | active=${activeSessionCountRef.current}`,
+      );
+
+      setSessionLogs((prev) => {
+        const updated = [...prev, entry].slice(-100);
+        sessionLogsRef.current = updated;
+        return updated;
+      });
+
+      switch (eventType) {
+        case 'created':
+          setActiveSessionCount((n) => {
+            const next = n + 1;
+            activeSessionCountRef.current = next;
+            return next;
+          });
+          setTotalSessionsCreated((n) => {
+            const next = n + 1;
+            totalSessionsCreatedRef.current = next;
+            return next;
+          });
+          break;
+        case 'confirmed':
+        case 'answered':
+          break;
+        case 'ended':
+          setActiveSessionCount((n) => {
+            const next = Math.max(0, n - 1);
+            activeSessionCountRef.current = next;
+            return next;
+          });
+          setTotalSessionsEnded((n) => {
+            const next = n + 1;
+            totalSessionsEndedRef.current = next;
+            return next;
+          });
+          break;
+        case 'failed':
+          setActiveSessionCount((n) => {
+            const next = Math.max(0, n - 1);
+            activeSessionCountRef.current = next;
+            return next;
+          });
+          setTotalSessionsFailed((n) => {
+            const next = n + 1;
+            totalSessionsFailedRef.current = next;
+            return next;
+          });
+          break;
+        default:
+          break;
+      }
+
+      return entry;
+    },
+    [setSessionLogs, setActiveSessionCount, setTotalSessionsCreated, setTotalSessionsEnded, setTotalSessionsFailed],
+  );
+
+  const getSessionStats = useCallback(() => {
+    return {
+      activeSessions: activeSessionCountRef.current,
+      totalCreated: totalSessionsCreatedRef.current,
+      totalEnded: totalSessionsEndedRef.current,
+      totalFailed: totalSessionsFailedRef.current,
+      recentLogs: sessionLogsRef.current.slice(-20),
+    };
+  }, []);
 
   const isUARegistered = useCallback(() => {
     const u = uaRef.current;
@@ -299,6 +416,20 @@ export const useJssipMonitoring = (state, utils) => {
       },
       systemAnalysis: analysis,
     });
+
+    // ── jssip_session_logs ────────────────────────────────────────────
+    const sessionCounts = {
+      activeSessions: activeSessionCountRef.current,
+      totalCreated: totalSessionsCreatedRef.current,
+      totalEnded: totalSessionsEndedRef.current,
+      totalFailed: totalSessionsFailedRef.current,
+    };
+
+    writeStorage(MONITORING_KEYS.SESSION_LOGS, {
+      counts: sessionCounts,
+      recentLogs: sessionLogsRef.current.slice(-50),
+      lastUpdated: Date.now(),
+    });
   }, [
     getWebSocketStatus,
     isUARegistered,
@@ -426,5 +557,7 @@ export const useJssipMonitoring = (state, utils) => {
     getWebSocketStatus,
     analyzeSystemHealth,
     logSystemEvent,
+    logSessionEvent,
+    getSessionStats,
   };
 };

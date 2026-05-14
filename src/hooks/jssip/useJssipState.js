@@ -98,6 +98,13 @@ export const useJssipState = () => {
   const [errorCount, setErrorCount] = useState(0);
   const [lastLoggedUAState, setLastLoggedUAState] = useState(null);
 
+  /* --------------------------- session logs -------------------------------- */
+  const [sessionLogs, setSessionLogs] = useState([]);
+  const [activeSessionCount, setActiveSessionCount] = useState(0);
+  const [totalSessionsCreated, setTotalSessionsCreated] = useState(0);
+  const [totalSessionsEnded, setTotalSessionsEnded] = useState(0);
+  const [totalSessionsFailed, setTotalSessionsFailed] = useState(0);
+
   /* --------------------------- export everything --------------------------- */
   return {
     /* core */
@@ -250,5 +257,15 @@ export const useJssipState = () => {
     setIsCustomerHostDisconnected,
     isAutomationLoading,
     setIsAutomationLoading,
+    sessionLogs,
+    setSessionLogs,
+    activeSessionCount,
+    setActiveSessionCount,
+    totalSessionsCreated,
+    setTotalSessionsCreated,
+    totalSessionsEnded,
+    setTotalSessionsEnded,
+    totalSessionsFailed,
+    setTotalSessionsFailed,
   };
 };

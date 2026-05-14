@@ -165,6 +165,8 @@ const useJssip = (isMobile = false) => {
     getWebSocketStatus,
     analyzeSystemHealth,
     logSystemEvent,
+    logSessionEvent,
+    getSessionStats,
   } = monitoring;
 
   useEffect(() => {
@@ -856,21 +858,18 @@ const useJssip = (isMobile = false) => {
             setHasTransfer(false);
             setCurrentCallData(null);
           }
+        }
 
-          // ✅ 7. Handle ringtone/incoming calls
-          if (data.currentCallqueue?.length > 0) {
-            // Check if campaign matches
-            if (campaign === data.currentCallqueue[0].campaign) {
-              setRingtone(data.currentCallqueue);
-              setInNotification(data.currentCallqueue.map((call) => call.Caller || data.currentCallqueue[0].Caller));
-            } else {
-              // Campaign mismatch - clear ringtone
-              setRingtone([]);
-            }
+        // ✅ 7. Handle ringtone/incoming calls (always process — call may already be live via SIP)
+        if (data.currentCallqueue?.length > 0) {
+          if (campaign === data.currentCallqueue[0].campaign) {
+            setRingtone(data.currentCallqueue);
+            setInNotification(data.currentCallqueue.map((call) => call.Caller || data.currentCallqueue[0].Caller));
           } else {
-            // No calls in queue - clear ringtone
             setRingtone([]);
           }
+        } else {
+          setRingtone([]);
         }
 
         // ✅ 8. Connection successful
@@ -1150,6 +1149,9 @@ const useJssip = (isMobile = false) => {
 
   const eventHandlers = {
     failed: function (e) {
+      const remoteUser = e?.session?.remote_identity?.uri?.user || session?.remote_identity?.uri?.user || 'unknown';
+      const callId = e?.session?.call_id || session?.call_id || 'unknown';
+      logSessionEvent('failed', { sessionId: callId, remoteUser, direction: session?.direction || 'unknown' });
       setStatus('fail');
       setAgentLifecycle(leadLockToken ? 'lead_locked' : 'idle');
       // setPhoneNumber('');
@@ -1160,6 +1162,9 @@ const useJssip = (isMobile = false) => {
     },
 
     confirmed: function (e) {
+      const remoteUser = e?.session?.remote_identity?.uri?.user || session?.remote_identity?.uri?.user || 'unknown';
+      const callId = e?.session?.call_id || session?.call_id || 'unknown';
+      logSessionEvent('confirmed', { sessionId: callId, remoteUser, direction: session?.direction || 'unknown' });
       reset(undefined, true);
       startRecording();
       setStatus('on_call');
@@ -1175,6 +1180,14 @@ const useJssip = (isMobile = false) => {
     },
 
     ended: function (e) {
+      const remoteUser = e?.session?.remote_identity?.uri?.user || session?.remote_identity?.uri?.user || 'unknown';
+      const callId = e?.session?.call_id || session?.call_id || 'unknown';
+      logSessionEvent('ended', {
+        sessionId: callId,
+        remoteUser,
+        direction: session?.direction || 'unknown',
+        cause: e?.cause || 'unknown',
+      });
       if (isRecording) {
         stopRecording();
       }
@@ -1473,6 +1486,13 @@ const useJssip = (isMobile = false) => {
         ua.on('newRTCSession', function (e) {
           const session = e.session;
           const remoteUser = session?.remote_identity?.uri?.user || 'unknown';
+          const callId = session.call_id || session.id || 'unknown';
+
+          logSessionEvent('created', {
+            sessionId: callId,
+            remoteUser,
+            direction: session.direction || 'unknown',
+          });
 
           // Log all active sessions for debugging
           const allSessions = ua.sessions || {};
@@ -1522,10 +1542,17 @@ const useJssip = (isMobile = false) => {
               return;
             }
             console.log(`[CallGuard] Session failed — releasing lock (${remoteUser})`);
+            logSessionEvent('failed', {
+              sessionId: callId,
+              remoteUser,
+              direction: session.direction,
+              cause: 'cleanup',
+            });
             activeCallRef.current = null;
           });
           session.on('ended', () => {
             console.log(`[CallGuard] Session ended — releasing lock (${remoteUser})`);
+            logSessionEvent('ended', { sessionId: callId, remoteUser, direction: session.direction, cause: 'cleanup' });
             activeCallRef.current = null;
           });
 
@@ -1630,6 +1657,12 @@ const useJssip = (isMobile = false) => {
                     ]);
 
                     e.session.on('ended', () => {
+                      logSessionEvent('ended', {
+                        sessionId: callId,
+                        remoteUser,
+                        direction: 'incoming',
+                        cause: 'mobile-ended',
+                      });
                       stopRingtone();
                       void syncAgentReadyState({
                         source: 'incoming-session-ended',
@@ -1653,6 +1686,12 @@ const useJssip = (isMobile = false) => {
                     });
 
                     e.session.on('failed', () => {
+                      logSessionEvent('failed', {
+                        sessionId: callId,
+                        remoteUser,
+                        direction: 'incoming',
+                        cause: 'mobile-failed',
+                      });
                       stopRingtone();
                       const shouldRestoreReadyState = !callHandledRef.current;
                       setIncomingSession(null);
@@ -1728,6 +1767,7 @@ const useJssip = (isMobile = false) => {
 
             // Add event listeners for outgoing calls
             e.session.on('confirmed', () => {
+              logSessionEvent('confirmed', { sessionId: callId, remoteUser, direction: 'outgoing' });
               callConnectedRef.current = true;
               reset(undefined, true);
               startRecording();
@@ -1746,6 +1786,7 @@ const useJssip = (isMobile = false) => {
             });
 
             e.session.on('ended', () => {
+              logSessionEvent('ended', { sessionId: callId, remoteUser, direction: 'outgoing', cause: 'ended' });
               if (isRecordingRef.current) {
                 stopRecording();
               }
@@ -1754,6 +1795,7 @@ const useJssip = (isMobile = false) => {
             });
 
             e.session.on('failed', () => {
+              logSessionEvent('failed', { sessionId: callId, remoteUser, direction: 'outgoing', cause: 'failed' });
               const manualHangupRequested = manualHangupRequestedRef.current;
               finalizePostCallContext();
               if (isRecording) {
@@ -1792,6 +1834,7 @@ const useJssip = (isMobile = false) => {
       { addIncomingHistory = false, startTimerImmediately = true } = {},
     ) => {
       const incomingNumber = request.from._uri._user;
+      const sessionId = session.call_id || session.id || 'unknown';
       // SAFETY: Never process an auto-rejected session
       if (session.isAutoRejected) {
         console.log(`[CallGuard] BLOCKED handleIncomingCall for rejected session (${incomingNumber})`);
@@ -1814,6 +1857,7 @@ const useJssip = (isMobile = false) => {
       void ensureActiveCallContextLoaded({ incomingNumber, addIncomingHistory });
 
       session.once('confirmed', () => {
+        logSessionEvent('confirmed', { sessionId, remoteUser: incomingNumber, direction: 'incoming' });
         callConnectedRef.current = true;
         setIsCustomerAnswered(true);
         if (!startTimerImmediately) {
@@ -1830,11 +1874,13 @@ const useJssip = (isMobile = false) => {
 
       // Your existing event listeners...
       session.once('ended', () => {
+        logSessionEvent('ended', { sessionId, remoteUser: incomingNumber, direction: 'incoming', cause: 'ended' });
         setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
         finalizeEndedCallState();
       });
 
       session.once('failed', () => {
+        logSessionEvent('failed', { sessionId, remoteUser: incomingNumber, direction: 'incoming', cause: 'failed' });
         const manualHangupRequested = manualHangupRequestedRef.current;
         finalizePostCallContext();
 
