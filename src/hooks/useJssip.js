@@ -2139,8 +2139,11 @@ const useJssip = (isMobile = false) => {
             },
           });
 
-          if (isMobile) {
-            // 2. On Mobile, perform SILENT auto-disposition
+          const tokenPayload = getStoredTokenPayload();
+          const isDispositionEnabled = tokenPayload?.userData?.disposition !== false;
+
+          if (isMobile || !isDispositionEnabled) {
+            // 2. On Mobile or when disposition is disabled, perform SILENT auto-disposition
             try {
               const dispoUrl = `${window.location.origin}/user/disposition${username}`;
               const finalBridgeID = bridgeIDRef.current || bridgeID;
@@ -2150,14 +2153,14 @@ const useJssip = (isMobile = false) => {
                 autoDialDisabled: false,
               };
 
-              const response = await axios.post(dispoUrl, dispoPayload, {
+              await axios.post(dispoUrl, dispoPayload, {
                 headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
               });
             } catch (dispoError) {
               console.error('[WebPhone] Silent disposition failed:', dispoError.response?.data || dispoError.message);
             }
 
-            // 3. Reset to IDLE / Home Screen instantly on mobile
+            // 3. Reset to IDLE / Home Screen instantly
             setIsHeld(false);
             setIsCallended(false);
             setAgentLifecycle('idle');
@@ -2165,7 +2168,7 @@ const useJssip = (isMobile = false) => {
             setCallType('');
             setPhoneNumber('');
           } else {
-            // 4. On Desktop, show the Disposition Modal as usual
+            // 4. On Desktop with disposition enabled, show the Disposition Modal as usual
             setIsHeld(false);
             setIsCallended(false);
             setAgentLifecycle('disposition');
@@ -2198,6 +2201,13 @@ const useJssip = (isMobile = false) => {
     bridgeID,
     phoneNumber,
     setIsAutomationLoading,
+    getStoredTokenPayload,
+    finalizePostCallContext,
+    setAgentLifecycle,
+    setCallType,
+    setDispositionModal,
+    setIsCallended,
+    setIsHeld,
   ]);
 
   return [
