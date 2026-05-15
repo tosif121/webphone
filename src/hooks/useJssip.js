@@ -10,6 +10,7 @@ import { useJssipUtils } from './jssip/useJssipUtils';
 import { useJssipConference } from './jssip/useJssipConference';
 import { useJssipRecording } from './jssip/useJssipRecording';
 import { useJssipMonitoring } from './jssip/useJssipMonitoring';
+import { normalizePhone } from '../utils/normalizePhone';
 
 const useJssip = (isMobile = false) => {
   const { setHistory, username, password, setSelectedBreak, selectedBreak, setScheduleCallsLength } =
@@ -426,6 +427,7 @@ const useJssip = (isMobile = false) => {
     setStatus('start');
     setIsCallended(shouldOpenDisposition);
     setAgentLifecycle(shouldOpenDisposition ? 'disposition' : 'idle');
+    agentLifecycleRef.current = shouldOpenDisposition ? 'disposition' : 'idle';
     if (!shouldOpenDisposition) {
       setDispositionModal(false);
     }
@@ -1501,11 +1503,11 @@ const useJssip = (isMobile = false) => {
             `[CallGuard] newRTCSession — new=${remoteUser}, dir=${session.direction}, totalSessions=${sessionIds.length}, activeLock=${!!activeCallRef.current}`,
           );
 
-          // Guard: only one call at a time
-          // Primary: activeCallRef (reliable), Secondary: ua.sessions (JsSIP built-in, may be empty in some versions)
-          if (activeCallRef.current || sessionIds.length > 1) {
+          // Guard: only one call at a time or agent in post-call disposition
+          // Primary: activeCallRef (reliable), Secondary: agentLifecycleRef (blocks during disposition), Tertiary: ua.sessions (JsSIP built-in)
+          if (activeCallRef.current || agentLifecycleRef.current === 'disposition' || sessionIds.length > 1) {
             console.log(
-              `[CallGuard] REJECTING incoming from ${remoteUser} — already on call (activeLock=${!!activeCallRef.current}, ua.sessions=${sessionIds.length})`,
+              `[CallGuard] REJECTING incoming from ${remoteUser} — already on call or in disposition (activeLock=${!!activeCallRef.current}, lifecycle=${agentLifecycleRef.current}, ua.sessions=${sessionIds.length})`,
             );
             session.isAutoRejected = true;
             session.isAcceptedCall = false;
@@ -1523,6 +1525,8 @@ const useJssip = (isMobile = false) => {
           // Immediately mark agent as busy to prevent PBX from sending more calls
           setConnectionStatus('INUSE');
           setAgentLifecycle('on_call');
+          // Start stopwatch now so CallScreen shows timer, not "Calling...", while async autodial check runs
+          reset(undefined, true);
 
           // Notify backend immediately that agent is on a call
           void axios
@@ -1833,7 +1837,7 @@ const useJssip = (isMobile = false) => {
       request,
       { addIncomingHistory = false, startTimerImmediately = true } = {},
     ) => {
-      const incomingNumber = request.from._uri._user;
+      const incomingNumber = normalizePhone(request.from._uri._user);
       const sessionId = session.call_id || session.id || 'unknown';
       // SAFETY: Never process an auto-rejected session
       if (session.isAutoRejected) {
@@ -1853,6 +1857,8 @@ const useJssip = (isMobile = false) => {
       setSession(session);
       setStatus('calling');
       setAgentLifecycle('on_call');
+      // Show the number immediately while API call populates full contact data
+      setPhoneNumber(incomingNumber);
       reset(undefined, startTimerImmediately);
       void ensureActiveCallContextLoaded({ incomingNumber, addIncomingHistory });
 

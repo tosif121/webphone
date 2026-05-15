@@ -42,6 +42,7 @@ const CallScreen = ({
   setCallConference,
   conferenceStatus,
   userCall,
+  phoneNumber,
   conferenceCalls,
   hasParticipants,
   status,
@@ -262,7 +263,8 @@ const CallScreen = ({
     }
     if (conferenceNumber) return maybeMask(conferenceNumber);
     if (userCall?.contactNumber) return maybeMask(userCall?.contactNumber);
-    return maybeMask(userCall?.contactNumber) || '';
+    if (phoneNumber) return maybeMask(phoneNumber);
+    return '';
   })();
 
   const ControlButton = ({ onClick, disabled, active, icon, title, className = '', buttonId, debounceTime = 300 }) => {
