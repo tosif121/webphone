@@ -354,7 +354,7 @@ const Disposition = ({
   const autoDispoFunc = useCallback(async () => {
     try {
       const requestBody = {
-        bridgeID,
+        ...(bridgeID ? { bridgeID } : { bridgeID: 'deadCallId' }),
         Disposition: 'Auto Disposed',
         autoDialDisabled: false,
         leadId: activeLead?.leadId,
@@ -463,11 +463,6 @@ const Disposition = ({
     }
 
     if (dispoData?.length > 0) {
-      if (!resolvedBridgeID) {
-        toast.error('Call bridge not found. Disposition skipped.');
-        closeDispositionFlow();
-        return;
-      }
       setDispositionActions(
         dispoData.map((item) => ({
           action: item.value,
@@ -634,15 +629,8 @@ const Disposition = ({
       setIsSubmitting(true);
 
       try {
-        if (!resolvedBridgeID) {
-          toast.error('Call bridge not found. Please retry once or refresh the webphone.');
-          setIsSubmitting(false);
-          closeDispositionFlow();
-          return;
-        }
-
         const requestBody = {
-          bridgeID: resolvedBridgeID,
+          ...(resolvedBridgeID ? { bridgeID: resolvedBridgeID } : { bridgeID: 'deadCallId' }),
           Disposition: selectedAction,
           isDiposedWithBreak: isDispoWithBreak,
           autoDialDisabled: isAutoLeadDialDisabled,

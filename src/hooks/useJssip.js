@@ -477,14 +477,16 @@ const useJssip = (isMobile = false) => {
 
       activeCallContextRequestRef.current = (async () => {
         try {
-          const response = await axios.post(
-            `${window.location.origin}/useroncall/${username}`,
-            leadLockToken ? { leadLockToken } : {},
-            {
-              headers: {
-                ...getAuthHeaders({ 'Content-Type': 'application/json' }),
-              },
+          const ts = new Date().toISOString();
+          const payload = leadLockToken ? { leadLockToken } : {};
+          console.log(`[API] useroncall → START | ts=${ts} | url=/useroncall/${username} | payload=`, payload);
+          const response = await axios.post(`${window.location.origin}/useroncall/${username}`, payload, {
+            headers: {
+              ...getAuthHeaders({ 'Content-Type': 'application/json' }),
             },
+          });
+          console.log(
+            `[API] useroncall → DONE | ts=${ts} | status=${response.status} | bridgeID=${response.data?.currentcalldata?.bridgeID || 'none'} | contact=${response.data?.currentcalldata?.contactNumber || 'none'}`,
           );
 
           if (response.status !== 200) {
@@ -1529,13 +1531,18 @@ const useJssip = (isMobile = false) => {
           reset(undefined, true);
 
           // Notify backend immediately that agent is on a call
+          const notifyTs = new Date().toISOString();
+          console.log(
+            `[API] useroncall (notify) → START | ts=${notifyTs} | url=/useroncall/${username} | remoteUser=${remoteUser}`,
+          );
           void axios
             .post(
               `${window.location.origin}/useroncall/${username}`,
               {},
               { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
             )
-            .catch((err) => console.error('[CallGuard] useroncall notify failed:', err));
+            .then(() => console.log(`[API] useroncall (notify) → DONE | ts=${notifyTs} | success`))
+            .catch((err) => console.error(`[API] useroncall (notify) → FAILED | ts=${notifyTs} | error=`, err.message));
 
           console.log(`[CallGuard] Registered cleanup for accepted session (${remoteUser})`);
 
@@ -2183,13 +2190,22 @@ const useJssip = (isMobile = false) => {
         let keepPostCallContext = false;
         try {
           // 1. Call callended API
+          const callendedTs = new Date().toISOString();
+          const callendedPayload = leadLockToken ? { leadLockToken } : {};
+          console.log(
+            `[API] callended → START | ts=${callendedTs} | url=/user/callended${username} | payload=`,
+            callendedPayload,
+          );
           const callendedUrl = `${window.location.origin}/user/callended${username}`;
 
-          await axios.post(callendedUrl, leadLockToken ? { leadLockToken } : {}, {
+          const callendedResponse = await axios.post(callendedUrl, callendedPayload, {
             headers: {
               ...getAuthHeaders({ 'Content-Type': 'application/json' }),
             },
           });
+          console.log(
+            `[API] callended → DONE | ts=${callendedTs} | status=${callendedResponse.status} | lifecycle=${agentLifecycleRef.current} | bridgeID=${bridgeIDRef.current || bridgeID || 'none'}`,
+          );
 
           const tokenPayload = getStoredTokenPayload();
           const isDispositionEnabled = tokenPayload?.userData?.disposition !== false;
