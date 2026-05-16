@@ -291,6 +291,9 @@ const useJssip = (isMobile = false) => {
 
   useEffect(() => {
     uaRef.current = ua;
+    if (ua) {
+      console.log('[JsSIP] UA Instance Updated - Registered:', ua.isRegistered(), 'Connected:', ua.isConnected());
+    }
   }, [ua]);
 
   useEffect(() => {
@@ -853,8 +856,15 @@ const useJssip = (isMobile = false) => {
 
         // ✅ 6. Update queue details (skip if a call is already active to prevent overwriting active call data)
         if (!activeCallRef.current) {
-          if (data.currentCallqueue?.length > 0 && data.currentCallqueue[0].queueDetail) {
-            setQueueDetails(data.currentCallqueue[0].queueDetail);
+          if (data.currentCallqueue?.length > 0) {
+            if (
+              Array.isArray(data.currentCallqueue[0].queueDetail) &&
+              data.currentCallqueue[0].queueDetail.length > 0
+            ) {
+              setQueueDetails(data.currentCallqueue[0].queueDetail);
+            } else {
+              setQueueDetails([]);
+            }
             setHasTransfer(data.currentCallqueue[0].queueTransfered === true);
             setCurrentCallData(data.currentCallqueue[0]);
           } else {
@@ -1339,7 +1349,16 @@ const useJssip = (isMobile = false) => {
         var ua = new JsSIP.UA(configuration);
         ua.start();
 
+        ua.on('connected', (e) => {
+          console.log('[JsSIP] Connected to WebSocket');
+        });
+
+        ua.on('disconnected', (e) => {
+          console.warn('[JsSIP] Disconnected from WebSocket', e);
+        });
+
         ua.on('registered', async (data) => {
+          console.log('[JsSIP] Registered successfully');
           const readySync = await syncAgentReadyState({
             source: 'sip-registered',
             attempts: 4,
@@ -1476,11 +1495,16 @@ const useJssip = (isMobile = false) => {
         });
 
         ua.on('registrationFailed', (data) => {
-          console.error('Registration failed:', data);
+          console.error('[JsSIP] Registration failed:', data.cause, data);
           toast.error('Registration failed');
         });
 
+        ua.on('unregistered', (data) => {
+          console.warn('[JsSIP] Unregistered:', data.cause);
+        });
+
         ua.on('stopped', () => {
+          console.log('[JsSIP] UA Stopped');
           toast.error('Connection stopped');
         });
 

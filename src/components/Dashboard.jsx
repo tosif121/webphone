@@ -806,23 +806,23 @@ function Dashboard() {
       const firstQueueCall = queueDetails?.[0] ?? currentCallData;
       const queueCampaign = firstQueueCall?.campaign ?? currentCallData?.campaign;
 
+      const hasCallToProcess = queueDetails?.length > 0 || currentCallData != null;
+      const campaignMatch = String(userCampaign) === String(queueCampaign);
+
       console.log('[agentAvailable] checking conditions', {
         userCampaign,
         queueCampaign,
-        campaignMatch: String(userCampaign) === String(queueCampaign),
+        campaignMatch,
         connectionStatus,
-        queueLength: queueDetails?.length ?? 0,
-        firstCaller: currentCallData?.Caller,
+        hasCallToProcess,
+        queueDetails,
+        currentCallData,
       });
 
-      if (
-        String(userCampaign) === String(queueCampaign) &&
-        connectionStatus === 'NOT_INUSE' &&
-        queueDetails?.length > 0
-      ) {
+      if (campaignMatch && connectionStatus === 'NOT_INUSE' && hasCallToProcess) {
         agentAvailableInFlightRef.current = true;
         agentAvailableLastCalledRef.current = Date.now();
-        console.log('[agentAvailable] calling API for index-0 call:', currentCallData?.Caller);
+        console.log('[agentAvailable] calling API:', currentCallData?.Caller);
         try {
           const { data } = await axios.post(
             `${window.location.origin}/user/agentAvailable/${username}`,
@@ -853,6 +853,7 @@ function Dashboard() {
   }, [
     agentLifecycle,
     connectionStatus,
+    currentCallData,
     dispositionModal,
     queueDetails?.length,
     selectedBreak,
@@ -1323,7 +1324,6 @@ function Dashboard() {
   return (
     <div className="flex-1 overflow-y-auto">
       <audio ref={endCallAudioRef} preload="auto" style={{ display: 'none' }} src={endCallAudioBase64} />
-
       {(() => {
         // Check if campaign matches - if yes, show ringtone calls
         const shouldShowRingtone = currentCallData?.campaign === userCampaign;
@@ -1398,11 +1398,9 @@ function Dashboard() {
             );
           }
         }
-
         // Return null if no matching queues
         return null;
       })()}
-
       {formSubmitted && dispositionModal && (
         <Disposition
           bridgeID={bridgeID}
@@ -1546,7 +1544,6 @@ function Dashboard() {
           )}
         </div>
       </div>
-
       {/* Mobile Bottom Navigation - Handled by parent */}
     </div>
   );
