@@ -18,7 +18,7 @@ import {
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import HistoryContext from '@/context/HistoryContext';
-import JssipContext from '@/context/JssipContext';
+import { JssipContext } from '@/context/JssipContext';
 import maskPhoneNumber from '@/utils/maskPhoneNumber';
 import KeyPad from './KeyPad';
 import Image from 'next/image';
