@@ -55,7 +55,7 @@ export const useJssipConference = (state, utils) => {
 
   const createConferenceCall = async () => {
     try {
-      const response = await fetch(`${window.location.origin}/reqConf/${username}`, {
+      const response = await fetch(`https://app.samvaad.io/reqConf/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,6 +65,8 @@ export const useJssipConference = (state, utils) => {
           bridgeID,
         }),
       });
+
+      console.log({ confNumber: conferenceNumber.replace(/\s+/g, ''), bridgeID }, 'conference payload');
 
       const data = await response.json();
 
@@ -147,7 +149,7 @@ export const useJssipConference = (state, utils) => {
         wasHeld: isHeld,
       });
 
-      const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
+      const response = await fetch(`https://app.samvaad.io/reqUnHold/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,7 +187,7 @@ export const useJssipConference = (state, utils) => {
   const toggleHold = async () => {
     try {
       if (!isHeld) {
-        const response = await fetch(`${window.location.origin}/reqHold/${username}`, {
+        const response = await fetch(`https://app.samvaad.io/reqHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -206,7 +208,7 @@ export const useJssipConference = (state, utils) => {
           toast.error(`Failed to hold call: ${response.status}`);
         }
       } else {
-        const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
+        const response = await fetch(`https://app.samvaad.io/reqUnHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

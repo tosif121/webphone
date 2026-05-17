@@ -63,7 +63,6 @@ const CallScreen = ({
   setConferenceNumber,
   setConferenceStatus,
   headerAction = null,
-  bridgeID,
 }) => {
   const [currNum, setCurrNum] = useState('');
   const [isHovered, setIsHovered] = useState(false);
@@ -91,6 +90,7 @@ const CallScreen = ({
   const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const parsedData = tokenData ? JSON.parse(tokenData) : {};
   const { username } = useContext(HistoryContext);
+  const { bridgeID, activeCallContext } = useContext(JssipContext);
   const numberMasking = parsedData?.userData?.numberMasking;
 
   // Start conference timer when participants join but not merged
@@ -141,8 +141,9 @@ const CallScreen = ({
 
   const handleTransfer = async () => {
     try {
-      const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, { bridgeID });
-      console.log(res, 'response from transfer');
+      const transferBridgeID = activeCallContext?.bridgeID || bridgeID;
+      console.log({ bridgeID: transferBridgeID }, 'transfer payload');
+      const res = await axios.post(`https://app.samvaad.io/reqTransfer/${username}`, { bridgeID: transferBridgeID });
       if (res.data?.success || res.data?.message) {
         toast.success(res.data.message || 'Request successful!');
       } else {
@@ -229,7 +230,7 @@ const CallScreen = ({
       }
 
       const response = await axios.post(
-        `${window.location.origin}/hangup/hostChannel/Conf`,
+        `https://app.samvaad.io/hangup/hostChannel/Conf`,
         {
           user: username,
           hostNumber: cleanNumber,

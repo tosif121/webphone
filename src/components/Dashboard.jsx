@@ -308,7 +308,7 @@ function Dashboard() {
     setLeadError('');
 
     try {
-      const leadDashboardResponse = await axios.get(`${window.location.origin}/lead/dashboard`, {
+      const leadDashboardResponse = await axios.get(`https://app.samvaad.io/lead/dashboard`, {
         params: {
           limit: 200,
         },
@@ -384,7 +384,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/reports/calls/byAgent`,
+        `https://app.samvaad.io/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -461,7 +461,7 @@ function Dashboard() {
 
     try {
       const response = await axios.post(
-        `${window.location.origin}/userMissedCalls/${username}`,
+        `https://app.samvaad.io/userMissedCalls/${username}`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -499,7 +499,7 @@ function Dashboard() {
     setSmartLeadError('');
     try {
       const response = await axios.post(
-        `${window.location.origin}/lead/next`,
+        `https://app.samvaad.io/lead/next`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -527,7 +527,7 @@ function Dashboard() {
 
     try {
       await axios.post(
-        `${window.location.origin}/lead/skip`,
+        `https://app.samvaad.io/lead/skip`,
         {
           leadId: activeLead.leadId,
           lockToken: leadLockToken,
@@ -825,7 +825,7 @@ function Dashboard() {
         console.log('[agentAvailable] calling API:', currentCallData?.Caller);
         try {
           const { data } = await axios.post(
-            `${window.location.origin}/user/agentAvailable/${username}`,
+            `https://app.samvaad.io/user/agentAvailable/${username}`,
             {},
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -1284,7 +1284,7 @@ function Dashboard() {
       if (sourceLead?.leadId && token) {
         try {
           const response = await axios.post(
-            `${window.location.origin}/lead/lock`,
+            `https://app.samvaad.io/lead/lock`,
             {
               leadId: sourceLead.leadId,
               lockToken: sourceLead.lockToken || leadLockToken || undefined,
