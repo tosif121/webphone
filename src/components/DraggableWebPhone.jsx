@@ -471,6 +471,7 @@ export default function DraggableWebPhone() {
               setStatus={setStatus}
               setConferenceStatus={setConferenceStatus}
               headerAction={collapseButton}
+              bridgeID={bridgeID}
             />
           ))}
 

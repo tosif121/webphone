@@ -63,6 +63,7 @@ const CallScreen = ({
   setConferenceNumber,
   setConferenceStatus,
   headerAction = null,
+  bridgeID,
 }) => {
   const [currNum, setCurrNum] = useState('');
   const [isHovered, setIsHovered] = useState(false);
@@ -90,7 +91,6 @@ const CallScreen = ({
   const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const parsedData = tokenData ? JSON.parse(tokenData) : {};
   const { username } = useContext(HistoryContext);
-  const { bridgeID } = useContext(JssipContext);
   const numberMasking = parsedData?.userData?.numberMasking;
 
   // Start conference timer when participants join but not merged
