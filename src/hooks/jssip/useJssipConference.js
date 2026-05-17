@@ -62,6 +62,7 @@ export const useJssipConference = (state, utils) => {
         },
         body: JSON.stringify({
           confNumber: conferenceNumber.replace(/\s+/g, ''),
+          bridgeID,
         }),
       });
 
