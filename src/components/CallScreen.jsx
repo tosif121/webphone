@@ -18,6 +18,7 @@ import {
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import HistoryContext from '@/context/HistoryContext';
+import JssipContext from '@/context/JssipContext';
 import maskPhoneNumber from '@/utils/maskPhoneNumber';
 import KeyPad from './KeyPad';
 import Image from 'next/image';
@@ -89,6 +90,7 @@ const CallScreen = ({
   const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const parsedData = tokenData ? JSON.parse(tokenData) : {};
   const { username } = useContext(HistoryContext);
+  const { bridgeID } = useContext(JssipContext);
   const numberMasking = parsedData?.userData?.numberMasking;
 
   // Start conference timer when participants join but not merged
@@ -139,7 +141,7 @@ const CallScreen = ({
 
   const handleTransfer = async () => {
     try {
-      const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, {});
+      const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, { bridgeID });
       console.log(res, 'response from transfer');
       if (res.data?.success || res.data?.message) {
         toast.success(res.data.message || 'Request successful!');
