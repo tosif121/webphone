@@ -139,10 +139,15 @@ const CallScreen = ({
 
   const handleTransfer = async () => {
     try {
-      await axios.post(`${window.location.origin}/reqTransfer/${username}`, {});
-      toast.success('Request successful!');
+      const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, {});
+      console.log(res, 'response from transfer');
+      if (res.data?.success || res.data?.message) {
+        toast.success(res.data.message || 'Request successful!');
+      } else {
+        toast.error(res.data?.message || 'Request failed. Please try again.');
+      }
     } catch (error) {
-      toast.error('Request failed. Please try again.');
+      toast.error(error.response?.data?.message || 'Request failed. Please try again.');
     }
   };
 
