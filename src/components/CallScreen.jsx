@@ -143,7 +143,7 @@ const CallScreen = ({
     try {
       const transferBridgeID = activeCallContext?.bridgeID || bridgeID;
       console.log({ bridgeID: transferBridgeID }, 'transfer payload');
-      const res = await axios.post(`https://app.samvaad.io/reqTransfer/${username}`, { bridgeID: transferBridgeID });
+      const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, { bridgeID: transferBridgeID });
       if (res.data?.success || res.data?.message) {
         toast.success(res.data.message || 'Request successful!');
       } else {
@@ -230,7 +230,7 @@ const CallScreen = ({
       }
 
       const response = await axios.post(
-        `https://app.samvaad.io/hangup/hostChannel/Conf`,
+        `${window.location.origin}/hangup/hostChannel/Conf`,
         {
           user: username,
           hostNumber: cleanNumber,
