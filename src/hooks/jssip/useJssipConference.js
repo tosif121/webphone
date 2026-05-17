@@ -72,7 +72,7 @@ export const useJssipConference = (state, utils) => {
 
       if (data.message === 'conferance call dialed' || data.message === 'conference call dialed') {
         if (data.result) {
-          setBridgeID(data.result);
+          // setBridgeID(data.result);
           setConferenceStatus(true);
           setStatus('conference');
           setIsHeld(true);
