@@ -62,14 +62,17 @@ export const useJssipConference = (state, utils) => {
         },
         body: JSON.stringify({
           confNumber: conferenceNumber.replace(/\s+/g, ''),
+          bridgeID,
         }),
       });
+
+      console.log({ confNumber: conferenceNumber.replace(/\s+/g, ''), bridgeID }, 'conference payload');
 
       const data = await response.json();
 
       if (data.message === 'conferance call dialed' || data.message === 'conference call dialed') {
         if (data.result) {
-          setBridgeID(data.result);
+          // setBridgeID(data.result);
           setConferenceStatus(true);
           setStatus('conference');
           setIsHeld(true);

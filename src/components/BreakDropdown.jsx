@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from './ui/button';
 
-const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selectedAction, onDispoWithBreak }) => {
+const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selectedAction, onDispoWithBreak, disabled = false }) => {
   const { username, selectedBreak, setSelectedBreak } = useContext(HistoryContext);
   const [timer, setTimer] = useState(0);
   const [breakTypes, setBreakTypes] = useState([]);
@@ -292,7 +292,7 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
       ) : (
         <DropdownMenu>
           <DropdownMenuTrigger asChild className="w-full md:w-auto sm:text-base text-sm justify-baseline">
-            <Button variant="outline" className="gap-2 font-medium">
+            <Button variant="outline" className="gap-2 font-medium" disabled={disabled}>
               <Activity className="w-4 h-4" />
               <span>Take Break</span>
               <ChevronDown className="w-4 h-4 ml-1" />
