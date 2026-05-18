@@ -2091,6 +2091,8 @@ const useJssip = (isMobile = false) => {
           receiver: targetNumber,
           leadLockToken: nextLeadLockToken || undefined,
           leadId: nextLead?.leadId || undefined,
+          dialSource: metadata?.dialSource,
+          autoLeadDial: metadata?.autoLeadDial,
         },
         {
           headers: {

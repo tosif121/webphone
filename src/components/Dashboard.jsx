@@ -190,6 +190,9 @@ function Dashboard() {
     connectedCalls: 0,
     avgDurationSeconds: 0,
   });
+  const [autoLeadDialEnabled, setAutoLeadDialEnabled] = useState(false);
+  const [autoLeadDialCountdownSeconds, setAutoLeadDialCountdownSeconds] = useState(3);
+  const [autoLeadDialRemaining, setAutoLeadDialRemaining] = useState(0);
 
   const [formSubmitted, setFormSubmitted] = useState(false);
   const dashboardErrorMessage = useMemo(() => {
@@ -203,6 +206,7 @@ function Dashboard() {
   const agentAvailableDebounceRef = useRef(null);
   const agentAvailableInFlightRef = useRef(false);
   const agentAvailableLastCalledRef = useRef(0);
+  const autoLeadDialTimerRef = useRef(null);
 
   useEffect(() => {
     const storedPreferences = getStoredAgentUiPreferences();
@@ -216,6 +220,10 @@ function Dashboard() {
       dialerDockMode: storedPreferences.dialerDockMode || DEFAULT_AGENT_UI_PREFERENCES.dialerDockMode,
       dialerLayoutMode: storedPreferences.dialerLayoutMode || DEFAULT_AGENT_UI_PREFERENCES.dialerLayoutMode,
     }));
+    setAutoLeadDialEnabled(Boolean(storedPreferences.autoLeadDialEnabled));
+    setAutoLeadDialCountdownSeconds(
+      Math.min(Math.max(Number(storedPreferences.autoLeadDialCountdownSeconds || 3), 3), 10),
+    );
 
     const handleProfileUpdated = (event) => {
       const nextPreferences = event?.detail || getStoredAgentUiPreferences();
@@ -229,6 +237,10 @@ function Dashboard() {
         dialerDockMode: nextPreferences.dialerDockMode || DEFAULT_AGENT_UI_PREFERENCES.dialerDockMode,
         dialerLayoutMode: nextPreferences.dialerLayoutMode || DEFAULT_AGENT_UI_PREFERENCES.dialerLayoutMode,
       }));
+      setAutoLeadDialEnabled(Boolean(nextPreferences.autoLeadDialEnabled));
+      setAutoLeadDialCountdownSeconds(
+        Math.min(Math.max(Number(nextPreferences.autoLeadDialCountdownSeconds || 3), 3), 10),
+      );
     };
 
     const handleDialerLayoutChange = (event) => {
@@ -1271,7 +1283,7 @@ function Dashboard() {
   ]);
 
   const handleDialAction = useCallback(
-    async (phoneNumberToDial, sourceLead = null) => {
+    async (phoneNumberToDial, sourceLead = null, options = {}) => {
       const normalizedPhoneNumber = normalizePhone(phoneNumberToDial);
       if (!normalizedPhoneNumber) {
         toast.error('Lead number is missing.');
@@ -1314,12 +1326,68 @@ function Dashboard() {
           ? {
               lead: lockedLead,
               leadLockToken: nextLockToken,
+              dialSource: options.autoLeadDial ? 'auto_lead_preview' : 'manual_lead_preview',
+              autoLeadDial: Boolean(options.autoLeadDial),
             }
           : undefined,
       );
     },
     [applyLockedLeadState, getAuthHeaders, handleCall, leadLockToken, token],
   );
+
+  useEffect(() => {
+    if (autoLeadDialTimerRef.current) {
+      clearInterval(autoLeadDialTimerRef.current);
+      autoLeadDialTimerRef.current = null;
+    }
+
+    const canAutoDial =
+      previewLeadMode &&
+      autoLeadDialEnabled &&
+      status === 'start' &&
+      !dispositionModal &&
+      selectedBreak === 'Break' &&
+      activeLead?.leadId &&
+      activeLeadNumber &&
+      leadLockToken &&
+      ['lead_locked', 'idle'].includes(agentLifecycle);
+
+    if (!canAutoDial) {
+      setAutoLeadDialRemaining(0);
+      return undefined;
+    }
+
+    let remaining = Math.min(Math.max(Number(autoLeadDialCountdownSeconds || 3), 3), 10);
+    setAutoLeadDialRemaining(remaining);
+    autoLeadDialTimerRef.current = setInterval(() => {
+      remaining -= 1;
+      setAutoLeadDialRemaining(Math.max(remaining, 0));
+      if (remaining <= 0) {
+        clearInterval(autoLeadDialTimerRef.current);
+        autoLeadDialTimerRef.current = null;
+        void handleDialAction(activeLeadNumber, activeLead, { autoLeadDial: true });
+      }
+    }, 1000);
+
+    return () => {
+      if (autoLeadDialTimerRef.current) {
+        clearInterval(autoLeadDialTimerRef.current);
+        autoLeadDialTimerRef.current = null;
+      }
+    };
+  }, [
+    activeLead,
+    activeLeadNumber,
+    agentLifecycle,
+    autoLeadDialCountdownSeconds,
+    autoLeadDialEnabled,
+    dispositionModal,
+    handleDialAction,
+    leadLockToken,
+    previewLeadMode,
+    selectedBreak,
+    status,
+  ]);
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -1516,6 +1584,11 @@ function Dashboard() {
                   clearLeadSelection('idle');
                   void fetchNextLead();
                 }}
+                autoLeadDialEnabled={autoLeadDialEnabled}
+                autoLeadDialCountdownSeconds={autoLeadDialCountdownSeconds}
+                autoLeadDialRemaining={autoLeadDialRemaining}
+                onAutoLeadDialEnabledChange={setAutoLeadDialEnabled}
+                onAutoLeadDialCountdownChange={setAutoLeadDialCountdownSeconds}
               />
             </div>
           ) : (

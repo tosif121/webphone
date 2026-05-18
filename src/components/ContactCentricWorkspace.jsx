@@ -427,6 +427,11 @@ export default function ContactCentricWorkspace({
   onDatePresetChange,
   onSkipLead,
   onRefreshLead,
+  autoLeadDialEnabled = false,
+  autoLeadDialCountdownSeconds = 3,
+  autoLeadDialRemaining = 0,
+  onAutoLeadDialEnabledChange,
+  onAutoLeadDialCountdownChange,
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -626,6 +631,36 @@ export default function ContactCentricWorkspace({
               </p>
             </div>
             <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-3">
+              <div className="flex items-center gap-2 rounded-full border border-border/70 bg-background px-2 py-1 shadow-sm">
+                <Button
+                  type="button"
+                  variant={autoLeadDialEnabled ? 'default' : 'outline'}
+                  className="h-8 rounded-full px-3 text-xs font-semibold"
+                  onClick={() => onAutoLeadDialEnabledChange?.(!autoLeadDialEnabled)}
+                >
+                  {autoLeadDialEnabled ? 'Auto Active' : 'Auto Paused'}
+                </Button>
+                <Select
+                  value={String(autoLeadDialCountdownSeconds)}
+                  onValueChange={(value) => onAutoLeadDialCountdownChange?.(Number(value))}
+                >
+                  <SelectTrigger className="h-8 w-[74px] rounded-full text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
+                      <SelectItem key={value} value={String(value)}>
+                        {value}s
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {autoLeadDialEnabled && autoLeadDialRemaining > 0 ? (
+                  <Badge variant="secondary" className="rounded-full text-xs">
+                    Dialing in {autoLeadDialRemaining}s
+                  </Badge>
+                ) : null}
+              </div>
               <Button
                 type="button"
                 className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-green-600 px-4 text-xs font-bold text-white hover:bg-green-700 shadow-md transition-all active:scale-95"
