@@ -1538,6 +1538,12 @@ const useJssip = (isMobile = false) => {
             session.isAutoRejected = true;
             session.isAcceptedCall = false;
             session.terminate({ status_code: 486, reason_phrase: 'Busy Here' });
+            logSessionEvent('failed', {
+              sessionId: callId,
+              remoteUser,
+              direction: session.direction,
+              cause: 'auto-rejected',
+            });
             return;
           }
 

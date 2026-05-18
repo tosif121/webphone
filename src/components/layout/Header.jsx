@@ -31,6 +31,7 @@ import ThemeToggle from './ThemeToggle';
 import ThemeSelector from './ThemeSelector';
 import BreakDropdown from '../BreakDropdown';
 import HistoryContext from '@/context/HistoryContext';
+import { JssipContext } from '@/context/JssipContext';
 import axios from 'axios';
 import {
   applyAgentUiPreferencesToDom,
@@ -53,6 +54,7 @@ export default function Header() {
     campaignMissedCallsLength,
     scheduleCallsLength,
   } = useContext(HistoryContext);
+  const { agentLifecycle } = useContext(JssipContext);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [token, setToken] = useState('');
   const [username, setUsername] = useState('Guest');
@@ -345,7 +347,7 @@ export default function Header() {
                 )}
               </Button>
 
-              <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
+              <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} disabled={agentLifecycle === 'on_call'} />
             </nav>
             <div className="h-6 w-px bg-border mx-1"></div>
           </>
@@ -665,9 +667,8 @@ export default function Header() {
                     </span>
                   )}
                 </button>
-                <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} />
+                <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} disabled={agentLifecycle === 'on_call'} />
               </div>
-
               {/* Navigation Links */}
               <div className="space-y-1">
                 {navLinks
