@@ -11,7 +11,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from './ui/button';
 
-const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selectedAction, onDispoWithBreak, disabled = false }) => {
+const BreakDropdown = ({
+  bridgeID,
+  selectedStatus,
+  dispoWithBreak = false,
+  selectedAction,
+  onDispoWithBreak,
+  disabled = false,
+}) => {
   const { username, selectedBreak, setSelectedBreak } = useContext(HistoryContext);
   const [timer, setTimer] = useState(0);
   const [breakTypes, setBreakTypes] = useState([]);
@@ -199,7 +206,7 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
   const removeBreak = async () => {
     try {
       await axios.post(
-        `${window.location.origin}/user/removebreakuser:${username}`,
+        `https://devapp.iotcom.io/user/removebreakuser:${username}`,
         {},
         {
           headers: {
@@ -249,7 +256,7 @@ const BreakDropdown = ({ bridgeID, selectedStatus, dispoWithBreak = false, selec
 
     try {
       await axios.post(
-        `${window.location.origin}/user/breakuser:${username}`,
+        `https://devapp.iotcom.io/user/breakuser:${username}`,
         { breakType },
         {
           headers: {

@@ -139,7 +139,7 @@ export default function Header() {
     setIsSavingPreferences(true);
     try {
       await axios.patch(
-        `${window.location.origin}/agent/profile`,
+        `https://devapp.iotcom.io/agent/profile`,
         {
           uiPreferences: normalizedPreferences,
         },
@@ -174,7 +174,7 @@ export default function Header() {
     if (typeof window !== 'undefined') {
       try {
         if (token) {
-          await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+          await axios.delete(`https://devapp.iotcom.io/deleteFirebaseToken`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -347,7 +347,11 @@ export default function Header() {
                 )}
               </Button>
 
-              <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} disabled={agentLifecycle === 'on_call'} />
+              <BreakDropdown
+                dispoWithBreak={false}
+                selectedStatus={selectedStatus}
+                disabled={agentLifecycle === 'on_call'}
+              />
             </nav>
             <div className="h-6 w-px bg-border mx-1"></div>
           </>
@@ -667,7 +671,11 @@ export default function Header() {
                     </span>
                   )}
                 </button>
-                <BreakDropdown dispoWithBreak={false} selectedStatus={selectedStatus} disabled={agentLifecycle === 'on_call'} />
+                <BreakDropdown
+                  dispoWithBreak={false}
+                  selectedStatus={selectedStatus}
+                  disabled={agentLifecycle === 'on_call'}
+                />
               </div>
               {/* Navigation Links */}
               <div className="space-y-1">
@@ -743,7 +751,7 @@ export default function Header() {
             <DialogTitle>Profile Preferences</DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-5 py-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
             <div className="grid gap-2">
               <Label>Theme Mode</Label>
               <Select
