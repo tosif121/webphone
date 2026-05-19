@@ -8,6 +8,7 @@ export const DEFAULT_AGENT_UI_PREFERENCES = {
   dialerLayoutMode: 'overlay',
   themeMode: 'light',
   colorTheme: 'default',
+  autoLeadDialCountdownSeconds: 3,
 };
 
 export function normalizeAgentUiPreferences(rawPreferences = {}) {
@@ -41,6 +42,9 @@ export function normalizeAgentUiPreferences(rawPreferences = {}) {
   const colorTheme = COLOR_THEME_VALUES.includes(String(source.colorTheme || '').trim())
     ? String(source.colorTheme).trim()
     : DEFAULT_AGENT_UI_PREFERENCES.colorTheme;
+  const autoLeadDialCountdownSeconds = Number.isFinite(Number(source.autoLeadDialCountdownSeconds))
+    ? Math.min(Math.max(Number(source.autoLeadDialCountdownSeconds), 3), 10)
+    : DEFAULT_AGENT_UI_PREFERENCES.autoLeadDialCountdownSeconds;
 
   return {
     leadViewMode,
@@ -50,6 +54,7 @@ export function normalizeAgentUiPreferences(rawPreferences = {}) {
     dialerLayoutMode,
     themeMode,
     colorTheme,
+    autoLeadDialCountdownSeconds,
   };
 }
 

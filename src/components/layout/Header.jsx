@@ -773,7 +773,7 @@ export default function Header() {
             </div>
 
             <div className="grid gap-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground/70">Choose Theme</Label>
+              <Label>Choose Theme</Label>
               <ThemeSelector />
             </div>
 
@@ -838,6 +838,30 @@ export default function Header() {
                 <SelectContent>
                   <SelectItem value="overlay">Overlay</SelectItem>
                   <SelectItem value="docked">Reserve Space</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Auto-Dial Countdown</Label>
+              <Select
+                value={String(profilePreferences.autoLeadDialCountdownSeconds ?? 3)}
+                onValueChange={(value) =>
+                  setProfilePreferences((prev) => ({
+                    ...prev,
+                    autoLeadDialCountdownSeconds: Number(value),
+                  }))
+                }
+              >
+                <SelectTrigger className="h-8 w-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
+                    <SelectItem key={value} value={String(value)}>
+                      {value}s
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

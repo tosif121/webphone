@@ -642,7 +642,7 @@ export default function ContactCentricWorkspace({
                 </Button>
                 <Select
                   value={String(autoLeadDialCountdownSeconds)}
-                  onValueChange={(value) => onAutoLeadDialCountdownChange?.(Number(value))}
+                  disabled
                 >
                   <SelectTrigger className="h-8 w-[74px] rounded-full text-xs">
                     <SelectValue />

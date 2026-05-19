@@ -607,16 +607,22 @@ function Dashboard() {
       return;
     }
 
-    if (!previewLeadMode || status !== 'start' || dispositionModal || selectedBreak !== 'Break') {
+    if (!previewLeadMode || status !== 'start' || selectedBreak !== 'Break') {
       return;
     }
 
-    if (
-      activeLead?.leadId ||
-      agentLifecycle === 'dialing' ||
-      agentLifecycle === 'on_call' ||
-      agentLifecycle === 'disposition'
-    ) {
+    if (dispositionModal) {
+      return;
+    }
+
+    // After disposition closes, clear stale lead and fetch next to keep auto-dial running
+    if (agentLifecycle === 'disposition') {
+      clearLeadSelection('idle');
+      void fetchNextLead();
+      return;
+    }
+
+    if (activeLead?.leadId || agentLifecycle === 'dialing' || agentLifecycle === 'on_call') {
       return;
     }
 
@@ -632,6 +638,7 @@ function Dashboard() {
     activeLead?.leadId,
     agentLifecycle,
     fetchNextLead,
+    clearLeadSelection,
   ]);
 
   useEffect(() => {
