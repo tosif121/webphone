@@ -1417,24 +1417,33 @@ function Dashboard() {
       return;
     }
 
-    // Timer already running — don't restart on dep changes
+    // Timer already running — only restart if countdown value changed
     if (autoLeadDialTimerRef.current) {
-      return;
+      const currentCountdown = Math.min(Math.max(Number(autoLeadDialCountdownSeconds || 3), 3), 10);
+      if (currentCountdown !== autoLeadDialTimerRef.current._countdown) {
+        console.log('[AutoDial] timer effect: countdown changed, restarting', { old: autoLeadDialTimerRef.current._countdown, new: currentCountdown, ts: Date.now() });
+        clearInterval(autoLeadDialTimerRef.current);
+        autoLeadDialTimerRef.current = null;
+      } else {
+        return;
+      }
     }
 
     let remaining = Math.min(Math.max(Number(autoLeadDialCountdownSeconds || 3), 3), 10);
     console.log('[AutoDial] timer effect: starting countdown', { remaining, ts: Date.now() });
     setAutoLeadDialRemaining(remaining);
-    autoLeadDialTimerRef.current = setInterval(() => {
+    const intervalId = setInterval(() => {
       remaining -= 1;
       setAutoLeadDialRemaining(Math.max(remaining, 0));
       if (remaining <= 0) {
         console.log('[AutoDial] timer effect: countdown finished, dialing now', { number: activeLeadNumber, leadId: activeLead?.leadId, ts: Date.now() });
-        clearInterval(autoLeadDialTimerRef.current);
+        clearInterval(intervalId);
         autoLeadDialTimerRef.current = null;
         void handleDialAction(activeLeadNumber, activeLead, { autoLeadDial: true });
       }
     }, 1000);
+    intervalId._countdown = remaining;
+    autoLeadDialTimerRef.current = intervalId;
     // No cleanup — interval lifecycle managed via autoLeadDialTimerRef
   }, [
     activeLead,
