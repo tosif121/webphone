@@ -853,8 +853,8 @@ export default function Header() {
                   }))
                 }
               >
-                <SelectTrigger className="h-8 w-full text-xs">
-                  <SelectValue />
+                <SelectTrigger>
+                  <SelectValue placeholder="3s" />
                 </SelectTrigger>
                 <SelectContent>
                   {[3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
