@@ -207,6 +207,7 @@ function Dashboard() {
   const agentAvailableInFlightRef = useRef(false);
   const agentAvailableLastCalledRef = useRef(0);
   const autoLeadDialTimerRef = useRef(null);
+  const autoDialCountdownRef = useRef(3);
   const prevCanAutoDialRef = useRef(false);
 
   useEffect(() => {
@@ -1375,6 +1376,7 @@ function Dashboard() {
         console.log('[AutoDial] unmount cleanup: clearing timer', { ts: Date.now() });
         clearInterval(autoLeadDialTimerRef.current);
         autoLeadDialTimerRef.current = null;
+        autoDialCountdownRef.current = 3;
       }
     };
   }, []);
@@ -1412,6 +1414,7 @@ function Dashboard() {
         console.log('[AutoDial] timer effect: stopping (canAutoDial=false)', { ts: Date.now() });
         clearInterval(autoLeadDialTimerRef.current);
         autoLeadDialTimerRef.current = null;
+        autoDialCountdownRef.current = 3;
       }
       setAutoLeadDialRemaining(0);
       return;
@@ -1420,10 +1423,11 @@ function Dashboard() {
     // Timer already running — only restart if countdown value changed
     if (autoLeadDialTimerRef.current) {
       const currentCountdown = Math.min(Math.max(Number(autoLeadDialCountdownSeconds || 3), 3), 10);
-      if (currentCountdown !== autoLeadDialTimerRef.current._countdown) {
-        console.log('[AutoDial] timer effect: countdown changed, restarting', { old: autoLeadDialTimerRef.current._countdown, new: currentCountdown, ts: Date.now() });
+      if (currentCountdown !== autoDialCountdownRef.current) {
+        console.log('[AutoDial] timer effect: countdown changed, restarting', { old: autoDialCountdownRef.current, new: currentCountdown, ts: Date.now() });
         clearInterval(autoLeadDialTimerRef.current);
         autoLeadDialTimerRef.current = null;
+        autoDialCountdownRef.current = currentCountdown;
       } else {
         return;
       }
@@ -1439,10 +1443,11 @@ function Dashboard() {
         console.log('[AutoDial] timer effect: countdown finished, dialing now', { number: activeLeadNumber, leadId: activeLead?.leadId, ts: Date.now() });
         clearInterval(intervalId);
         autoLeadDialTimerRef.current = null;
+        autoDialCountdownRef.current = 3;
         void handleDialAction(activeLeadNumber, activeLead, { autoLeadDial: true });
       }
     }, 1000);
-    intervalId._countdown = remaining;
+    autoDialCountdownRef.current = remaining;
     autoLeadDialTimerRef.current = intervalId;
     // No cleanup — interval lifecycle managed via autoLeadDialTimerRef
   }, [
