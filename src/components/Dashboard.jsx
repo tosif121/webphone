@@ -297,12 +297,16 @@ function Dashboard() {
   const applyLockedLeadState = useCallback(
     (nextLead, nextLifecycle = 'lead_locked') => {
       if (!nextLead) {
-        console.log(`[AutoDial] applyLockedLeadState: no lead, clearing -> lifecycle=${nextLifecycle}`, { ts: Date.now() });
+        console.log(`[AutoDial] applyLockedLeadState: no lead, clearing -> lifecycle=${nextLifecycle}`, {
+          ts: Date.now(),
+        });
         clearLeadSelection(nextLifecycle === 'lead_locked' ? 'idle' : nextLifecycle);
         return;
       }
 
-      console.log(`[AutoDial] applyLockedLeadState: locking leadId=${nextLead.leadId}, lifecycle=${nextLifecycle}`, { ts: Date.now() });
+      console.log(`[AutoDial] applyLockedLeadState: locking leadId=${nextLead.leadId}, lifecycle=${nextLifecycle}`, {
+        ts: Date.now(),
+      });
       setActiveLead((prevLead) => {
         if (prevLead?.leadId === nextLead?.leadId && prevLead?.lockToken === nextLead?.lockToken) {
           return prevLead;
@@ -335,7 +339,7 @@ function Dashboard() {
     setLeadError('');
 
     try {
-      const leadDashboardResponse = await axios.get(`https://devapp.iotcom.io/lead/dashboard`, {
+      const leadDashboardResponse = await axios.get(`${window.location.origin}/lead/dashboard`, {
         params: {
           limit: 200,
         },
@@ -411,7 +415,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://devapp.iotcom.io/reports/calls/byAgent`,
+        `${window.location.origin}/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -488,7 +492,7 @@ function Dashboard() {
 
     try {
       const response = await axios.post(
-        `https://devapp.iotcom.io/userMissedCalls/${username}`,
+        `${window.location.origin}/userMissedCalls/${username}`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -529,7 +533,7 @@ function Dashboard() {
     setSmartLeadError('');
     try {
       const response = await axios.post(
-        `https://devapp.iotcom.io/lead/next`,
+        `${window.location.origin}/lead/next`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -559,7 +563,7 @@ function Dashboard() {
 
     try {
       await axios.post(
-        `https://devapp.iotcom.io/lead/skip`,
+        `${window.location.origin}/lead/skip`,
         {
           leadId: activeLead.leadId,
           lockToken: leadLockToken,
@@ -646,7 +650,11 @@ function Dashboard() {
     }
 
     if (activeLead?.leadId || agentLifecycle === 'dialing' || agentLifecycle === 'on_call') {
-      console.log('[AutoDial] fetch effect: blocked by active state', { leadId: activeLead?.leadId, lifecycle: agentLifecycle, ts: Date.now() });
+      console.log('[AutoDial] fetch effect: blocked by active state', {
+        leadId: activeLead?.leadId,
+        lifecycle: agentLifecycle,
+        ts: Date.now(),
+      });
       return;
     }
 
@@ -870,7 +878,7 @@ function Dashboard() {
         console.log('[agentAvailable] calling API:', currentCallData?.Caller);
         try {
           const { data } = await axios.post(
-            `https://devapp.iotcom.io/user/agentAvailable/${username}`,
+            `${window.location.origin}/user/agentAvailable/${username}`,
             {},
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -1317,7 +1325,12 @@ function Dashboard() {
 
   const handleDialAction = useCallback(
     async (phoneNumberToDial, sourceLead = null, options = {}) => {
-      console.log('[AutoDial] handleDialAction', { number: phoneNumberToDial, leadId: sourceLead?.leadId, options, ts: Date.now() });
+      console.log('[AutoDial] handleDialAction', {
+        number: phoneNumberToDial,
+        leadId: sourceLead?.leadId,
+        options,
+        ts: Date.now(),
+      });
       const normalizedPhoneNumber = normalizePhone(phoneNumberToDial);
       if (!normalizedPhoneNumber) {
         toast.error('Lead number is missing.');
@@ -1330,7 +1343,7 @@ function Dashboard() {
       if (sourceLead?.leadId && token) {
         try {
           const response = await axios.post(
-            `https://devapp.iotcom.io/lead/lock`,
+            `${window.location.origin}/lead/lock`,
             {
               leadId: sourceLead.leadId,
               lockToken: sourceLead.lockToken || leadLockToken || undefined,
@@ -1424,7 +1437,11 @@ function Dashboard() {
     if (autoLeadDialTimerRef.current) {
       const currentCountdown = Math.min(Math.max(Number(autoLeadDialCountdownSeconds || 3), 3), 10);
       if (currentCountdown !== autoDialCountdownRef.current) {
-        console.log('[AutoDial] timer effect: countdown changed, restarting', { old: autoDialCountdownRef.current, new: currentCountdown, ts: Date.now() });
+        console.log('[AutoDial] timer effect: countdown changed, restarting', {
+          old: autoDialCountdownRef.current,
+          new: currentCountdown,
+          ts: Date.now(),
+        });
         clearInterval(autoLeadDialTimerRef.current);
         autoLeadDialTimerRef.current = null;
         autoDialCountdownRef.current = currentCountdown;
@@ -1440,7 +1457,11 @@ function Dashboard() {
       remaining -= 1;
       setAutoLeadDialRemaining(Math.max(remaining, 0));
       if (remaining <= 0) {
-        console.log('[AutoDial] timer effect: countdown finished, dialing now', { number: activeLeadNumber, leadId: activeLead?.leadId, ts: Date.now() });
+        console.log('[AutoDial] timer effect: countdown finished, dialing now', {
+          number: activeLeadNumber,
+          leadId: activeLead?.leadId,
+          ts: Date.now(),
+        });
         clearInterval(intervalId);
         autoLeadDialTimerRef.current = null;
         autoDialCountdownRef.current = 3;

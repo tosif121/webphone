@@ -519,7 +519,7 @@ export default function ContactCentricWorkspace({
       setWorkspaceLoading(true);
       setWorkspaceError('');
       try {
-        const response = await axios.get(`https://devapp.iotcom.io/contact/${normalizedNumber}/full`, {
+        const response = await axios.get(`${window.location.origin}/contact/${normalizedNumber}/full`, {
           params: { limit: 50 },
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -640,10 +640,7 @@ export default function ContactCentricWorkspace({
                 >
                   {autoLeadDialEnabled ? 'Auto Active' : 'Auto Paused'}
                 </Button>
-                <Select
-                  value={String(autoLeadDialCountdownSeconds)}
-                  disabled
-                >
+                <Select value={String(autoLeadDialCountdownSeconds)} disabled>
                   <SelectTrigger className="h-8 w-[74px] rounded-full text-xs">
                     <SelectValue />
                   </SelectTrigger>
