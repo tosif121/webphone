@@ -207,6 +207,7 @@ function Dashboard() {
   const agentAvailableInFlightRef = useRef(false);
   const agentAvailableLastCalledRef = useRef(0);
   const autoLeadDialTimerRef = useRef(null);
+  const autoDialTimerStartedRef = useRef(false);
 
   useEffect(() => {
     const storedPreferences = getStoredAgentUiPreferences();
@@ -1368,11 +1369,6 @@ function Dashboard() {
   );
 
   useEffect(() => {
-    if (autoLeadDialTimerRef.current) {
-      clearInterval(autoLeadDialTimerRef.current);
-      autoLeadDialTimerRef.current = null;
-    }
-
     const canAutoDial =
       previewLeadMode &&
       autoLeadDialEnabled &&
@@ -1396,17 +1392,30 @@ function Dashboard() {
       hasLockToken: !!leadLockToken,
       lifecycle: agentLifecycle,
       countdown: autoLeadDialCountdownSeconds,
+      timerRunning: !!autoLeadDialTimerRef.current,
       ts: Date.now(),
     });
 
     if (!canAutoDial) {
+      if (autoLeadDialTimerRef.current) {
+        console.log('[AutoDial] timer effect: stopping (canAutoDial=false)', { ts: Date.now() });
+        clearInterval(autoLeadDialTimerRef.current);
+        autoLeadDialTimerRef.current = null;
+        autoDialTimerStartedRef.current = false;
+      }
       setAutoLeadDialRemaining(0);
+      return undefined;
+    }
+
+    // Timer already running, don't restart
+    if (autoDialTimerStartedRef.current) {
       return undefined;
     }
 
     let remaining = Math.min(Math.max(Number(autoLeadDialCountdownSeconds || 3), 3), 10);
     console.log('[AutoDial] timer effect: starting countdown', { remaining, ts: Date.now() });
     setAutoLeadDialRemaining(remaining);
+    autoDialTimerStartedRef.current = true;
     autoLeadDialTimerRef.current = setInterval(() => {
       remaining -= 1;
       setAutoLeadDialRemaining(Math.max(remaining, 0));
@@ -1414,6 +1423,7 @@ function Dashboard() {
         console.log('[AutoDial] timer effect: countdown finished, dialing now', { number: activeLeadNumber, leadId: activeLead?.leadId, ts: Date.now() });
         clearInterval(autoLeadDialTimerRef.current);
         autoLeadDialTimerRef.current = null;
+        autoDialTimerStartedRef.current = false;
         void handleDialAction(activeLeadNumber, activeLead, { autoLeadDial: true });
       }
     }, 1000);
@@ -1423,6 +1433,7 @@ function Dashboard() {
         console.log('[AutoDial] timer effect: cleanup, cancelling', { remaining, ts: Date.now() });
         clearInterval(autoLeadDialTimerRef.current);
         autoLeadDialTimerRef.current = null;
+        autoDialTimerStartedRef.current = false;
       }
     };
   }, [
