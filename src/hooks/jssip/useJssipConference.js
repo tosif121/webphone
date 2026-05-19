@@ -104,6 +104,24 @@ export const useJssipConference = (state, utils) => {
           error: data.message,
           reason: 'api_error',
         });
+      } else if (data.message?.includes('error applying hold before transfer')) {
+        setStatus('idle');
+        toast.error('Hold failed — session terminated');
+
+        setConferenceStatus(false);
+        setCallConference(false);
+        setConferenceNumber('');
+        setHasParticipants(null);
+        setIsCustomerAnswered(true);
+
+        if (session?.terminate) {
+          session.terminate();
+        }
+
+        logMergeEvent('conference_failed', {
+          error: data.message,
+          reason: 'hold_failed_session_terminated',
+        });
       } else {
         setStatus('calling');
         toast.error(`Unexpected response: ${data.message || 'Unknown response'}`);
