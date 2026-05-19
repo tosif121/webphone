@@ -207,7 +207,7 @@ function Dashboard() {
   const agentAvailableInFlightRef = useRef(false);
   const agentAvailableLastCalledRef = useRef(0);
   const autoLeadDialTimerRef = useRef(null);
-  const autoDialTimerStartedRef = useRef(false);
+  const prevCanAutoDialRef = useRef(false);
 
   useEffect(() => {
     const storedPreferences = getStoredAgentUiPreferences();
@@ -1368,6 +1368,17 @@ function Dashboard() {
     [applyLockedLeadState, getAuthHeaders, handleCall, leadLockToken, token],
   );
 
+  // Cleanup timer on unmount only (separate from main effect to avoid restarting on dep changes)
+  useEffect(() => {
+    return () => {
+      if (autoLeadDialTimerRef.current) {
+        console.log('[AutoDial] unmount cleanup: clearing timer', { ts: Date.now() });
+        clearInterval(autoLeadDialTimerRef.current);
+        autoLeadDialTimerRef.current = null;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     const canAutoDial =
       previewLeadMode &&
@@ -1401,21 +1412,19 @@ function Dashboard() {
         console.log('[AutoDial] timer effect: stopping (canAutoDial=false)', { ts: Date.now() });
         clearInterval(autoLeadDialTimerRef.current);
         autoLeadDialTimerRef.current = null;
-        autoDialTimerStartedRef.current = false;
       }
       setAutoLeadDialRemaining(0);
-      return undefined;
+      return;
     }
 
-    // Timer already running, don't restart
-    if (autoDialTimerStartedRef.current) {
-      return undefined;
+    // Timer already running — don't restart on dep changes
+    if (autoLeadDialTimerRef.current) {
+      return;
     }
 
     let remaining = Math.min(Math.max(Number(autoLeadDialCountdownSeconds || 3), 3), 10);
     console.log('[AutoDial] timer effect: starting countdown', { remaining, ts: Date.now() });
     setAutoLeadDialRemaining(remaining);
-    autoDialTimerStartedRef.current = true;
     autoLeadDialTimerRef.current = setInterval(() => {
       remaining -= 1;
       setAutoLeadDialRemaining(Math.max(remaining, 0));
@@ -1423,19 +1432,10 @@ function Dashboard() {
         console.log('[AutoDial] timer effect: countdown finished, dialing now', { number: activeLeadNumber, leadId: activeLead?.leadId, ts: Date.now() });
         clearInterval(autoLeadDialTimerRef.current);
         autoLeadDialTimerRef.current = null;
-        autoDialTimerStartedRef.current = false;
         void handleDialAction(activeLeadNumber, activeLead, { autoLeadDial: true });
       }
     }, 1000);
-
-    return () => {
-      if (autoLeadDialTimerRef.current) {
-        console.log('[AutoDial] timer effect: cleanup, cancelling', { remaining, ts: Date.now() });
-        clearInterval(autoLeadDialTimerRef.current);
-        autoLeadDialTimerRef.current = null;
-        autoDialTimerStartedRef.current = false;
-      }
-    };
+    // No cleanup — interval lifecycle managed via autoLeadDialTimerRef
   }, [
     activeLead,
     activeLeadNumber,
