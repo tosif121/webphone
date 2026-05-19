@@ -207,7 +207,6 @@ function Dashboard() {
   const agentAvailableInFlightRef = useRef(false);
   const agentAvailableLastCalledRef = useRef(0);
   const autoLeadDialTimerRef = useRef(null);
-  const prevDispositionModalRef = useRef(dispositionModal);
 
   useEffect(() => {
     const storedPreferences = getStoredAgentUiPreferences();
@@ -608,20 +607,18 @@ function Dashboard() {
       return;
     }
 
-    // Detect disposition modal close — clear stale lead and fetch next
-    if (prevDispositionModalRef.current && !dispositionModal) {
-      prevDispositionModalRef.current = dispositionModal;
-      clearLeadSelection('idle');
-      void fetchNextLead();
-      return;
-    }
-    prevDispositionModalRef.current = dispositionModal;
-
     if (!previewLeadMode || status !== 'start' || selectedBreak !== 'Break') {
       return;
     }
 
     if (dispositionModal) {
+      return;
+    }
+
+    // After disposition closes, clear stale lead and fetch next so auto-dial continues
+    if (agentLifecycle === 'disposition') {
+      clearLeadSelection('idle');
+      void fetchNextLead();
       return;
     }
 
@@ -642,6 +639,7 @@ function Dashboard() {
     agentLifecycle,
     fetchNextLead,
     clearLeadSelection,
+    autoLeadDialEnabled,
   ]);
 
   useEffect(() => {
