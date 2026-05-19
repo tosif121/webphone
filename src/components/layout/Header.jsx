@@ -761,7 +761,7 @@ export default function Header() {
                   setTheme(value);
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Theme Mode" />
                 </SelectTrigger>
                 <SelectContent>
@@ -789,7 +789,7 @@ export default function Header() {
                   }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Default Workspace" />
                 </SelectTrigger>
                 <SelectContent>
@@ -810,7 +810,7 @@ export default function Header() {
                   }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Dialer Placement" />
                 </SelectTrigger>
                 <SelectContent>
@@ -832,7 +832,7 @@ export default function Header() {
                   }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Dialer Layout" />
                 </SelectTrigger>
                 <SelectContent>
@@ -853,7 +853,7 @@ export default function Header() {
                   }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="3s" />
                 </SelectTrigger>
                 <SelectContent>
