@@ -226,11 +226,7 @@ function Dashboard() {
     setAutoLeadDialCountdownSeconds(
       Math.min(Math.max(Number(storedPreferences.autoLeadDialCountdownSeconds || 3), 3), 10),
     );
-    console.log('[AutoDial] initialized from stored prefs', {
-      enabled: Boolean(storedPreferences.autoLeadDialEnabled),
-      countdown: storedPreferences.autoLeadDialCountdownSeconds,
-      ts: Date.now(),
-    });
+
 
     const handleProfileUpdated = (event) => {
       const nextPreferences = event?.detail || getStoredAgentUiPreferences();
@@ -248,11 +244,6 @@ function Dashboard() {
       setAutoLeadDialCountdownSeconds(
         Math.min(Math.max(Number(nextPreferences.autoLeadDialCountdownSeconds || 3), 3), 10),
       );
-      console.log('[AutoDial] profile updated', {
-        enabled: Boolean(nextPreferences.autoLeadDialEnabled),
-        countdown: nextPreferences.autoLeadDialCountdownSeconds,
-        ts: Date.now(),
-      });
     };
 
     const handleDialerLayoutChange = (event) => {
@@ -286,7 +277,6 @@ function Dashboard() {
 
   const clearLeadSelection = useCallback(
     (nextLifecycle = 'idle') => {
-      console.log(`[AutoDial] clearLeadSelection -> nextLifecycle=${nextLifecycle}`, { ts: Date.now() });
       setActiveLead((prevLead) => (prevLead ? null : prevLead));
       setLeadLockToken((prevLockToken) => (prevLockToken ? '' : prevLockToken));
       setAgentLifecycle((prevLifecycle) => (prevLifecycle === nextLifecycle ? prevLifecycle : nextLifecycle));
@@ -297,16 +287,9 @@ function Dashboard() {
   const applyLockedLeadState = useCallback(
     (nextLead, nextLifecycle = 'lead_locked') => {
       if (!nextLead) {
-        console.log(`[AutoDial] applyLockedLeadState: no lead, clearing -> lifecycle=${nextLifecycle}`, {
-          ts: Date.now(),
-        });
         clearLeadSelection(nextLifecycle === 'lead_locked' ? 'idle' : nextLifecycle);
         return;
       }
-
-      console.log(`[AutoDial] applyLockedLeadState: locking leadId=${nextLead.leadId}, lifecycle=${nextLifecycle}`, {
-        ts: Date.now(),
-      });
       setActiveLead((prevLead) => {
         if (prevLead?.leadId === nextLead?.leadId && prevLead?.lockToken === nextLead?.lockToken) {
           return prevLead;
@@ -518,16 +501,12 @@ function Dashboard() {
 
   const fetchNextLead = useCallback(async () => {
     if (!token || !username || !userCampaign) {
-      console.log('[AutoDial] fetchNextLead: missing auth', { ts: Date.now() });
       return null;
     }
 
     if (nextLeadFetchInFlightRef.current) {
-      console.log('[AutoDial] fetchNextLead: already in flight, returning', { ts: Date.now() });
       return activeLead || null;
     }
-
-    console.log('[AutoDial] fetchNextLead: starting', { ts: Date.now() });
     nextLeadFetchInFlightRef.current = true;
     setSmartLeadLoading(true);
     setSmartLeadError('');
@@ -541,12 +520,10 @@ function Dashboard() {
       );
 
       const nextLead = response.data?.result || null;
-      console.log('[AutoDial] fetchNextLead: received', { lead: nextLead?.leadId || null, ts: Date.now() });
       applyLockedLeadState(nextLead, nextLead ? 'lead_locked' : 'idle');
       return nextLead;
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'No lead available right now.';
-      console.log('[AutoDial] fetchNextLead: failed', { message, ts: Date.now() });
       setSmartLeadError(message);
       clearLeadSelection('idle');
       return null;
@@ -632,33 +609,23 @@ function Dashboard() {
     }
 
     if (!previewLeadMode || status !== 'start' || selectedBreak !== 'Break') {
-      console.log('[AutoDial] fetch effect blocked', { previewLeadMode, status, selectedBreak, ts: Date.now() });
       return;
     }
 
     if (dispositionModal) {
-      console.log('[AutoDial] fetch effect: dispositionModal open, waiting', { ts: Date.now() });
       return;
     }
 
     // After disposition closes, clear stale lead and fetch next so auto-dial continues
     if (agentLifecycle === 'disposition') {
-      console.log('[AutoDial] fetch effect: lifecycle is disposition, clearing + fetching next', { ts: Date.now() });
       clearLeadSelection('idle');
       void fetchNextLead();
       return;
     }
 
     if (activeLead?.leadId || agentLifecycle === 'dialing' || agentLifecycle === 'on_call') {
-      console.log('[AutoDial] fetch effect: blocked by active state', {
-        leadId: activeLead?.leadId,
-        lifecycle: agentLifecycle,
-        ts: Date.now(),
-      });
       return;
     }
-
-    console.log('[AutoDial] fetch effect: fetching next lead', { lifecycle: agentLifecycle, ts: Date.now() });
     void fetchNextLead();
   }, [
     token,
@@ -1325,12 +1292,6 @@ function Dashboard() {
 
   const handleDialAction = useCallback(
     async (phoneNumberToDial, sourceLead = null, options = {}) => {
-      console.log('[AutoDial] handleDialAction', {
-        number: phoneNumberToDial,
-        leadId: sourceLead?.leadId,
-        options,
-        ts: Date.now(),
-      });
       const normalizedPhoneNumber = normalizePhone(phoneNumberToDial);
       if (!normalizedPhoneNumber) {
         toast.error('Lead number is missing.');
@@ -1386,7 +1347,6 @@ function Dashboard() {
   useEffect(() => {
     return () => {
       if (autoLeadDialTimerRef.current) {
-        console.log('[AutoDial] unmount cleanup: clearing timer', { ts: Date.now() });
         clearInterval(autoLeadDialTimerRef.current);
         autoLeadDialTimerRef.current = null;
         autoDialCountdownRef.current = 3;
@@ -1406,25 +1366,8 @@ function Dashboard() {
       leadLockToken &&
       ['lead_locked', 'idle'].includes(agentLifecycle);
 
-    console.log('[AutoDial] timer effect', {
-      canAutoDial,
-      previewLeadMode,
-      autoLeadDialEnabled,
-      status,
-      dispositionModal,
-      selectedBreak,
-      leadId: activeLead?.leadId,
-      hasNumber: !!activeLeadNumber,
-      hasLockToken: !!leadLockToken,
-      lifecycle: agentLifecycle,
-      countdown: autoLeadDialCountdownSeconds,
-      timerRunning: !!autoLeadDialTimerRef.current,
-      ts: Date.now(),
-    });
-
     if (!canAutoDial) {
       if (autoLeadDialTimerRef.current) {
-        console.log('[AutoDial] timer effect: stopping (canAutoDial=false)', { ts: Date.now() });
         clearInterval(autoLeadDialTimerRef.current);
         autoLeadDialTimerRef.current = null;
         autoDialCountdownRef.current = 3;
@@ -1437,11 +1380,6 @@ function Dashboard() {
     if (autoLeadDialTimerRef.current) {
       const currentCountdown = Math.min(Math.max(Number(autoLeadDialCountdownSeconds || 3), 3), 10);
       if (currentCountdown !== autoDialCountdownRef.current) {
-        console.log('[AutoDial] timer effect: countdown changed, restarting', {
-          old: autoDialCountdownRef.current,
-          new: currentCountdown,
-          ts: Date.now(),
-        });
         clearInterval(autoLeadDialTimerRef.current);
         autoLeadDialTimerRef.current = null;
         autoDialCountdownRef.current = currentCountdown;
@@ -1451,17 +1389,11 @@ function Dashboard() {
     }
 
     let remaining = Math.min(Math.max(Number(autoLeadDialCountdownSeconds || 3), 3), 10);
-    console.log('[AutoDial] timer effect: starting countdown', { remaining, ts: Date.now() });
     setAutoLeadDialRemaining(remaining);
     const intervalId = setInterval(() => {
       remaining -= 1;
       setAutoLeadDialRemaining(Math.max(remaining, 0));
       if (remaining <= 0) {
-        console.log('[AutoDial] timer effect: countdown finished, dialing now', {
-          number: activeLeadNumber,
-          leadId: activeLead?.leadId,
-          ts: Date.now(),
-        });
         clearInterval(intervalId);
         autoLeadDialTimerRef.current = null;
         autoDialCountdownRef.current = 3;
