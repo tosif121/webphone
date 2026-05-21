@@ -217,6 +217,7 @@ const useJssip = (isMobile = false) => {
   const readySyncInFlightRef = useRef(null);
   const readySyncLastSuccessRef = useRef(0);
   const connectioncheckInFlightRef = useRef(false);
+  const callendedInFlightRef = useRef(false);
   const connectioncheckRef = useRef(null);
   const connectionFailureCountRef = useRef(0);
   const lastAriMessageAtRef = useRef(0);
@@ -1193,23 +1194,6 @@ const useJssip = (isMobile = false) => {
       ]);
     },
 
-    ended: function (e) {
-      const remoteUser = e?.session?.remote_identity?.uri?.user || session?.remote_identity?.uri?.user || 'unknown';
-      const callId = e?.session?.call_id || session?.call_id || 'unknown';
-      logSessionEvent('ended', {
-        sessionId: callId,
-        remoteUser,
-        direction: session?.direction || 'unknown',
-        cause: e?.cause || 'unknown',
-      });
-      if (isRecording) {
-        stopRecording();
-      }
-      setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
-      pause();
-      setStatus('start');
-      // setPhoneNumber('');
-    },
   };
 
   var options = {
@@ -1560,19 +1544,17 @@ const useJssip = (isMobile = false) => {
           // Start stopwatch now so CallScreen shows timer, not "Calling...", while async autodial check runs
           reset(undefined, true);
 
-          // Notify backend immediately that agent is on a call
+          // Load active call context (deduplicated) instead of sending a separate notify
+          // This uses `ensureActiveCallContextLoaded` which guards against duplicate in-flight requests
           const notifyTs = new Date().toISOString();
           console.log(
-            `[API] useroncall (notify) → START | ts=${notifyTs} | url=/useroncall/${username} | remoteUser=${remoteUser}`,
+            `[API] useroncall (load) → START | ts=${notifyTs} | url=/useroncall/${username} | remoteUser=${remoteUser}`,
           );
-          void axios
-            .post(
-              `${window.location.origin}/useroncall/${username}`,
-              {},
-              { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
-            )
-            .then(() => console.log(`[API] useroncall (notify) → DONE | ts=${notifyTs} | success`))
-            .catch((err) => console.error(`[API] useroncall (notify) → FAILED | ts=${notifyTs} | error=`, err.message));
+          void ensureActiveCallContextLoaded({ incomingNumber: remoteUser, addIncomingHistory: false })
+            .then(() => console.log(`[API] useroncall (load) → DONE | ts=${notifyTs} | success`))
+            .catch((err) =>
+              console.error(`[API] useroncall (load) → FAILED | ts=${notifyTs} | error=`, err?.message || err),
+            );
 
           console.log(`[CallGuard] Registered cleanup for accepted session (${remoteUser})`);
 
@@ -1591,9 +1573,8 @@ const useJssip = (isMobile = false) => {
             });
             activeCallRef.current = null;
           });
-          session.on('ended', () => {
+          session.once('ended', () => {
             console.log(`[CallGuard] Session ended — releasing lock (${remoteUser})`);
-            logSessionEvent('ended', { sessionId: callId, remoteUser, direction: session.direction, cause: 'cleanup' });
             activeCallRef.current = null;
           });
 
@@ -1697,7 +1678,7 @@ const useJssip = (isMobile = false) => {
                       },
                     ]);
 
-                    e.session.on('ended', () => {
+                    e.session.once('ended', () => {
                       logSessionEvent('ended', {
                         sessionId: callId,
                         remoteUser,
@@ -1826,7 +1807,7 @@ const useJssip = (isMobile = false) => {
               ]);
             });
 
-            e.session.on('ended', () => {
+            e.session.once('ended', () => {
               logSessionEvent('ended', { sessionId: callId, remoteUser, direction: 'outgoing', cause: 'ended' });
               if (isRecordingRef.current) {
                 stopRecording();
@@ -1917,6 +1898,9 @@ const useJssip = (isMobile = false) => {
 
       // Your existing event listeners...
       session.once('ended', () => {
+        if (isRecording) {
+          stopRecording();
+        }
         logSessionEvent('ended', { sessionId, remoteUser: incomingNumber, direction: 'incoming', cause: 'ended' });
         setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
         finalizeEndedCallState();
@@ -2216,76 +2200,79 @@ const useJssip = (isMobile = false) => {
   };
 
   useEffect(() => {
+    if (!isCallended) return;
+    if (callendedInFlightRef.current) return;
+    callendedInFlightRef.current = true;
+
     const callApi = async () => {
-      if (isCallended) {
-        setIsAutomationLoading(true);
-        let keepPostCallContext = false;
-        try {
-          // 1. Call callended API
-          const callendedTs = new Date().toISOString();
-          const callendedPayload = leadLockToken ? { leadLockToken } : {};
-          console.log(
-            `[API] callended → START | ts=${callendedTs} | url=/user/callended${username} | payload=`,
-            callendedPayload,
-          );
-          const callendedUrl = `${window.location.origin}/user/callended${username}`;
+      setIsAutomationLoading(true);
+      let keepPostCallContext = false;
+      try {
+        // 1. Call callended API
+        const callendedTs = new Date().toISOString();
+        const callendedPayload = leadLockToken ? { leadLockToken } : {};
+        console.log(
+          `[API] callended → START | ts=${callendedTs} | url=/user/callended${username} | payload=`,
+          callendedPayload,
+        );
+        const callendedUrl = `${window.location.origin}/user/callended${username}`;
 
-          const callendedResponse = await axios.post(callendedUrl, callendedPayload, {
-            headers: {
-              ...getAuthHeaders({ 'Content-Type': 'application/json' }),
-            },
-          });
-          console.log(
-            `[API] callended → DONE | ts=${callendedTs} | status=${callendedResponse.status} | lifecycle=${agentLifecycleRef.current} | bridgeID=${bridgeIDRef.current || bridgeID || 'none'}`,
-          );
+        const callendedResponse = await axios.post(callendedUrl, callendedPayload, {
+          headers: {
+            ...getAuthHeaders({ 'Content-Type': 'application/json' }),
+          },
+        });
+        console.log(
+          `[API] callended → DONE | ts=${callendedTs} | status=${callendedResponse.status} | lifecycle=${agentLifecycleRef.current} | bridgeID=${bridgeIDRef.current || bridgeID || 'none'}`,
+        );
 
-          const tokenPayload = getStoredTokenPayload();
-          const isDispositionEnabled = tokenPayload?.userData?.disposition !== false;
+        const tokenPayload = getStoredTokenPayload();
+        const isDispositionEnabled = tokenPayload?.userData?.disposition !== false;
 
-          if (isMobile || !isDispositionEnabled) {
-            // 2. On Mobile or when disposition is disabled, perform SILENT auto-disposition
-            try {
-              const dispoUrl = `${window.location.origin}/user/disposition${username}`;
-              const finalBridgeID = bridgeIDRef.current || bridgeID;
-              const dispoPayload = {
-                bridgeID: finalBridgeID,
-                Disposition: 'Auto Disposed',
-                autoDialDisabled: false,
-              };
+        if (isMobile || !isDispositionEnabled) {
+          // 2. On Mobile or when disposition is disabled, perform SILENT auto-disposition
+          try {
+            const dispoUrl = `${window.location.origin}/user/disposition${username}`;
+            const finalBridgeID = bridgeIDRef.current || bridgeID;
+            const dispoPayload = {
+              bridgeID: finalBridgeID,
+              Disposition: 'Auto Disposed',
+              autoDialDisabled: false,
+            };
 
-              await axios.post(dispoUrl, dispoPayload, {
-                headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-              });
-            } catch (dispoError) {
-              console.error('[WebPhone] Silent disposition failed:', dispoError.response?.data || dispoError.message);
-            }
-
-            // 3. Reset to IDLE / Home Screen instantly
-            setIsHeld(false);
-            setIsCallended(false);
-            setAgentLifecycle('idle');
-            setDispositionModal(false);
-            setCallType('');
-            setPhoneNumber('');
-          } else {
-            // 4. On Desktop with disposition enabled, show the Disposition Modal as usual
-            setIsHeld(false);
-            setIsCallended(false);
-            setAgentLifecycle('disposition');
-            keepPostCallContext = true;
-            setDispositionModal(true);
+            await axios.post(dispoUrl, dispoPayload, {
+              headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+            });
+          } catch (dispoError) {
+            console.error('[WebPhone] Silent disposition failed:', dispoError.response?.data || dispoError.message);
           }
-        } catch (error) {
-          console.error('[WebPhone] Error in post-call automation:', error);
-          // Safety reset even on error
+
+          // 3. Reset to IDLE / Home Screen instantly
+          setIsHeld(false);
           setIsCallended(false);
           setAgentLifecycle('idle');
-        } finally {
-          setIsAutomationLoading(false);
-          // ✅ Clear context ONLY after automation is done or failed
-          if (!keepPostCallContext) {
-            finalizePostCallContext();
-          }
+          setDispositionModal(false);
+          setCallType('');
+          setPhoneNumber('');
+        } else {
+          // 4. On Desktop with disposition enabled, show the Disposition Modal as usual
+          setIsHeld(false);
+          setIsCallended(false);
+          setAgentLifecycle('disposition');
+          keepPostCallContext = true;
+          setDispositionModal(true);
+        }
+      } catch (error) {
+        console.error('[WebPhone] Error in post-call automation:', error);
+        // Safety reset even on error
+        setIsCallended(false);
+        setAgentLifecycle('idle');
+      } finally {
+        setIsAutomationLoading(false);
+        callendedInFlightRef.current = false;
+        // ✅ Clear context ONLY after automation is done or failed
+        if (!keepPostCallContext) {
+          finalizePostCallContext();
         }
       }
     };
