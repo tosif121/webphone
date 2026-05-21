@@ -54,7 +54,7 @@ export default function Header() {
     campaignMissedCallsLength,
     scheduleCallsLength,
   } = useContext(HistoryContext);
-  const { agentLifecycle } = useContext(JssipContext);
+  const { agentLifecycle, status } = useContext(JssipContext);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [token, setToken] = useState('');
   const [username, setUsername] = useState('Guest');
@@ -350,7 +350,7 @@ export default function Header() {
               <BreakDropdown
                 dispoWithBreak={false}
                 selectedStatus={selectedStatus}
-                disabled={agentLifecycle === 'on_call'}
+                disabled={agentLifecycle === 'on_call' || status === 'on_call'}
               />
             </nav>
             <div className="h-6 w-px bg-border mx-1"></div>
@@ -674,7 +674,7 @@ export default function Header() {
                 <BreakDropdown
                   dispoWithBreak={false}
                   selectedStatus={selectedStatus}
-                  disabled={agentLifecycle === 'on_call'}
+                  disabled={agentLifecycle === 'on_call' || status === 'on_call'}
                 />
               </div>
               {/* Navigation Links */}
