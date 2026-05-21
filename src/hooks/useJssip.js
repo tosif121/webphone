@@ -1540,7 +1540,9 @@ const useJssip = (isMobile = false) => {
 
           // Immediately mark agent as busy to prevent PBX from sending more calls
           setConnectionStatus('INUSE');
+          connectionStatusRef.current = 'INUSE';
           setAgentLifecycle('on_call');
+          agentLifecycleRef.current = 'on_call';
           // Start stopwatch now so CallScreen shows timer, not "Calling...", while async autodial check runs
           reset(undefined, true);
 
