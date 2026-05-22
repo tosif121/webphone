@@ -202,6 +202,7 @@ const CallScreen = ({
 
     localStorage.setItem('mergeEventLogs', JSON.stringify(existingLogs));
 
+    console.log('[reqUnHold] handleMerge calling reqUnHold');
     const unholdSuccess = await reqUnHold?.();
     if (unholdSuccess === false) {
       toast.error('Merge failed: could not unhold the call');
@@ -260,12 +261,18 @@ const CallScreen = ({
         toast.error('Not authorized to end conference');
       }
     } finally {
+      console.log('[handleConferenceHangup] finally: status=', status, 'conferenceNumber=', conferenceNumber, 'hasParticipants=', hasParticipants, 'conferenceStatus=', conferenceStatus, 'isMerged=', isMerged);
+      if (!isMerged) {
+        await reqUnHold?.('conference_hangup');
+      }
+      setStatus?.('on_call');
       setIsMerged(false);
       setConfRunning(false);
       setConfSeconds(0);
       setConfMinutes(0);
       setConferenceStatus?.(false);
       setCallConference?.(false);
+      setConferenceNumber?.('');
     }
   };
 
@@ -275,9 +282,13 @@ const CallScreen = ({
     if (isMerged && userCall?.contactNumber && conferenceNumber) {
       return `${maybeMask(userCall?.contactNumber)} Conference with ${maybeMask(conferenceNumber)}`;
     }
-    if (conferenceNumber) return maybeMask(conferenceNumber);
+    if (conferenceNumber) {
+      console.log('[mainNumber] showing conferenceNumber', conferenceNumber);
+      return maybeMask(conferenceNumber);
+    }
     if (userCall?.contactNumber) return maybeMask(userCall?.contactNumber);
     if (phoneNumber) return maybeMask(phoneNumber);
+    if (activeCallContext?.Caller) return maybeMask(activeCallContext.Caller);
     return '';
   })();
 
@@ -356,7 +367,7 @@ const CallScreen = ({
           </div>
 
           <div className="text-center mb-3 md:mb-2">
-            {conferenceStatus ? (
+            {conferenceStatus && !isMerged ? (
               <div className="text-lg md:text-sm font-medium text-muted-foreground max-w-[250px]">
                 {userCall?.contactNumber} Hold {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
               </div>

@@ -55,7 +55,7 @@ export const useJssipConference = (state, utils) => {
 
   const createConferenceCall = async () => {
     try {
-      const response = await fetch(`https://devapp.iotcom.io/reqConf/${username}`, {
+      const response = await fetch(`${window.location.origin}/reqConf/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -99,6 +99,7 @@ export const useJssipConference = (state, utils) => {
         setConferenceNumber('');
         setHasParticipants(null);
         setIsCustomerAnswered(true);
+        console.log('[reqUnHold] createConferenceCall error response');
         reqUnHold('conference_failed_response');
         logMergeEvent('conference_failed', {
           error: data.message,
@@ -131,6 +132,7 @@ export const useJssipConference = (state, utils) => {
         setConferenceNumber('');
         setHasParticipants(null);
         setIsCustomerAnswered(true);
+        console.log('[reqUnHold] createConferenceCall unexpected');
         reqUnHold('conference_failed_unexpected');
         logMergeEvent('conference_failed', {
           error: data.message,
@@ -143,6 +145,7 @@ export const useJssipConference = (state, utils) => {
       setConferenceStatus(false);
       setCallConference(false);
       setHasParticipants(null);
+      console.log('[reqUnHold] createConferenceCall network error');
       reqUnHold('conference_network_error');
 
       logMergeEvent('conference_failed', {
@@ -167,6 +170,7 @@ export const useJssipConference = (state, utils) => {
         wasHeld: isHeld,
       });
 
+      console.log(`[reqUnHold] FETCHING trigger=${triggerSource} user=${username}`);
       const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
         method: 'POST',
         headers: {
@@ -210,7 +214,7 @@ export const useJssipConference = (state, utils) => {
   const toggleHold = async () => {
     try {
       if (!isHeld) {
-        const response = await fetch(`https://devapp.iotcom.io/reqHold/${username}`, {
+        const response = await fetch(`${window.location.origin}/reqHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -231,7 +235,7 @@ export const useJssipConference = (state, utils) => {
           toast.error(`Failed to hold call: ${response.status}`);
         }
       } else {
-        const response = await fetch(`https://devapp.iotcom.io/reqUnHold/${username}`, {
+        const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -257,6 +261,7 @@ export const useJssipConference = (state, utils) => {
   };
 
   const handleConferenceMessage = (message) => {
+    console.log('[handleConferenceMessage] received:', message);
     if (message.includes('customer host channel connected')) {
       setHasParticipants('connected');
 
@@ -302,9 +307,10 @@ export const useJssipConference = (state, utils) => {
     }
   }, [status]);
 
-  // ✅ NEW: Auto reqUnHold when participant disconnects
+  // ✅ Auto reqUnHold when participant disconnects via socket (not button)
   useEffect(() => {
-    if (hasParticipants === 'Conference disconnected' || hasParticipants === 'disconnected_message') {
+    console.log('[confEffect] hasParticipants changed:', hasParticipants, 'isMerged:', isMerged, 'status:', status);
+    if (hasParticipants === 'disconnected_message') {
       setCallConference(false);
       setConferenceNumber('');
       setConferenceStatus(false);
@@ -317,9 +323,8 @@ export const useJssipConference = (state, utils) => {
 
       if (isMainSessionAlive) {
         setStatus('on_call');
-        reqUnHold(
-          hasParticipants === 'disconnected_message' ? 'auto_unhold_on_disconnect' : 'conference_hangup_success',
-        );
+        console.log('[reqUnHold] auto_unhold_on_disconnect effect');
+        reqUnHold('auto_unhold_on_disconnect');
       } else {
         setStatus('start');
       }
