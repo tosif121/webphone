@@ -2221,7 +2221,11 @@ const useJssip = (isMobile = false) => {
       try {
         // 1. Call callended API
         const callendedTs = new Date().toISOString();
-        const callendedPayload = leadLockToken ? { leadLockToken } : {};
+        const callendedPayload = {
+          ...(leadLockToken ? { leadLockToken } : {}),
+          callType: callType || '',
+          isMerged: !!isMerged,
+        };
         console.log(
           `[API] callended → START | ts=${callendedTs} | url=/user/callended${username} | payload=`,
           callendedPayload,
@@ -2306,6 +2310,8 @@ const useJssip = (isMobile = false) => {
     setDispositionModal,
     setIsCallended,
     setIsHeld,
+    callType,
+    isMerged,
   ]);
 
   return [

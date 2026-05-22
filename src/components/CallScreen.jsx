@@ -90,7 +90,7 @@ const CallScreen = ({
   const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const parsedData = tokenData ? JSON.parse(tokenData) : {};
   const { username } = useContext(HistoryContext);
-  const { bridgeID, activeCallContext } = useContext(JssipContext);
+  const { bridgeID, activeCallContext, callType } = useContext(JssipContext);
   const numberMasking = parsedData?.userData?.numberMasking;
 
   // Start conference timer when participants join but not merged
@@ -143,7 +143,7 @@ const CallScreen = ({
     try {
       const transferBridgeID = activeCallContext?.bridgeID || bridgeID;
       console.log({ bridgeID: transferBridgeID }, 'transfer payload');
-      const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, { bridgeID: transferBridgeID });
+      const res = await axios.post(`https://devapp.iotcom.io/reqTransfer/${username}`, { bridgeID: transferBridgeID });
       if (res.data?.success || res.data?.message) {
         toast.success(res.data.message || 'Request successful!');
       } else {
@@ -168,7 +168,7 @@ const CallScreen = ({
     }
   }, [toggleHold, isHeld]);
 
-  const handleMerge = useCallback(() => {
+  const handleMerge = useCallback(async () => {
     if (!conferenceStatus) {
       toast.error('No active conference to merge');
       return;
@@ -188,6 +188,7 @@ const CallScreen = ({
       hasParticipants,
       isHeld,
       status,
+      callType,
       triggerSource: 'user_click_merge_button',
       userInitiated: true,
     };
@@ -201,10 +202,15 @@ const CallScreen = ({
 
     localStorage.setItem('mergeEventLogs', JSON.stringify(existingLogs));
 
-    reqUnHold?.();
+    const unholdSuccess = await reqUnHold?.();
+    if (unholdSuccess === false) {
+      toast.error('Merge failed: could not unhold the call');
+      return;
+    }
+
     setIsMerged(true);
     toast.success('Merged with conference participants');
-  }, [hasParticipants, username, conferenceNumber, isHeld, status, reqUnHold]);
+  }, [hasParticipants, username, conferenceNumber, isHeld, status, reqUnHold, callType]);
 
   const handleMuteToggle = useCallback(() => {
     const newMutedState = !muted;
@@ -230,7 +236,7 @@ const CallScreen = ({
       }
 
       const response = await axios.post(
-        `${window.location.origin}/hangup/hostChannel/Conf`,
+        `https://devapp.iotcom.io/hangup/hostChannel/Conf`,
         {
           user: username,
           hostNumber: cleanNumber,
