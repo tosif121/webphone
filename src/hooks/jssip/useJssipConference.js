@@ -55,7 +55,7 @@ export const useJssipConference = (state, utils) => {
 
   const createConferenceCall = async () => {
     try {
-      const response = await fetch(`${window.location.origin}/reqConf/${username}`, {
+      const response = await fetch(`https://devapp.iotcom.io/reqConf/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -174,9 +174,7 @@ export const useJssipConference = (state, utils) => {
         },
       });
 
-      const data = await response.json().catch(() => ({}));
-
-      if (response.ok && data.success !== false) {
+      if (response.ok) {
         if (audioRef.current) {
           audioRef.current.play();
         }
@@ -186,15 +184,13 @@ export const useJssipConference = (state, utils) => {
           triggerSource,
           previouslyHeld: isHeld,
         });
-        return true;
       } else {
-        toast.error(data.message || `Failed to resume call: ${response.status}`);
+        toast.error(`Failed to resume call: ${response.status}`);
 
         logMergeEvent('unhold_failed', {
           triggerSource,
-          error: data.message || `HTTP ${response.status}`,
+          error: `HTTP ${response.status}`,
         });
-        return false;
       }
     } catch (error) {
       toast.error(`Error resuming call: ${error.message}`);
@@ -203,14 +199,13 @@ export const useJssipConference = (state, utils) => {
         triggerSource,
         error: error.message,
       });
-      return false;
     }
   };
 
   const toggleHold = async () => {
     try {
       if (!isHeld) {
-        const response = await fetch(`${window.location.origin}/reqHold/${username}`, {
+        const response = await fetch(`https://devapp.iotcom.io/reqHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -231,7 +226,7 @@ export const useJssipConference = (state, utils) => {
           toast.error(`Failed to hold call: ${response.status}`);
         }
       } else {
-        const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
+        const response = await fetch(`https://devapp.iotcom.io/reqUnHold/${username}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -316,10 +311,10 @@ export const useJssipConference = (state, utils) => {
       const isMainSessionAlive = mainSession && !mainSession.isEnded() && !mainSession.isTerminated?.();
 
       if (isMainSessionAlive) {
-        setStatus('start');
-        if (mainSession.terminate) {
-          mainSession.terminate();
-        }
+        setStatus('on_call');
+        reqUnHold(
+          hasParticipants === 'disconnected_message' ? 'auto_unhold_on_disconnect' : 'conference_hangup_success',
+        );
       } else {
         setStatus('start');
       }
