@@ -140,6 +140,10 @@ const CallScreen = ({
   }, [hasParticipants, conferenceStatus]);
 
   const handleTransfer = async () => {
+    if (hasParticipants !== 'connected') {
+      toast.error('No active conference to transfer');
+      return;
+    }
     try {
       const transferBridgeID = activeCallContext?.bridgeID || bridgeID;
       console.log({ bridgeID: transferBridgeID }, 'transfer payload');
