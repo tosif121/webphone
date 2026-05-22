@@ -174,7 +174,9 @@ export const useJssipConference = (state, utils) => {
         },
       });
 
-      if (response.ok) {
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data.success !== false) {
         if (audioRef.current) {
           audioRef.current.play();
         }
@@ -184,13 +186,15 @@ export const useJssipConference = (state, utils) => {
           triggerSource,
           previouslyHeld: isHeld,
         });
+        return true;
       } else {
-        toast.error(`Failed to resume call: ${response.status}`);
+        toast.error(data.message || `Failed to resume call: ${response.status}`);
 
         logMergeEvent('unhold_failed', {
           triggerSource,
-          error: `HTTP ${response.status}`,
+          error: data.message || `HTTP ${response.status}`,
         });
+        return false;
       }
     } catch (error) {
       toast.error(`Error resuming call: ${error.message}`);
@@ -199,6 +203,7 @@ export const useJssipConference = (state, utils) => {
         triggerSource,
         error: error.message,
       });
+      return false;
     }
   };
 
