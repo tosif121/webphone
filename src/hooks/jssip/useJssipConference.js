@@ -66,13 +66,13 @@ export const useJssipConference = (state, utils) => {
         }),
       });
 
-      console.log({ confNumber: conferenceNumber.replace(/\s+/g, ''), bridgeID }, 'conference payload');
+      console.log(`[createConferenceCall] STEP 1 — bridgeID sent to /reqConf: "${bridgeID}"`, { confNumber: conferenceNumber.replace(/\s+/g, ''), bridgeID }, 'conference payload');
 
       const data = await response.json();
+      console.log(`[createConferenceCall] STEP 2 — /reqConf response:`, data);
 
       if (data.message === 'conferance call dialed' || data.message === 'conference call dialed') {
         if (data.result) {
-          // setBridgeID(data.result);
           setConferenceStatus(true);
           setStatus('conference');
           setIsHeld(true);
