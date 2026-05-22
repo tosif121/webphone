@@ -316,10 +316,10 @@ export const useJssipConference = (state, utils) => {
       const isMainSessionAlive = mainSession && !mainSession.isEnded() && !mainSession.isTerminated?.();
 
       if (isMainSessionAlive) {
-        setStatus('on_call');
-        reqUnHold(
-          hasParticipants === 'disconnected_message' ? 'auto_unhold_on_disconnect' : 'conference_hangup_success',
-        );
+        setStatus('start');
+        if (mainSession.terminate) {
+          mainSession.terminate();
+        }
       } else {
         setStatus('start');
       }
