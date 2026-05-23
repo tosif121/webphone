@@ -579,17 +579,10 @@ const useJssip = (isMobile = false) => {
 
   useEffect(() => {
     const handleBeforeUnload = (event) => {
-      const hasActiveCall =
-        connectionStatus === 'Disposition' ||
-        incomingSession ||
-        status === 'calling' ||
-        status === 'conference' ||
-        status === 'on_call' ||
-        agentLifecycle === 'on_call' ||
-        isIncomingRinging;
+      const isOnCall =
+        status === 'on_call' || agentLifecycle === 'on_call';
 
-      // ✅ Prevent close if active call only
-      if (hasActiveCall) {
+      if (isOnCall) {
         // Mark in sessionStorage so post-reload we know to force logout
         sessionStorage.setItem('was_on_call', 'true');
         event.preventDefault();
@@ -602,7 +595,7 @@ const useJssip = (isMobile = false) => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [connectionStatus, incomingSession, status, isIncomingRinging, agentLifecycle]);
+  }, [status, agentLifecycle]);
 
   const [fupRefreshKey, setFupRefreshKey] = useState(0);
 
