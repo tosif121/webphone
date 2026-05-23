@@ -588,11 +588,8 @@ const useJssip = (isMobile = false) => {
         agentLifecycle === 'on_call' ||
         isIncomingRinging;
 
-      // ✅ Check if agent is on break (selectedBreak is not 'Break')
-      const isOnBreak = selectedBreak && selectedBreak !== 'Break';
-
-      // ✅ Prevent close if active call OR on break
-      if (hasActiveCall || isOnBreak) {
+      // ✅ Prevent close if active call only
+      if (hasActiveCall) {
         // Mark in sessionStorage so post-reload we know to force logout
         sessionStorage.setItem('was_on_call', 'true');
         event.preventDefault();
@@ -605,7 +602,7 @@ const useJssip = (isMobile = false) => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [connectionStatus, incomingSession, status, isIncomingRinging, selectedBreak, agentLifecycle]);
+  }, [connectionStatus, incomingSession, status, isIncomingRinging, agentLifecycle]);
 
   const [fupRefreshKey, setFupRefreshKey] = useState(0);
 
