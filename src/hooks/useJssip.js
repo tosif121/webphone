@@ -1370,16 +1370,51 @@ const useJssip = (isMobile = false) => {
 
           void sendSipHeartbeat({ source: 'sip-registered', force: true });
 
-          // Clear stale break from localStorage on fresh page load — user
-          // refreshed intentionally (e.g. to become available after a queue call),
-          // so don't re-apply the previous break. They can select break manually.
-          setSelectedBreak('Break');
-          localStorage.removeItem('selectedBreak');
-          Object.keys(localStorage).forEach((key) => {
-            if (key.startsWith('breakStartTime_')) {
-              localStorage.removeItem(key);
+          const storedBreak = localStorage.getItem('selectedBreak');
+          if (storedBreak && storedBreak !== 'Break') {
+            try {
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+
+              const response = await axios.post(
+                `${window.location.origin}/user/breakuser:${username}`,
+                { breakType: storedBreak },
+                { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
+              );
+              if (response.status === 200) {
+                setSelectedBreak(storedBreak);
+              } else {
+                console.error(
+                  `[Re-apply Break] Backend responded with status ${response.status} for break re-application.`,
+                  response.data,
+                );
+                localStorage.removeItem('selectedBreak');
+                Object.keys(localStorage).forEach((key) => {
+                  if (key.startsWith('breakStartTime_')) {
+                    localStorage.removeItem(key);
+                  }
+                });
+                setSelectedBreak('Break');
+              }
+            } catch (error) {
+              console.error('Error re-applying break from localStorage after registration:', error);
+              toast.error(`Failed to re-apply previous break (${storedBreak}).`);
+              localStorage.removeItem('selectedBreak');
+              Object.keys(localStorage).forEach((key) => {
+                if (key.startsWith('breakStartTime_')) {
+                  localStorage.removeItem(key);
+                }
+              });
+              setSelectedBreak('Break');
             }
-          });
+          } else {
+            localStorage.removeItem('selectedBreak');
+            Object.keys(localStorage).forEach((key) => {
+              if (key.startsWith('breakStartTime_')) {
+                localStorage.removeItem(key);
+              }
+            });
+            setSelectedBreak('Break');
+          }
 
           void connectioncheckRef.current?.({ reason: 'post-ready', force: true });
         });
