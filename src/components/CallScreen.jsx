@@ -147,7 +147,7 @@ const CallScreen = ({
     try {
       const transferBridgeID = activeCallContext?.bridgeID || bridgeID;
       console.log({ bridgeID: transferBridgeID }, 'transfer payload');
-      const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, { bridgeID: transferBridgeID });
+      const res = await axios.post(`https://devapp.iotcom.io/reqTransfer/${username}`, { bridgeID: transferBridgeID });
       if (res.data?.success || res.data?.message) {
         toast.success(res.data.message || 'Request successful!');
       } else {
@@ -241,7 +241,7 @@ const CallScreen = ({
       }
 
       const response = await axios.post(
-        `${window.location.origin}/hangup/hostChannel/Conf`,
+        `https://devapp.iotcom.io/hangup/hostChannel/Conf`,
         {
           user: username,
           hostNumber: cleanNumber,
@@ -296,7 +296,7 @@ const CallScreen = ({
     return '';
   })();
 
-  const ControlButton = ({ onClick, disabled, active, icon, title, className = '', buttonId, debounceTime = 300 }) => {
+  const ControlButton = ({ onClick, disabled, active, icon, title, className = '', buttonId, debounceTime = 200 }) => {
     const isProcessing = processingRef.current.has(buttonId);
     const isDisabled = disabled || isProcessing;
 
@@ -414,7 +414,7 @@ const CallScreen = ({
                   active={isHeld}
                   icon={<Pause size={isMobile ? 30 : 22} />}
                   title="Hold"
-                  debounceTime={1000}
+                  debounceTime={200}
                 />
                 <ControlButton
                   buttonId="transfer-button"
@@ -423,14 +423,6 @@ const CallScreen = ({
                   icon={<PhoneForwarded size={isMobile ? 30 : 22} />}
                   title="Transfer"
                   className={!isMerged ? 'opacity-40' : ''}
-                  debounceTime={500}
-                />
-
-                <ControlButton
-                  buttonId="keypad-button"
-                  onClick={() => setShowKeyPad(true)}
-                  icon={<Grip size={isMobile ? 30 : 22} />}
-                  title="Keypad"
                   debounceTime={200}
                 />
               </div>
@@ -447,7 +439,7 @@ const CallScreen = ({
                         icon={<Merge size={isMobile ? 28 : 20} />}
                         title="Merge"
                         active={isMerged}
-                        debounceTime={800}
+                        debounceTime={200}
                       />
                     )}
                     <ControlButton
@@ -458,7 +450,7 @@ const CallScreen = ({
                       }
                       title="Disconnect Conference"
                       disabled={!conferenceStatus}
-                      debounceTime={300}
+                      debounceTime={200}
                     />
                   </>
                 ) : (
@@ -469,7 +461,7 @@ const CallScreen = ({
                       onClick={() => setCallConference?.(true)}
                       icon={<UserPlus size={isMobile ? 28 : 20} />}
                       title="Add Call"
-                      debounceTime={500}
+                      debounceTime={200}
                     />
                   </>
                 )}
@@ -486,7 +478,7 @@ const CallScreen = ({
                   }
                   title={isRecording ? 'Stop Recording' : 'Start Recording'}
                   active={isRecording}
-                  debounceTime={600}
+                  debounceTime={200}
                 />
 
                 <ControlButton
