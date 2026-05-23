@@ -584,6 +584,8 @@ const useJssip = (isMobile = false) => {
         incomingSession ||
         status === 'calling' ||
         status === 'conference' ||
+        status === 'on_call' ||
+        agentLifecycle === 'on_call' ||
         isIncomingRinging;
 
       // ✅ Check if agent is on break (selectedBreak is not 'Break')
@@ -591,6 +593,8 @@ const useJssip = (isMobile = false) => {
 
       // ✅ Prevent close if active call OR on break
       if (hasActiveCall || isOnBreak) {
+        // Mark in sessionStorage so post-reload we know to force logout
+        sessionStorage.setItem('was_on_call', 'true');
         event.preventDefault();
         event.returnValue = '';
       }
@@ -1343,6 +1347,24 @@ const useJssip = (isMobile = false) => {
 
         ua.on('registered', async (data) => {
           console.log('[JsSIP] Registered successfully');
+
+          // If user forcibly reloaded while on call → force logout
+          if (sessionStorage.getItem('was_on_call') === 'true') {
+            sessionStorage.removeItem('was_on_call');
+            console.log('[WebPhone] Detected forced reload during active call — logging out');
+            if (session && session.status < 6) {
+              session.terminate();
+            }
+            stopRecording();
+            localStorage.removeItem('token');
+            localStorage.removeItem('savedUsername');
+            localStorage.removeItem('savedPassword');
+            localStorage.removeItem('call-history');
+            localStorage.removeItem('selectedBreak');
+            window.location.href = '/webphone/v1/login';
+            return;
+          }
+
           const readySync = await syncAgentReadyState({
             source: 'sip-registered',
             attempts: 4,
