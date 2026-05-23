@@ -147,7 +147,7 @@ const CallScreen = ({
     try {
       const transferBridgeID = activeCallContext?.bridgeID || bridgeID;
       console.log({ bridgeID: transferBridgeID }, 'transfer payload');
-      const res = await axios.post(`https://devapp.iotcom.io/reqTransfer/${username}`, { bridgeID: transferBridgeID });
+      const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, { bridgeID: transferBridgeID });
       if (res.data?.success || res.data?.message) {
         toast.success(res.data.message || 'Request successful!');
       } else {
@@ -241,7 +241,7 @@ const CallScreen = ({
       }
 
       const response = await axios.post(
-        `https://devapp.iotcom.io/hangup/hostChannel/Conf`,
+        `${window.location.origin}/hangup/hostChannel/Conf`,
         {
           user: username,
           hostNumber: cleanNumber,
@@ -423,6 +423,13 @@ const CallScreen = ({
                   icon={<PhoneForwarded size={isMobile ? 30 : 22} />}
                   title="Transfer"
                   className={!isMerged ? 'opacity-40' : ''}
+                  debounceTime={200}
+                />
+                <ControlButton
+                  buttonId="keypad-button"
+                  onClick={() => setShowKeyPad(true)}
+                  icon={<Grip size={isMobile ? 30 : 22} />}
+                  title="Keypad"
                   debounceTime={200}
                 />
               </div>
