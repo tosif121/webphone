@@ -1253,6 +1253,8 @@ const useJssip = (isMobile = false) => {
         setStatus('calling');
         setAgentLifecycle('on_call');
         setCallType('incoming');
+        setSelectedBreak('Break');
+        localStorage.removeItem('selectedBreak');
         reset();
 
         // Set up audio stream
@@ -1896,6 +1898,8 @@ const useJssip = (isMobile = false) => {
       setSession(session);
       setStatus('calling');
       setAgentLifecycle('on_call');
+      setSelectedBreak('Break');
+      localStorage.removeItem('selectedBreak');
       // Show the number immediately while API call populates full contact data
       setPhoneNumber(incomingNumber);
       reset(undefined, startTimerImmediately);
