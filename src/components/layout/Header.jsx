@@ -56,6 +56,7 @@ export default function Header() {
   } = useContext(HistoryContext);
   const { agentLifecycle, status } = useContext(JssipContext);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [token, setToken] = useState('');
   const [username, setUsername] = useState('Guest');
   const [userId, setUserId] = useState('N/A');
@@ -139,7 +140,7 @@ export default function Header() {
     setIsSavingPreferences(true);
     try {
       await axios.patch(
-        `${window.location.origin}/agent/profile`,
+        `https://devapp.iotcom.io/agent/profile`,
         {
           uiPreferences: normalizedPreferences,
         },
@@ -170,51 +171,44 @@ export default function Header() {
     }
   };
 
-  const handleLogout = async () => {
+  const forceLogout = async () => {
     if (typeof window !== 'undefined') {
       try {
         if (token) {
-          await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+          await axios.delete(`https://devapp.iotcom.io/deleteFirebaseToken`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           });
         }
-
-        localStorage.removeItem('token');
-        localStorage.removeItem('savedUsername');
-        localStorage.removeItem('savedPassword');
-        localStorage.removeItem('call-history');
-        localStorage.removeItem('phoneShow');
-        localStorage.removeItem('formNavigationState');
-        localStorage.removeItem('selectedBreak');
-        Object.keys(localStorage).forEach((key) => {
-          if (key.startsWith('breakStartTime_')) {
-            localStorage.removeItem(key);
-          }
-        });
-        toast.success('Logged out successfully');
-        setUserMenuOpen(false);
-        window.location.href = '/webphone/v1/login';
       } catch (error) {
         console.error('Error during logout:', error);
-
-        localStorage.removeItem('token');
-        localStorage.removeItem('savedUsername');
-        localStorage.removeItem('savedPassword');
-        localStorage.removeItem('call-history');
-        localStorage.removeItem('phoneShow');
-        localStorage.removeItem('formNavigationState');
-        localStorage.removeItem('selectedBreak');
-        Object.keys(localStorage).forEach((key) => {
-          if (key.startsWith('breakStartTime_')) {
-            localStorage.removeItem(key);
-          }
-        });
-        toast.error('Logged out (some cleanup operations failed)');
-        setUserMenuOpen(false);
-        window.location.href = '/webphone/v1/login';
       }
+
+      localStorage.removeItem('token');
+      localStorage.removeItem('savedUsername');
+      localStorage.removeItem('savedPassword');
+      localStorage.removeItem('call-history');
+      localStorage.removeItem('phoneShow');
+      localStorage.removeItem('formNavigationState');
+      localStorage.removeItem('selectedBreak');
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('breakStartTime_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      toast.success('Logged out successfully');
+      setUserMenuOpen(false);
+      window.location.href = '/webphone/v1/login';
+    }
+  };
+
+  const handleLogout = async () => {
+    const isOnCall = agentLifecycle === 'on_call' || status === 'on_call';
+    if (isOnCall) {
+      setShowLogoutConfirm(true);
+    } else {
+      forceLogout();
     }
   };
 
@@ -744,6 +738,25 @@ export default function Header() {
           </div>
         </div>
       </div>
+
+      <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Are you sure you want to sign out?</DialogTitle>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground">
+            You are currently on an active call. Signing out will disconnect the call.
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowLogoutConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={forceLogout}>
+              Sign out anyway
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
         <DialogContent className="sm:max-w-xl">
