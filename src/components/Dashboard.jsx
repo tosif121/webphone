@@ -227,7 +227,6 @@ function Dashboard() {
       Math.min(Math.max(Number(storedPreferences.autoLeadDialCountdownSeconds || 3), 3), 10),
     );
 
-
     const handleProfileUpdated = (event) => {
       const nextPreferences = event?.detail || getStoredAgentUiPreferences();
       setActiveMainTab(

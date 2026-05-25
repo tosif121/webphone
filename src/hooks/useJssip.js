@@ -579,8 +579,7 @@ const useJssip = (isMobile = false) => {
 
   useEffect(() => {
     const handleBeforeUnload = (event) => {
-      const isOnCall =
-        status === 'on_call' || agentLifecycle === 'on_call';
+      const isOnCall = status === 'on_call' || agentLifecycle === 'on_call';
 
       if (isOnCall) {
         // Mark in sessionStorage so post-reload we know to force logout
@@ -1187,7 +1186,6 @@ const useJssip = (isMobile = false) => {
         },
       ]);
     },
-
   };
 
   var options = {
@@ -1427,7 +1425,7 @@ const useJssip = (isMobile = false) => {
           }
 
           const message = e.request?.body || '';
-          console.log(message, 'message')
+          console.log(message, 'message');
           lastAriMessageAtRef.current = Date.now();
           connectionFailureCountRef.current = 0;
           sipHeartbeatFailureCountRef.current = 0;

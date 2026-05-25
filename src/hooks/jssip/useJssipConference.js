@@ -66,7 +66,11 @@ export const useJssipConference = (state, utils) => {
         }),
       });
 
-      console.log(`[createConferenceCall] STEP 1 — bridgeID sent to /reqConf: "${bridgeID}"`, { confNumber: conferenceNumber.replace(/\s+/g, ''), bridgeID }, 'conference payload');
+      console.log(
+        `[createConferenceCall] STEP 1 — bridgeID sent to /reqConf: "${bridgeID}"`,
+        { confNumber: conferenceNumber.replace(/\s+/g, ''), bridgeID },
+        'conference payload',
+      );
 
       const data = await response.json();
       console.log(`[createConferenceCall] STEP 2 — /reqConf response:`, data);
@@ -107,7 +111,7 @@ export const useJssipConference = (state, utils) => {
         });
       } else if (data.message?.includes('error applying hold before transfer')) {
         setStatus('idle');
-        toast.error('Hold failed — session terminated');
+        console.log('Hold failed — session terminated');
 
         setConferenceStatus(false);
         setCallConference(false);

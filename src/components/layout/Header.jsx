@@ -411,19 +411,29 @@ export default function Header() {
                       Status
                     </div>
                     <span className="inline-flex items-center gap-1.5 text-sm font-medium capitalize">
-                      <span className={cn(
-                        'w-2 h-2 rounded-full',
-                        agentLifecycle === 'on_call' ? 'bg-green-500' :
-                        agentLifecycle === 'idle' ? 'bg-yellow-500' :
-                        agentLifecycle === 'disposition' ? 'bg-blue-500' :
-                        agentLifecycle === 'lead_locked' ? 'bg-orange-500' :
-                        'bg-gray-400'
-                      )} />
-                      {agentLifecycle === 'on_call' ? 'On Call' :
-                       agentLifecycle === 'idle' ? 'Available' :
-                       agentLifecycle === 'disposition' ? 'Disposition' :
-                       agentLifecycle === 'lead_locked' ? 'Lead Locked' :
-                       agentLifecycle || 'Unknown'}
+                      <span
+                        className={cn(
+                          'w-2 h-2 rounded-full',
+                          agentLifecycle === 'on_call'
+                            ? 'bg-green-500'
+                            : agentLifecycle === 'idle'
+                              ? 'bg-yellow-500'
+                              : agentLifecycle === 'disposition'
+                                ? 'bg-blue-500'
+                                : agentLifecycle === 'lead_locked'
+                                  ? 'bg-orange-500'
+                                  : 'bg-gray-400',
+                        )}
+                      />
+                      {agentLifecycle === 'on_call'
+                        ? 'On Call'
+                        : agentLifecycle === 'idle'
+                          ? 'Available'
+                          : agentLifecycle === 'disposition'
+                            ? 'Disposition'
+                            : agentLifecycle === 'lead_locked'
+                              ? 'Lead Locked'
+                              : agentLifecycle || 'Unknown'}
                     </span>
                   </div>
                 </div>
