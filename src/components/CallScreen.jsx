@@ -297,7 +297,7 @@ const CallScreen = ({
     if (isMerged && userCall?.contactNumber && conferenceNumber) {
       return `${maybeMask(userCall?.contactNumber)} Conference with ${maybeMask(conferenceNumber)}`;
     }
-    if (conferenceNumber) {
+    if (conferenceNumber && conferenceStatus) {
       console.log('[mainNumber] showing conferenceNumber', conferenceNumber);
       return maybeMask(conferenceNumber);
     }
@@ -411,7 +411,7 @@ const CallScreen = ({
                 <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/30 border border-secondary/20">
                   <Clock className="w-3.5 h-3.5 text-secondary-foreground" />
                   <span className="text-sm font-mono font-bold text-secondary-foreground">
-                    {conferenceNumber && !isMerged
+                    {conferenceNumber && !isMerged && conferenceStatus
                       ? `${String(confMinutes).padStart(2, '0')}:${String(confSeconds).padStart(2, '0')}`
                       : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`}
                   </span>
@@ -549,7 +549,7 @@ const CallScreen = ({
             <button
               className="text-white cursor-pointer w-16 h-16 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-destructive shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 rotate-[133deg] focus:outline-none focus:ring-2 focus:ring-destructive"
               onClick={() => {
-                if (conferenceNumber) {
+                if (conferenceNumber && conferenceStatus) {
                   handleConferenceHangup();
                 } else {
                   endCurrentCall?.();
