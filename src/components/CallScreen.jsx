@@ -147,7 +147,7 @@ const CallScreen = ({
     try {
       const transferBridgeID = activeCallContext?.bridgeID || bridgeID;
       console.log({ bridgeID: transferBridgeID }, 'transfer payload');
-      const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, { bridgeID: transferBridgeID });
+      const res = await axios.post(`https://devapp.iotcom.io/reqTransfer/${username}`, { bridgeID: transferBridgeID });
       if (res.data?.success || res.data?.message) {
         toast.success(res.data.message || 'Request successful!');
       } else {
@@ -241,7 +241,7 @@ const CallScreen = ({
       }
 
       const response = await axios.post(
-        `${window.location.origin}/hangup/hostChannel/Conf`,
+        `https://devapp.iotcom.io/hangup/hostChannel/Conf`,
         {
           user: username,
           hostNumber: cleanNumber,
@@ -265,7 +265,18 @@ const CallScreen = ({
         toast.error('Not authorized to end conference');
       }
     } finally {
-      console.log('[handleConferenceHangup] finally: status=', status, 'conferenceNumber=', conferenceNumber, 'hasParticipants=', hasParticipants, 'conferenceStatus=', conferenceStatus, 'isMerged=', isMerged);
+      console.log(
+        '[handleConferenceHangup] finally: status=',
+        status,
+        'conferenceNumber=',
+        conferenceNumber,
+        'hasParticipants=',
+        hasParticipants,
+        'conferenceStatus=',
+        conferenceStatus,
+        'isMerged=',
+        isMerged,
+      );
       if (!isMerged) {
         await reqUnHold?.('conference_hangup');
       }
@@ -382,6 +393,20 @@ const CallScreen = ({
             <div className="text-xl md:text-sm font-medium text-muted-foreground max-w-[250px]">{mainNumber}</div>
 
             <div className="flex items-center justify-center mt-3">
+              {(() => {
+                const debug = {
+                  confNum: conferenceNumber,
+                  isMerged,
+                  confTimer: `${String(confMinutes).padStart(2, '0')}:${String(confSeconds).padStart(2, '0')}`,
+                  mainTimer: `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`,
+                  isRunning,
+                  mainNumber,
+                  contactNumber: userCall?.contactNumber,
+                  phoneNumber,
+                };
+                console.log('[Timer]', JSON.stringify(debug));
+                return null;
+              })()}
               {isRunning ? (
                 <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/30 border border-secondary/20">
                   <Clock className="w-3.5 h-3.5 text-secondary-foreground" />
