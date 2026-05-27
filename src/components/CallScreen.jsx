@@ -148,7 +148,7 @@ const CallScreen = ({
       const transferBridgeID = activeCallContext?.bridgeID || bridgeID;
       console.log({ bridgeID: transferBridgeID }, 'transfer payload');
       const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, { bridgeID: transferBridgeID });
-      if (res.data?.success || res.data?.message?.toLowerCase().includes('success')) {
+      if (res.data?.success) {
         toast.success(res.data.message || 'Request successful!');
       } else {
         toast.error(res.data?.message || 'Request failed. Please try again.');
