@@ -330,7 +330,7 @@ const mapLeadRow = (lead, index) => {
         .slice(0, 2)
         .map(([, value]) => String(value))
         .join(' • ') || 'Lead details available',
-    status: state === 'completed' ? 'Completed' : contacted ? 'Contacted' : 'Pending',
+    status: state === 'completed' || Number(lead?.lastDialedStatus || 0) === 2 ? 'Completed' : contacted ? 'Contacted' : 'Pending',
     raw: lead,
   };
 };
