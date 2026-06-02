@@ -321,7 +321,7 @@ function Dashboard() {
     setLeadError('');
 
     try {
-      const leadDashboardResponse = await axios.get(`https://devapp.iotcom.io/lead/dashboard`, {
+      const leadDashboardResponse = await axios.get(`${window.location.origin}/lead/dashboard`, {
         params: {
           limit: 200,
           includeCompleted: true,
@@ -398,7 +398,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://devapp.iotcom.io/reports/calls/byAgent`,
+        `${window.location.origin}/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -475,7 +475,7 @@ function Dashboard() {
 
     try {
       const response = await axios.post(
-        `https://devapp.iotcom.io/userMissedCalls/${username}`,
+        `${window.location.origin}/userMissedCalls/${username}`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -512,7 +512,7 @@ function Dashboard() {
     setSmartLeadError('');
     try {
       const response = await axios.post(
-        `https://devapp.iotcom.io/lead/next`,
+        `${window.location.origin}/lead/next`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -540,7 +540,7 @@ function Dashboard() {
 
     try {
       await axios.post(
-        `https://devapp.iotcom.io/lead/skip`,
+        `${window.location.origin}/lead/skip`,
         {
           leadId: activeLead.leadId,
           lockToken: leadLockToken,
@@ -845,7 +845,7 @@ function Dashboard() {
         console.log('[agentAvailable] calling API:', currentCallData?.Caller);
         try {
           const { data } = await axios.post(
-            `https://devapp.iotcom.io/user/agentAvailable/${username}`,
+            `${window.location.origin}/user/agentAvailable/${username}`,
             {},
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -1314,7 +1314,7 @@ function Dashboard() {
       if (sourceLead?.leadId && token) {
         try {
           const response = await axios.post(
-            `https://devapp.iotcom.io/lead/lock`,
+            `${window.location.origin}/lead/lock`,
             {
               leadId: sourceLead.leadId,
               lockToken: sourceLead.lockToken || leadLockToken || undefined,
@@ -1569,7 +1569,11 @@ function Dashboard() {
               <button
                 key={card.key}
                 type="button"
-                onClick={activeMainTab === 'leads' && previewLeadMode ? undefined : () => setActiveMetricFilter((prev) => (prev === card.key ? 'all' : card.key))}
+                onClick={
+                  activeMainTab === 'leads' && previewLeadMode
+                    ? undefined
+                    : () => setActiveMetricFilter((prev) => (prev === card.key ? 'all' : card.key))
+                }
                 className={`overflow-hidden rounded-2xl border text-left transition-all ${isActive ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/70 bg-card hover:border-primary/40 hover:bg-muted/20'}`}
               >
                 <div className="flex items-start justify-between gap-4 p-4 sm:p-5">

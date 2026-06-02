@@ -188,6 +188,18 @@ const getConversationRemark = (conversation = {}) =>
       '',
   ).trim();
 
+const getCallDialLabel = (call = {}) => {
+  const disposition = String(call?.Disposition || call?.disposition || '').trim();
+  const hasAnstime = call?.anstime && Number(call.anstime) > 0;
+  const duration = Number(call?.duration || 0);
+  const isAnswered = hasAnstime || duration > 0;
+  return {
+    label: isAnswered ? 'Answered' : disposition ? 'Dialed Not Picked' : 'N/A',
+    isAnswered,
+    hasDisposition: !!disposition,
+  };
+};
+
 const getConversationMatchKey = (conversation = {}, index = 0) =>
   String(
     conversation?._id ||
@@ -330,8 +342,13 @@ const mapLeadRow = (lead, index) => {
         .slice(0, 2)
         .map(([, value]) => String(value))
         .join(' • ') || 'Lead details available',
-    status: state === 'completed' || Number(lead?.lastDialedStatus || 0) === 2 ? 'Completed' : contacted ? 'Contacted' : 'Pending',
-    dialLabel: (function() {
+    status:
+      state === 'completed' || Number(lead?.lastDialedStatus || 0) === 2
+        ? 'Completed'
+        : contacted
+          ? 'Contacted'
+          : 'Pending',
+    dialLabel: (function () {
       const ds = Number(lead?.lastDialedStatus ?? -1);
       if (ds === 0) return 'Not Dialed';
       if (ds === 1) return 'Dialed Not Picked';
@@ -533,7 +550,7 @@ export default function ContactCentricWorkspace({
       setWorkspaceLoading(true);
       setWorkspaceError('');
       try {
-        const response = await axios.get(`https://devapp.iotcom.io/contact/${normalizedNumber}/full`, {
+        const response = await axios.get(`${window.location.origin}/contact/${normalizedNumber}/full`, {
           params: { limit: 50 },
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -863,31 +880,22 @@ export default function ContactCentricWorkspace({
                                   </TableCell>
                                   <TableCell>{formatDuration(call)}</TableCell>
                                   <TableCell>
-                                    {(() => {
-                                      const disposition = String(call?.Disposition || call?.disposition || '').trim();
-                                      const hasAnstime = call?.anstime && Number(call.anstime) > 0;
-                                      const duration = Number(call?.duration || 0);
-                                      const isAnswered = hasAnstime || duration > 0;
-                                      const dialLabel = isAnswered
-                                        ? 'Answered'
-                                        : disposition
-                                          ? 'Dialed Not Picked'
-                                          : 'N/A';
-                                      return (
-                                        <Badge
-                                          variant={isAnswered ? 'default' : 'secondary'}
-                                          className={
-                                            isAnswered
-                                              ? 'bg-green-600 text-white hover:bg-green-700'
-                                              : disposition
-                                                ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300'
-                                                : ''
-                                          }
-                                        >
-                                          {dialLabel}
-                                        </Badge>
-                                      );
-                                    })()}
+                                    {getCallDialLabel(call).isAnswered ? (
+                                      <Badge variant="default" className="bg-green-600 text-white hover:bg-green-700">
+                                        {getCallDialLabel(call).label}
+                                      </Badge>
+                                    ) : (
+                                      <Badge
+                                        variant="secondary"
+                                        className={
+                                          getCallDialLabel(call).hasDisposition
+                                            ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300'
+                                            : ''
+                                        }
+                                      >
+                                        {getCallDialLabel(call).label}
+                                      </Badge>
+                                    )}
                                   </TableCell>
                                   <TableCell className="max-w-[260px] truncate text-muted-foreground">
                                     {previewText}
@@ -1183,7 +1191,9 @@ export default function ContactCentricWorkspace({
                           ) : (
                             <TableHead className="h-11 px-3">Dial Status</TableHead>
                           )}
-                          <TableHead className="h-11 px-3">{mode === 'callInfo' ? 'Duration' : 'Last Updated'}</TableHead>
+                          <TableHead className="h-11 px-3">
+                            {mode === 'callInfo' ? 'Duration' : 'Last Updated'}
+                          </TableHead>
                           <TableHead className="h-11 px-3">{mode === 'callInfo' ? '' : 'Preview'}</TableHead>
                           <TableHead className="h-11 px-3">
                             {mode === 'callInfo' ? 'Disposition / Status' : ''}
@@ -1203,15 +1213,9 @@ export default function ContactCentricWorkspace({
                             <TableCell className="align-middle px-3 py-1.5">{row.callerName || '-'}</TableCell>
                             <TableCell className="align-middle px-3 py-1.5">
                               {mode === 'callInfo' ? (
-                                <Badge
-                                  variant={row.type === 'Incoming' ? 'default' : 'secondary'}
-                                >
-                                  {row.type}
-                                </Badge>
+                                <Badge variant={row.type === 'Incoming' ? 'default' : 'secondary'}>{row.type}</Badge>
                               ) : (
-                                <Badge
-                                  variant={row.status === 'Completed' ? 'default' : 'secondary'}
-                                >
+                                <Badge variant={row.status === 'Completed' ? 'default' : 'secondary'}>
                                   {row.status}
                                 </Badge>
                               )}
@@ -1238,7 +1242,9 @@ export default function ContactCentricWorkspace({
                                 >
                                   {row.dialLabel}
                                 </Badge>
-                              ) : '-'}
+                              ) : (
+                                '-'
+                              )}
                             </TableCell>
                             <TableCell className="align-middle px-3 py-1.5">{formatTimestamp(row.time)}</TableCell>
                             <TableCell className="align-middle px-3 py-1.5">{row.durationLabel}</TableCell>
@@ -1527,31 +1533,22 @@ export default function ContactCentricWorkspace({
                                 </TableCell>
                                 <TableCell>{formatDuration(call)}</TableCell>
                                 <TableCell>
-                                  {(() => {
-                                    const disposition = String(call?.Disposition || call?.disposition || '').trim();
-                                    const hasAnstime = call?.anstime && Number(call.anstime) > 0;
-                                    const duration = Number(call?.duration || 0);
-                                    const isAnswered = hasAnstime || duration > 0;
-                                    const dialLabel = isAnswered
-                                      ? 'Answered'
-                                      : disposition
-                                        ? 'Dialed Not Picked'
-                                        : 'N/A';
-                                    return (
-                                      <Badge
-                                        variant={isAnswered ? 'default' : 'secondary'}
-                                        className={
-                                          isAnswered
-                                            ? 'bg-green-600 text-white hover:bg-green-700'
-                                            : disposition
-                                              ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300'
-                                              : ''
-                                        }
-                                      >
-                                        {dialLabel}
-                                      </Badge>
-                                    );
-                                  })()}
+                                  {getCallDialLabel(call).isAnswered ? (
+                                    <Badge variant="default" className="bg-green-600 text-white hover:bg-green-700">
+                                      {getCallDialLabel(call).label}
+                                    </Badge>
+                                  ) : (
+                                    <Badge
+                                      variant="secondary"
+                                      className={
+                                        getCallDialLabel(call).hasDisposition
+                                          ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300'
+                                          : ''
+                                      }
+                                    >
+                                      {getCallDialLabel(call).label}
+                                    </Badge>
+                                  )}
                                 </TableCell>
                                 <TableCell className="max-w-[260px] truncate text-muted-foreground">
                                   {previewText}
@@ -1631,77 +1628,6 @@ export default function ContactCentricWorkspace({
                                                     {key.replace(/([A-Z])/g, ' $1').trim()}
                                                   </div>
                                                   <div className="text-sm font-medium text-foreground">
-                                                    {String(value)}
-                                                  </div>
-                                                </div>
-                                              ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ) : null}
-                            </React.Fragment>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-                                      ) : (
-                                        <div className="rounded-xl border border-border/60 bg-background/80 px-4 py-3">
-                                          <div className="flex flex-wrap items-center justify-between gap-2">
-                                            <div className="text-sm font-medium text-foreground">
-                                              {relatedConversation?.formTitle || 'Tagging Conversation'}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">
-                                              {formatTimestamp(
-                                                relatedConversation?.updatedAt || relatedConversation?.createdAt,
-                                              )}
-                                            </div>
-                                          </div>
-                                          <div className="mt-2 text-sm text-muted-foreground">
-                                            {getConversationRemark(relatedConversation) ||
-                                              'Tagging updated for this call.'}
-                                          </div>
-                                          <div className="mt-3 grid gap-2 md:grid-cols-2">
-                                            {Object.entries(relatedConversation)
-                                              .filter(
-                                                ([key, value]) =>
-                                                  value !== undefined &&
-                                                  value !== null &&
-                                                  String(value).trim() !== '' &&
-                                                  ![
-                                                    'id',
-                                                    '_id',
-                                                    '__v',
-                                                    'createdAt',
-                                                    'updatedAt',
-                                                    'contactNumber',
-                                                    'agentName',
-                                                    'formId',
-                                                    'formID',
-                                                    'formTitle',
-                                                    'campaignId',
-                                                    'campaignName',
-                                                    'entryMode',
-                                                    'callReference',
-                                                  ].includes(key),
-                                              )
-                                              .slice(0, 8)
-                                              .map(([key, value]) => (
-                                                <div
-                                                  key={key}
-                                                  className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2"
-                                                >
-                                                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                                                    {toLabel(key)}
-                                                  </div>
-                                                  <div className="mt-1 break-words text-sm font-medium text-foreground">
                                                     {String(value)}
                                                   </div>
                                                 </div>
