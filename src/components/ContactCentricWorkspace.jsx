@@ -862,7 +862,33 @@ export default function ContactCentricWorkspace({
                                     </Badge>
                                   </TableCell>
                                   <TableCell>{formatDuration(call)}</TableCell>
-                                  <TableCell>{String(call?.Disposition || call?.disposition || 'N/A')}</TableCell>
+                                  <TableCell>
+                                    {(() => {
+                                      const disposition = String(call?.Disposition || call?.disposition || '').trim();
+                                      const hasAnstime = call?.anstime && Number(call.anstime) > 0;
+                                      const duration = Number(call?.duration || 0);
+                                      const isAnswered = hasAnstime || duration > 0;
+                                      const dialLabel = isAnswered
+                                        ? 'Answered'
+                                        : disposition
+                                          ? 'Dialed Not Picked'
+                                          : 'N/A';
+                                      return (
+                                        <Badge
+                                          variant={isAnswered ? 'default' : 'secondary'}
+                                          className={
+                                            isAnswered
+                                              ? 'bg-green-600 text-white hover:bg-green-700'
+                                              : disposition
+                                                ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300'
+                                                : ''
+                                          }
+                                        >
+                                          {dialLabel}
+                                        </Badge>
+                                      );
+                                    })()}
+                                  </TableCell>
                                   <TableCell className="max-w-[260px] truncate text-muted-foreground">
                                     {previewText}
                                   </TableCell>
@@ -1500,7 +1526,33 @@ export default function ContactCentricWorkspace({
                                   </Badge>
                                 </TableCell>
                                 <TableCell>{formatDuration(call)}</TableCell>
-                                <TableCell>{String(call?.Disposition || call?.disposition || 'N/A')}</TableCell>
+                                <TableCell>
+                                  {(() => {
+                                    const disposition = String(call?.Disposition || call?.disposition || '').trim();
+                                    const hasAnstime = call?.anstime && Number(call.anstime) > 0;
+                                    const duration = Number(call?.duration || 0);
+                                    const isAnswered = hasAnstime || duration > 0;
+                                    const dialLabel = isAnswered
+                                      ? 'Answered'
+                                      : disposition
+                                        ? 'Dialed Not Picked'
+                                        : 'N/A';
+                                    return (
+                                      <Badge
+                                        variant={isAnswered ? 'default' : 'secondary'}
+                                        className={
+                                          isAnswered
+                                            ? 'bg-green-600 text-white hover:bg-green-700'
+                                            : disposition
+                                              ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300'
+                                              : ''
+                                        }
+                                      >
+                                        {dialLabel}
+                                      </Badge>
+                                    );
+                                  })()}
+                                </TableCell>
                                 <TableCell className="max-w-[260px] truncate text-muted-foreground">
                                   {previewText}
                                 </TableCell>
@@ -1536,6 +1588,70 @@ export default function ContactCentricWorkspace({
                                         <div className="text-sm text-muted-foreground">
                                           Tagging not updated for this call.
                                         </div>
+                                      ) : (
+                                        <div className="rounded-xl border border-border/60 bg-background/80 px-4 py-3">
+                                          <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <div className="text-sm font-medium text-foreground">
+                                              {relatedConversation?.formTitle || 'Tagging Conversation'}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                              {formatTimestamp(
+                                                relatedConversation?.updatedAt || relatedConversation?.createdAt,
+                                              )}
+                                            </div>
+                                          </div>
+                                          <div className="mt-2 text-sm text-muted-foreground">
+                                            {getConversationRemark(relatedConversation) ||
+                                              'Tagging updated for this call.'}
+                                          </div>
+                                          <div className="mt-3 grid gap-2 md:grid-cols-2">
+                                            {Object.entries(relatedConversation)
+                                              .filter(
+                                                ([key, value]) =>
+                                                  value !== undefined &&
+                                                  value !== null &&
+                                                  String(value).trim() !== '' &&
+                                                  ![
+                                                    'id',
+                                                    '_id',
+                                                    '__v',
+                                                    'createdAt',
+                                                    'updatedAt',
+                                                    'callId',
+                                                    'callRecordId',
+                                                    'callHistoryId',
+                                                    'historyId',
+                                                    'leadId',
+                                                  ].includes(key),
+                                              )
+                                              .slice(0, 4)
+                                              .map(([key, value]) => (
+                                                <div key={key} className="space-y-0.5">
+                                                  <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+                                                    {key.replace(/([A-Z])/g, ' $1').trim()}
+                                                  </div>
+                                                  <div className="text-sm font-medium text-foreground">
+                                                    {String(value)}
+                                                  </div>
+                                                </div>
+                                              ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ) : null}
+                            </React.Fragment>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
                                       ) : (
                                         <div className="rounded-xl border border-border/60 bg-background/80 px-4 py-3">
                                           <div className="flex flex-wrap items-center justify-between gap-2">
