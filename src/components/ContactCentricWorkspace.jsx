@@ -1121,12 +1121,27 @@ export default function ContactCentricWorkspace({
                   ) : (
                     <Table className="table-fixed">
                       <colgroup>
-                        <col className="w-[16%]" />
-                        <col className="w-[14%]" />
-                        <col className="w-[9%]" />
-                        <col className="w-[24%]" />
-                        <col className="w-[8%]" />
-                        <col className="w-[29%]" />
+                        {mode === 'callInfo' ? (
+                          <>
+                            <col className="w-[16%]" />
+                            <col className="w-[14%]" />
+                            <col className="w-[9%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[8%]" />
+                            <col className="w-[20%]" />
+                            <col className="w-[18%]" />
+                          </>
+                        ) : (
+                          <>
+                            <col className="w-[14%]" />
+                            <col className="w-[12%]" />
+                            <col className="w-[8%]" />
+                            <col className="w-[11%]" />
+                            <col className="w-[18%]" />
+                            <col className="w-[8%]" />
+                            <col className="w-[29%]" />
+                          </>
+                        )}
                       </colgroup>
                       <TableHeader className="sticky top-0 z-10 bg-card">
                         <TableRow>
@@ -1137,8 +1152,13 @@ export default function ContactCentricWorkspace({
                             {mode === 'callInfo' ? 'Caller Name' : 'Lead Name'}
                           </TableHead>
                           <TableHead className="h-11 px-3">{mode === 'callInfo' ? 'Type' : 'Status'}</TableHead>
-                          <TableHead className="h-11 px-3">{mode === 'callInfo' ? 'Time' : 'Last Updated'}</TableHead>
-                          <TableHead className="h-11 px-3">{mode === 'callInfo' ? 'Duration' : 'Preview'}</TableHead>
+                          {mode === 'callInfo' ? (
+                            <TableHead className="h-11 px-3">Time</TableHead>
+                          ) : (
+                            <TableHead className="h-11 px-3">Dial Status</TableHead>
+                          )}
+                          <TableHead className="h-11 px-3">{mode === 'callInfo' ? 'Duration' : 'Last Updated'}</TableHead>
+                          <TableHead className="h-11 px-3">{mode === 'callInfo' ? '' : 'Preview'}</TableHead>
                           <TableHead className="h-11 px-3">
                             {mode === 'callInfo' ? 'Disposition / Status' : ''}
                           </TableHead>
@@ -1158,33 +1178,41 @@ export default function ContactCentricWorkspace({
                             <TableCell className="align-middle px-3 py-1.5">
                               {mode === 'callInfo' ? (
                                 <Badge
-                                  variant={
-                                    (mode === 'callInfo' ? row.type : row.status) === 'Incoming' ||
-                                    row.status === 'Completed'
-                                      ? 'default'
-                                      : 'secondary'
-                                  }
+                                  variant={row.type === 'Incoming' ? 'default' : 'secondary'}
                                 >
-                                  {mode === 'callInfo' ? row.type : row.status}
+                                  {row.type}
                                 </Badge>
                               ) : (
-                                <div className="flex items-center gap-1.5">
-                                  <Badge
-                                    variant={
-                                      row.status === 'Completed'
-                                        ? 'default'
-                                        : 'secondary'
-                                    }
-                                  >
-                                    {row.status}
-                                  </Badge>
-                                  {row.dialLabel && (
-                                    <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">
-                                      {row.dialLabel}
-                                    </span>
-                                  )}
-                                </div>
+                                <Badge
+                                  variant={row.status === 'Completed' ? 'default' : 'secondary'}
+                                >
+                                  {row.status}
+                                </Badge>
                               )}
+                            </TableCell>
+                            <TableCell className="align-middle px-3 py-1.5">
+                              {mode === 'callInfo' ? (
+                                formatTimestamp(row.time)
+                              ) : row.dialLabel ? (
+                                <Badge
+                                  variant={
+                                    row.dialLabel === 'Answered'
+                                      ? 'default'
+                                      : row.dialLabel === 'Not Dialed'
+                                        ? 'outline'
+                                        : 'secondary'
+                                  }
+                                  className={
+                                    row.dialLabel === 'Answered'
+                                      ? 'bg-green-600 text-white hover:bg-green-700'
+                                      : row.dialLabel === 'Dialed Not Picked'
+                                        ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300'
+                                        : ''
+                                  }
+                                >
+                                  {row.dialLabel}
+                                </Badge>
+                              ) : '-'}
                             </TableCell>
                             <TableCell className="align-middle px-3 py-1.5">{formatTimestamp(row.time)}</TableCell>
                             <TableCell className="align-middle px-3 py-1.5">{row.durationLabel}</TableCell>
