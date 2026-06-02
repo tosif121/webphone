@@ -1569,7 +1569,7 @@ function Dashboard() {
               <button
                 key={card.key}
                 type="button"
-                onClick={() => setActiveMetricFilter((prev) => (prev === card.key ? 'all' : card.key))}
+                onClick={activeMainTab === 'leads' && previewLeadMode ? undefined : () => setActiveMetricFilter((prev) => (prev === card.key ? 'all' : card.key))}
                 className={`overflow-hidden rounded-2xl border text-left transition-all ${isActive ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/70 bg-card hover:border-primary/40 hover:bg-muted/20'}`}
               >
                 <div className="flex items-start justify-between gap-4 p-4 sm:p-5">
