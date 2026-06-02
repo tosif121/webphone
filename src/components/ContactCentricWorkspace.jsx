@@ -331,6 +331,13 @@ const mapLeadRow = (lead, index) => {
         .map(([, value]) => String(value))
         .join(' • ') || 'Lead details available',
     status: state === 'completed' || Number(lead?.lastDialedStatus || 0) === 2 ? 'Completed' : contacted ? 'Contacted' : 'Pending',
+    dialLabel: (function() {
+      const ds = Number(lead?.lastDialedStatus ?? -1);
+      if (ds === 0) return 'Not Dialed';
+      if (ds === 1) return 'Dialed Not Picked';
+      if (ds === 2) return 'Answered';
+      return '';
+    })(),
     raw: lead,
   };
 };
@@ -1149,16 +1156,35 @@ export default function ContactCentricWorkspace({
                             </TableCell>
                             <TableCell className="align-middle px-3 py-1.5">{row.callerName || '-'}</TableCell>
                             <TableCell className="align-middle px-3 py-1.5">
-                              <Badge
-                                variant={
-                                  (mode === 'callInfo' ? row.type : row.status) === 'Incoming' ||
-                                  row.status === 'Completed'
-                                    ? 'default'
-                                    : 'secondary'
-                                }
-                              >
-                                {mode === 'callInfo' ? row.type : row.status}
-                              </Badge>
+                              {mode === 'callInfo' ? (
+                                <Badge
+                                  variant={
+                                    (mode === 'callInfo' ? row.type : row.status) === 'Incoming' ||
+                                    row.status === 'Completed'
+                                      ? 'default'
+                                      : 'secondary'
+                                  }
+                                >
+                                  {mode === 'callInfo' ? row.type : row.status}
+                                </Badge>
+                              ) : (
+                                <div className="flex items-center gap-1.5">
+                                  <Badge
+                                    variant={
+                                      row.status === 'Completed'
+                                        ? 'default'
+                                        : 'secondary'
+                                    }
+                                  >
+                                    {row.status}
+                                  </Badge>
+                                  {row.dialLabel && (
+                                    <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">
+                                      {row.dialLabel}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </TableCell>
                             <TableCell className="align-middle px-3 py-1.5">{formatTimestamp(row.time)}</TableCell>
                             <TableCell className="align-middle px-3 py-1.5">{row.durationLabel}</TableCell>
