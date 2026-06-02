@@ -324,6 +324,7 @@ function Dashboard() {
       const leadDashboardResponse = await axios.get(`${window.location.origin}/lead/dashboard`, {
         params: {
           limit: 200,
+          includeCompleted: true,
         },
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       });
@@ -334,7 +335,7 @@ function Dashboard() {
       const completedLeads = Number(summary.completedLeads || 0);
       const pendingLeads = Number(summary.pendingLeads || 0);
       const assignedLeads = Number(summary.totalLeads || leads.length || 0);
-      const contactedLeads = Math.max(Number(summary.contactedLeads || 0), assignedLeads - pendingLeads);
+      const contactedLeads = Number(summary.contactedLeads || 0);
 
       setLeadsData(leads);
       setLeadStats({
@@ -1143,7 +1144,8 @@ function Dashboard() {
       .filter(([key, value]) => {
         const normalizedKey = String(key).toLowerCase();
         if (normalizedSkipKeys.has(normalizedKey) || skipKeys.has(normalizedKey)) return false;
-        if (value === undefined || value === null || String(value).trim() === '') return false;
+        if (value === undefined || value === null || String(value).trim() === '' || String(value).trim() === '-')
+          return false;
         return typeof value !== 'object';
       })
       .map(([key, value]) => ({
@@ -1156,7 +1158,7 @@ function Dashboard() {
       }));
 
     const filteredPreferredEntries = preferredLeadEntries.filter(
-      (entry) => entry.value && String(entry.value).trim() !== '',
+      (entry) => entry.value && String(entry.value).trim() !== '' && String(entry.value).trim() !== '-',
     );
 
     return [...filteredPreferredEntries, ...additionalEntries].slice(0, 12);
@@ -1182,7 +1184,6 @@ function Dashboard() {
         { key: 'completed', label: 'Completed Leads', value: leadStats.completedLeads, icon: BarChart3 },
       ];
     }
-
     return [
       { key: 'all', label: 'Total Calls', value: callStats.totalCalls, icon: Phone },
       { key: 'incoming', label: 'Incoming Calls', value: callStats.incomingCalls, icon: PhoneIncoming },

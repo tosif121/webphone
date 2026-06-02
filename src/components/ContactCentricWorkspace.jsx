@@ -476,13 +476,13 @@ export default function ContactCentricWorkspace({
     const sourceRows = (mode === 'callInfo' ? callsData : leadsData)
       .map(mode === 'callInfo' ? mapCallRow : mapLeadRow)
       .map(buildRowSearchIndex);
-    return sourceRows.filter((row) => {
+    const filtered = sourceRows.filter((row) => {
       if (mode === 'callInfo') {
         if (activeCardFilter === 'incoming' && row.type !== 'Incoming') return false;
         if (activeCardFilter === 'outgoing' && row.type !== 'Outgoing') return false;
         if (activeCardFilter === 'connected' && row.durationLabel === '00:00') return false;
       } else {
-        if (activeCardFilter === 'contacted' && row.status === 'Pending') return false;
+        if (activeCardFilter === 'contacted' && row.status !== 'Contacted') return false;
         if (activeCardFilter === 'pending' && row.status !== 'Pending') return false;
         if (activeCardFilter === 'completed' && row.status !== 'Completed') return false;
       }
@@ -492,6 +492,18 @@ export default function ContactCentricWorkspace({
       const matchesText = row._searchText.includes(normalizedSearchText);
       return matchesNumber || matchesText;
     });
+    if (mode === 'leads') {
+      const priority = { Completed: 0, Contacted: 1, Pending: 2 };
+      filtered.sort((a, b) => (priority[a.status] ?? 3) - (priority[b.status] ?? 3));
+      const seen = new Set();
+      return filtered.filter((row) => {
+        const key = row.callerNumber;
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+    return filtered;
   }, [activeCardFilter, callsData, datePreset, leadsData, mode, searchTerm]);
 
   const totalPages = Math.max(1, Math.ceil(rows.length / rowsPerPage));
@@ -499,6 +511,20 @@ export default function ContactCentricWorkspace({
     () => rows.slice(pageIndex * rowsPerPage, pageIndex * rowsPerPage + rowsPerPage),
     [pageIndex, rows, rowsPerPage],
   );
+  if (mode === 'leads')
+    console.log(
+      '[Contacted Leads]',
+      pagedRows
+        .filter((r) => r.status === 'Contacted')
+        .map((r) => ({
+          number: r.callerNumber,
+          status: r.status,
+          type: r.type,
+          callerName: r.callerName,
+          leadState: r.raw?.leadState,
+          lastDialedStatus: r.raw?.lastDialedStatus,
+        })),
+    );
   useEffect(() => setPageIndex(0), [rowsPerPage, searchTerm, datePreset]);
   useEffect(() => {
     if (pageIndex >= totalPages) setPageIndex(Math.max(totalPages - 1, 0));
@@ -734,7 +760,7 @@ export default function ContactCentricWorkspace({
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:mb-0 mb-20">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:mb-10 mb-20">
                 {smartLeadDetailEntries.length > 0 ? (
                   smartLeadDetailEntries.map((entry) => (
                     <div
@@ -754,6 +780,192 @@ export default function ContactCentricWorkspace({
                     No additional lead fields are available for this record.
                   </div>
                 )}
+              </div>
+              <div className="flex h-auto flex-col rounded-3xl border border-border/70 bg-card shadow-sm">
+                <div className="flex flex-col gap-3 border-b border-border/60 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <div className="text-lg font-semibold text-foreground">Call History + Tagging</div>
+                    <div className="text-sm text-muted-foreground">
+                      Recent attempts for this contact with call-specific tagging preview.
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Select
+                      value={String(historyRowsPerPage)}
+                      onValueChange={(value) => setHistoryRowsPerPage(Number(value))}
+                    >
+                      <SelectTrigger className="h-10 w-[126px] rounded-full border-border/70 bg-background text-sm">
+                        <SelectValue placeholder="10 rows" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAGE_OPTIONS.map((value) => (
+                          <SelectItem key={value} value={String(value)}>
+                            {value} rows
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={historyDatePreset} onValueChange={setHistoryDatePreset}>
+                      <SelectTrigger className="h-10 w-[170px] rounded-full border-border/70 bg-background text-sm">
+                        <div className="flex items-center gap-2">
+                          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                          <SelectValue placeholder="Last 7 Days" />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7d">Last 7 Days</SelectItem>
+                        <SelectItem value="30d">Last 30 Days</SelectItem>
+                        <SelectItem value="all">All Time</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="h-auto overflow-y-auto px-5 py-4">
+                  {workspaceLoading ? (
+                    <SkeletonRows />
+                  ) : historyRowsWithConversations.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-border/60 px-4 py-8 sm:px-6 sm:py-16 text-center">
+                      <div className="text-base sm:text-lg font-semibold text-foreground">No contact history found</div>
+                      <p className="mt-2 text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+                        There are no call attempts for this contact in the selected range.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="overflow-hidden rounded-2xl border border-border/70">
+                      <Table>
+                        <TableHeader className="sticky top-0 z-10 bg-card">
+                          <TableRow>
+                            <TableHead>Time</TableHead>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Duration</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Tag Preview</TableHead>
+                            <TableHead className="w-[110px]">Action</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {historyRowsWithConversations.map(({ call, historyId, relatedConversation, previewText }) => {
+                            const callType =
+                              String(call?.Type || call?.callType || '')
+                                .trim()
+                                .toLowerCase() === 'incoming'
+                                ? 'Incoming'
+                                : 'Outgoing';
+                            return (
+                              <React.Fragment key={historyId}>
+                                <TableRow className="hover:bg-muted/30">
+                                  <TableCell>
+                                    {formatTimestamp(call?.startTime || call?.createdAt || call?.updatedAt)}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant={callType === 'Incoming' ? 'default' : 'secondary'}>
+                                      {callType === 'Incoming' ? (
+                                        <PhoneIncoming className="mr-1 h-3.5 w-3.5" />
+                                      ) : (
+                                        <PhoneOutgoing className="mr-1 h-3.5 w-3.5" />
+                                      )}
+                                      {callType}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>{formatDuration(call)}</TableCell>
+                                  <TableCell>{String(call?.Disposition || call?.disposition || 'N/A')}</TableCell>
+                                  <TableCell className="max-w-[260px] truncate text-muted-foreground">
+                                    {previewText}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 rounded-full px-3 text-primary"
+                                      onClick={() =>
+                                        setExpandedHistoryId((prev) => (prev === historyId ? null : historyId))
+                                      }
+                                    >
+                                      <Eye className="mr-1.5 h-4 w-4" />
+                                      {expandedHistoryId === historyId ? 'Hide' : 'View'}
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                                {expandedHistoryId === historyId ? (
+                                  <TableRow>
+                                    <TableCell colSpan={6} className="bg-muted/10">
+                                      <div
+                                        ref={(node) => {
+                                          if (node) {
+                                            historyRowRefs.current[historyId] = node;
+                                          } else {
+                                            delete historyRowRefs.current[historyId];
+                                          }
+                                        }}
+                                        className="space-y-3 py-2"
+                                      >
+                                        {!relatedConversation ? (
+                                          <div className="text-sm text-muted-foreground">
+                                            Tagging not updated for this call.
+                                          </div>
+                                        ) : (
+                                          <div className="rounded-xl border border-border/60 bg-background/80 px-4 py-3">
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                              <div className="text-sm font-medium text-foreground">
+                                                {relatedConversation?.formTitle || 'Tagging Conversation'}
+                                              </div>
+                                              <div className="text-xs text-muted-foreground">
+                                                {formatTimestamp(
+                                                  relatedConversation?.updatedAt || relatedConversation?.createdAt,
+                                                )}
+                                              </div>
+                                            </div>
+                                            <div className="mt-2 text-sm text-muted-foreground">
+                                              {getConversationRemark(relatedConversation) ||
+                                                'Tagging updated for this call.'}
+                                            </div>
+                                            <div className="mt-3 grid gap-2 md:grid-cols-2">
+                                              {Object.entries(relatedConversation)
+                                                .filter(
+                                                  ([key, value]) =>
+                                                    value !== undefined &&
+                                                    value !== null &&
+                                                    String(value).trim() !== '' &&
+                                                    ![
+                                                      'id',
+                                                      '_id',
+                                                      '__v',
+                                                      'createdAt',
+                                                      'updatedAt',
+                                                      'callId',
+                                                      'callRecordId',
+                                                      'callHistoryId',
+                                                      'historyId',
+                                                      'leadId',
+                                                    ].includes(key),
+                                                )
+                                                .slice(0, 4)
+                                                .map(([key, value]) => (
+                                                  <div key={key} className="space-y-0.5">
+                                                    <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+                                                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                                                    </div>
+                                                    <div className="text-sm font-medium text-foreground">
+                                                      {String(value)}
+                                                    </div>
+                                                  </div>
+                                                ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ) : null}
+                              </React.Fragment>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           ) : (
@@ -934,7 +1146,7 @@ export default function ContactCentricWorkspace({
                           <TableHead className="h-11 px-3">{mode === 'callInfo' ? 'Time' : 'Last Updated'}</TableHead>
                           <TableHead className="h-11 px-3">{mode === 'callInfo' ? 'Duration' : 'Preview'}</TableHead>
                           <TableHead className="h-11 px-3">
-                            {mode === 'callInfo' ? 'Disposition / Status' : 'Action'}
+                            {mode === 'callInfo' ? 'Disposition / Status' : ''}
                           </TableHead>
                         </TableRow>
                       </TableHeader>
