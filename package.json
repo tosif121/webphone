@@ -1,6 +1,6 @@
 {
   "name": "webphone",
-  "version": "0.2.32",
+  "version": "0.2.48",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
