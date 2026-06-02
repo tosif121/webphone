@@ -471,11 +471,6 @@ export default function ContactCentricWorkspace({
     setMobileDetailsOpen(false);
   }, [mode, activeCardFilter, previewLeadMode]);
 
-  useEffect(() => {
-    if (mode === 'leads' && previewLeadMode && activeLeadNumber) {
-      fetchWorkspace(activeLeadNumber);
-    }
-  }, [mode, previewLeadMode, activeLeadNumber, fetchWorkspace]);
   const rows = useMemo(() => {
     const normalizedSearchText = normalizeSearchText(searchTerm);
     const normalizedDigits = normalizeSearchDigits(searchTerm);
@@ -555,6 +550,12 @@ export default function ContactCentricWorkspace({
     },
     [token],
   );
+
+  useEffect(() => {
+    if (mode === 'leads' && previewLeadMode && activeLeadNumber) {
+      fetchWorkspace(activeLeadNumber);
+    }
+  }, [mode, previewLeadMode, activeLeadNumber, fetchWorkspace]);
 
   const handleSelectRow = useCallback(
     async (row) => {
