@@ -470,6 +470,12 @@ export default function ContactCentricWorkspace({
     setHistoryDatePreset('7d');
     setMobileDetailsOpen(false);
   }, [mode, activeCardFilter, previewLeadMode]);
+
+  useEffect(() => {
+    if (mode === 'leads' && previewLeadMode && activeLeadNumber) {
+      fetchWorkspace(activeLeadNumber);
+    }
+  }, [mode, previewLeadMode, activeLeadNumber, fetchWorkspace]);
   const rows = useMemo(() => {
     const normalizedSearchText = normalizeSearchText(searchTerm);
     const normalizedDigits = normalizeSearchDigits(searchTerm);
@@ -511,20 +517,7 @@ export default function ContactCentricWorkspace({
     () => rows.slice(pageIndex * rowsPerPage, pageIndex * rowsPerPage + rowsPerPage),
     [pageIndex, rows, rowsPerPage],
   );
-  if (mode === 'leads')
-    console.log(
-      '[Contacted Leads]',
-      pagedRows
-        .filter((r) => r.status === 'Contacted')
-        .map((r) => ({
-          number: r.callerNumber,
-          status: r.status,
-          type: r.type,
-          callerName: r.callerName,
-          leadState: r.raw?.leadState,
-          lastDialedStatus: r.raw?.lastDialedStatus,
-        })),
-    );
+
   useEffect(() => setPageIndex(0), [rowsPerPage, searchTerm, datePreset]);
   useEffect(() => {
     if (pageIndex >= totalPages) setPageIndex(Math.max(totalPages - 1, 0));
@@ -545,7 +538,7 @@ export default function ContactCentricWorkspace({
       setWorkspaceLoading(true);
       setWorkspaceError('');
       try {
-        const response = await axios.get(`${window.location.origin}/contact/${normalizedNumber}/full`, {
+        const response = await axios.get(`https://devapp.iotcom.io/contact/${normalizedNumber}/full`, {
           params: { limit: 50 },
           headers: { Authorization: `Bearer ${token}` },
         });
