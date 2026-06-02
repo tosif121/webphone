@@ -321,7 +321,7 @@ function Dashboard() {
     setLeadError('');
 
     try {
-      const leadDashboardResponse = await axios.get(`${window.location.origin}/lead/dashboard`, {
+      const leadDashboardResponse = await axios.get(`https://devapp.iotcom.io/lead/dashboard`, {
         params: {
           limit: 200,
           includeCompleted: true,
@@ -398,7 +398,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/reports/calls/byAgent`,
+        `https://devapp.iotcom.io/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -475,7 +475,7 @@ function Dashboard() {
 
     try {
       const response = await axios.post(
-        `${window.location.origin}/userMissedCalls/${username}`,
+        `https://devapp.iotcom.io/userMissedCalls/${username}`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -512,7 +512,7 @@ function Dashboard() {
     setSmartLeadError('');
     try {
       const response = await axios.post(
-        `${window.location.origin}/lead/next`,
+        `https://devapp.iotcom.io/lead/next`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -540,7 +540,7 @@ function Dashboard() {
 
     try {
       await axios.post(
-        `${window.location.origin}/lead/skip`,
+        `https://devapp.iotcom.io/lead/skip`,
         {
           leadId: activeLead.leadId,
           lockToken: leadLockToken,
@@ -845,7 +845,7 @@ function Dashboard() {
         console.log('[agentAvailable] calling API:', currentCallData?.Caller);
         try {
           const { data } = await axios.post(
-            `${window.location.origin}/user/agentAvailable/${username}`,
+            `https://devapp.iotcom.io/user/agentAvailable/${username}`,
             {},
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -1175,13 +1175,24 @@ function Dashboard() {
       : `${String(minutesValue).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   }, []);
 
+  const dialStats = useMemo(() => {
+    const leads = activeMainTab === 'leads' ? leadsData : [];
+    const total = leads.length;
+    const notDialed = leads.filter((l) => Number(l.lastDialedStatus || 0) === 0).length;
+    const dialedNotPicked = leads.filter((l) => Number(l.lastDialedStatus || 0) === 1).length;
+    const answered = leads.filter((l) => Number(l.lastDialedStatus || 0) === 2).length;
+    const others = Math.max(0, total - notDialed - dialedNotPicked - answered);
+    return { total, notDialed, dialedNotPicked, answered, others };
+  }, [activeMainTab, leadsData]);
+
   const dashboardCards = useMemo(() => {
     if (activeMainTab === 'leads') {
       return [
-        { key: 'all', label: 'Assigned Leads', value: leadStats.assignedLeads, icon: Users },
-        { key: 'contacted', label: 'Contacted Leads', value: leadStats.contactedLeads, icon: CheckCircle },
-        { key: 'pending', label: 'Pending Leads', value: leadStats.pendingLeads, icon: AlertCircle },
-        { key: 'completed', label: 'Completed Leads', value: leadStats.completedLeads, icon: BarChart3 },
+        { key: 'all', label: 'Total Leads', value: dialStats.total, icon: Users },
+        { key: 'notDialed', label: 'Not Dialed', value: dialStats.notDialed, icon: Phone },
+        { key: 'dialedNotPicked', label: 'Dialed Not Picked', value: dialStats.dialedNotPicked, icon: PhoneForwarded },
+        { key: 'answered', label: 'Answered', value: dialStats.answered, icon: CheckCircle },
+        { key: 'others', label: 'Others', value: dialStats.others, icon: BarChart3 },
       ];
     }
     return [
@@ -1202,10 +1213,11 @@ function Dashboard() {
     callStats.outgoingCalls,
     callStats.totalCalls,
     formatDurationLabel,
-    leadStats.assignedLeads,
-    leadStats.completedLeads,
-    leadStats.contactedLeads,
-    leadStats.pendingLeads,
+    dialStats.total,
+    dialStats.notDialed,
+    dialStats.dialedNotPicked,
+    dialStats.answered,
+    dialStats.others,
   ]);
 
   useEffect(() => {
@@ -1304,7 +1316,7 @@ function Dashboard() {
       if (sourceLead?.leadId && token) {
         try {
           const response = await axios.post(
-            `${window.location.origin}/lead/lock`,
+            `https://devapp.iotcom.io/lead/lock`,
             {
               leadId: sourceLead.leadId,
               lockToken: sourceLead.lockToken || leadLockToken || undefined,

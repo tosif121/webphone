@@ -483,9 +483,10 @@ export default function ContactCentricWorkspace({
         if (activeCardFilter === 'outgoing' && row.type !== 'Outgoing') return false;
         if (activeCardFilter === 'connected' && row.durationLabel === '00:00') return false;
       } else {
-        if (activeCardFilter === 'contacted' && row.status !== 'Contacted') return false;
-        if (activeCardFilter === 'pending' && row.status !== 'Pending') return false;
-        if (activeCardFilter === 'completed' && row.status !== 'Completed') return false;
+        if (activeCardFilter === 'notDialed' && Number(row.raw?.lastDialedStatus || 0) !== 0) return false;
+        if (activeCardFilter === 'dialedNotPicked' && Number(row.raw?.lastDialedStatus || 0) !== 1) return false;
+        if (activeCardFilter === 'answered' && Number(row.raw?.lastDialedStatus || 0) !== 2) return false;
+        if (activeCardFilter === 'others' && [0, 1, 2].includes(Number(row.raw?.lastDialedStatus || 0))) return false;
       }
       if (!withinRange(row.time, datePreset)) return false;
       if (!normalizedSearchText) return true;
