@@ -496,13 +496,6 @@ export default function ContactCentricWorkspace({
     if (mode === 'leads') {
       const priority = { Completed: 0, Contacted: 1, Pending: 2 };
       filtered.sort((a, b) => (priority[a.status] ?? 3) - (priority[b.status] ?? 3));
-      const seen = new Set();
-      return filtered.filter((row) => {
-        const key = row.callerNumber;
-        if (!key || seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
     }
     return filtered;
   }, [activeCardFilter, callsData, datePreset, leadsData, mode, searchTerm]);
@@ -533,7 +526,7 @@ export default function ContactCentricWorkspace({
       setWorkspaceLoading(true);
       setWorkspaceError('');
       try {
-        const response = await axios.get(`${window.location.origin}/contact/${normalizedNumber}/full`, {
+        const response = await axios.get(`https://devapp.iotcom.io/contact/${normalizedNumber}/full`, {
           params: { limit: 50 },
           headers: { Authorization: `Bearer ${token}` },
         });
