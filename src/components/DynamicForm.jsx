@@ -39,6 +39,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import toast from 'react-hot-toast';
+import { normalizePhone } from '@/utils/normalizePhone';
 
 const iconMap = {
   // Personal info
@@ -274,8 +275,8 @@ export default function DynamicForm({
   const currentSection = sortedSections[currentSectionIndex];
   const navigationStorageKey = draftStorageKey ? `formNavigationState:${draftStorageKey}` : 'formNavigationState';
   const callerNumberValue = isManualEntry
-    ? currentFormData.contactNumber || ''
-    : userCall?.contactNumber || currentFormData.contactNumber || '';
+    ? normalizePhone(currentFormData.contactNumber || '')
+    : normalizePhone(userCall?.contactNumber || currentFormData.contactNumber || '');
 
   const getFieldSystemRole = useCallback((field) => {
     if (
@@ -332,6 +333,7 @@ export default function DynamicForm({
 
       if (role === 'callerNumber') {
         value = isManualEntry ? currentFormData.contactNumber || '' : userCall?.contactNumber || '';
+        value = normalizePhone(value);
       } else if (role === 'callerName') {
         value =
           currentFormData[field.name] ||
@@ -343,6 +345,7 @@ export default function DynamicForm({
           '';
       } else if (role === 'alternateNumber') {
         value = currentFormData[field.name] || userCall?.alternateNumber || '';
+        value = normalizePhone(value);
       }
 
       if (value !== undefined) {
@@ -841,6 +844,12 @@ export default function DynamicForm({
           }
 
           let actualValue = getUserCallValue(field.name);
+          if (actualValue !== undefined && actualValue !== '') {
+            const systemRole = getFieldSystemRole(field);
+            if (field.type === 'phone' || systemRole === 'callerNumber' || systemRole === 'alternateNumber') {
+              actualValue = normalizePhone(actualValue);
+            }
+          }
 
           if (
             actualValue !== undefined &&

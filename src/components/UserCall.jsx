@@ -3,6 +3,7 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription } from './ui/
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
+import { normalizePhone } from '../utils/normalizePhone';
 
 const UserCall = ({
   localFormData,
@@ -19,9 +20,9 @@ const UserCall = ({
     lastName: localFormData?.lastName ?? userCall?.lastName ?? '',
     emailId: localFormData?.emailId ?? userCall?.emailId ?? userCall?.Email ?? userCall?.email ?? '',
     contactNumber: isManualEntry
-      ? (localFormData?.contactNumber ?? userCall?.contactNumber ?? '')
-      : (userCall?.contactNumber ?? localFormData?.contactNumber ?? ''),
-    alternateNumber: localFormData?.alternateNumber ?? userCall?.alternateNumber ?? '',
+      ? normalizePhone(localFormData?.contactNumber ?? userCall?.contactNumber ?? '')
+      : normalizePhone(userCall?.contactNumber ?? localFormData?.contactNumber ?? ''),
+    alternateNumber: normalizePhone(localFormData?.alternateNumber ?? userCall?.alternateNumber ?? ''),
     comment: localFormData?.comment ?? userCall?.comment ?? userCall?.Remarks ?? '',
     Contactaddress: localFormData?.Contactaddress ?? userCall?.Contactaddress ?? userCall?.address ?? '',
     ContactDistrict: localFormData?.ContactDistrict ?? userCall?.ContactDistrict ?? '',
@@ -88,7 +89,7 @@ const UserCall = ({
                   value={
                     isManualEntry
                       ? currentFormData.contactNumber
-                      : userCall?.contactNumber || currentFormData.contactNumber
+                      : normalizePhone(userCall?.contactNumber || currentFormData.contactNumber)
                   }
                   disabled={!isManualEntry}
                   className={`pl-10 border-border ${isManualEntry ? '' : 'bg-muted/50 cursor-not-allowed'}`}
