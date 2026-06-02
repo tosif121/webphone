@@ -486,7 +486,6 @@ export default function ContactCentricWorkspace({
         if (activeCardFilter === 'notDialed' && Number(row.raw?.lastDialedStatus || 0) !== 0) return false;
         if (activeCardFilter === 'dialedNotPicked' && Number(row.raw?.lastDialedStatus || 0) !== 1) return false;
         if (activeCardFilter === 'answered' && Number(row.raw?.lastDialedStatus || 0) !== 2) return false;
-        if (activeCardFilter === 'others' && [0, 1, 2].includes(Number(row.raw?.lastDialedStatus || 0))) return false;
       }
       if (!withinRange(row.time, datePreset)) return false;
       if (!normalizedSearchText) return true;

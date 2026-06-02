@@ -1192,7 +1192,6 @@ function Dashboard() {
         { key: 'notDialed', label: 'Not Dialed', value: dialStats.notDialed, icon: Phone },
         { key: 'dialedNotPicked', label: 'Dialed Not Picked', value: dialStats.dialedNotPicked, icon: PhoneForwarded },
         { key: 'answered', label: 'Answered', value: dialStats.answered, icon: CheckCircle },
-        { key: 'others', label: 'Others', value: dialStats.others, icon: BarChart3 },
       ];
     }
     return [
@@ -1217,7 +1216,6 @@ function Dashboard() {
     dialStats.notDialed,
     dialStats.dialedNotPicked,
     dialStats.answered,
-    dialStats.others,
   ]);
 
   useEffect(() => {
