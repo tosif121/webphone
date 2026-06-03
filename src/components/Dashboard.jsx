@@ -1432,8 +1432,7 @@ function Dashboard() {
     <div className="flex-1 overflow-y-auto">
       <audio ref={endCallAudioRef} preload="auto" style={{ display: 'none' }} src={endCallAudioBase64} />
       {(() => {
-        console.log('[ringtoneDebug]', { shouldShowRingtone: currentCallData?.campaign === userCampaign, currentCallData, ringtone, userCampaign });
-        const shouldShowRingtone = currentCallData?.campaign === userCampaign;
+        const shouldShowRingtone = ringtone?.length > 0 && ringtone[0]?.campaign === userCampaign;
         if (shouldShowRingtone) {
           if (ringtone && Array.isArray(ringtone) && ringtone.length > 0) {
             const filteredCalls = ringtone.filter((call) => call.campaign === userCampaign);
