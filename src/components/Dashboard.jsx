@@ -169,7 +169,9 @@ function Dashboard() {
   const [endDate, setEndDate] = useState(moment().format('YYYY-MM-DD'));
   const [workspaceDatePreset, setWorkspaceDatePreset] = useState('today');
 
-  const [activeMainTab, setActiveMainTab] = useState(DEFAULT_AGENT_UI_PREFERENCES.defaultWorkspaceTab);
+  const [activeMainTab, setActiveMainTab] = useState(
+    previewLeadMode ? 'leads' : DEFAULT_AGENT_UI_PREFERENCES.defaultWorkspaceTab,
+  );
   const [activeMetricFilter, setActiveMetricFilter] = useState('all');
   const [workspaceLayoutState, setWorkspaceLayoutState] = useState({
     shouldReserveSpace: false,
@@ -213,9 +215,11 @@ function Dashboard() {
   useEffect(() => {
     const storedPreferences = getStoredAgentUiPreferences();
     setActiveMainTab(
-      storedPreferences.defaultWorkspaceTab ||
-        storedPreferences.defaultMainTab ||
-        DEFAULT_AGENT_UI_PREFERENCES.defaultWorkspaceTab,
+      previewLeadMode
+        ? 'leads'
+        : storedPreferences.defaultWorkspaceTab ||
+            storedPreferences.defaultMainTab ||
+            DEFAULT_AGENT_UI_PREFERENCES.defaultWorkspaceTab,
     );
     setWorkspaceLayoutState((prev) => ({
       ...prev,
@@ -839,7 +843,7 @@ function Dashboard() {
         currentCallData,
       });
 
-      if (campaignMatch && connectionStatus === 'NOT_INUSE' && hasCallToProcess) {
+      if (campaignMatch && (connectionStatus === 'NOT_INUSE' || status === 'start') && hasCallToProcess) {
         agentAvailableInFlightRef.current = true;
         agentAvailableLastCalledRef.current = Date.now();
         console.log('[agentAvailable] calling API:', currentCallData?.Caller);
