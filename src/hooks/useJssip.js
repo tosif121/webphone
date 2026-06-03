@@ -492,6 +492,7 @@ const useJssip = (isMobile = false) => {
           console.log(
             `[API] useroncall → DONE | ts=${ts} | status=${response.status} | bridgeID=${response.data?.currentcalldata?.bridgeID || 'none'} | contact=${response.data?.currentcalldata?.contactNumber || 'none'}`,
           );
+          console.log('[useroncall.currentcalldata]', JSON.stringify(response.data?.currentcalldata));
 
           if (response.status !== 200) {
             throw new Error('Failed to process call');
