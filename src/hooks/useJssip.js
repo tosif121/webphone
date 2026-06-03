@@ -539,8 +539,12 @@ const useJssip = (isMobile = false) => {
             );
             setUserCall(response.data.contactData);
           }
-          pendingPostCallRef.current = false;
-          setAgentLifecycle('on_call');
+          if (callendedInFlightRef.current) {
+            pendingPostCallRef.current = true;
+          } else {
+            pendingPostCallRef.current = false;
+            setAgentLifecycle('on_call');
+          }
           setConferenceStatus(false);
 
           // Initialize shared sticky state
@@ -1341,6 +1345,12 @@ const useJssip = (isMobile = false) => {
         };
 
         var ua = new JsSIP.UA(configuration);
+        console.log('[JsSIP] UA created', {
+          configuration: { ...configuration, password: configuration.password ? '***' : undefined },
+          uaStatus: ua.isConnected(),
+          sessions: ua.sessions,
+          ua,
+        });
         ua.start();
 
         ua.on('connected', (e) => {
@@ -1717,6 +1727,7 @@ const useJssip = (isMobile = false) => {
                     ]);
 
                     e.session.once('ended', () => {
+                      console.log('session ended------------3--------------------------------');
                       logSessionEvent('ended', {
                         sessionId: callId,
                         remoteUser,
@@ -1949,10 +1960,10 @@ const useJssip = (isMobile = false) => {
       });
 
       session.once('failed', () => {
+        console.log('failed---------------3--------------------------');
         logSessionEvent('failed', { sessionId, remoteUser: incomingNumber, direction: 'incoming', cause: 'failed' });
         const manualHangupRequested = manualHangupRequestedRef.current;
         finalizePostCallContext();
-
         if (manualHangupRequested) {
           setHistory((prev) => [...prev.slice(0, -1), { ...prev[prev.length - 1], end: new Date().getTime() }]);
           finalizeEndedCallState();
