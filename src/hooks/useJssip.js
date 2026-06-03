@@ -848,8 +848,6 @@ const useJssip = (isMobile = false) => {
         // ✅ 5. Update conference calls
         setConferenceCalls(data.conferenceCalls || []);
 
-        console.log('[currentCallqueue]', JSON.stringify(data.currentCallqueue));
-
         // ✅ 6. Update queue details (skip if a call is already active to prevent overwriting active call data)
         if (!activeCallRef.current) {
           if (data.currentCallqueue?.length > 0) {
