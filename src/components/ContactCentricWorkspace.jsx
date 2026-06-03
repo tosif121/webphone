@@ -302,6 +302,9 @@ const mapCallRow = (call, index) => ({
       call?.customerName ||
       call?.CustomerName ||
       call?.name ||
+      call?.LeadName ||
+      call?.['Lead Name'] ||
+      call?.leadName ||
       '',
   ).trim(),
   type:
