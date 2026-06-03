@@ -265,6 +265,10 @@ const useJssip = (isMobile = false) => {
   }, [agentLifecycle]);
 
   useEffect(() => {
+    console.log('[State]', JSON.stringify({ agentLifecycle, status }));
+  }, [agentLifecycle, status]);
+
+  useEffect(() => {
     isAutomationLoadingRef.current = isAutomationLoading;
   }, [isAutomationLoading]);
 
