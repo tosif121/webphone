@@ -827,7 +827,9 @@ const useJssip = (isMobile = false) => {
         if (data.status === 'Disposition') {
           setAgentLifecycle('disposition');
         } else if (data.status === 'INUSE') {
-          setAgentLifecycle('on_call');
+          if (agentLifecycleRef.current !== 'disposition') {
+            setAgentLifecycle('on_call');
+          }
         } else if (data.status === 'NOT_INUSE' || data.status === 'UNAVAILABLE') {
           setAgentLifecycle(leadLockToken ? 'lead_locked' : 'idle');
         }
