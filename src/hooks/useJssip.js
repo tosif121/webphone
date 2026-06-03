@@ -456,7 +456,7 @@ const useJssip = (isMobile = false) => {
     manualHangupRequestedRef.current = true;
 
     try {
-      if (session && typeof session.terminate === 'function') {
+      if (session && typeof session.terminate === 'function' && session.status !== 8) {
         session.terminate();
       } else {
         finalizeEndedCallState();
