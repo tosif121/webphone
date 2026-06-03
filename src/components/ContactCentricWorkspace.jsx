@@ -512,15 +512,17 @@ export default function ContactCentricWorkspace({
     const normalizedSearchText = normalizeSearchText(searchTerm);
     const normalizedDigits = normalizeSearchDigits(searchTerm);
     const sourceRows = (mode === 'callInfo' ? callsData : leadsData)
-      .map(mode === 'callInfo'
-        ? (call, i) => {
-            const row = mapCallRow(call, i);
-            if (!row.callerName) {
-              row.callerName = leadNameByPhone[row.callerNumber] || '';
+      .map(
+        mode === 'callInfo'
+          ? (call, i) => {
+              const row = mapCallRow(call, i);
+              if (!row.callerName) {
+                row.callerName = leadNameByPhone[row.callerNumber] || '';
+              }
+              return row;
             }
-            return row;
-          }
-        : mapLeadRow)
+          : mapLeadRow,
+      )
       .map(buildRowSearchIndex);
     const filtered = sourceRows.filter((row) => {
       if (mode === 'callInfo') {
@@ -571,7 +573,7 @@ export default function ContactCentricWorkspace({
       setWorkspaceLoading(true);
       setWorkspaceError('');
       try {
-        const response = await axios.get(`https://devapp.iotcom.io/contact/${normalizedNumber}/full`, {
+        const response = await axios.get(`${window.location.origin}/contact/${normalizedNumber}/full`, {
           params: { limit: 50 },
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -1267,8 +1269,12 @@ export default function ContactCentricWorkspace({
                                 '-'
                               )}
                             </TableCell>
-                            <TableCell className="align-middle px-3 py-1.5">{mode === 'callInfo' ? row.durationLabel : formatTimestamp(row.time)}</TableCell>
-                            <TableCell className="align-middle px-3 py-1.5">{mode === 'callInfo' ? null : row.durationLabel}</TableCell>
+                            <TableCell className="align-middle px-3 py-1.5">
+                              {mode === 'callInfo' ? row.durationLabel : formatTimestamp(row.time)}
+                            </TableCell>
+                            <TableCell className="align-middle px-3 py-1.5">
+                              {mode === 'callInfo' ? null : row.durationLabel}
+                            </TableCell>
                             <TableCell className="align-middle px-3 py-1.5">
                               <div className="flex min-h-[34px] items-center gap-2.5">
                                 {mode === 'callInfo' ? (
