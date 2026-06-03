@@ -498,11 +498,29 @@ export default function ContactCentricWorkspace({
     setMobileDetailsOpen(false);
   }, [mode, activeCardFilter, previewLeadMode]);
 
+  const leadNameByPhone = useMemo(() => {
+    const map = {};
+    for (const lead of leadsData) {
+      const phone = normalizePhone(lead?.number || lead?.phone || lead?.phone_number || lead?.contactNumber || '');
+      const name = String(lead?.name || lead?.fullName || lead?.patientName || '').trim();
+      if (phone && name) map[phone] = name;
+    }
+    return map;
+  }, [leadsData]);
+
   const rows = useMemo(() => {
     const normalizedSearchText = normalizeSearchText(searchTerm);
     const normalizedDigits = normalizeSearchDigits(searchTerm);
     const sourceRows = (mode === 'callInfo' ? callsData : leadsData)
-      .map(mode === 'callInfo' ? mapCallRow : mapLeadRow)
+      .map(mode === 'callInfo'
+        ? (call, i) => {
+            const row = mapCallRow(call, i);
+            if (!row.callerName) {
+              row.callerName = leadNameByPhone[row.callerNumber] || '';
+            }
+            return row;
+          }
+        : mapLeadRow)
       .map(buildRowSearchIndex);
     const filtered = sourceRows.filter((row) => {
       if (mode === 'callInfo') {
