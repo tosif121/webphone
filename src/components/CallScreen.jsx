@@ -426,6 +426,7 @@ const CallScreen = ({
           </div>
         </div>
 
+        {console.log('isRunning', isRunning)}
         {/* Controls Section with Enhanced Buttons */}
         <div className="space-y-4">
           {!showKeyPad ? (
