@@ -170,10 +170,10 @@ const useJssip = (isMobile = false) => {
     getSessionStats,
   } = monitoring;
 
-  useEffect(() => {
-    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-    setOrigin(originWithoutProtocol);
-  }, []);
+  // useEffect(() => {
+  //   const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+  //   setOrigin(originWithoutProtocol);
+  // }, []);
 
   const getStoredTokenPayload = useCallback(() => {
     try {
@@ -199,6 +199,7 @@ const useJssip = (isMobile = false) => {
     [getStoredTokenPayload],
   );
 
+  const pendingPostCallRef = useRef(false);
   const activeCallContextLoadedRef = useRef(false);
   const activeCallContextRequestRef = useRef(null);
   const bridgeIDRef = useRef('');
@@ -425,6 +426,7 @@ const useJssip = (isMobile = false) => {
       callConnectedRef.current || isCustomerAnsweredRef.current || statusRef.current === 'on_call';
 
     manualHangupRequestedRef.current = false;
+    pendingPostCallRef.current = true;
     setIsCustomerAnswered(false);
     callConnectedRef.current = false;
     pause();
@@ -484,7 +486,7 @@ const useJssip = (isMobile = false) => {
           const ts = new Date().toISOString();
           const payload = leadLockToken ? { leadLockToken } : {};
           console.log(`[API] useroncall → START | ts=${ts} | url=/useroncall/${username} | payload=`, payload);
-          const response = await axios.post(`${window.location.origin}/useroncall/${username}`, payload, {
+          const response = await axios.post(`https://devapp.iotcom.io/useroncall/${username}`, payload, {
             headers: {
               ...getAuthHeaders({ 'Content-Type': 'application/json' }),
             },
@@ -529,6 +531,7 @@ const useJssip = (isMobile = false) => {
             );
             setUserCall(response.data.contactData);
           }
+          pendingPostCallRef.current = false;
           setAgentLifecycle('on_call');
           setConferenceStatus(false);
 
@@ -781,7 +784,7 @@ const useJssip = (isMobile = false) => {
 
         const response = await withTimeout(
           axios.post(
-            `${window.location.origin}/userconnection`,
+            `https://devapp.iotcom.io/userconnection`,
             { user: username },
             { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
           ),
@@ -827,7 +830,7 @@ const useJssip = (isMobile = false) => {
         if (data.status === 'Disposition') {
           setAgentLifecycle('disposition');
         } else if (data.status === 'INUSE') {
-          if (agentLifecycleRef.current !== 'disposition') {
+          if (!pendingPostCallRef.current) {
             setAgentLifecycle('on_call');
           }
         } else if (data.status === 'NOT_INUSE' || data.status === 'UNAVAILABLE') {
@@ -1009,7 +1012,7 @@ const useJssip = (isMobile = false) => {
   const handleLogout = async (token, message) => {
     try {
       if (token) {
-        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+        await axios.delete(`https://devapp.iotcom.io/deleteFirebaseToken`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -1176,6 +1179,7 @@ const useJssip = (isMobile = false) => {
       const remoteUser = e?.session?.remote_identity?.uri?.user || session?.remote_identity?.uri?.user || 'unknown';
       const callId = e?.session?.call_id || session?.call_id || 'unknown';
       logSessionEvent('confirmed', { sessionId: callId, remoteUser, direction: session?.direction || 'unknown' });
+      pendingPostCallRef.current = false;
       reset(undefined, true);
       startRecording();
       setStatus('on_call');
@@ -1251,6 +1255,7 @@ const useJssip = (isMobile = false) => {
         setSession(incomingSession);
         setIncomingSession(null);
         setIsIncomingRinging(false);
+        pendingPostCallRef.current = false;
         setStatus('calling');
         setAgentLifecycle('on_call');
         setCallType('incoming');
@@ -1379,7 +1384,7 @@ const useJssip = (isMobile = false) => {
               await new Promise((resolve) => setTimeout(resolve, 1000));
 
               const response = await axios.post(
-                `${window.location.origin}/user/breakuser:${username}`,
+                `https://devapp.iotcom.io/user/breakuser:${username}`,
                 { breakType: storedBreak },
                 { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
               );
@@ -1561,6 +1566,7 @@ const useJssip = (isMobile = false) => {
           );
 
           // Immediately mark agent as busy to prevent PBX from sending more calls
+          pendingPostCallRef.current = false;
           setConnectionStatus('INUSE');
           connectionStatusRef.current = 'INUSE';
           setAgentLifecycle('on_call');
@@ -1814,6 +1820,7 @@ const useJssip = (isMobile = false) => {
             // Add event listeners for outgoing calls
             e.session.on('confirmed', () => {
               logSessionEvent('confirmed', { sessionId: callId, remoteUser, direction: 'outgoing' });
+              pendingPostCallRef.current = false;
               callConnectedRef.current = true;
               reset(undefined, true);
               startRecording();
@@ -1894,6 +1901,7 @@ const useJssip = (isMobile = false) => {
         console.log(`[CallGuard] handleIncomingCall: answering ${incomingNumber} (no accepted tag)`);
       }
       callConnectedRef.current = false;
+      pendingPostCallRef.current = false;
 
       session.answer(options); // Auto-answers (good for outgoing)
       setSession(session);
@@ -2065,7 +2073,7 @@ const useJssip = (isMobile = false) => {
       if (isOnBreakAtDialStart) {
         try {
           await axios.post(
-            `${window.location.origin}/user/removebreakuser:${username}`,
+            `https://devapp.iotcom.io/user/removebreakuser:${username}`,
             {},
             { headers: getAuthHeaders() },
           );
@@ -2117,7 +2125,7 @@ const useJssip = (isMobile = false) => {
 
       // ✅ 6. Make the API call to dial number
       const response = await axios.post(
-        `${window.location.origin}/dialnumber`,
+        `https://devapp.iotcom.io/dialnumber`,
         {
           receiver: targetNumber,
           leadLockToken: nextLeadLockToken || undefined,
@@ -2254,7 +2262,7 @@ const useJssip = (isMobile = false) => {
           `[API] callended → START | ts=${callendedTs} | url=/user/callended${username} | payload=`,
           callendedPayload,
         );
-        const callendedUrl = `${window.location.origin}/user/callended${username}`;
+        const callendedUrl = `https://devapp.iotcom.io/user/callended${username}`;
 
         const callendedResponse = await axios.post(callendedUrl, callendedPayload, {
           headers: {
@@ -2271,7 +2279,7 @@ const useJssip = (isMobile = false) => {
         if (isMobile || !isDispositionEnabled) {
           // 2. On Mobile or when disposition is disabled, perform SILENT auto-disposition
           try {
-            const dispoUrl = `${window.location.origin}/user/disposition${username}`;
+            const dispoUrl = `https://devapp.iotcom.io/user/disposition${username}`;
             const finalBridgeID = bridgeIDRef.current || bridgeID;
             const dispoPayload = {
               bridgeID: finalBridgeID,
