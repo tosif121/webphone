@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import DropCallsModal from './DropCallsModal';
 import ContactCentricWorkspace from './ContactCentricWorkspace';
+import normalizePhone from '@/utils/normalizePhone';
 
 import {
   Bell,
@@ -41,7 +42,6 @@ import SessionTimeoutModal from './SessionTimeoutModal';
 import { endCallAudioBase64 } from '../constants/audioData';
 import { DEFAULT_AGENT_UI_PREFERENCES, getStoredAgentUiPreferences } from '@/utils/agent-preferences';
 import { useAuth } from '@/hooks/useAuth';
-import { normalizePhone } from '@/utils/normalizePhone';
 
 function Dashboard() {
   const {
@@ -106,6 +106,7 @@ function Dashboard() {
     agentLifecycle,
     setAgentLifecycle,
     activeCallContext,
+    currentCallqueueCount,
   } = useContext(JssipContext);
 
   const {
@@ -1448,7 +1449,7 @@ function Dashboard() {
                   <PhoneMissed className="w-3 h-3 text-primary-foreground" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-medium text-primary">Call Queue: ({filteredCalls.length})</span>
+                  <span className="font-medium text-primary">Call Queue: ({currentCallqueueCount})</span>
                   <span className="font-medium text-primary">Campaign Queue: {campaignName || 'Unknown'}</span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1460,8 +1461,9 @@ function Dashboard() {
                   >
                     {filteredCalls
                       .map((call) => {
-                        if (!call.isSticky) return call.Caller;
-                        return `${call.Caller}${call?.stickyAgent ? ` (Sticky by ${call.stickyAgent})` : ''}`;
+                        const num = normalizePhone(call.Caller);
+                        if (!call.isSticky) return num;
+                        return `${num}${call?.stickyAgent ? ` (Sticky by ${call.stickyAgent})` : ''}`;
                       })
                       .join(', ')}{' '}
                   </marquee>
@@ -1499,7 +1501,7 @@ function Dashboard() {
                     scrollamount="4"
                     className="truncate font-medium text-muted-foreground"
                   >
-                    {currentCallData?.Caller || 'No caller info'}
+                    {normalizePhone(currentCallData?.Caller) || 'No caller info'}
                   </marquee>
                 </div>
               </div>

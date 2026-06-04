@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext, useCallback, useRef } from 'react';
+import normalizePhone from '../utils/normalizePhone';
 import {
   User,
   MicOff,
@@ -292,18 +293,19 @@ const CallScreen = ({
   };
 
   const maybeMask = (num) => (numberMasking ? maskPhoneNumber?.(num) : num);
+  const fmt = (num) => maybeMask(normalizePhone(num));
 
   const mainNumber = (() => {
     if (isMerged && userCall?.contactNumber && conferenceNumber) {
-      return `${maybeMask(userCall?.contactNumber)} Conference with ${maybeMask(conferenceNumber)}`;
+      return `${fmt(userCall?.contactNumber)} Conference with ${fmt(conferenceNumber)}`;
     }
     if (conferenceNumber && conferenceStatus) {
       console.log('[mainNumber] showing conferenceNumber', conferenceNumber);
-      return maybeMask(conferenceNumber);
+      return fmt(conferenceNumber);
     }
-    if (userCall?.contactNumber) return maybeMask(userCall?.contactNumber);
-    if (phoneNumber) return maybeMask(phoneNumber);
-    if (activeCallContext?.Caller) return maybeMask(activeCallContext.Caller);
+    if (userCall?.contactNumber) return fmt(userCall?.contactNumber);
+    if (phoneNumber) return fmt(phoneNumber);
+    if (activeCallContext?.Caller) return fmt(activeCallContext.Caller);
     return '';
   })();
 
@@ -393,20 +395,6 @@ const CallScreen = ({
             <div className="text-xl md:text-sm font-medium text-muted-foreground max-w-[250px]">{mainNumber}</div>
 
             <div className="flex items-center justify-center mt-3">
-              {(() => {
-                const debug = {
-                  confNum: conferenceNumber,
-                  isMerged,
-                  confTimer: `${String(confMinutes).padStart(2, '0')}:${String(confSeconds).padStart(2, '0')}`,
-                  mainTimer: `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`,
-                  isRunning,
-                  mainNumber,
-                  contactNumber: userCall?.contactNumber,
-                  phoneNumber,
-                };
-                console.log('[Timer]', JSON.stringify(debug));
-                return null;
-              })()}
               {isRunning ? (
                 <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/30 border border-secondary/20">
                   <Clock className="w-3.5 h-3.5 text-secondary-foreground" />
@@ -426,7 +414,6 @@ const CallScreen = ({
           </div>
         </div>
 
-        {console.log('isRunning', isRunning)}
         {/* Controls Section with Enhanced Buttons */}
         <div className="space-y-4">
           {!showKeyPad ? (

@@ -101,9 +101,10 @@ export function JssipProvider({ children }) {
     isAutomationLoading,
     setIsAutomationLoading,
     isSticky,
-    setIsSticky,
     activeFollowUpData,
     setActiveFollowUpData,
+    currentCallqueueCount,
+    setCurrentCallqueueCount,
   ] = useJssip(isMobile);
 
   return (
@@ -189,9 +190,10 @@ export function JssipProvider({ children }) {
         isAutomationLoading,
         setIsAutomationLoading,
         isSticky,
-        setIsSticky,
         activeFollowUpData,
         setActiveFollowUpData,
+        currentCallqueueCount,
+        setCurrentCallqueueCount,
       }}
     >
       {children}

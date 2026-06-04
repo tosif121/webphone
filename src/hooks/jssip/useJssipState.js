@@ -71,6 +71,7 @@ export const useJssipState = () => {
   const [queueDetails, setQueueDetails] = useState([]);
   const [hasTransfer, setHasTransfer] = useState(false);
   const [currentCallData, setCurrentCallData] = useState(null);
+  const [currentCallqueueCount, setCurrentCallqueueCount] = useState(0);
 
   /* ------------------------------- refs ------------------------------------ */
   const offlineToastIdRef = useRef(null);
@@ -217,6 +218,8 @@ export const useJssipState = () => {
     setHasTransfer,
     currentCallData,
     setCurrentCallData,
+    currentCallqueueCount,
+    setCurrentCallqueueCount,
 
     /* refs */
     offlineToastIdRef,

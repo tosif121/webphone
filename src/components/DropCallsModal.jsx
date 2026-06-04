@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import axios from 'axios';
 import { Button } from './ui/button';
 import toast from 'react-hot-toast';
+import normalizePhone from '@/utils/normalizePhone';
 
 const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMissedCallsLength, token }) => {
   const [loadingCaller, setLoadingCaller] = useState(null);
@@ -137,7 +138,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-foreground text-sm truncate">{caller}</div>
+                            <div className="font-medium text-foreground text-sm truncate">{normalizePhone(caller)}</div>
                             <div className="flex items-center gap-3 text-xs text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />

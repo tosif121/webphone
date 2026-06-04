@@ -105,6 +105,8 @@ const useJssip = (isMobile = false) => {
     setHasTransfer,
     currentCallData,
     setCurrentCallData,
+    currentCallqueueCount,
+    setCurrentCallqueueCount,
     offlineToastIdRef,
     agentSocketRef,
     customerSocketRef,
@@ -426,21 +428,15 @@ const useJssip = (isMobile = false) => {
   }, [setActiveCallContext, setBridgeID, setWorkspaceActiveCall, setIsSticky]);
 
   const finalizeEndedCallState = useCallback(() => {
-    const shouldOpenDisposition =
-      callConnectedRef.current || isCustomerAnsweredRef.current || statusRef.current === 'on_call';
-
     manualHangupRequestedRef.current = false;
     pendingPostCallRef.current = true;
     setIsCustomerAnswered(false);
     callConnectedRef.current = false;
     pause();
     setStatus('start');
-    setIsCallended(shouldOpenDisposition);
-    setAgentLifecycle(shouldOpenDisposition ? 'disposition' : 'idle');
-    agentLifecycleRef.current = shouldOpenDisposition ? 'disposition' : 'idle';
-    if (!shouldOpenDisposition) {
-      setDispositionModal(false);
-    }
+    setIsCallended(true);
+    setAgentLifecycle('disposition');
+    agentLifecycleRef.current = 'disposition';
     setConferenceNumber('');
     setCallConference(false);
     setConferenceStatus(false);
@@ -488,7 +484,11 @@ const useJssip = (isMobile = false) => {
       activeCallContextRequestRef.current = (async () => {
         try {
           const ts = new Date().toISOString();
-          const payload = leadLockToken ? { leadLockToken } : {};
+          const useroncallTs = Date.now();
+          const payload = {
+            ...(leadLockToken ? { leadLockToken } : {}),
+            phoneNumber: incomingNumber || phoneNumber || '',
+          };
           console.log(`[API] useroncall → START | ts=${ts} | url=/useroncall/${username} | payload=`, payload);
           const response = await axios.post(`${window.location.origin}/useroncall/${username}`, payload, {
             headers: {
@@ -496,7 +496,7 @@ const useJssip = (isMobile = false) => {
             },
           });
           console.log(
-            `[API] useroncall → DONE | ts=${ts} | status=${response.status} | bridgeID=${response.data?.currentcalldata?.bridgeID || 'none'} | contact=${response.data?.currentcalldata?.contactNumber || 'none'}`,
+            `[API] useroncall → DONE | ts=${ts} | duration=${Date.now() - useroncallTs}ms | status=${response.status} | bridgeID=${response.data?.currentcalldata?.bridgeID || 'none'} | contact=${response.data?.currentcalldata?.contactNumber || 'none'}`,
           );
           console.log('[useroncall.currentcalldata]', JSON.stringify(response.data?.currentcalldata));
           const cc = response.data?.currentcalldata || {};
@@ -539,11 +539,10 @@ const useJssip = (isMobile = false) => {
             );
             setUserCall(response.data.contactData);
           }
-          if (callendedInFlightRef.current) {
-            pendingPostCallRef.current = true;
-          } else {
-            pendingPostCallRef.current = false;
+          if (!pendingPostCallRef.current) {
             setAgentLifecycle('on_call');
+          } else if (agentLifecycleRef.current === 'idle') {
+            pendingPostCallRef.current = false;
           }
           setConferenceStatus(false);
 
@@ -794,6 +793,7 @@ const useJssip = (isMobile = false) => {
 
         const campaign = parsedTokenData.userData.campaign;
 
+        const userconTs = Date.now();
         const response = await withTimeout(
           axios.post(
             `${window.location.origin}/userconnection`,
@@ -802,6 +802,7 @@ const useJssip = (isMobile = false) => {
           ),
           CONNECTION_CHECK_TIMEOUT_MS,
         );
+        console.log(`[userconnection] response received in ${Date.now() - userconTs}ms`);
 
         const data = response.data;
 
@@ -837,12 +838,14 @@ const useJssip = (isMobile = false) => {
         // ✅ 3. Set follow-up dispositions and connection status
         setFollowUpDispoes(data.followUpDispoes || []);
         setConnectionStatus(data.status);
+        setCurrentCallqueueCount(data.currentCallqueueCount !== undefined ? data.currentCallqueueCount : 0);
+        console.log(`[queueCount] currentCallqueueCount=${data.currentCallqueueCount}`);
 
         // Update agent lifecycle based on status
         if (data.status === 'Disposition') {
           setAgentLifecycle('disposition');
         } else if (data.status === 'INUSE') {
-          if (!pendingPostCallRef.current) {
+          if (!pendingPostCallRef.current && activeCallRef.current) {
             setAgentLifecycle('on_call');
           }
         } else if (data.status === 'NOT_INUSE' || data.status === 'UNAVAILABLE') {
@@ -1051,6 +1054,7 @@ const useJssip = (isMobile = false) => {
       toast.error(message);
     }
     setIsConnectionLost(true);
+    setCurrentCallqueueCount(0);
   };
 
   // Helper function for connection lost scenarios
@@ -1065,6 +1069,7 @@ const useJssip = (isMobile = false) => {
     stopRecording();
     toast.error('Connection lost. Please log in again.');
     setIsConnectionLost(true);
+    setCurrentCallqueueCount(0);
   };
 
   // Helper function for error handling
@@ -1073,6 +1078,7 @@ const useJssip = (isMobile = false) => {
     { hasRecentAriHeartbeat = false, hasProtectedSessionPhase = false } = {},
   ) => {
     console.error('Error during connection check:', err);
+    setCurrentCallqueueCount(0);
 
     if (err.response?.status === 401) {
       connectionFailureCountRef.current += 1;
@@ -1620,10 +1626,14 @@ const useJssip = (isMobile = false) => {
               cause: 'cleanup',
             });
             activeCallRef.current = null;
+            pendingPostCallRef.current = true;
+            finalizeEndedCallState();
           });
           session.once('ended', () => {
             console.log(`[CallGuard] Session ended — releasing lock (${remoteUser})`);
             activeCallRef.current = null;
+            pendingPostCallRef.current = true;
+            finalizeEndedCallState();
           });
 
           if (e.session.direction === 'incoming') {
@@ -1843,7 +1853,7 @@ const useJssip = (isMobile = false) => {
               callConnectedRef.current = true;
               reset(undefined, true);
               startRecording();
-              void ensureActiveCallContextLoaded();
+              void ensureActiveCallContextLoaded({ incomingNumber: remoteUser });
               setStatus('on_call');
               setAgentLifecycle('on_call');
               setIsCustomerAnswered(true);
@@ -1970,15 +1980,10 @@ const useJssip = (isMobile = false) => {
           return;
         }
 
-        manualHangupRequestedRef.current = false;
         setHistory((prev) => [
           ...prev.slice(0, -1),
           { ...prev[prev.length - 1], end: new Date().getTime(), status: 'Fail' },
         ]);
-        pause();
-        setStatus('start');
-        setAgentLifecycle('idle');
-        setDispositionModal(false);
       });
     };
     const enumerateDevices = async () => {
@@ -2453,9 +2458,10 @@ const useJssip = (isMobile = false) => {
     isAutomationLoading,
     setIsAutomationLoading,
     isSticky,
-    setIsSticky,
     state.activeFollowUpData,
     state.setActiveFollowUpData,
+    currentCallqueueCount,
+    setCurrentCallqueueCount,
   ];
 };
 

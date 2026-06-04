@@ -11,6 +11,7 @@ import CallConference from './CallConference';
 import { JssipContext } from '@/context/JssipContext';
 import IncomingCall from './IncomingCall';
 import { getStoredAgentUiPreferences } from '@/utils/agent-preferences';
+import normalizePhone from '@/utils/normalizePhone';
 
 export default function DraggableWebPhone() {
   const {
@@ -508,11 +509,11 @@ export default function DraggableWebPhone() {
   const miniBarBottomOffset = Math.max(workspaceBottomOffset, 12);
   const miniBarY = typeof window !== 'undefined' ? Math.max(window.innerHeight - (60 + miniBarBottomOffset), 24) : 24;
   const activeCallLabel =
-    workspaceActiveCall?.contactNumber ||
-    userCall?.contactNumber ||
-    activeCallContext?.contactNumber ||
-    incomingNumber ||
-    phoneNumber ||
+    normalizePhone(workspaceActiveCall?.contactNumber) ||
+    normalizePhone(userCall?.contactNumber) ||
+    normalizePhone(activeCallContext?.contactNumber) ||
+    normalizePhone(incomingNumber) ||
+    normalizePhone(phoneNumber) ||
     'Active Call';
   const compactBarStatusLabel = isPostCallPhase ? `Call ended · ${compactBarDurationRef.current}` : liveDurationLabel;
   const compactBarButtonsDisabled = isPostCallPhase || isAutomationLoading;
