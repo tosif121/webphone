@@ -173,7 +173,7 @@ function Dashboard() {
 
   const [startDate, setStartDate] = useState(moment().startOf('day').format('YYYY-MM-DD'));
   const [endDate, setEndDate] = useState(moment().format('YYYY-MM-DD'));
-  const [workspaceDatePreset, setWorkspaceDatePreset] = useState('7d');
+  const [workspaceDatePreset, setWorkspaceDatePreset] = useState('today');
 
   const [activeMainTab, setActiveMainTab] = useState(
     previewLeadMode ? 'leads' : DEFAULT_AGENT_UI_PREFERENCES.defaultWorkspaceTab,
@@ -1217,6 +1217,8 @@ function Dashboard() {
     const others = Math.max(0, total - notDialed - dialedNotPicked - answered);
     return { total, notDialed, dialedNotPicked, answered, others };
   }, [activeMainTab, leadsData, skippedLeadIds]);
+
+  console.log(`[dialStats] total=${dialStats.total} notDialed=${dialStats.notDialed} dialedNotPicked=${dialStats.dialedNotPicked} answered=${dialStats.answered}`);
 
   const dashboardCards = useMemo(() => {
     if (activeMainTab === 'leads') {
