@@ -173,7 +173,7 @@ function Dashboard() {
 
   const [startDate, setStartDate] = useState(moment().startOf('day').format('YYYY-MM-DD'));
   const [endDate, setEndDate] = useState(moment().format('YYYY-MM-DD'));
-  const [workspaceDatePreset, setWorkspaceDatePreset] = useState('today');
+  const [workspaceDatePreset, setWorkspaceDatePreset] = useState('7d');
 
   const [activeMainTab, setActiveMainTab] = useState(
     previewLeadMode ? 'leads' : DEFAULT_AGENT_UI_PREFERENCES.defaultWorkspaceTab,
@@ -1344,13 +1344,24 @@ function Dashboard() {
       let lockedLead = sourceLead;
       let nextLockToken = leadLockToken;
 
-      if (sourceLead?.leadId && token) {
+      if (sourceLead?.leadId && Number.isFinite(Number(sourceLead.leadId)) && token) {
+        if (activeLead?.leadId && leadLockToken && activeLead?.leadId !== sourceLead?.leadId) {
+          try {
+            await axios.post(
+              `https://devapp.iotcom.io/lead/release`,
+              { leadId: activeLead.leadId, lockToken: leadLockToken },
+              { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
+            );
+          } catch (releaseError) {
+            console.warn('Failed to release previous lead lock:', releaseError.response?.data?.message || releaseError.message);
+          }
+        }
         try {
           const response = await axios.post(
             `https://devapp.iotcom.io/lead/lock`,
             {
               leadId: sourceLead.leadId,
-              lockToken: sourceLead.lockToken || leadLockToken || undefined,
+              lockToken: sourceLead.lockToken || (activeLead?.leadId === sourceLead?.leadId ? leadLockToken : undefined),
             },
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -1366,11 +1377,15 @@ function Dashboard() {
             'lead_locked',
           );
         } catch (error) {
-          console.warn(
-            'Unable to lock this lead, proceeding with dial anyway:',
-            error.response?.data?.message || error.message,
-          );
-          // Do not return here, allow the user to dial the skipped/unavailable lead.
+          const lockError = error.response?.data?.message || error.message;
+          console.warn('Unable to lock lead:', lockError);
+          if (options.autoLeadDial || activeLead?.leadId === sourceLead?.leadId) {
+            toast.error(lockError);
+            return;
+          }
+          // Table-dialed lead — dial without lead context
+          lockedLead = null;
+          nextLockToken = undefined;
         }
       }
 
@@ -1386,7 +1401,7 @@ function Dashboard() {
           : undefined,
       );
     },
-    [applyLockedLeadState, getAuthHeaders, handleCall, leadLockToken, token],
+    [activeLead, applyLockedLeadState, getAuthHeaders, handleCall, leadLockToken, token],
   );
 
   // Cleanup timer on unmount only (separate from main effect to avoid restarting on dep changes)
