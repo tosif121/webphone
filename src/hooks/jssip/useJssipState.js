@@ -86,14 +86,20 @@ export const useJssipState = () => {
 
   /* ----------------------------- stop-watch -------------------------------- */
   const { seconds, minutes, isRunning, pause: _pause, reset: _reset } = useStopwatch({ autoStart: false });
-  const pause = useCallback((...args) => {
-    console.trace('[Stopwatch] pause() called');
-    return _pause(...args);
-  }, [_pause]);
-  const reset = useCallback((...args) => {
-    console.log('[Stopwatch] reset() called with args:', JSON.stringify(args));
-    return _reset(...args);
-  }, [_reset]);
+  const pause = useCallback(
+    (...args) => {
+      console.trace('[Stopwatch] pause() called');
+      return _pause(...args);
+    },
+    [_pause],
+  );
+  const reset = useCallback(
+    (...args) => {
+      console.log('[Stopwatch] reset() called with args:', JSON.stringify(args));
+      return _reset(...args);
+    },
+    [_reset],
+  );
 
   /* ------------------------------ network log ------------------------------ */
   const [messageDifference, setMessageDifference] = useState([]);

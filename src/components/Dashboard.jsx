@@ -155,6 +155,11 @@ function Dashboard() {
   }, [authUser?.leadDistributionStrategy, leadWorkflowV2Enabled, normalizedLeadViewMode]);
 
   const router = useRouter();
+
+  useEffect(() => {
+    console.log('[Dashboard] currentCallqueueCount updated:', currentCallqueueCount);
+  }, [currentCallqueueCount]);
+
   const computedMissedCallsLength = useMemo(() => {
     return Object.values(usermissedCalls || {}).filter((call) => call?.campaign === userCampaign).length;
   }, [usermissedCalls, userCampaign]);
@@ -196,6 +201,9 @@ function Dashboard() {
   const [autoLeadDialEnabled, setAutoLeadDialEnabled] = useState(false);
   const [autoLeadDialCountdownSeconds, setAutoLeadDialCountdownSeconds] = useState(3);
   const [autoLeadDialRemaining, setAutoLeadDialRemaining] = useState(0);
+
+  const [leadHistory, setLeadHistory] = useState([]);
+  const [skippedLeadIds, setSkippedLeadIds] = useState(new Set());
 
   const [formSubmitted, setFormSubmitted] = useState(false);
   const dashboardErrorMessage = useMemo(() => {
@@ -543,6 +551,9 @@ function Dashboard() {
       return;
     }
 
+    setLeadHistory((prev) => [...prev, activeLead]);
+    setSkippedLeadIds((prev) => new Set(prev).add(activeLead.leadId || activeLead._id));
+
     try {
       await axios.post(
         `${window.location.origin}/lead/skip`,
@@ -559,7 +570,17 @@ function Dashboard() {
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to skip lead.');
     }
-  }, [activeLead?.leadId, clearLeadSelection, fetchNextLead, getAuthHeaders, leadLockToken]);
+  }, [activeLead, clearLeadSelection, fetchNextLead, getAuthHeaders, leadLockToken]);
+
+  const handleBackLead = useCallback(() => {
+    setLeadHistory((prev) => {
+      if (prev.length === 0) return prev;
+      const newHistory = [...prev];
+      const previousLead = newHistory.pop();
+      applyLockedLeadState(previousLead, 'idle');
+      return newHistory;
+    });
+  }, [applyLockedLeadState]);
 
   const handleWorkspaceDatePresetChange = useCallback((nextPreset) => {
     const normalizedPreset = String(nextPreset || 'today')
@@ -844,7 +865,7 @@ function Dashboard() {
         currentCallData,
       });
 
-      if (campaignMatch && (connectionStatus === 'NOT_INUSE' || status === 'start') && hasCallToProcess) {
+      if (campaignMatch && connectionStatus === 'NOT_INUSE' && hasCallToProcess) {
         agentAvailableInFlightRef.current = true;
         agentAvailableLastCalledRef.current = Date.now();
         console.log('[agentAvailable] calling API:', currentCallData?.Caller);
@@ -1183,12 +1204,18 @@ function Dashboard() {
   const dialStats = useMemo(() => {
     const leads = activeMainTab === 'leads' ? leadsData : [];
     const total = leads.length;
-    const notDialed = leads.filter((l) => Number(l.lastDialedStatus || 0) === 0).length;
-    const dialedNotPicked = leads.filter((l) => Number(l.lastDialedStatus || 0) === 1).length;
-    const answered = leads.filter((l) => Number(l.lastDialedStatus || 0) === 2).length;
+    const notDialed = leads.filter(
+      (l) => Number(l.lastDialedStatus || 0) === 0 || skippedLeadIds.has(l.leadId || l._id),
+    ).length;
+    const dialedNotPicked = leads.filter(
+      (l) => Number(l.lastDialedStatus || 0) === 1 && !skippedLeadIds.has(l.leadId || l._id),
+    ).length;
+    const answered = leads.filter(
+      (l) => Number(l.lastDialedStatus || 0) === 2 && !skippedLeadIds.has(l.leadId || l._id),
+    ).length;
     const others = Math.max(0, total - notDialed - dialedNotPicked - answered);
     return { total, notDialed, dialedNotPicked, answered, others };
-  }, [activeMainTab, leadsData]);
+  }, [activeMainTab, leadsData, skippedLeadIds]);
 
   const dashboardCards = useMemo(() => {
     if (activeMainTab === 'leads') {
@@ -1338,8 +1365,11 @@ function Dashboard() {
             'lead_locked',
           );
         } catch (error) {
-          toast.error(error.response?.data?.message || 'Unable to lock this lead.');
-          return;
+          console.warn(
+            'Unable to lock this lead, proceeding with dial anyway:',
+            error.response?.data?.message || error.message,
+          );
+          // Do not return here, allow the user to dial the skipped/unavailable lead.
         }
       }
 
@@ -1626,6 +1656,9 @@ function Dashboard() {
                 datePreset={workspaceDatePreset}
                 onDatePresetChange={handleWorkspaceDatePresetChange}
                 onSkipLead={handleSkipLead}
+                onBackLead={handleBackLead}
+                canGoBack={leadHistory.length > 0}
+                skippedLeadIds={skippedLeadIds}
                 onRefreshLead={() => {
                   clearLeadSelection('idle');
                   void fetchNextLead();

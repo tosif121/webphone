@@ -319,11 +319,13 @@ const mapCallRow = (call, index) => ({
   raw: call,
 });
 
-const mapLeadRow = (lead, index) => {
+const mapLeadRow = (lead, index, skippedLeadIds = new Set()) => {
   const state = String(lead?.leadState || '')
     .trim()
     .toLowerCase();
-  const contacted = ['completed', 'failed', 'skipped'].includes(state) || Number(lead?.lastDialedStatus || 0) > 0;
+  const isSkippedLocally = skippedLeadIds.has(lead?.leadId || lead?._id);
+  const effectiveDialedStatus = isSkippedLocally ? 0 : Number(lead?.lastDialedStatus || 0);
+  const contacted = ['completed', 'failed'].includes(state) || effectiveDialedStatus > 0;
   return {
     id: String(lead?._id || lead?.leadId || `${lead?.number || lead?.phone || 'lead'}-${index}`),
     callerNumber: normalizePhone(lead?.number || lead?.phone || lead?.phone_number || lead?.contactNumber || ''),
@@ -345,14 +347,9 @@ const mapLeadRow = (lead, index) => {
         .slice(0, 2)
         .map(([, value]) => String(value))
         .join(' • ') || 'Lead details available',
-    status:
-      state === 'completed' || Number(lead?.lastDialedStatus || 0) === 2
-        ? 'Completed'
-        : contacted
-          ? 'Contacted'
-          : 'Pending',
+    status: state === 'completed' || effectiveDialedStatus === 2 ? 'Completed' : contacted ? 'Contacted' : 'Pending',
     dialLabel: (function () {
-      const ds = Number(lead?.lastDialedStatus ?? -1);
+      const ds = effectiveDialedStatus;
       if (ds === 0) return 'Not Dialed';
       if (ds === 1) return 'Dialed Not Picked';
       if (ds === 2) return 'Answered';
@@ -453,6 +450,9 @@ export default function ContactCentricWorkspace({
   datePreset = 'today',
   onDatePresetChange,
   onSkipLead,
+  onBackLead,
+  canGoBack,
+  skippedLeadIds = new Set(),
   onRefreshLead,
   autoLeadDialEnabled = false,
   autoLeadDialCountdownSeconds = 3,
@@ -521,7 +521,7 @@ export default function ContactCentricWorkspace({
               }
               return row;
             }
-          : mapLeadRow,
+          : (lead, i) => mapLeadRow(lead, i, skippedLeadIds),
       )
       .map(buildRowSearchIndex);
     const filtered = sourceRows.filter((row) => {
@@ -545,7 +545,7 @@ export default function ContactCentricWorkspace({
       filtered.sort((a, b) => (priority[a.status] ?? 3) - (priority[b.status] ?? 3));
     }
     return filtered;
-  }, [activeCardFilter, callsData, datePreset, leadsData, mode, searchTerm]);
+  }, [activeCardFilter, callsData, datePreset, leadsData, mode, searchTerm, skippedLeadIds]);
 
   const totalPages = Math.max(1, Math.ceil(rows.length / rowsPerPage));
   const pagedRows = useMemo(
@@ -733,6 +733,17 @@ export default function ContactCentricWorkspace({
                 <span className="sm:block hidden">Dial</span>
               </Button>
               <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-full px-4 text-xs font-semibold shadow-sm"
+                  disabled={!canGoBack || smartLeadLoading || !['lead_locked', 'idle'].includes(agentLifecycle)}
+                  onClick={onBackLead}
+                  title="Previous Lead"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <span className="sm:block hidden">Back</span>
+                </Button>
                 <Button
                   type="button"
                   variant="outline"

@@ -849,7 +849,9 @@ const useJssip = (isMobile = false) => {
             setAgentLifecycle('on_call');
           }
         } else if (data.status === 'NOT_INUSE' || data.status === 'UNAVAILABLE') {
-          setAgentLifecycle(leadLockToken ? 'lead_locked' : 'idle');
+          if (!pendingPostCallRef.current) {
+            setAgentLifecycle(leadLockToken ? 'lead_locked' : 'idle');
+          }
         }
 
         // ✅ 4. Handle other connection issues
