@@ -325,7 +325,7 @@ const mapLeadRow = (lead, index, skippedLeadIds = new Set()) => {
     .toLowerCase();
   const isSkippedLocally = skippedLeadIds.has(lead?.leadId || lead?._id);
   const effectiveDialedStatus = isSkippedLocally ? 0 : Number(lead?.lastDialedStatus || 0);
-  const contacted = ['completed', 'failed'].includes(state) || effectiveDialedStatus > 0;
+  const contacted = effectiveDialedStatus > 0;
   return {
     id: String(lead?._id || lead?.leadId || `${lead?.number || lead?.phone || 'lead'}-${index}`),
     callerNumber: normalizePhone(lead?.number || lead?.phone || lead?.phone_number || lead?.contactNumber || ''),
@@ -347,7 +347,7 @@ const mapLeadRow = (lead, index, skippedLeadIds = new Set()) => {
         .slice(0, 2)
         .map(([, value]) => String(value))
         .join(' • ') || 'Lead details available',
-    status: state === 'completed' || effectiveDialedStatus === 2 ? 'Completed' : contacted ? 'Contacted' : 'Pending',
+    status: effectiveDialedStatus === 2 ? 'Completed' : contacted ? 'Contacted' : 'Pending',
     dialLabel: (function () {
       const ds = effectiveDialedStatus;
       if (ds === 0) return 'Not Dialed';
@@ -573,7 +573,7 @@ export default function ContactCentricWorkspace({
       setWorkspaceLoading(true);
       setWorkspaceError('');
       try {
-        const response = await axios.get(`${window.location.origin}/contact/${normalizedNumber}/full`, {
+        const response = await axios.get(`https://devapp.iotcom.io/contact/${normalizedNumber}/full`, {
           params: { limit: 50 },
           headers: { Authorization: `Bearer ${token}` },
         });
