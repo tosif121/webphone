@@ -334,7 +334,7 @@ function Dashboard() {
     setLeadError('');
 
     try {
-      const leadDashboardResponse = await axios.get(`${window.location.origin}/lead/dashboard`, {
+      const leadDashboardResponse = await axios.get(`https://devapp.iotcom.io/lead/dashboard`, {
         params: {
           limit: 200,
           includeCompleted: true,
@@ -411,7 +411,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/reports/calls/byAgent`,
+        `https://devapp.iotcom.io/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -488,7 +488,7 @@ function Dashboard() {
 
     try {
       const response = await axios.post(
-        `${window.location.origin}/userMissedCalls/${username}`,
+        `https://devapp.iotcom.io/userMissedCalls/${username}`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -525,7 +525,7 @@ function Dashboard() {
     setSmartLeadError('');
     try {
       const response = await axios.post(
-        `${window.location.origin}/lead/next`,
+        `https://devapp.iotcom.io/lead/next`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -551,12 +551,9 @@ function Dashboard() {
       return;
     }
 
-    setLeadHistory((prev) => [...prev, activeLead]);
-    setSkippedLeadIds((prev) => new Set(prev).add(activeLead.leadId || activeLead._id));
-
     try {
       await axios.post(
-        `${window.location.origin}/lead/skip`,
+        `https://devapp.iotcom.io/lead/skip`,
         {
           leadId: activeLead.leadId,
           lockToken: leadLockToken,
@@ -565,10 +562,14 @@ function Dashboard() {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         },
       );
+      setLeadHistory((prev) => [...prev, activeLead]);
+      setSkippedLeadIds((prev) => new Set(prev).add(activeLead.leadId || activeLead._id));
       clearLeadSelection('idle');
       void fetchNextLead();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to skip lead.');
+      console.warn('Skip failed, moving to next lead:', error.response?.data?.message || error.message);
+      clearLeadSelection('idle');
+      void fetchNextLead();
     }
   }, [activeLead, clearLeadSelection, fetchNextLead, getAuthHeaders, leadLockToken]);
 
@@ -871,7 +872,7 @@ function Dashboard() {
         console.log('[agentAvailable] calling API:', currentCallData?.Caller);
         try {
           const { data } = await axios.post(
-            `${window.location.origin}/user/agentAvailable/${username}`,
+            `https://devapp.iotcom.io/user/agentAvailable/${username}`,
             {},
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -1346,7 +1347,7 @@ function Dashboard() {
       if (sourceLead?.leadId && token) {
         try {
           const response = await axios.post(
-            `${window.location.origin}/lead/lock`,
+            `https://devapp.iotcom.io/lead/lock`,
             {
               leadId: sourceLead.leadId,
               lockToken: sourceLead.lockToken || leadLockToken || undefined,
