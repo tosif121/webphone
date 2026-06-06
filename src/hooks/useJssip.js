@@ -428,6 +428,11 @@ const useJssip = (isMobile = false) => {
   }, [setActiveCallContext, setBridgeID, setWorkspaceActiveCall, setIsSticky]);
 
   const finalizeEndedCallState = useCallback(() => {
+    if (pendingPostCallRef.current) {
+      console.log('[finalizeEndedCallState] SKIPPING — already processing post-call (duplicate event)');
+      return;
+    }
+    console.log('[finalizeEndedCallState] called', { isCallended, leadLockToken });
     manualHangupRequestedRef.current = false;
     pendingPostCallRef.current = true;
     setIsCustomerAnswered(false);
@@ -1627,13 +1632,11 @@ const useJssip = (isMobile = false) => {
               cause: 'cleanup',
             });
             activeCallRef.current = null;
-            pendingPostCallRef.current = true;
             finalizeEndedCallState();
           });
           session.once('ended', () => {
             console.log(`[CallGuard] Session ended — releasing lock (${remoteUser})`);
             activeCallRef.current = null;
-            pendingPostCallRef.current = true;
             finalizeEndedCallState();
           });
 
@@ -2276,7 +2279,11 @@ const useJssip = (isMobile = false) => {
 
   useEffect(() => {
     if (!isCallended) return;
-    if (callendedInFlightRef.current) return;
+    if (callendedInFlightRef.current) {
+      console.log('[useCallended] BLOCKED — callendedInFlightRef is true', { leadLockToken, agentLifecycle });
+      return;
+    }
+    console.log('[useCallended] RUNNING', { leadLockToken, agentLifecycle, bridgeID });
     callendedInFlightRef.current = true;
 
     const callApi = async () => {
@@ -2337,6 +2344,7 @@ const useJssip = (isMobile = false) => {
           }
 
           // 3. Reset to IDLE / Home Screen instantly
+          console.log('[autoDispo] Clearing activeLead → null, leadLockToken → "", lifecyle → idle');
           setIsHeld(false);
           setIsCallended(false);
           setActiveLead(null);
@@ -2361,6 +2369,7 @@ const useJssip = (isMobile = false) => {
         setLeadLockToken('');
         setAgentLifecycle('idle');
       } finally {
+        console.log('[useCallended] FINISHED — inflight=false', { leadLockToken, agentLifecycle });
         setIsAutomationLoading(false);
         callendedInFlightRef.current = false;
         // ✅ Clear context ONLY after automation is done or failed

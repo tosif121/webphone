@@ -718,6 +718,17 @@ export default function ContactCentricWorkspace({
                   </Badge>
                 ) : null}
               </div>
+              {console.log('[DialBtn] render stats', {
+                activeLeadNumber,
+                hasLock: !!leadLockToken,
+                smartLeadLoading,
+                agentLifecycle,
+                disabled:
+                  !activeLeadNumber ||
+                  !leadLockToken ||
+                  smartLeadLoading ||
+                  !['lead_locked', 'idle'].includes(agentLifecycle),
+              })}
               <Button
                 type="button"
                 className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-green-600 px-4 text-xs font-bold text-white hover:bg-green-700 shadow-md transition-all active:scale-95"

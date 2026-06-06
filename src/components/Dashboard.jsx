@@ -652,6 +652,7 @@ function Dashboard() {
     if (activeLead?.leadId || agentLifecycle === 'dialing' || agentLifecycle === 'on_call') {
       return;
     }
+    console.log('[fetchNextTrigger] Calling fetchNextLead', { agentLifecycle, activeLeadId: activeLead?.leadId });
     void fetchNextLead();
   }, [
     token,
@@ -1422,10 +1423,32 @@ function Dashboard() {
 
     if (!canAutoDial) {
       if (autoLeadDialTimerRef.current) {
+        console.log('[autoDialTimer] STOPPING — canAutoDial=false', {
+          previewLeadMode,
+          autoLeadDialEnabled,
+          status,
+          dispositionModal,
+          selectedBreak,
+          activeLeadId: activeLead?.leadId,
+          activeLeadNumber,
+          hasLockToken: !!leadLockToken,
+          agentLifecycle,
+        });
         clearInterval(autoLeadDialTimerRef.current);
         autoLeadDialTimerRef.current = null;
         autoDialCountdownRef.current = 3;
       }
+      console.log('[autoDialTimer] canAutoDial condition breakdown', {
+        previewLeadMode,
+        autoLeadDialEnabled,
+        statusIsStart: status === 'start',
+        notDispositionModal: !dispositionModal,
+        selectedBreakIsBreak: selectedBreak === 'Break',
+        activeLeadId: activeLead?.leadId,
+        activeLeadNumber,
+        leadLockToken,
+        agentLifecycleInList: ['lead_locked', 'idle'].includes(agentLifecycle),
+      });
       setAutoLeadDialRemaining(0);
       return;
     }
