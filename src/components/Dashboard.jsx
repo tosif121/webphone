@@ -156,6 +156,10 @@ function Dashboard() {
 
   const router = useRouter();
 
+  useEffect(() => {
+    console.log('[Dashboard] currentCallqueueCount updated:', currentCallqueueCount);
+  }, [currentCallqueueCount]);
+
   const computedMissedCallsLength = useMemo(() => {
     return Object.values(usermissedCalls || {}).filter((call) => call?.campaign === userCampaign).length;
   }, [usermissedCalls, userCampaign]);
@@ -1213,6 +1217,10 @@ function Dashboard() {
     return { total, notDialed, dialedNotPicked, answered };
   }, [activeMainTab, leadsData, skippedLeadIds]);
 
+  console.log(
+    `[dialStats] total=${dialStats.total} notDialed=${dialStats.notDialed} dialedNotPicked=${dialStats.dialedNotPicked} answered=${dialStats.answered}`,
+  );
+
   const dashboardCards = useMemo(() => {
     if (activeMainTab === 'leads') {
       return [
@@ -1341,7 +1349,18 @@ function Dashboard() {
 
       if (sourceLead?.leadId && Number.isFinite(Number(sourceLead.leadId)) && token) {
         if (activeLead?.leadId && leadLockToken && activeLead?.leadId !== sourceLead?.leadId) {
-          // Previous lead lock will expire on its own — no explicit release needed
+          try {
+            await axios.post(
+              `${window.location.origin}/lead/release`,
+              { leadId: activeLead.leadId, lockToken: leadLockToken },
+              { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
+            );
+          } catch (releaseError) {
+            console.warn(
+              'Failed to release previous lead lock:',
+              releaseError.response?.data?.message || releaseError.message,
+            );
+          }
         }
         try {
           const response = await axios.post(
@@ -1377,9 +1396,6 @@ function Dashboard() {
         }
       }
 
-      console.log(
-        `[handleDialAction] lockedLead=${!!lockedLead} leadId=${lockedLead?.leadId || 'none'} nextLockToken=${nextLockToken ? 'present' : 'none'} activeMainTab=${activeMainTab} autoLeadDial=${!!options.autoLeadDial}`,
-      );
       handleCall(
         normalizedPhoneNumber,
         lockedLead
