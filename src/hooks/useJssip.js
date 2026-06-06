@@ -461,6 +461,7 @@ const useJssip = (isMobile = false) => {
 
   const endCurrentCall = useCallback(() => {
     manualHangupRequestedRef.current = true;
+    pendingPostCallRef.current = false;
 
     try {
       if (session && typeof session.terminate === 'function' && session.status !== 8) {
@@ -847,7 +848,7 @@ const useJssip = (isMobile = false) => {
 
         // Update agent lifecycle based on status
         if (data.status === 'Disposition') {
-          setAgentLifecycle('disposition');
+          setAgentLifecycle((prev) => (prev === 'lead_locked' || prev === 'on_call' ? prev : 'disposition'));
         } else if (data.status === 'INUSE') {
           if (!pendingPostCallRef.current && activeCallRef.current) {
             setAgentLifecycle('on_call');
