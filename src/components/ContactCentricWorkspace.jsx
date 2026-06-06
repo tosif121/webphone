@@ -1303,7 +1303,7 @@ export default function ContactCentricWorkspace({
                                   disabled={row.status === 'Completed'}
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    handleDialAction(row.callerNumber, row.raw);
+                                    handleDialAction(row.callerNumber);
                                   }}
                                 >
                                   <Phone className="h-4 w-4" />

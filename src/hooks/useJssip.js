@@ -802,7 +802,6 @@ const useJssip = (isMobile = false) => {
           ),
           CONNECTION_CHECK_TIMEOUT_MS,
         );
-        console.log(`[userconnection] response received in ${Date.now() - userconTs}ms`);
 
         const data = response.data;
 
@@ -2089,11 +2088,8 @@ const useJssip = (isMobile = false) => {
     }
 
     const targetNumber = phoneNumber || formattedNumber;
-    const nextLead = metadata?.lead || activeLead;
-    const nextLeadLockToken = metadata?.leadLockToken || leadLockToken;
-    console.log(
-      `[handleCall] metadataLeadLockToken=${metadata?.leadLockToken} closureLeadLockToken=${leadLockToken} usedToken=${nextLeadLockToken} metadataLeadId=${metadata?.lead?.leadId}`,
-    );
+    const nextLead = metadata?.lead;
+    const nextLeadLockToken = metadata?.leadLockToken;
     const isOnBreakAtDialStart = selectedBreak && selectedBreak !== 'Break';
     callConnectedRef.current = false;
 
@@ -2153,6 +2149,13 @@ const useJssip = (isMobile = false) => {
       }
 
       // ✅ 6. Make the API call to dial number
+      console.log('[/dialnumber] payload:', {
+        receiver: targetNumber,
+        leadLockToken: nextLeadLockToken,
+        leadId: nextLead?.leadId,
+        dialSource: metadata?.dialSource,
+        autoLeadDial: metadata?.autoLeadDial,
+      });
       const response = await axios.post(
         `${window.location.origin}/dialnumber`,
         {
