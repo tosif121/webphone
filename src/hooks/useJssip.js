@@ -2321,6 +2321,7 @@ const useJssip = (isMobile = false) => {
               bridgeID: finalBridgeID || 'deadCallId',
               Disposition: 'Auto Disposed',
               autoDialDisabled: false,
+              leadLockToken: leadLockToken || undefined,
               contactNumber: phoneNumber || '',
             };
             console.log('[autoDispo] phoneNumber state:', phoneNumber);
