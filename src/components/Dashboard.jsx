@@ -330,7 +330,7 @@ function Dashboard() {
     setLeadError('');
 
     try {
-      const leadDashboardResponse = await axios.get(`${window.location.origin}/lead/dashboard`, {
+      const leadDashboardResponse = await axios.get(`https://devapp.iotcom.io/lead/dashboard`, {
         params: {
           limit: 200,
           includeCompleted: true,
@@ -407,7 +407,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/reports/calls/byAgent`,
+        `https://devapp.iotcom.io/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -484,7 +484,7 @@ function Dashboard() {
 
     try {
       const response = await axios.post(
-        `${window.location.origin}/userMissedCalls/${username}`,
+        `https://devapp.iotcom.io/userMissedCalls/${username}`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -519,9 +519,10 @@ function Dashboard() {
     nextLeadFetchInFlightRef.current = true;
     setSmartLeadLoading(true);
     setSmartLeadError('');
+    console.log('[fetchNextLead] calling /lead/next...');
     try {
       const response = await axios.post(
-        `${window.location.origin}/lead/next`,
+        `https://devapp.iotcom.io/lead/next`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -529,10 +530,12 @@ function Dashboard() {
       );
 
       const nextLead = response.data?.result || null;
+      console.log('[fetchNextLead] response:', { success: response.data?.success, hasLead: !!nextLead, leadId: nextLead?.leadId, leadState: nextLead?.leadState, lastDialedStatus: nextLead?.lastDialedStatus, lockToken: !!nextLead?.lockToken });
       applyLockedLeadState(nextLead, nextLead ? 'lead_locked' : 'idle');
       return nextLead;
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'No lead available right now.';
+      console.log('[fetchNextLead] ERROR:', { status: error.response?.status, message });
       setSmartLeadError(message);
       clearLeadSelection('idle');
       return null;
@@ -549,7 +552,7 @@ function Dashboard() {
 
     try {
       await axios.post(
-        `${window.location.origin}/lead/skip`,
+        `https://devapp.iotcom.io/lead/skip`,
         {
           leadId: activeLead.leadId,
           lockToken: leadLockToken,
@@ -868,7 +871,7 @@ function Dashboard() {
         console.log('[agentAvailable] calling API:', currentCallData?.Caller);
         try {
           const { data } = await axios.post(
-            `${window.location.origin}/user/agentAvailable/${username}`,
+            `https://devapp.iotcom.io/user/agentAvailable/${username}`,
             {},
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -1345,7 +1348,7 @@ function Dashboard() {
         }
         try {
           const response = await axios.post(
-            `${window.location.origin}/lead/lock`,
+            `https://devapp.iotcom.io/lead/lock`,
             {
               leadId: sourceLead.leadId,
               lockToken:
@@ -1449,7 +1452,11 @@ function Dashboard() {
         clearInterval(intervalId);
         autoLeadDialTimerRef.current = null;
         autoDialCountdownRef.current = 3;
-        console.log('[autoDial] FIRING at 0 — calling handleDialAction', { activeLeadNumber, activeLeadId: activeLead?.leadId, hasLockToken: !!leadLockToken });
+        console.log('[autoDial] FIRING at 0 — calling handleDialAction', {
+          activeLeadNumber,
+          activeLeadId: activeLead?.leadId,
+          hasLockToken: !!leadLockToken,
+        });
         void handleDialAction(activeLeadNumber, activeLead, { autoLeadDial: true });
       }
     }, 1000);
