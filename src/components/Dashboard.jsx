@@ -1214,8 +1214,7 @@ function Dashboard() {
     const answered = leads.filter(
       (l) => Number(l.lastDialedStatus || 0) === 2 && !skippedLeadIds.has(l.leadId || l._id),
     ).length;
-    const others = Math.max(0, total - notDialed - dialedNotPicked - answered);
-    return { total, notDialed, dialedNotPicked, answered, others };
+    return { total, notDialed, dialedNotPicked, answered };
   }, [activeMainTab, leadsData, skippedLeadIds]);
 
   console.log(`[dialStats] total=${dialStats.total} notDialed=${dialStats.notDialed} dialedNotPicked=${dialStats.dialedNotPicked} answered=${dialStats.answered}`);
