@@ -642,13 +642,6 @@ function Dashboard() {
       return;
     }
 
-    // After disposition closes, clear stale lead and fetch next so auto-dial continues
-    if (agentLifecycle === 'disposition') {
-      clearLeadSelection('idle');
-      void fetchNextLead();
-      return;
-    }
-
     if (activeLead?.leadId || agentLifecycle === 'dialing' || agentLifecycle === 'on_call') {
       return;
     }
@@ -664,7 +657,6 @@ function Dashboard() {
     activeLead?.leadId,
     agentLifecycle,
     fetchNextLead,
-    clearLeadSelection,
     autoLeadDialEnabled,
   ]);
 

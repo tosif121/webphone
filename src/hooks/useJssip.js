@@ -2339,6 +2339,8 @@ const useJssip = (isMobile = false) => {
           // 3. Reset to IDLE / Home Screen instantly
           setIsHeld(false);
           setIsCallended(false);
+          setActiveLead(null);
+          setLeadLockToken('');
           setAgentLifecycle('idle');
           setDispositionModal(false);
           setCallType('');
@@ -2355,6 +2357,8 @@ const useJssip = (isMobile = false) => {
         console.error('[WebPhone] Error in post-call automation:', error);
         // Safety reset even on error
         setIsCallended(false);
+        setActiveLead(null);
+        setLeadLockToken('');
         setAgentLifecycle('idle');
       } finally {
         setIsAutomationLoading(false);
