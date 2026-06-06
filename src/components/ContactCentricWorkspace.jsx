@@ -1156,7 +1156,8 @@ export default function ContactCentricWorkspace({
                             <Button
                               type="button"
                               size="icon"
-                              className="h-10 w-10 shrink-0 rounded-full bg-green-600 text-white shadow-sm hover:bg-green-700"
+                              className="h-10 w-10 shrink-0 rounded-full bg-green-600 text-white shadow-sm hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                              disabled={row.status === 'Completed'}
                               onClick={(event) => {
                                 event.stopPropagation();
                                 handleDialAction(row.callerNumber, row.raw);
@@ -1298,7 +1299,8 @@ export default function ContactCentricWorkspace({
                                 <Button
                                   type="button"
                                   size="sm"
-                                  className="ml-auto inline-flex h-9 min-w-[94px] shrink-0 items-center justify-center gap-2 rounded-full bg-green-600 px-3.5 font-medium text-white shadow-sm transition-colors hover:bg-green-700"
+                                  className="ml-auto inline-flex h-9 min-w-[94px] shrink-0 items-center justify-center gap-2 rounded-full bg-green-600 px-3.5 font-medium text-white shadow-sm transition-colors hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                                  disabled={row.status === 'Completed'}
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     handleDialAction(row.callerNumber, row.raw);
