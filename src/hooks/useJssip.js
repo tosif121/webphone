@@ -2091,6 +2091,7 @@ const useJssip = (isMobile = false) => {
     const targetNumber = phoneNumber || formattedNumber;
     const nextLead = metadata?.lead || activeLead;
     const nextLeadLockToken = metadata?.leadLockToken || leadLockToken;
+    console.log(`[handleCall] metadataLeadLockToken=${metadata?.leadLockToken} closureLeadLockToken=${leadLockToken} usedToken=${nextLeadLockToken} metadataLeadId=${metadata?.lead?.leadId}`);
     const isOnBreakAtDialStart = selectedBreak && selectedBreak !== 'Break';
     callConnectedRef.current = false;
 
