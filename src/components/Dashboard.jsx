@@ -1449,6 +1449,7 @@ function Dashboard() {
         clearInterval(intervalId);
         autoLeadDialTimerRef.current = null;
         autoDialCountdownRef.current = 3;
+        console.log('[autoDial] FIRING at 0 — calling handleDialAction', { activeLeadNumber, activeLeadId: activeLead?.leadId, hasLockToken: !!leadLockToken });
         void handleDialAction(activeLeadNumber, activeLead, { autoLeadDial: true });
       }
     }, 1000);
