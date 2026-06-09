@@ -1270,7 +1270,7 @@ export default function ContactCentricWorkspace({
                               )}
                             </TableCell>
                             <TableCell className="align-middle px-3 py-1.5">
-                              {row.agent || row.raw?.agent || row.raw?.assignedTo || '-'}
+                              {row.agent || row.raw?.agent || '-'}
                             </TableCell>
                             <TableCell className="align-middle px-3 py-1.5">
                               {mode === 'callInfo' ? (
