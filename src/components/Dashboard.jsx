@@ -325,7 +325,7 @@ function Dashboard() {
     setLeadError('');
 
     try {
-      const leadDashboardResponse = await axios.get(`${window.location.origin}/lead/dashboard`, {
+      const leadDashboardResponse = await axios.get(`https://devapp.iotcom.io/lead/dashboard`, {
         params: {
           limit: 200,
           includeCompleted: true,
@@ -402,7 +402,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/reports/calls/byAgent`,
+        `https://devapp.iotcom.io/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -479,7 +479,7 @@ function Dashboard() {
 
     try {
       const response = await axios.post(
-        `${window.location.origin}/userMissedCalls/${username}`,
+        `https://devapp.iotcom.io/userMissedCalls/${username}`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -517,7 +517,7 @@ function Dashboard() {
     console.log('[fetchNextLead] calling /lead/next...');
     try {
       const response = await axios.post(
-        `${window.location.origin}/lead/next`,
+        `https://devapp.iotcom.io/lead/next`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -554,7 +554,7 @@ function Dashboard() {
 
     try {
       await axios.post(
-        `${window.location.origin}/lead/skip`,
+        `https://devapp.iotcom.io/lead/skip`,
         {
           leadId: activeLead.leadId,
           lockToken: leadLockToken,
@@ -866,7 +866,7 @@ function Dashboard() {
         console.log('[agentAvailable] calling API:', currentCallData?.Caller);
         try {
           const { data } = await axios.post(
-            `${window.location.origin}/user/agentAvailable/${username}`,
+            `https://devapp.iotcom.io/user/agentAvailable/${username}`,
             {},
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -1322,24 +1322,33 @@ function Dashboard() {
       let lockedLead = sourceLead;
       let nextLockToken = sourceLead?.lockToken || undefined;
 
+      console.log(
+        `[handleDialAction] ENTRY phone=${normalizedPhoneNumber} hasSourceLead=${!!sourceLead} leadId=${sourceLead?.leadId} hasLockToken=${!!sourceLead?.lockToken} activeLeadId=${activeLead?.leadId} condition=${
+          sourceLead?.leadId && Number.isFinite(Number(sourceLead.leadId)) && token ? 'willLock' : 'skipLock'
+        }`,
+      );
+
       if (sourceLead?.leadId && Number.isFinite(Number(sourceLead.leadId)) && token) {
+        const lockPayload = {
+          leadId: sourceLead.leadId,
+          lockToken:
+            sourceLead.lockToken || (activeLead?.leadId === sourceLead?.leadId ? leadLockToken : undefined),
+        };
+        console.log('[handleDialAction] calling /lead/lock with:', lockPayload);
         if (activeLead?.leadId && leadLockToken && activeLead?.leadId !== sourceLead?.leadId) {
-          // Previous lead lock will expire on its own — no explicit release needed
+          console.log('[handleDialAction] different lead from active — will release old lock on expiry');
         }
         try {
           const response = await axios.post(
-            `${window.location.origin}/lead/lock`,
-            {
-              leadId: sourceLead.leadId,
-              lockToken:
-                sourceLead.lockToken || (activeLead?.leadId === sourceLead?.leadId ? leadLockToken : undefined),
-            },
+            `https://devapp.iotcom.io/lead/lock`,
+            lockPayload,
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             },
           );
           lockedLead = response.data?.result || sourceLead;
           nextLockToken = lockedLead?.lockToken || nextLockToken;
+          console.log('[handleDialAction] /lead/lock SUCCESS gotLockToken=', !!nextLockToken);
           applyLockedLeadState(
             {
               ...lockedLead,
@@ -1349,25 +1358,21 @@ function Dashboard() {
           );
         } catch (error) {
           const lockError = error.response?.data?.message || error.message;
-          console.warn('Unable to lock lead:', lockError);
+          console.warn('[handleDialAction] /lead/lock FAILED:', lockError);
           nextLockToken = undefined;
         }
       }
 
-      console.log(
-        `[handleDialAction] lockedLead=${!!lockedLead} leadId=${lockedLead?.leadId || 'none'} nextLockToken=${nextLockToken ? 'present' : 'none'} activeMainTab=${activeMainTab} autoLeadDial=${!!options.autoLeadDial}`,
-      );
-      handleCall(
-        normalizedPhoneNumber,
-        lockedLead
-          ? {
-              lead: lockedLead,
-              leadLockToken: nextLockToken,
-              dialSource: options.autoLeadDial ? 'auto_lead_preview' : 'manual_lead_preview',
-              autoLeadDial: Boolean(options.autoLeadDial),
-            }
-          : undefined,
-      );
+      const metadata = lockedLead
+        ? {
+            lead: lockedLead,
+            leadLockToken: nextLockToken,
+            dialSource: options.autoLeadDial ? 'auto_lead_preview' : 'manual_lead_preview',
+            autoLeadDial: Boolean(options.autoLeadDial),
+          }
+        : undefined;
+      console.log('[handleDialAction] calling handleCall with metadata:', metadata);
+      handleCall(normalizedPhoneNumber, metadata);
     },
     [activeLead, applyLockedLeadState, getAuthHeaders, handleCall, leadLockToken, token],
   );
