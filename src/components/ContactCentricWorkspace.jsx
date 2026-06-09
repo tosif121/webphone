@@ -1217,10 +1217,11 @@ export default function ContactCentricWorkspace({
                             <col className="w-[14%]" />
                             <col className="w-[12%]" />
                             <col className="w-[8%]" />
-                            <col className="w-[11%]" />
-                            <col className="w-[18%]" />
-                            <col className="w-[8%]" />
-                            <col className="w-[29%]" />
+                            <col className="w-[12%]" />
+                            <col className="w-[15%]" />
+                            <col className="w-[7%]" />
+                            <col className="w-[12%]" />
+                            <col className="w-[20%]" />
                           </>
                         )}
                       </colgroup>
@@ -1233,7 +1234,7 @@ export default function ContactCentricWorkspace({
                             {mode === 'callInfo' ? 'Caller Name' : 'Lead Name'}
                           </TableHead>
                           <TableHead className="h-11 px-3">{mode === 'callInfo' ? 'Type' : 'Status'}</TableHead>
-                          {mode === 'callInfo' && <TableHead className="h-11 px-3">Agent</TableHead>}
+                          <TableHead className="h-11 px-3">Agent</TableHead>
                           {mode === 'callInfo' ? (
                             <TableHead className="h-11 px-3">Time</TableHead>
                           ) : (
@@ -1268,9 +1269,9 @@ export default function ContactCentricWorkspace({
                                 </Badge>
                               )}
                             </TableCell>
-                            {mode === 'callInfo' && (
-                              <TableCell className="align-middle px-3 py-1.5">{row.agent || '-'}</TableCell>
-                            )}
+                            <TableCell className="align-middle px-3 py-1.5">
+                              {row.agent || row.raw?.agent || row.raw?.assignedTo || '-'}
+                            </TableCell>
                             <TableCell className="align-middle px-3 py-1.5">
                               {mode === 'callInfo' ? (
                                 formatTimestamp(row.time)
