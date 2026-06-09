@@ -1171,7 +1171,7 @@ export default function ContactCentricWorkspace({
                               disabled={row.status === 'Completed'}
                               onClick={(event) => {
                                 event.stopPropagation();
-                                handleDialAction(row.callerNumber, row.raw);
+                                handleDialAction(row.callerNumber, mode === 'callInfo' ? null : row.raw);
                               }}
                             >
                               <Phone className="h-4 w-4" />
@@ -1405,7 +1405,7 @@ export default function ContactCentricWorkspace({
                       size="icon"
                       className="h-11 w-11 rounded-full bg-green-600 text-white hover:bg-green-700"
                       onClick={() =>
-                        handleDialAction(contact?.phone || selectedRow?.callerNumber || '', selectedRow?.raw)
+                        handleDialAction(contact?.phone || selectedRow?.callerNumber || '', mode === 'callInfo' ? null : selectedRow?.raw)
                       }
                     >
                       <Phone className="h-4 w-4" />
