@@ -573,7 +573,7 @@ export default function ContactCentricWorkspace({
       setWorkspaceLoading(true);
       setWorkspaceError('');
       try {
-        const response = await axios.get(`https://devapp.iotcom.io/contact/${normalizedNumber}/full`, {
+        const response = await axios.get(`${window.location.origin}/contact/${normalizedNumber}/full`, {
           params: { limit: 50 },
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -1405,7 +1405,10 @@ export default function ContactCentricWorkspace({
                       size="icon"
                       className="h-11 w-11 rounded-full bg-green-600 text-white hover:bg-green-700"
                       onClick={() =>
-                        handleDialAction(contact?.phone || selectedRow?.callerNumber || '', mode === 'callInfo' ? null : selectedRow?.raw)
+                        handleDialAction(
+                          contact?.phone || selectedRow?.callerNumber || '',
+                          mode === 'callInfo' ? null : selectedRow?.raw,
+                        )
                       }
                     >
                       <Phone className="h-4 w-4" />

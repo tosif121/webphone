@@ -179,9 +179,9 @@ function Dashboard() {
   });
   const [leadStats, setLeadStats] = useState({
     assignedLeads: 0,
-    contactedLeads: 0,
-    pendingLeads: 0,
-    completedLeads: 0,
+    notDialed: 0,
+    dialedNotPicked: 0,
+    answered: 0,
   });
 
   const [callStats, setCallStats] = useState({
@@ -311,7 +311,7 @@ function Dashboard() {
   const fetchLeadsWithDateRange = useCallback(async () => {
     if (!token || !username || !userCampaign) {
       setLeadsData([]);
-      setLeadStats({ assignedLeads: 0, contactedLeads: 0, pendingLeads: 0, completedLeads: 0 });
+      setLeadStats({ assignedLeads: 0, notDialed: 0, dialedNotPicked: 0, answered: 0 });
       return;
     }
 
@@ -325,7 +325,7 @@ function Dashboard() {
     setLeadError('');
 
     try {
-      const leadDashboardResponse = await axios.get(`https://devapp.iotcom.io/lead/dashboard`, {
+      const leadDashboardResponse = await axios.get(`${window.location.origin}/lead/dashboard`, {
         params: {
           limit: 200,
           includeCompleted: true,
@@ -336,23 +336,23 @@ function Dashboard() {
       const leadDashboard = leadDashboardResponse.data?.result || {};
       const leads = Array.isArray(leadDashboard.leads) ? leadDashboard.leads : [];
       const summary = leadDashboard.summary || leadDashboard.stats || {};
-      const completedLeads = Number(summary.completedLeads || 0);
-      const pendingLeads = Number(summary.pendingLeads || 0);
+      const notDialed = Number(summary.notDialed || 0);
+      const dialedNotPicked = Number(summary.dialedNotPicked || 0);
       const assignedLeads = Number(summary.totalLeads || leads.length || 0);
-      const contactedLeads = Number(summary.contactedLeads || 0);
+      const answered = Number(summary.answered || 0);
 
       setLeadsData(leads);
       setLeadStats({
         assignedLeads,
-        contactedLeads,
-        pendingLeads,
-        completedLeads,
+        notDialed,
+        dialedNotPicked,
+        answered,
       });
     } catch (error) {
       console.error('Error fetching lead dashboard:', error.response?.data || error.message);
       setLeadError(error.response?.data?.message || error.message || 'Failed to fetch leads.');
       setLeadsData([]);
-      setLeadStats({ assignedLeads: 0, contactedLeads: 0, pendingLeads: 0, completedLeads: 0 });
+      setLeadStats({ assignedLeads: 0, notDialed: 0, dialedNotPicked: 0, answered: 0 });
     } finally {
       leadDashboardFetchInFlightRef.current = false;
       setLeadDashboardLoading(false);
@@ -402,7 +402,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://devapp.iotcom.io/reports/calls/byAgent`,
+        `${window.location.origin}/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -479,7 +479,7 @@ function Dashboard() {
 
     try {
       const response = await axios.post(
-        `https://devapp.iotcom.io/userMissedCalls/${username}`,
+        `${window.location.origin}/userMissedCalls/${username}`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -517,7 +517,7 @@ function Dashboard() {
     console.log('[fetchNextLead] calling /lead/next...');
     try {
       const response = await axios.post(
-        `https://devapp.iotcom.io/lead/next`,
+        `${window.location.origin}/lead/next`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -554,7 +554,7 @@ function Dashboard() {
 
     try {
       await axios.post(
-        `https://devapp.iotcom.io/lead/skip`,
+        `${window.location.origin}/lead/skip`,
         {
           leadId: activeLead.leadId,
           lockToken: leadLockToken,
@@ -866,7 +866,7 @@ function Dashboard() {
         console.log('[agentAvailable] calling API:', currentCallData?.Caller);
         try {
           const { data } = await axios.post(
-            `https://devapp.iotcom.io/user/agentAvailable/${username}`,
+            `${window.location.origin}/user/agentAvailable/${username}`,
             {},
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -1200,9 +1200,9 @@ function Dashboard() {
     if (activeMainTab === 'leads') {
       return [
         { key: 'all', label: 'Total Leads', value: leadStats.assignedLeads, icon: Users },
-        { key: 'notDialed', label: 'Not Dialed', value: leadStats.pendingLeads, icon: Phone },
-        { key: 'dialedNotPicked', label: 'Dialed Not Picked', value: leadStats.contactedLeads, icon: PhoneForwarded },
-        { key: 'answered', label: 'Answered', value: leadStats.completedLeads, icon: CheckCircle },
+        { key: 'notDialed', label: 'Not Dialed', value: leadStats.notDialed, icon: Phone },
+        { key: 'dialedNotPicked', label: 'Dialed Not Picked', value: leadStats.dialedNotPicked, icon: PhoneForwarded },
+        { key: 'answered', label: 'Answered', value: leadStats.answered, icon: CheckCircle },
       ];
     }
     return [
@@ -1224,9 +1224,9 @@ function Dashboard() {
     callStats.totalCalls,
     formatDurationLabel,
     leadStats.assignedLeads,
-    leadStats.pendingLeads,
-    leadStats.contactedLeads,
-    leadStats.completedLeads,
+    leadStats.notDialed,
+    leadStats.dialedNotPicked,
+    leadStats.answered,
   ]);
 
   useEffect(() => {
