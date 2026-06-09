@@ -29,7 +29,6 @@ import {
   List,
   SkipForward,
   RefreshCcw,
-  Lock,
 } from 'lucide-react';
 import CallbackForm from './CallbackForm';
 import { useRouter } from 'next/router';
@@ -326,7 +325,7 @@ function Dashboard() {
     setLeadError('');
 
     try {
-      const leadDashboardResponse = await axios.get(`${window.location.origin}/lead/dashboard`, {
+      const leadDashboardResponse = await axios.get(`https://devapp.iotcom.io/lead/dashboard`, {
         params: {
           limit: 200,
           includeCompleted: true,
@@ -403,7 +402,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/reports/calls/byAgent`,
+        `https://devapp.iotcom.io/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -480,7 +479,7 @@ function Dashboard() {
 
     try {
       const response = await axios.post(
-        `${window.location.origin}/userMissedCalls/${username}`,
+        `https://devapp.iotcom.io/userMissedCalls/${username}`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -518,7 +517,7 @@ function Dashboard() {
     console.log('[fetchNextLead] calling /lead/next...');
     try {
       const response = await axios.post(
-        `${window.location.origin}/lead/next`,
+        `https://devapp.iotcom.io/lead/next`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -555,7 +554,7 @@ function Dashboard() {
 
     try {
       await axios.post(
-        `${window.location.origin}/lead/skip`,
+        `https://devapp.iotcom.io/lead/skip`,
         {
           leadId: activeLead.leadId,
           lockToken: leadLockToken,
@@ -867,7 +866,7 @@ function Dashboard() {
         console.log('[agentAvailable] calling API:', currentCallData?.Caller);
         try {
           const { data } = await axios.post(
-            `${window.location.origin}/user/agentAvailable/${username}`,
+            `https://devapp.iotcom.io/user/agentAvailable/${username}`,
             {},
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -1321,7 +1320,7 @@ function Dashboard() {
       }
 
       let lockedLead = sourceLead;
-      let nextLockToken = leadLockToken;
+      let nextLockToken = sourceLead?.lockToken || undefined;
 
       if (sourceLead?.leadId && Number.isFinite(Number(sourceLead.leadId)) && token) {
         if (activeLead?.leadId && leadLockToken && activeLead?.leadId !== sourceLead?.leadId) {
@@ -1329,7 +1328,7 @@ function Dashboard() {
         }
         try {
           const response = await axios.post(
-            `${window.location.origin}/lead/lock`,
+            `https://devapp.iotcom.io/lead/lock`,
             {
               leadId: sourceLead.leadId,
               lockToken:
@@ -1351,12 +1350,6 @@ function Dashboard() {
         } catch (error) {
           const lockError = error.response?.data?.message || error.message;
           console.warn('Unable to lock lead:', lockError);
-          if (options.autoLeadDial || activeLead?.leadId === sourceLead?.leadId) {
-            toast.error(lockError);
-            return;
-          }
-          // Table-dialed lead — dial without lead context
-          lockedLead = null;
           nextLockToken = undefined;
         }
       }
