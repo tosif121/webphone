@@ -2152,23 +2152,17 @@ const useJssip = (isMobile = false) => {
         // Continue anyway, localStorage isn't critical for the call
       }
 
-      // ✅ 6. Make the API call to dial number
-      console.log('[/dialnumber] payload:', {
+      const dialPayload = {
         receiver: targetNumber,
-        leadLockToken: nextLeadLockToken,
-        leadId: nextLead?.leadId,
+        ...(nextLead ? { leadId: nextLead.leadId } : {}),
+        ...(nextLeadLockToken ? { leadLockToken: nextLeadLockToken } : {}),
         dialSource: metadata?.dialSource,
         autoLeadDial: metadata?.autoLeadDial,
-      });
+      };
+      console.log('[/dialnumber] payload:', dialPayload);
       const response = await axios.post(
         `https://devapp.iotcom.io/dialnumber`,
-        {
-          receiver: targetNumber,
-          leadLockToken: nextLeadLockToken || undefined,
-          leadId: nextLead?.leadId || undefined,
-          dialSource: metadata?.dialSource,
-          autoLeadDial: metadata?.autoLeadDial,
-        },
+        dialPayload,
         {
           headers: {
             ...getAuthHeaders({
@@ -2216,6 +2210,10 @@ const useJssip = (isMobile = false) => {
       }
 
       // ✅ 8. Success - call initiated
+      const responseLeadLockToken = response.data?.leadLockToken;
+      if (responseLeadLockToken) {
+        setLeadLockToken(responseLeadLockToken);
+      }
     } catch (error) {
       console.error('❌ Call initiation error:', error);
 
