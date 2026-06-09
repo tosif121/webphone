@@ -171,9 +171,7 @@ function Dashboard() {
   const [endDate, setEndDate] = useState(moment().format('YYYY-MM-DD'));
   const [workspaceDatePreset, setWorkspaceDatePreset] = useState('today');
 
-  const [activeMainTab, setActiveMainTab] = useState(
-    previewLeadMode ? 'leads' : DEFAULT_AGENT_UI_PREFERENCES.defaultWorkspaceTab,
-  );
+  const [activeMainTab, setActiveMainTab] = useState(DEFAULT_AGENT_UI_PREFERENCES.defaultWorkspaceTab);
   const [activeMetricFilter, setActiveMetricFilter] = useState('all');
   const [workspaceLayoutState, setWorkspaceLayoutState] = useState({
     shouldReserveSpace: false,
@@ -220,11 +218,9 @@ function Dashboard() {
   useEffect(() => {
     const storedPreferences = getStoredAgentUiPreferences();
     setActiveMainTab(
-      previewLeadMode
-        ? 'leads'
-        : storedPreferences.defaultWorkspaceTab ||
-            storedPreferences.defaultMainTab ||
-            DEFAULT_AGENT_UI_PREFERENCES.defaultWorkspaceTab,
+      storedPreferences.defaultWorkspaceTab ||
+        storedPreferences.defaultMainTab ||
+        DEFAULT_AGENT_UI_PREFERENCES.defaultWorkspaceTab,
     );
     setWorkspaceLayoutState((prev) => ({
       ...prev,
