@@ -1197,28 +1197,13 @@ function Dashboard() {
       : `${String(minutesValue).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   }, []);
 
-  const dialStats = useMemo(() => {
-    const leads = activeMainTab === 'leads' ? leadsData : [];
-    const total = leads.length;
-    const notDialed = leads.filter(
-      (l) => Number(l.lastDialedStatus || 0) === 0 || skippedLeadIds.has(l.leadId || l._id),
-    ).length;
-    const dialedNotPicked = leads.filter(
-      (l) => Number(l.lastDialedStatus || 0) === 1 && !skippedLeadIds.has(l.leadId || l._id),
-    ).length;
-    const answered = leads.filter(
-      (l) => Number(l.lastDialedStatus || 0) === 2 && !skippedLeadIds.has(l.leadId || l._id),
-    ).length;
-    return { total, notDialed, dialedNotPicked, answered };
-  }, [activeMainTab, leadsData, skippedLeadIds]);
-
   const dashboardCards = useMemo(() => {
     if (activeMainTab === 'leads') {
       return [
-        { key: 'all', label: 'Total Leads', value: dialStats.total, icon: Users },
-        { key: 'notDialed', label: 'Not Dialed', value: dialStats.notDialed, icon: Phone },
-        { key: 'dialedNotPicked', label: 'Dialed Not Picked', value: dialStats.dialedNotPicked, icon: PhoneForwarded },
-        { key: 'answered', label: 'Answered', value: dialStats.answered, icon: CheckCircle },
+        { key: 'all', label: 'Total Leads', value: leadStats.assignedLeads, icon: Users },
+        { key: 'notDialed', label: 'Not Dialed', value: leadStats.pendingLeads, icon: Phone },
+        { key: 'dialedNotPicked', label: 'Dialed Not Picked', value: leadStats.contactedLeads, icon: PhoneForwarded },
+        { key: 'answered', label: 'Answered', value: leadStats.completedLeads, icon: CheckCircle },
       ];
     }
     return [
@@ -1239,10 +1224,10 @@ function Dashboard() {
     callStats.outgoingCalls,
     callStats.totalCalls,
     formatDurationLabel,
-    dialStats.total,
-    dialStats.notDialed,
-    dialStats.dialedNotPicked,
-    dialStats.answered,
+    leadStats.assignedLeads,
+    leadStats.pendingLeads,
+    leadStats.contactedLeads,
+    leadStats.completedLeads,
   ]);
 
   useEffect(() => {
