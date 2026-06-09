@@ -325,7 +325,7 @@ function Dashboard() {
     setLeadError('');
 
     try {
-      const leadDashboardResponse = await axios.get(`https://devapp.iotcom.io/lead/dashboard`, {
+      const leadDashboardResponse = await axios.get(`${window.location.origin}/lead/dashboard`, {
         params: {
           limit: 200,
           includeCompleted: true,
@@ -402,7 +402,7 @@ function Dashboard() {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `https://devapp.iotcom.io/reports/calls/byAgent`,
+        `${window.location.origin}/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -479,7 +479,7 @@ function Dashboard() {
 
     try {
       const response = await axios.post(
-        `https://devapp.iotcom.io/userMissedCalls/${username}`,
+        `${window.location.origin}/userMissedCalls/${username}`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -517,7 +517,7 @@ function Dashboard() {
     console.log('[fetchNextLead] calling /lead/next...');
     try {
       const response = await axios.post(
-        `https://devapp.iotcom.io/lead/next`,
+        `${window.location.origin}/lead/next`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -554,7 +554,7 @@ function Dashboard() {
 
     try {
       await axios.post(
-        `https://devapp.iotcom.io/lead/skip`,
+        `${window.location.origin}/lead/skip`,
         {
           leadId: activeLead.leadId,
           lockToken: leadLockToken,
@@ -866,7 +866,7 @@ function Dashboard() {
         console.log('[agentAvailable] calling API:', currentCallData?.Caller);
         try {
           const { data } = await axios.post(
-            `https://devapp.iotcom.io/user/agentAvailable/${username}`,
+            `${window.location.origin}/user/agentAvailable/${username}`,
             {},
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -1328,7 +1328,7 @@ function Dashboard() {
         }
         try {
           const response = await axios.post(
-            `https://devapp.iotcom.io/lead/lock`,
+            `${window.location.origin}/lead/lock`,
             {
               leadId: sourceLead.leadId,
               lockToken:
