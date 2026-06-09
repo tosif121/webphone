@@ -1319,62 +1319,20 @@ function Dashboard() {
         return;
       }
 
-      let lockedLead = sourceLead;
-      let nextLockToken = sourceLead?.lockToken || undefined;
+      const leadLockToken = sourceLead?.lockToken || undefined;
 
       console.log(
-        `[handleDialAction] ENTRY phone=${normalizedPhoneNumber} hasSourceLead=${!!sourceLead} leadId=${sourceLead?.leadId} hasLockToken=${!!sourceLead?.lockToken} activeLeadId=${activeLead?.leadId} condition=${
-          sourceLead?.leadId && Number.isFinite(Number(sourceLead.leadId)) && token ? 'willLock' : 'skipLock'
-        }`,
+        `[handleDialAction] phone=${normalizedPhoneNumber} leadId=${sourceLead?.leadId || 'none'} lockToken=${leadLockToken ? 'present' : 'none'} autoLeadDial=${!!options.autoLeadDial}`,
       );
 
-      if (sourceLead?.leadId && Number.isFinite(Number(sourceLead.leadId)) && token) {
-        const lockPayload = {
-          leadId: sourceLead.leadId,
-          lockToken:
-            sourceLead.lockToken || (activeLead?.leadId === sourceLead?.leadId ? leadLockToken : undefined),
-        };
-        console.log('[handleDialAction] calling /lead/lock with:', lockPayload);
-        if (activeLead?.leadId && leadLockToken && activeLead?.leadId !== sourceLead?.leadId) {
-          console.log('[handleDialAction] different lead from active — will release old lock on expiry');
-        }
-        try {
-          const response = await axios.post(
-            `https://devapp.iotcom.io/lead/lock`,
-            lockPayload,
-            {
-              headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-            },
-          );
-          lockedLead = response.data?.result || sourceLead;
-          nextLockToken = lockedLead?.lockToken || nextLockToken;
-          console.log('[handleDialAction] /lead/lock SUCCESS gotLockToken=', !!nextLockToken);
-          applyLockedLeadState(
-            {
-              ...lockedLead,
-              lockToken: nextLockToken || lockedLead?.lockToken || '',
-            },
-            'lead_locked',
-          );
-        } catch (error) {
-          const lockError = error.response?.data?.message || error.message;
-          console.warn('[handleDialAction] /lead/lock FAILED:', lockError);
-          nextLockToken = undefined;
-        }
-      }
-
-      const metadata = lockedLead
-        ? {
-            lead: lockedLead,
-            leadLockToken: nextLockToken,
-            dialSource: options.autoLeadDial ? 'auto_lead_preview' : 'manual_lead_preview',
-            autoLeadDial: Boolean(options.autoLeadDial),
-          }
-        : undefined;
-      console.log('[handleDialAction] calling handleCall with metadata:', metadata);
-      handleCall(normalizedPhoneNumber, metadata);
+      handleCall(normalizedPhoneNumber, {
+        lead: sourceLead || undefined,
+        leadLockToken,
+        dialSource: options.autoLeadDial ? 'auto_lead_preview' : 'manual_lead_preview',
+        autoLeadDial: Boolean(options.autoLeadDial),
+      });
     },
-    [activeLead, applyLockedLeadState, getAuthHeaders, handleCall, leadLockToken, token],
+    [handleCall],
   );
 
   // Cleanup timer on unmount only (separate from main effect to avoid restarting on dep changes)
