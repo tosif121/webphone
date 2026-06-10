@@ -1606,7 +1606,6 @@ const useJssip = (isMobile = false) => {
           const notifyTs = new Date().toISOString();
           
           void ensureActiveCallContextLoaded({ incomingNumber: remoteUser, addIncomingHistory: false })
-            .then(() => )
             .catch((err) =>
               console.error(`[API] useroncall (load) → FAILED | ts=${notifyTs} | error=`, err?.message || err),
             );
