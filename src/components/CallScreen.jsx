@@ -147,7 +147,7 @@ const CallScreen = ({
     }
     try {
       const transferBridgeID = activeCallContext?.bridgeID || bridgeID;
-      console.log({ bridgeID: transferBridgeID }, 'transfer payload');
+      
       const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, {
         bridgeID: transferBridgeID,
       });
@@ -209,7 +209,7 @@ const CallScreen = ({
 
     localStorage.setItem('mergeEventLogs', JSON.stringify(existingLogs));
 
-    console.log('[reqUnHold] handleMerge calling reqUnHold');
+    
     const unholdSuccess = await reqUnHold?.();
     if (unholdSuccess === false) {
       toast.error('Merge failed: could not unhold the call');
@@ -268,18 +268,7 @@ const CallScreen = ({
         toast.error('Not authorized to end conference');
       }
     } finally {
-      console.log(
-        '[handleConferenceHangup] finally: status=',
-        status,
-        'conferenceNumber=',
-        conferenceNumber,
-        'hasParticipants=',
-        hasParticipants,
-        'conferenceStatus=',
-        conferenceStatus,
-        'isMerged=',
-        isMerged,
-      );
+      
       if (!isMerged) {
         await reqUnHold?.('conference_hangup');
       }
@@ -302,7 +291,7 @@ const CallScreen = ({
       return `${fmt(userCall?.contactNumber)} Conference with ${fmt(conferenceNumber)}`;
     }
     if (conferenceNumber && conferenceStatus) {
-      console.log('[mainNumber] showing conferenceNumber', conferenceNumber);
+      
       return fmt(conferenceNumber);
     }
     if (userCall?.contactNumber) return fmt(userCall?.contactNumber);

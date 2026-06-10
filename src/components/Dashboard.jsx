@@ -514,7 +514,7 @@ function Dashboard() {
     nextLeadFetchInFlightRef.current = true;
     setSmartLeadLoading(true);
     setSmartLeadError('');
-    console.log('[fetchNextLead] calling /lead/next...');
+    
     try {
       const response = await axios.post(
         `${window.location.origin}/lead/next`,
@@ -525,19 +525,12 @@ function Dashboard() {
       );
 
       const nextLead = response.data?.result || null;
-      console.log('[fetchNextLead] response:', {
-        success: response.data?.success,
-        hasLead: !!nextLead,
-        leadId: nextLead?.leadId,
-        leadState: nextLead?.leadState,
-        lastDialedStatus: nextLead?.lastDialedStatus,
-        lockToken: !!nextLead?.lockToken,
-      });
+      
       applyLockedLeadState(nextLead, nextLead ? 'lead_locked' : 'idle');
       return nextLead;
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'No lead available right now.';
-      console.log('[fetchNextLead] ERROR:', { status: error.response?.status, message });
+      
       setSmartLeadError(message);
       clearLeadSelection('idle');
       return null;
@@ -647,7 +640,7 @@ function Dashboard() {
     if (activeLead?.leadId || agentLifecycle === 'dialing' || agentLifecycle === 'on_call') {
       return;
     }
-    console.log('[fetchNextTrigger] Calling fetchNextLead', { agentLifecycle, activeLeadId: activeLead?.leadId });
+    
     void fetchNextLead();
   }, [
     token,
@@ -820,27 +813,25 @@ function Dashboard() {
         ['calling', 'ringing', 'conference', 'incoming'].includes(status);
 
       if (isCallLive) {
-        console.log('[agentAvailable] skipped — call is live', { agentLifecycle, status });
+        
         return;
       }
       if (dispositionModal) {
-        console.log('[agentAvailable] skipped — disposition modal open');
+        
         return;
       }
       if (selectedBreak && selectedBreak !== 'Break') {
-        console.log('[agentAvailable] skipped — agent on break', { selectedBreak });
+        
         return;
       }
       if (agentAvailableInFlightRef.current) {
-        console.log('[agentAvailable] skipped — request in flight');
+        
         return;
       }
 
       const now = Date.now();
       if (now - agentAvailableLastCalledRef.current < 10000) {
-        console.log('[agentAvailable] skipped — cooldown active', {
-          msSinceLast: now - agentAvailableLastCalledRef.current,
-        });
+        
         return;
       }
 
@@ -850,20 +841,12 @@ function Dashboard() {
       const hasCallToProcess = queueDetails?.length > 0 || currentCallData != null;
       const campaignMatch = String(userCampaign) === String(queueCampaign);
 
-      console.log('[agentAvailable] checking conditions', {
-        userCampaign,
-        queueCampaign,
-        campaignMatch,
-        connectionStatus,
-        hasCallToProcess,
-        queueDetails,
-        currentCallData,
-      });
+      
 
       if (campaignMatch && connectionStatus === 'NOT_INUSE' && hasCallToProcess) {
         agentAvailableInFlightRef.current = true;
         agentAvailableLastCalledRef.current = Date.now();
-        console.log('[agentAvailable] calling API:', currentCallData?.Caller);
+        
         try {
           const { data } = await axios.post(
             `${window.location.origin}/user/agentAvailable/${username}`,
@@ -872,7 +855,7 @@ function Dashboard() {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             },
           );
-          console.log('[agentAvailable] response:', data);
+          
           if (data.message === 'User is not live.') {
             toast.error('You are not available for calls. Please make yourself available to handle conference calls.');
           }
@@ -1321,9 +1304,7 @@ function Dashboard() {
 
       const leadLockToken = sourceLead?.lockToken || undefined;
 
-      console.log(
-        `[handleDialAction] phone=${normalizedPhoneNumber} leadId=${sourceLead?.leadId || 'none'} lockToken=${leadLockToken ? 'present' : 'none'} autoLeadDial=${!!options.autoLeadDial}`,
-      );
+      
 
       handleCall(normalizedPhoneNumber, {
         lead: sourceLead || undefined,
@@ -1360,32 +1341,12 @@ function Dashboard() {
 
     if (!canAutoDial) {
       if (autoLeadDialTimerRef.current) {
-        console.log('[autoDialTimer] STOPPING — canAutoDial=false', {
-          previewLeadMode,
-          autoLeadDialEnabled,
-          status,
-          dispositionModal,
-          selectedBreak,
-          activeLeadId: activeLead?.leadId,
-          activeLeadNumber,
-          hasLockToken: !!leadLockToken,
-          agentLifecycle,
-        });
+        
         clearInterval(autoLeadDialTimerRef.current);
         autoLeadDialTimerRef.current = null;
         autoDialCountdownRef.current = 3;
       }
-      console.log('[autoDialTimer] canAutoDial condition breakdown', {
-        previewLeadMode,
-        autoLeadDialEnabled,
-        statusIsStart: status === 'start',
-        notDispositionModal: !dispositionModal,
-        selectedBreakIsBreak: selectedBreak === 'Break',
-        activeLeadId: activeLead?.leadId,
-        activeLeadNumber,
-        leadLockToken,
-        agentLifecycleInList: ['lead_locked', 'idle'].includes(agentLifecycle),
-      });
+      
       setAutoLeadDialRemaining(0);
       return;
     }
@@ -1411,11 +1372,7 @@ function Dashboard() {
         clearInterval(intervalId);
         autoLeadDialTimerRef.current = null;
         autoDialCountdownRef.current = 3;
-        console.log('[autoDial] FIRING at 0 — calling handleDialAction', {
-          activeLeadNumber,
-          activeLeadId: activeLead?.leadId,
-          hasLockToken: !!leadLockToken,
-        });
+        
         void handleDialAction(activeLeadNumber, activeLead, { autoLeadDial: true });
       }
     }, 1000);

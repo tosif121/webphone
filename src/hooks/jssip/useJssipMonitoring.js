@@ -186,9 +186,7 @@ export const useJssipMonitoring = (state, utils) => {
         ...details,
       };
 
-      console.log(
-        `[SessionLog] ${eventType} | id=${sessionId} | ${direction} | ${remoteUser} | active=${activeSessionCountRef.current}`,
-      );
+      
 
       setSessionLogs((prev) => {
         const updated = [...prev, entry].slice(-100);

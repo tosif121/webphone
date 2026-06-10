@@ -95,7 +95,7 @@ export const useJssipState = () => {
   );
   const reset = useCallback(
     (...args) => {
-      console.log('[Stopwatch] reset() called with args:', JSON.stringify(args));
+      
       return _reset(...args);
     },
     [_reset],

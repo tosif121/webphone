@@ -267,7 +267,7 @@ const useJssip = (isMobile = false) => {
   }, [agentLifecycle]);
 
   useEffect(() => {
-    console.log('[State]', JSON.stringify({ agentLifecycle, status }));
+    
   }, [agentLifecycle, status]);
 
   useEffect(() => {
@@ -287,7 +287,7 @@ const useJssip = (isMobile = false) => {
   }, [callType]);
 
   useEffect(() => {
-    console.log('[status]', status);
+    
     if (status === 'start' && !isCallended) {
       setDispositionModal(false);
       setShowTimeoutModal(false);
@@ -429,10 +429,10 @@ const useJssip = (isMobile = false) => {
 
   const finalizeEndedCallState = useCallback(() => {
     if (pendingPostCallRef.current) {
-      console.log('[finalizeEndedCallState] SKIPPING — already processing post-call (duplicate event)');
+      
       return;
     }
-    console.log('[finalizeEndedCallState] called', { isCallended, leadLockToken });
+    
     manualHangupRequestedRef.current = false;
     pendingPostCallRef.current = true;
     setIsCustomerAnswered(false);
@@ -495,20 +495,16 @@ const useJssip = (isMobile = false) => {
             ...(leadLockToken ? { leadLockToken } : {}),
             phoneNumber: incomingNumber || phoneNumber || '',
           };
-          console.log(`[API] useroncall → START | ts=${ts} | url=/useroncall/${username} | payload=`, payload);
+          
           const response = await axios.post(`${window.location.origin}/useroncall/${username}`, payload, {
             headers: {
               ...getAuthHeaders({ 'Content-Type': 'application/json' }),
             },
           });
-          console.log(
-            `[API] useroncall → DONE | ts=${ts} | duration=${Date.now() - useroncallTs}ms | status=${response.status} | bridgeID=${response.data?.currentcalldata?.bridgeID || 'none'} | contact=${response.data?.currentcalldata?.contactNumber || 'none'}`,
-          );
-          console.log('[useroncall.currentcalldata]', JSON.stringify(response.data?.currentcalldata));
+          
+          
           const cc = response.data?.currentcalldata || {};
-          console.log(
-            `[callConnect] bridgeID=${cc.bridgeID || 'MISSING'} anstime=${cc.anstime || 'MISSING'} Caller=${cc.Caller || 'MISSING'} → ${cc.bridgeID && cc.anstime ? 'CONNECTED' : 'NOT_CONNECTED'}`,
-          );
+          
 
           if (response.status !== 200) {
             throw new Error('Failed to process call');
@@ -844,7 +840,7 @@ const useJssip = (isMobile = false) => {
         setFollowUpDispoes(data.followUpDispoes || []);
         setConnectionStatus(data.status);
         setCurrentCallqueueCount(data.currentCallqueueCount !== undefined ? data.currentCallqueueCount : 0);
-        console.log(`[queueCount] currentCallqueueCount=${data.currentCallqueueCount}`);
+        
 
         // Update agent lifecycle based on status
         if (data.status === 'Disposition') {
@@ -1367,7 +1363,7 @@ const useJssip = (isMobile = false) => {
         ua.start();
 
         ua.on('connected', (e) => {
-          console.log('[JsSIP] Connected to WebSocket');
+          
         });
 
         ua.on('disconnected', (e) => {
@@ -1375,12 +1371,12 @@ const useJssip = (isMobile = false) => {
         });
 
         ua.on('registered', async (data) => {
-          console.log('[JsSIP] Registered successfully');
+          
 
           // If user forcibly reloaded while on call → force logout
           if (sessionStorage.getItem('was_on_call') === 'true') {
             sessionStorage.removeItem('was_on_call');
-            console.log('[WebPhone] Detected forced reload during active call — logging out');
+            
             if (session && session.status < 6) {
               session.terminate();
             }
@@ -1464,7 +1460,7 @@ const useJssip = (isMobile = false) => {
           }
 
           const message = e.request?.body || '';
-          console.log(message, 'message');
+          
           lastAriMessageAtRef.current = Date.now();
           connectionFailureCountRef.current = 0;
           sipHeartbeatFailureCountRef.current = 0;
@@ -1608,11 +1604,9 @@ const useJssip = (isMobile = false) => {
           // Load active call context (deduplicated) instead of sending a separate notify
           // This uses `ensureActiveCallContextLoaded` which guards against duplicate in-flight requests
           const notifyTs = new Date().toISOString();
-          console.log(
-            `[API] useroncall (load) → START | ts=${notifyTs} | url=/useroncall/${username} | remoteUser=${remoteUser}`,
-          );
+          
           void ensureActiveCallContextLoaded({ incomingNumber: remoteUser, addIncomingHistory: false })
-            .then(() => console.log(`[API] useroncall (load) → DONE | ts=${notifyTs} | success`))
+            .then(() => )
             .catch((err) =>
               console.error(`[API] useroncall (load) → FAILED | ts=${notifyTs} | error=`, err?.message || err),
             );
@@ -1742,7 +1736,7 @@ const useJssip = (isMobile = false) => {
                     ]);
 
                     e.session.once('ended', () => {
-                      console.log('session ended------------3--------------------------------');
+                      
                       logSessionEvent('ended', {
                         sessionId: callId,
                         remoteUser,
@@ -1975,7 +1969,7 @@ const useJssip = (isMobile = false) => {
       });
 
       session.once('failed', () => {
-        console.log('failed---------------3--------------------------');
+        
         logSessionEvent('failed', { sessionId, remoteUser: incomingNumber, direction: 'incoming', cause: 'failed' });
         const manualHangupRequested = manualHangupRequestedRef.current;
         finalizePostCallContext();
@@ -2159,7 +2153,7 @@ const useJssip = (isMobile = false) => {
         dialSource: metadata?.dialSource,
         autoLeadDial: metadata?.autoLeadDial,
       };
-      console.log('[/dialnumber] payload:', dialPayload);
+      
       const response = await axios.post(`${window.location.origin}/dialnumber`, dialPayload, {
         headers: {
           ...getAuthHeaders({
@@ -2275,10 +2269,10 @@ const useJssip = (isMobile = false) => {
   useEffect(() => {
     if (!isCallended) return;
     if (callendedInFlightRef.current) {
-      console.log('[useCallended] BLOCKED — callendedInFlightRef is true', { leadLockToken, agentLifecycle });
+      
       return;
     }
-    console.log('[useCallended] RUNNING', { leadLockToken, agentLifecycle, bridgeID });
+    
     callendedInFlightRef.current = true;
 
     const callApi = async () => {
@@ -2292,10 +2286,7 @@ const useJssip = (isMobile = false) => {
           callType: callType || '',
           isMerged: !!isMerged,
         };
-        console.log(
-          `[API] callended → START | ts=${callendedTs} | url=/user/callended${username} | payload=`,
-          callendedPayload,
-        );
+        
         const callendedUrl = `${window.location.origin}/user/callended${username}`;
 
         const callendedResponse = await axios.post(callendedUrl, callendedPayload, {
@@ -2303,18 +2294,14 @@ const useJssip = (isMobile = false) => {
             ...getAuthHeaders({ 'Content-Type': 'application/json' }),
           },
         });
-        console.log(
-          `[API] callended → DONE | ts=${callendedTs} | status=${callendedResponse.status} | lifecycle=${agentLifecycleRef.current} | bridgeID=${bridgeIDRef.current || bridgeID || 'none'}`,
-        );
+        
 
         const tokenPayload = getStoredTokenPayload();
         const isDispositionEnabled = tokenPayload?.userData?.disposition !== false;
-        console.log(
-          `[autoDispo] isMobile=${isMobile} isDispositionEnabled=${isDispositionEnabled} disposition=${tokenPayload?.userData?.disposition}`,
-        );
+        
 
         if (isMobile || !isDispositionEnabled) {
-          console.log('[autoDispo] CONDITION MET → calling silent auto-disposition');
+          
           // 2. On Mobile or when disposition is disabled, perform SILENT auto-disposition
           try {
             const dispoUrl = `${window.location.origin}/user/disposition${username}`;
@@ -2327,19 +2314,19 @@ const useJssip = (isMobile = false) => {
               leadLockToken: leadLockToken || undefined,
               contactNumber: phoneNumber || '',
             };
-            console.log('[autoDispo] phoneNumber state:', phoneNumber);
-            console.log('[autoDispo] SENDING request', { dispoUrl, payload: dispoPayload });
+            
+            
 
             await axios.post(dispoUrl, dispoPayload, {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             });
-            console.log('[autoDispo] SUCCESS');
+            
           } catch (dispoError) {
             console.error('[autoDispo] FAILED:', dispoError.response?.data || dispoError.message);
           }
 
           // 3. Reset to IDLE / Home Screen instantly
-          console.log('[autoDispo] Clearing activeLead → null, leadLockToken → "", lifecyle → idle');
+          
           setIsHeld(false);
           setIsCallended(false);
           setActiveLead(null);
@@ -2349,7 +2336,7 @@ const useJssip = (isMobile = false) => {
           setCallType('');
           setPhoneNumber('');
         } else {
-          console.log('[autoDispo] CONDITION NOT MET → showing disposition modal instead');
+          
           setIsHeld(false);
           setIsCallended(false);
           setAgentLifecycle('disposition');
@@ -2364,7 +2351,7 @@ const useJssip = (isMobile = false) => {
         setLeadLockToken('');
         setAgentLifecycle('idle');
       } finally {
-        console.log('[useCallended] FINISHED — inflight=false', { leadLockToken, agentLifecycle });
+        
         setIsAutomationLoading(false);
         callendedInFlightRef.current = false;
         // ✅ Clear context ONLY after automation is done or failed
