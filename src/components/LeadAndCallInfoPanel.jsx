@@ -1064,7 +1064,8 @@ export default function LeadAndCallInfoPanel({
 
         if (v.includes('@') && v.includes('.')) mapped.email = v;
         else if (/^\d{10}$/.test(v)) mapped.phone = v;
-        else if (k.includes('name') && !k.includes('file') && !k.includes('user')) mapped.name = v;
+        else if (k.includes('name') && !k.includes('file') && !k.includes('user') && !k.includes('agent'))
+          mapped.name = v;
         else if (k.includes('date') || k.includes('time')) mapped.uploadDate = value;
       });
 

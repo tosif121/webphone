@@ -147,7 +147,7 @@ const CallScreen = ({
     }
     try {
       const transferBridgeID = activeCallContext?.bridgeID || bridgeID;
-      
+
       const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, {
         bridgeID: transferBridgeID,
       });
@@ -209,7 +209,6 @@ const CallScreen = ({
 
     localStorage.setItem('mergeEventLogs', JSON.stringify(existingLogs));
 
-    
     const unholdSuccess = await reqUnHold?.();
     if (unholdSuccess === false) {
       toast.error('Merge failed: could not unhold the call');
@@ -268,7 +267,6 @@ const CallScreen = ({
         toast.error('Not authorized to end conference');
       }
     } finally {
-      
       if (!isMerged) {
         await reqUnHold?.('conference_hangup');
       }
@@ -291,7 +289,6 @@ const CallScreen = ({
       return `${fmt(userCall?.contactNumber)} Conference with ${fmt(conferenceNumber)}`;
     }
     if (conferenceNumber && conferenceStatus) {
-      
       return fmt(conferenceNumber);
     }
     if (userCall?.contactNumber) return fmt(userCall?.contactNumber);

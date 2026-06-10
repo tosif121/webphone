@@ -66,10 +66,7 @@ export const useJssipConference = (state, utils) => {
         }),
       });
 
-      
-
       const data = await response.json();
-      
 
       if (data.message === 'conferance call dialed' || data.message === 'conference call dialed') {
         if (data.result) {
@@ -99,7 +96,7 @@ export const useJssipConference = (state, utils) => {
         setConferenceNumber('');
         setHasParticipants(null);
         setIsCustomerAnswered(true);
-        
+
         reqUnHold('conference_failed_response');
         logMergeEvent('conference_failed', {
           error: data.message,
@@ -107,7 +104,6 @@ export const useJssipConference = (state, utils) => {
         });
       } else if (data.message?.includes('error applying hold before transfer')) {
         setStatus('idle');
-        
 
         setConferenceStatus(false);
         setCallConference(false);
@@ -132,7 +128,7 @@ export const useJssipConference = (state, utils) => {
         setConferenceNumber('');
         setHasParticipants(null);
         setIsCustomerAnswered(true);
-        
+
         reqUnHold('conference_failed_unexpected');
         logMergeEvent('conference_failed', {
           error: data.message,
@@ -145,7 +141,7 @@ export const useJssipConference = (state, utils) => {
       setConferenceStatus(false);
       setCallConference(false);
       setHasParticipants(null);
-      
+
       reqUnHold('conference_network_error');
 
       logMergeEvent('conference_failed', {
@@ -170,7 +166,6 @@ export const useJssipConference = (state, utils) => {
         wasHeld: isHeld,
       });
 
-      
       const response = await fetch(`${window.location.origin}/reqUnHold/${username}`, {
         method: 'POST',
         headers: {
@@ -261,7 +256,6 @@ export const useJssipConference = (state, utils) => {
   };
 
   const handleConferenceMessage = (message) => {
-    
     if (message.includes('customer host channel connected')) {
       setHasParticipants('connected');
 
@@ -309,7 +303,6 @@ export const useJssipConference = (state, utils) => {
 
   // ✅ Auto reqUnHold when participant disconnects via socket (not button)
   useEffect(() => {
-    
     if (hasParticipants === 'disconnected_message') {
       setCallConference(false);
       setConferenceNumber('');
@@ -323,7 +316,7 @@ export const useJssipConference = (state, utils) => {
 
       if (isMainSessionAlive) {
         setStatus('on_call');
-        
+
         reqUnHold('auto_unhold_on_disconnect');
       } else {
         setStatus('start');

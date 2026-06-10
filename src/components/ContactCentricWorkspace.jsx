@@ -573,7 +573,7 @@ export default function ContactCentricWorkspace({
       setWorkspaceLoading(true);
       setWorkspaceError('');
       try {
-        const response = await axios.get(`https://devapp.iotcom.io/contact/${normalizedNumber}/full`, {
+        const response = await axios.get(`${window.location.origin}/contact/${normalizedNumber}/full`, {
           params: { limit: 50 },
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -1197,7 +1197,7 @@ export default function ContactCentricWorkspace({
                             <col className="w-[12%]" />
                             <col className="w-[8%]" />
                             <col className="w-[14%]" />
-                            <col className="w-[7%]" />
+                            <col className="w-[15%]" />
                             <col className="w-[15%]" />
                             <col className="w-[12%]" />
                             <col className="w-[18%]" />
@@ -1224,7 +1224,7 @@ export default function ContactCentricWorkspace({
                             {mode === 'callInfo' ? 'Caller Name' : 'Lead Name'}
                           </TableHead>
                           <TableHead className="h-11 px-3">{mode === 'callInfo' ? 'Type' : 'Status'}</TableHead>
-                          <TableHead className="h-11 px-3">Agent</TableHead>
+                          {mode === 'callInfo' && <TableHead className="h-11 px-3">Agent</TableHead>}
                           {mode === 'callInfo' ? (
                             <TableHead className="h-11 px-3">Time</TableHead>
                           ) : (
@@ -1233,10 +1233,11 @@ export default function ContactCentricWorkspace({
                           <TableHead className="h-11 px-3">
                             {mode === 'callInfo' ? 'Duration' : 'Last Updated'}
                           </TableHead>
-                          <TableHead className="h-11 px-3">{mode === 'callInfo' ? '' : 'Preview'}</TableHead>
+                          {mode !== 'callInfo' && <TableHead className="h-11 px-3">Preview</TableHead>}
                           <TableHead className="h-11 px-3">
                             {mode === 'callInfo' ? 'Disposition / Status' : ''}
                           </TableHead>
+                          <TableHead className="h-11 px-3">Action </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1259,9 +1260,11 @@ export default function ContactCentricWorkspace({
                                 </Badge>
                               )}
                             </TableCell>
-                            <TableCell className="align-middle px-3 py-1.5">
-                              {row.agent || row.raw?.agent || '-'}
-                            </TableCell>
+                            {mode === 'callInfo' && (
+                              <TableCell className="align-middle px-3 py-1.5">
+                                {row.agent || row.raw?.agent || '-'}
+                              </TableCell>
+                            )}
                             <TableCell className="align-middle px-3 py-1.5">
                               {mode === 'callInfo' ? (
                                 formatTimestamp(row.time)
@@ -1291,32 +1294,30 @@ export default function ContactCentricWorkspace({
                             <TableCell className="align-middle px-3 py-1.5">
                               {mode === 'callInfo' ? row.durationLabel : formatTimestamp(row.time)}
                             </TableCell>
+                            {mode !== 'callInfo' && (
+                              <TableCell className="align-middle px-3 py-1.5">{row.durationLabel}</TableCell>
+                            )}
                             <TableCell className="align-middle px-3 py-1.5">
-                              {mode === 'callInfo' ? null : row.durationLabel}
+                              {mode === 'callInfo' ? (
+                                <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                                  {row.status || 'N/A'}
+                                </span>
+                              ) : null}
                             </TableCell>
                             <TableCell className="align-middle px-3 py-1.5">
-                              <div className="flex min-h-[34px] items-center gap-2.5">
-                                {mode === 'callInfo' ? (
-                                  <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                                    {row.status || 'N/A'}
-                                  </span>
-                                ) : (
-                                  <span className="flex-1" />
-                                )}
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  className="ml-auto inline-flex h-9 min-w-[94px] shrink-0 items-center justify-center gap-2 rounded-full bg-green-600 px-3.5 font-medium text-white shadow-sm transition-colors hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed"
-                                  disabled={row.status === 'Completed'}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    handleDialAction(row.callerNumber, mode === 'callInfo' ? null : row.raw);
-                                  }}
-                                >
-                                  <Phone className="h-4 w-4" />
-                                  Dial
-                                </Button>
-                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="ml-auto inline-flex h-9 min-w-[94px] shrink-0 items-center justify-center gap-2 rounded-full bg-green-600 px-3.5 font-medium text-white shadow-sm transition-colors hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                                disabled={row.status === 'Completed'}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  handleDialAction(row.callerNumber, mode === 'callInfo' ? null : row.raw);
+                                }}
+                              >
+                                <Phone className="h-4 w-4" />
+                                Dial
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
