@@ -2151,6 +2151,16 @@ const useJssip = (isMobile = false) => {
 
       // ✅ 7. Check response for errors even if status is 200
       if (response.data && !response.data.success) {
+        const isCallUsurped =
+          agentLifecycleRef.current === 'ringing' ||
+          agentLifecycleRef.current === 'on_call' ||
+          activeCallRef.current != null;
+
+        if (isCallUsurped) {
+          console.warn('⚠️ handleCall failed, but ignoring because an incoming call is already active.');
+          return;
+        }
+
         const errorMessage = response.data.message || response.data.cause;
         console.warn('API returned error:', errorMessage);
 
@@ -2191,6 +2201,16 @@ const useJssip = (isMobile = false) => {
       }
     } catch (error) {
       console.error('❌ Call initiation error:', error);
+
+      const isCallUsurped =
+        agentLifecycleRef.current === 'ringing' ||
+        agentLifecycleRef.current === 'on_call' ||
+        activeCallRef.current != null;
+
+      if (isCallUsurped) {
+        console.warn('⚠️ handleCall errored, but ignoring because an incoming call is already active.');
+        return;
+      }
 
       // ✅ 9. Reset state on error
       setStatus('start');
