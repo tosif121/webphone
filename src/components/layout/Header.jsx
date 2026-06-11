@@ -68,6 +68,8 @@ export default function Header() {
 
   const userMenuRef = useRef(null);
 
+  const isAgentBusy = agentLifecycle === 'on_call' || agentLifecycle === 'ringing' || status === 'on_call';
+
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
 
   useEffect(() => {
@@ -312,6 +314,7 @@ export default function Header() {
                   'relative flex items-center gap-2',
                   campaignMissedCallsLength > 0 && !dropCalls && 'animate-pulse ring-2 ring-destructive ring-offset-1',
                 )}
+                disabled={isAgentBusy}
                 aria-label="Show Missed Calls"
                 type="button"
               >
@@ -329,6 +332,7 @@ export default function Header() {
                 onClick={() => setCallAlert(true)}
                 variant={callAlert ? 'default' : 'outline'}
                 className="relative flex items-center gap-2"
+                disabled={isAgentBusy}
                 aria-label="Show Follow-up Calls"
                 type="button"
               >
@@ -527,6 +531,7 @@ export default function Header() {
               'relative h-9 w-9 rounded-full',
               campaignMissedCallsLength > 0 && !dropCalls && 'animate-pulse ring-2 ring-destructive ring-offset-1',
             )}
+            disabled={isAgentBusy}
             aria-label="Show Missed Calls"
           >
             <PhoneMissed
@@ -547,6 +552,7 @@ export default function Header() {
             variant="ghost"
             size="icon"
             className="relative h-9 w-9 rounded-full"
+            disabled={isAgentBusy}
             aria-label="Show Followup"
           >
             <PhoneForwarded className="w-5 h-5 text-muted-foreground" />
@@ -656,6 +662,7 @@ export default function Header() {
                     setDropCalls(true);
                     setMobileMenuOpen(false);
                   }}
+                  disabled={isAgentBusy}
                   className={cn(
                     'relative flex items-center gap-2 w-full px-4 py-2 rounded-lg font-medium border transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
                     dropCalls
@@ -664,6 +671,7 @@ export default function Header() {
                     campaignMissedCallsLength > 0 &&
                       !dropCalls &&
                       'animate-pulse ring-2 ring-destructive ring-offset-1',
+                    isAgentBusy && 'opacity-50 cursor-not-allowed'
                   )}
                   aria-label="Show Missed Calls"
                   type="button"
@@ -683,11 +691,13 @@ export default function Header() {
                     setCallAlert(true);
                     setMobileMenuOpen(false);
                   }}
+                  disabled={isAgentBusy}
                   className={cn(
                     'relative flex items-center gap-2 w-full px-4 py-2 rounded-lg font-medium border transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
                     callAlert
                       ? 'bg-primary text-primary-foreground'
                       : 'text-secondary-foreground hover:bg-secondary/80',
+                    isAgentBusy && 'opacity-50 cursor-not-allowed'
                   )}
                   aria-label="Show Follow-up Calls"
                   type="button"
