@@ -588,6 +588,32 @@ const useJssip = (isMobile = false) => {
     ],
   );
 
+  const clearRejectedCall = useCallback(
+    async (callerNumber) => {
+      if (!callerNumber || callerNumber === 'unknown') {
+        console.warn('[CallGuard] Skipping clearRejectedCall — invalid caller number');
+        return;
+      }
+      try {
+        console.log(`[CallGuard] Requesting clearRejectedCallFromAgent for ${callerNumber}...`);
+        const response = await axios.post(
+          `${window.location.origin}/clearRejectedCallFromAgent`,
+          { caller: callerNumber },
+          {
+            headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          },
+        );
+        console.log(`[CallGuard] clearRejectedCallFromAgent response:`, response.data);
+      } catch (error) {
+        console.error(
+          `[CallGuard] clearRejectedCallFromAgent failed for ${callerNumber}:`,
+          error?.response?.data || error?.message || error,
+        );
+      }
+    },
+    [getAuthHeaders],
+  );
+
   useEffect(() => {
     const handleBeforeUnload = (event) => {
       const isOnCall = status === 'on_call' || agentLifecycle === 'on_call';
@@ -1297,12 +1323,17 @@ const useJssip = (isMobile = false) => {
 
   const rejectIncomingCall = () => {
     stopRingtone();
-    console.log('[CallGuard] Call rejected by agent, releasing lock');
+    const remoteUser = incomingSession?.remote_identity?.uri?.user || 'unknown';
+    const callId = incomingSession?.call_id || incomingSession?.id || 'unknown';
+    console.log(
+      `[CallGuard] Call MANUAL REJECTED by agent — remoteUser=${remoteUser} | callId=${callId} | releasing lock`,
+    );
     activeCallRef.current = null;
 
     if (incomingSession && incomingSession.status < 6) {
       incomingSession.terminate();
     }
+    void clearRejectedCall(remoteUser);
     setIncomingSession(null);
     setIsIncomingRinging(false);
     setStatus('start');
@@ -1560,7 +1591,7 @@ const useJssip = (isMobile = false) => {
           // Primary: activeCallRef (reliable), Secondary: agentLifecycleRef (blocks during disposition), Tertiary: ua.sessions (JsSIP built-in)
           if (activeCallRef.current || agentLifecycleRef.current === 'disposition' || sessionIds.length > 1) {
             console.log(
-              `[CallGuard] REJECTING incoming from ${remoteUser} — already on call or in disposition (activeLock=${!!activeCallRef.current}, lifecycle=${agentLifecycleRef.current}, ua.sessions=${sessionIds.length})`,
+              `[CallGuard] AUTO-REJECTING incoming from ${remoteUser} — already on call or in disposition (activeLock=${!!activeCallRef.current}, lifecycle=${agentLifecycleRef.current}, ua.sessions=${sessionIds.length}, sessionId=${callId})`,
             );
             session.isAutoRejected = true;
             session.isAcceptedCall = false;
@@ -1571,6 +1602,7 @@ const useJssip = (isMobile = false) => {
               direction: session.direction,
               cause: 'auto-rejected',
             });
+            void clearRejectedCall(remoteUser);
             return;
           }
 
@@ -1601,12 +1633,14 @@ const useJssip = (isMobile = false) => {
           console.log(`[CallGuard] Registered cleanup for accepted session (${remoteUser})`);
 
           // Register cleanup handlers — skip if this was an auto-rejected session
-          session.on('failed', () => {
+          session.on('failed', (failData) => {
             if (session.isAutoRejected) {
               console.log(`[CallGuard] Ignored failed from auto-rejected session (${remoteUser})`);
               return;
             }
-            console.log(`[CallGuard] Session failed — releasing lock (${remoteUser})`);
+            console.log(
+              `[CallGuard] Session FAILED — releasing lock (${remoteUser}) | callId=${callId} | direction=${session.direction} | cause=${failData?.cause || 'unknown'} | origin=${failData?.origin || 'unknown'}`,
+            );
             logSessionEvent('failed', {
               sessionId: callId,
               remoteUser,
@@ -1617,7 +1651,9 @@ const useJssip = (isMobile = false) => {
             finalizeEndedCallState();
           });
           session.once('ended', () => {
-            console.log(`[CallGuard] Session ended — releasing lock (${remoteUser})`);
+            console.log(
+              `[CallGuard] Session ENDED — releasing lock (${remoteUser}) | callId=${callId} | direction=${session.direction}`,
+            );
             activeCallRef.current = null;
             finalizeEndedCallState();
           });
@@ -1723,6 +1759,9 @@ const useJssip = (isMobile = false) => {
                     ]);
 
                     e.session.once('ended', () => {
+                      console.log(
+                        `[CallGuard] Mobile incoming session ENDED | remoteUser=${remoteUser} | callId=${callId}`,
+                      );
                       logSessionEvent('ended', {
                         sessionId: callId,
                         remoteUser,
@@ -1751,7 +1790,10 @@ const useJssip = (isMobile = false) => {
                       setConferenceNumber('');
                     });
 
-                    e.session.on('failed', () => {
+                    e.session.on('failed', (failData) => {
+                      console.log(
+                        `[CallGuard] Mobile incoming session FAILED | remoteUser=${remoteUser} | callId=${callId} | cause=${failData?.cause || 'unknown'} | origin=${failData?.origin || 'unknown'}`,
+                      );
                       logSessionEvent('failed', {
                         sessionId: callId,
                         remoteUser,
@@ -1853,6 +1895,7 @@ const useJssip = (isMobile = false) => {
             });
 
             e.session.once('ended', () => {
+              console.log(`[CallGuard] Outgoing session ENDED | remoteUser=${remoteUser} | callId=${callId}`);
               logSessionEvent('ended', { sessionId: callId, remoteUser, direction: 'outgoing', cause: 'ended' });
               if (isRecordingRef.current) {
                 stopRecording();
@@ -1861,7 +1904,10 @@ const useJssip = (isMobile = false) => {
               finalizeEndedCallState();
             });
 
-            e.session.on('failed', () => {
+            e.session.on('failed', (failData) => {
+              console.log(
+                `[CallGuard] Outgoing session FAILED | remoteUser=${remoteUser} | callId=${callId} | cause=${failData?.cause || 'unknown'} | origin=${failData?.origin || 'unknown'}`,
+              );
               logSessionEvent('failed', { sessionId: callId, remoteUser, direction: 'outgoing', cause: 'failed' });
               const manualHangupRequested = manualHangupRequestedRef.current;
               finalizePostCallContext();
@@ -1946,6 +1992,9 @@ const useJssip = (isMobile = false) => {
 
       // Your existing event listeners...
       session.once('ended', () => {
+        console.log(
+          `[CallGuard] handleIncomingCall session ENDED | remoteUser=${incomingNumber} | sessionId=${sessionId}`,
+        );
         if (isRecording) {
           stopRecording();
         }
@@ -1954,7 +2003,10 @@ const useJssip = (isMobile = false) => {
         finalizeEndedCallState();
       });
 
-      session.once('failed', () => {
+      session.once('failed', (failData) => {
+        console.log(
+          `[CallGuard] handleIncomingCall session FAILED | remoteUser=${incomingNumber} | sessionId=${sessionId} | cause=${failData?.cause || 'unknown'} | origin=${failData?.origin || 'unknown'}`,
+        );
         logSessionEvent('failed', { sessionId, remoteUser: incomingNumber, direction: 'incoming', cause: 'failed' });
         const manualHangupRequested = manualHangupRequestedRef.current;
         finalizePostCallContext();

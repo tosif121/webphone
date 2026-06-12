@@ -671,7 +671,7 @@ export default function Header() {
                     campaignMissedCallsLength > 0 &&
                       !dropCalls &&
                       'animate-pulse ring-2 ring-destructive ring-offset-1',
-                    isAgentBusy && 'opacity-50 cursor-not-allowed'
+                    isAgentBusy && 'opacity-50 cursor-not-allowed',
                   )}
                   aria-label="Show Missed Calls"
                   type="button"
@@ -697,7 +697,7 @@ export default function Header() {
                     callAlert
                       ? 'bg-primary text-primary-foreground'
                       : 'text-secondary-foreground hover:bg-secondary/80',
-                    isAgentBusy && 'opacity-50 cursor-not-allowed'
+                    isAgentBusy && 'opacity-50 cursor-not-allowed',
                   )}
                   aria-label="Show Follow-up Calls"
                   type="button"
