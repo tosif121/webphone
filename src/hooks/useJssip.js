@@ -681,12 +681,12 @@ const useJssip = (isMobile = false) => {
       const normalizedStatus = String(item.status || item.computedStatus || '')
         .trim()
         .toLowerCase();
-      // Match FollowUpCallsModal logic: exclude completed and explicitly missed
-      if (normalizedStatus === 'completed' || normalizedStatus === 'missed') return false;
+      // Exclude completed follow-ups
+      if (normalizedStatus === 'completed') return false;
 
       const callMoment = moment(item.callTime);
 
-      // Match 'today' tab: scheduled for today's date
+      // Match 'today' / 'pending' tab: scheduled for today's date
       return callMoment.isSame(moment(), 'day');
     });
 

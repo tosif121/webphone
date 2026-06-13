@@ -113,7 +113,7 @@ const Disposition = ({
     setSavingStickyMode(true);
     try {
       await axios.post(
-        `https://devapp.iotcom.io/campaign/${campaignId}`,
+        `${window.location.origin}/campaign/${campaignId}`,
         {
           stickyMode: isNone ? '' : value,
           stickyEnabled: !isNone,
@@ -210,7 +210,7 @@ const Disposition = ({
       }
 
       await axios.post(
-        `https://devapp.iotcom.io/callback/update-status`,
+        `${window.location.origin}/callback/update-status`,
         {
           callbackId,
           status: 'completed',
@@ -367,7 +367,7 @@ const Disposition = ({
         stickyMode: stickyMode === 'disabled' ? '' : stickyMode,
       };
 
-      const response = await axios.post(`https://devapp.iotcom.io/user/disposition${username}`, requestBody, {
+      const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       });
 
@@ -668,7 +668,7 @@ const Disposition = ({
         }
 
         // 1. Submit disposition FIRST
-        const response = await axios.post(`https://devapp.iotcom.io/user/disposition${username}`, requestBody, {
+        const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         });
 
@@ -681,7 +681,7 @@ const Disposition = ({
             try {
               // Apply the break after disposition
               await axios.post(
-                `https://devapp.iotcom.io/user/breakuser:${username}`,
+                `${window.location.origin}/user/breakuser:${username}`,
                 {
                   breakType: selectedBreakType,
                 },
@@ -789,8 +789,9 @@ const Disposition = ({
       setCallbackIncomplete(false);
       submittedViaCallback.current = true;
       setCallbackDialogOpen(false);
+      submitForm(callbackData);
     },
-    [selectedAction, followUpDate, followUpTime, followUpDetails],
+    [selectedAction, followUpDate, followUpTime, followUpDetails, submitForm],
   );
 
   // Don't render anything if modal shouldn't be shown
