@@ -19,6 +19,7 @@ import { Textarea } from './ui/textarea';
 import moment from 'moment';
 import { useAuth } from '@/hooks/useAuth';
 import { JssipContext } from '@/context/JssipContext';
+import { normalizePhone } from '@/utils/normalizePhone';
 
 const ACTIVE_CALLBACK_STORAGE_KEY = 'activeFollowUpCallback';
 
@@ -111,7 +112,7 @@ const Disposition = ({
     setSavingStickyMode(true);
     try {
       await axios.post(
-        `${window.location.origin}/campaign/${campaignId}`,
+        `https://devapp.iotcom.io/campaign/${campaignId}`,
         {
           stickyMode: isNone ? '' : value,
           stickyEnabled: !isNone,
@@ -208,7 +209,7 @@ const Disposition = ({
       }
 
       await axios.post(
-        `${window.location.origin}/callback/update-status`,
+        `https://devapp.iotcom.io/callback/update-status`,
         {
           callbackId,
           status: 'completed',
@@ -365,7 +366,7 @@ const Disposition = ({
         stickyMode: stickyMode === 'disabled' ? '' : stickyMode,
       };
 
-      const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
+      const response = await axios.post(`https://devapp.iotcom.io/user/disposition${username}`, requestBody, {
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       });
 
@@ -666,7 +667,7 @@ const Disposition = ({
         }
 
         // 1. Submit disposition FIRST
-        const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
+        const response = await axios.post(`https://devapp.iotcom.io/user/disposition${username}`, requestBody, {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         });
 
@@ -679,7 +680,7 @@ const Disposition = ({
             try {
               // Apply the break after disposition
               await axios.post(
-                `${window.location.origin}/user/breakuser:${username}`,
+                `https://devapp.iotcom.io/user/breakuser:${username}`,
                 {
                   breakType: selectedBreakType,
                 },
@@ -750,6 +751,16 @@ const Disposition = ({
             toast.error('Please provide follow-up date, time, and details.');
             return;
           }
+
+          // Store callback data in state so main submitForm picks it up later
+          const [y, m, d] = date.split('-').map(Number);
+          const parsedDate = new Date(y, m - 1, d);
+          const timeMoment = moment(time, 'hh:mm A');
+          const parsedTime = new Date();
+          parsedTime.setHours(timeMoment.hours(), timeMoment.minutes(), 0, 0);
+          setFollowUpDate(parsedDate);
+          setFollowUpTime(parsedTime);
+          setFollowUpDetails(details);
         } else {
           date = formatDate(followUpDate);
           time = formatTime(followUpTime);
@@ -776,9 +787,8 @@ const Disposition = ({
 
       setCallbackIncomplete(false);
       setCallbackDialogOpen(false);
-      submitForm(callbackData);
     },
-    [selectedAction, followUpDate, followUpTime, followUpDetails, submitForm],
+    [selectedAction, followUpDate, followUpTime, followUpDetails],
   );
 
   // Don't render anything if modal shouldn't be shown
@@ -852,7 +862,7 @@ const Disposition = ({
                   <div className="flex flex-col">
                     <span className="text-xs text-slate-500 dark:text-slate-400">Number</span>
                     <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-100 whitespace-nowrap">
-                      {stickyTargetNumber || 'N/A'}
+                      {normalizePhone(stickyTargetNumber) || 'N/A'}
                     </span>
                   </div>
                 </div>

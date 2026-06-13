@@ -10,10 +10,9 @@ import { JssipContext } from '@/context/JssipContext';
 const ACTIVE_CALLBACK_STORAGE_KEY = 'activeFollowUpCallback';
 
 const TABS = [
-  { key: 'today', label: 'Today' },
+  { key: 'pending', label: 'Pending' },
   { key: 'upcoming', label: 'Upcoming' },
-  { key: 'missed', label: 'Missed' },
-  { key: 'completed', label: 'Completed' },
+  { key: 'active', label: 'Active' },
 ];
 
 const resolveScheduledAt = (item = {}) => {
@@ -31,10 +30,10 @@ const resolveScheduledAt = (item = {}) => {
 };
 
 const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleCallsLength, token }) => {
-  const [activeTab, setActiveTab] = useState('today');
+  const [activeTab, setActiveTab] = useState('pending');
   const [loadingCaller, setLoadingCaller] = useState(null);
   const [updatingCallbackId, setUpdatingCallbackId] = useState(null);
-  const { setActiveFollowUpData } = useContext(JssipContext);
+  const { activeFollowUpData, setActiveFollowUpData } = useContext(JssipContext);
 
   const authHeaders = useMemo(
     () =>
@@ -50,10 +49,9 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
     const now = new Date();
     return (followUpDispoes || []).reduce(
       (accumulator, item, index) => {
-        const scheduledAt = resolveScheduledAt(item);
-
+        let scheduledAt = resolveScheduledAt(item);
         if (!scheduledAt) {
-          return accumulator;
+          scheduledAt = Date.now();
         }
 
         const callTime = new Date(scheduledAt);
@@ -62,18 +60,30 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
         const normalizedStatus = String(item.status || item.computedStatus || '')
           .trim()
           .toLowerCase();
-        const tab =
-          normalizedStatus === 'completed'
-            ? 'completed'
-            : normalizedStatus === 'missed'
-              ? 'missed'
-              : moment(callTime).isBetween(startOfToday, endOfToday, null, '[]')
-                ? 'today'
-                : moment(callTime).isAfter(endOfToday)
-                  ? 'upcoming'
-                  : 'missed';
+
+        const isActive = activeFollowUpData && (item._id === activeFollowUpData.callbackId || item.id === activeFollowUpData.callbackId);
+
+        let tab = null;
+
+        if (isActive) {
+          tab = 'active';
+        } else if (normalizedStatus === 'completed') {
+          return accumulator;
+        } else if (moment(callTime).isBefore(startOfToday)) {
+          // On the next day, only that day's scheduled follow-ups should be shown.
+          return accumulator;
+        } else if (moment(callTime).isBetween(startOfToday, endOfToday, null, '[]')) {
+          tab = 'pending';
+        } else if (moment(callTime).isAfter(endOfToday)) {
+          tab = 'upcoming';
+        }
+
+        if (!tab) {
+          return accumulator;
+        }
+
         const isAlert =
-          (tab === 'today' || tab === 'upcoming') &&
+          (tab === 'pending' || tab === 'upcoming') &&
           now >= new Date(callTime.getTime() - 10 * 60 * 1000) &&
           now <= callTime;
 
@@ -86,21 +96,19 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
           phoneNumber: item.phoneNumber || item.contactNumber || '',
         };
 
-        if (tab === 'today') accumulator.today.push(normalized);
+        if (tab === 'pending') accumulator.pending.push(normalized);
         else if (tab === 'upcoming') accumulator.upcoming.push(normalized);
-        else if (tab === 'missed') accumulator.missed.push(normalized);
-        else accumulator.completed.push(normalized);
+        else if (tab === 'active') accumulator.active.push(normalized);
 
         return accumulator;
       },
       {
-        today: [],
+        pending: [],
         upcoming: [],
-        missed: [],
-        completed: [],
+        active: [],
       },
     );
-  }, [followUpDispoes]);
+  }, [followUpDispoes, activeFollowUpData]);
 
   const formatTimeAgo = (date) => moment(date).fromNow();
   const formatDateTime = (date) => moment(date).format('MMM DD, YYYY • hh:mm A');
@@ -108,10 +116,9 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
   const activeCalls = callbackBuckets[activeTab] || [];
   const tabCounts = useMemo(
     () => ({
-      today: callbackBuckets.today.length,
+      pending: callbackBuckets.pending.length,
       upcoming: callbackBuckets.upcoming.length,
-      missed: callbackBuckets.missed.length,
-      completed: callbackBuckets.completed.length,
+      active: callbackBuckets.active.length,
     }),
     [callbackBuckets],
   );
@@ -126,16 +133,28 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
           return;
         }
 
+        const callbackId = callbackRecord?._id || callbackRecord?.id || null;
+
         setActiveFollowUpData({
-          callbackId: callbackRecord?._id || callbackRecord?.id || null,
+          callbackId,
           phoneNumber: cleanPhoneNumber,
           startedAt: Date.now(),
           comment: callbackRecord?.comment || '',
           scheduledAt: callbackRecord?.scheduledAt || '',
         });
 
+        // Set in localStorage so Disposition.jsx can read and complete it
+        localStorage.setItem(
+          ACTIVE_CALLBACK_STORAGE_KEY,
+          JSON.stringify({
+            callbackId,
+            phoneNumber: cleanPhoneNumber,
+            startedAt: Date.now(),
+          }),
+        );
+
         await axios.post(
-          `${window.location.origin}/dialmissedcall`,
+          `https://devapp.iotcom.io/dialmissedcall`,
           {
             receiver: cleanPhoneNumber,
           },
@@ -149,11 +168,12 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
         setCallAlert(false);
       } catch (error) {
         localStorage.removeItem(ACTIVE_CALLBACK_STORAGE_KEY);
+        setActiveFollowUpData(null);
         console.error('Error:', error);
         toast.error('Request failed. Please try again.');
       }
     },
-    [authHeaders, setCallAlert],
+    [authHeaders, setCallAlert, setActiveFollowUpData],
   );
 
   const updateCallbackStatus = useCallback(
@@ -165,7 +185,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
       try {
         setUpdatingCallbackId(callbackId);
         await axios.post(
-          `${window.location.origin}/callback/update-status`,
+          `https://devapp.iotcom.io/callback/update-status`,
           {
             callbackId,
             status,
@@ -178,6 +198,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
           },
         );
         toast.success(`Callback marked ${status}.`);
+        window.dispatchEvent(new CustomEvent('refreshFollowUps'));
         setCallAlert(false);
       } catch (error) {
         toast.error(error.response?.data?.message || 'Failed to update callback status.');
@@ -283,7 +304,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                       </div>
 
                       <div className="flex items-center gap-2 ml-2">
-                        {(activeTab === 'today' || activeTab === 'upcoming') && (
+                        {(activeTab === 'pending' || activeTab === 'upcoming' || activeTab === 'active') && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -294,7 +315,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                             Done
                           </Button>
                         )}
-                        {activeTab !== 'completed' && (
+                        {(activeTab === 'pending' || activeTab === 'upcoming' || activeTab === 'active') && (
                           <Button
                             size="icon"
                             className={`w-8 h-8 rounded-full text-white shadow-md
