@@ -12,7 +12,7 @@ const ACTIVE_CALLBACK_STORAGE_KEY = 'activeFollowUpCallback';
 const TABS = [
   { key: 'pending', label: 'Pending' },
   { key: 'upcoming', label: 'Upcoming' },
-  { key: 'active', label: 'Active' },
+  { key: 'completed', label: 'Completed' },
 ];
 
 const resolveScheduledAt = (item = {}) => {
@@ -33,7 +33,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
   const [activeTab, setActiveTab] = useState('pending');
   const [loadingCaller, setLoadingCaller] = useState(null);
   const [updatingCallbackId, setUpdatingCallbackId] = useState(null);
-  const { activeFollowUpData, setActiveFollowUpData } = useContext(JssipContext);
+  const { setActiveFollowUpData } = useContext(JssipContext);
 
   const authHeaders = useMemo(
     () =>
@@ -61,16 +61,13 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
           .trim()
           .toLowerCase();
 
-        const isActive = activeFollowUpData && (item._id === activeFollowUpData.callbackId || item.id === activeFollowUpData.callbackId);
-
         let tab = null;
 
-        if (isActive) {
-          tab = 'active';
+        if (normalizedStatus === 'completed' && moment(callTime).isBetween(startOfToday, endOfToday, null, '[]')) {
+          tab = 'completed';
         } else if (normalizedStatus === 'completed') {
           return accumulator;
         } else if (moment(callTime).isBefore(startOfToday)) {
-          // On the next day, only that day's scheduled follow-ups should be shown.
           return accumulator;
         } else if (moment(callTime).isBetween(startOfToday, endOfToday, null, '[]')) {
           tab = 'pending';
@@ -98,17 +95,17 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
 
         if (tab === 'pending') accumulator.pending.push(normalized);
         else if (tab === 'upcoming') accumulator.upcoming.push(normalized);
-        else if (tab === 'active') accumulator.active.push(normalized);
+        else if (tab === 'completed') accumulator.completed.push(normalized);
 
         return accumulator;
       },
       {
         pending: [],
         upcoming: [],
-        active: [],
+        completed: [],
       },
     );
-  }, [followUpDispoes, activeFollowUpData]);
+  }, [followUpDispoes]);
 
   const formatTimeAgo = (date) => moment(date).fromNow();
   const formatDateTime = (date) => moment(date).format('MMM DD, YYYY • hh:mm A');
@@ -118,7 +115,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
     () => ({
       pending: callbackBuckets.pending.length,
       upcoming: callbackBuckets.upcoming.length,
-      active: callbackBuckets.active.length,
+      completed: callbackBuckets.completed.length,
     }),
     [callbackBuckets],
   );
@@ -304,7 +301,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                       </div>
 
                       <div className="flex items-center gap-2 ml-2">
-                        {(activeTab === 'pending' || activeTab === 'upcoming' || activeTab === 'active') && (
+                        {(activeTab === 'pending' || activeTab === 'upcoming') && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -315,7 +312,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                             Done
                           </Button>
                         )}
-                        {(activeTab === 'pending' || activeTab === 'upcoming' || activeTab === 'active') && (
+                        {(activeTab === 'pending' || activeTab === 'upcoming') && (
                           <Button
                             size="icon"
                             className={`w-8 h-8 rounded-full text-white shadow-md
