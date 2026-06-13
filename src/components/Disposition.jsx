@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useContext, useEffect } from 'react';
+import React, { useState, useCallback, useContext, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -91,6 +91,7 @@ const Disposition = ({
   const [isDispositionModalOpen, setDispositionModalOpen] = useState(false);
   const [isCallbackDialogOpen, setCallbackDialogOpen] = useState(false);
   const [callbackIncomplete, setCallbackIncomplete] = useState(false);
+  const submittedViaCallback = useRef(false);
   const makeSticky = isSticky;
   const setMakeSticky = setIsSticky;
   const campaignName = authUser?.campaignName || 'N/A';
@@ -786,6 +787,7 @@ const Disposition = ({
       }
 
       setCallbackIncomplete(false);
+      submittedViaCallback.current = true;
       setCallbackDialogOpen(false);
     },
     [selectedAction, followUpDate, followUpTime, followUpDetails],
@@ -809,7 +811,13 @@ const Disposition = ({
           isCallbackDialogOpen,
           setCallbackDialogOpen,
           submitForm: handleCallbackSubmit,
-          onClose: () => setCallbackIncomplete(false),
+          onClose: () => {
+            if (!submittedViaCallback.current) {
+              setSelectedAction(null);
+            }
+            submittedViaCallback.current = false;
+            setCallbackIncomplete(false);
+          },
         }}
       />
 
