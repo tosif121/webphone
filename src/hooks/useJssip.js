@@ -2183,7 +2183,10 @@ const useJssip = (isMobile = false) => {
         // Continue anyway, localStorage isn't critical for the call
       }
 
-      // ✅ 6. Check if already usurped by an incoming call (e.g., queued call dispatched after break removal)
+      // ✅ 6. Clear any stale channel for this number before dialing
+      await clearRejectedCall(targetNumber);
+
+      // ✅ 7. Check if usurped by an incoming call (e.g., queued call dispatched after break removal or during clearRejectedCall await)
       if (
         agentLifecycleRef.current === 'ringing' ||
         agentLifecycleRef.current === 'on_call' ||
@@ -2197,9 +2200,6 @@ const useJssip = (isMobile = false) => {
         setAgentLifecycle(nextLeadLockToken ? 'lead_locked' : 'idle');
         return;
       }
-
-      // ✅ 7. Clear any stale channel for this number before dialing
-      await clearRejectedCall(targetNumber);
 
       const dialPayload = {
         receiver: targetNumber,
