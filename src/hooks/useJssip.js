@@ -2198,6 +2198,9 @@ const useJssip = (isMobile = false) => {
         return;
       }
 
+      // ✅ 7. Clear any stale channel for this number before dialing
+      await clearRejectedCall(targetNumber);
+
       const dialPayload = {
         receiver: targetNumber,
         ...(nextLead ? { leadId: nextLead.leadId } : {}),
