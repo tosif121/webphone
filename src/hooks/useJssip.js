@@ -172,10 +172,10 @@ const useJssip = (isMobile = false) => {
     getSessionStats,
   } = monitoring;
 
-  // useEffect(() => {
-  //   const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-  //   setOrigin(originWithoutProtocol);
-  // }, []);
+  useEffect(() => {
+    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    setOrigin(originWithoutProtocol);
+  }, []);
 
   const getStoredTokenPayload = useCallback(() => {
     try {
@@ -231,6 +231,7 @@ const useJssip = (isMobile = false) => {
   const lastSipHeartbeatAttemptAtRef = useRef(0);
   const sipHeartbeatFailureCountRef = useRef(0);
   const lastRuntimeResyncAttemptAtRef = useRef(0);
+  const isManualDialingRef = useRef(false);
 
   const MESSAGE_HEARTBEAT_STALE_MS = 10000;
   const CONNECTION_CHECK_TIMEOUT_MS = 8000;
@@ -492,7 +493,7 @@ const useJssip = (isMobile = false) => {
             phoneNumber: incomingNumber || phoneNumber || '',
           };
 
-          const response = await axios.post(`https://devapp.iotcom.io/useroncall/${username}`, payload, {
+          const response = await axios.post(`${window.location.origin}/useroncall/${username}`, payload, {
             headers: {
               ...getAuthHeaders({ 'Content-Type': 'application/json' }),
             },
@@ -597,7 +598,7 @@ const useJssip = (isMobile = false) => {
       try {
         console.log(`[CallGuard] Requesting clearRejectedCallFromAgent for ${callerNumber}...`);
         const response = await axios.post(
-          `https://devapp.iotcom.io/clearRejectedCallFromAgent`,
+          `${window.location.origin}/clearRejectedCallFromAgent`,
           { caller: callerNumber },
           {
             headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -818,7 +819,7 @@ const useJssip = (isMobile = false) => {
         const userconTs = Date.now();
         const response = await withTimeout(
           axios.post(
-            `https://devapp.iotcom.io/userconnection`,
+            `${window.location.origin}/userconnection`,
             { user: username },
             { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
           ),
@@ -1049,7 +1050,7 @@ const useJssip = (isMobile = false) => {
   const handleLogout = async (token, message) => {
     try {
       if (token) {
-        await axios.delete(`https://devapp.iotcom.io/deleteFirebaseToken`, {
+        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -1431,7 +1432,7 @@ const useJssip = (isMobile = false) => {
               await new Promise((resolve) => setTimeout(resolve, 1000));
 
               const response = await axios.post(
-                `https://devapp.iotcom.io/user/breakuser:${username}`,
+                `${window.location.origin}/user/breakuser:${username}`,
                 { breakType: storedBreak },
                 { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
               );
@@ -1589,9 +1590,14 @@ const useJssip = (isMobile = false) => {
 
           // Guard: only one call at a time or agent in post-call disposition
           // Primary: activeCallRef (reliable), Secondary: agentLifecycleRef (blocks during disposition), Tertiary: ua.sessions (JsSIP built-in)
-          if (activeCallRef.current || agentLifecycleRef.current === 'disposition' || sessionIds.length > 1) {
+          if (
+            activeCallRef.current ||
+            isManualDialingRef.current ||
+            agentLifecycleRef.current === 'disposition' ||
+            sessionIds.length > 1
+          ) {
             console.log(
-              `[CallGuard] AUTO-REJECTING incoming from ${remoteUser} — already on call or in disposition (activeLock=${!!activeCallRef.current}, lifecycle=${agentLifecycleRef.current}, ua.sessions=${sessionIds.length}, sessionId=${callId})`,
+              `[CallGuard] AUTO-REJECTING incoming from ${remoteUser} — ${isManualDialingRef.current ? 'manual dialing in progress' : 'already on call or in disposition'} (activeLock=${!!activeCallRef.current}, lifecycle=${agentLifecycleRef.current}, ua.sessions=${sessionIds.length}, sessionId=${callId})`,
             );
             session.isAutoRejected = true;
             session.isAcceptedCall = false;
@@ -2125,33 +2131,10 @@ const useJssip = (isMobile = false) => {
     const targetNumber = phoneNumber || formattedNumber;
     const nextLead = metadata?.lead;
     const nextLeadLockToken = metadata?.leadLockToken;
-    const isOnBreakAtDialStart = selectedBreak && selectedBreak !== 'Break';
     callConnectedRef.current = false;
+    isManualDialingRef.current = true;
 
     try {
-      // ✅ 2. Remove break if user is on break and initiating an outgoing call.
-      if (isOnBreakAtDialStart) {
-        try {
-          await axios.post(
-            `https://devapp.iotcom.io/user/removebreakuser:${username}`,
-            {},
-            { headers: getAuthHeaders() },
-          );
-        } catch (breakErr) {
-          console.warn('Failed to remove break on server:', breakErr);
-        }
-        setSelectedBreak('Break');
-        localStorage.removeItem('selectedBreak');
-        Object.keys(localStorage).forEach((key) => {
-          if (key.startsWith('breakStartTime_')) {
-            localStorage.removeItem(key);
-          }
-        });
-        setConnectionStatus('INUSE');
-        setStatus('calling');
-        setAgentLifecycle('on_call');
-      }
-
       // ✅ 3. Clean and store the number
       const cleanedNumber = targetNumber.replace(/\D/g, '');
       dialingNumberRef.current = cleanedNumber;
@@ -2187,11 +2170,7 @@ const useJssip = (isMobile = false) => {
       await clearRejectedCall(targetNumber);
 
       // ✅ 7. Check if usurped by an incoming call (e.g., queued call dispatched after break removal or during clearRejectedCall await)
-      if (
-        agentLifecycleRef.current === 'ringing' ||
-        agentLifecycleRef.current === 'on_call' ||
-        activeCallRef.current != null
-      ) {
+      if (agentLifecycleRef.current === 'ringing' || activeCallRef.current != null) {
         console.warn('⚠️ Skipping dial — already handling an incoming call.');
         setStatus('start');
         setPhoneNumber('');
@@ -2209,7 +2188,7 @@ const useJssip = (isMobile = false) => {
         autoLeadDial: metadata?.autoLeadDial,
       };
 
-      const response = await axios.post(`https://devapp.iotcom.io/dialnumber`, dialPayload, {
+      const response = await axios.post(`${window.location.origin}/dialnumber`, dialPayload, {
         headers: {
           ...getAuthHeaders({
             'Content-Type': 'application/json',
@@ -2221,10 +2200,7 @@ const useJssip = (isMobile = false) => {
 
       // ✅ 7. Check response for errors even if status is 200
       if (response.data && !response.data.success) {
-        const isCallUsurped =
-          agentLifecycleRef.current === 'ringing' ||
-          agentLifecycleRef.current === 'on_call' ||
-          activeCallRef.current != null;
+        const isCallUsurped = agentLifecycleRef.current === 'ringing' || activeCallRef.current != null;
 
         if (isCallUsurped) {
           console.warn('⚠️ handleCall failed, but ignoring because an incoming call is already active.');
@@ -2272,10 +2248,7 @@ const useJssip = (isMobile = false) => {
     } catch (error) {
       console.error('❌ Call initiation error:', error);
 
-      const isCallUsurped =
-        agentLifecycleRef.current === 'ringing' ||
-        agentLifecycleRef.current === 'on_call' ||
-        activeCallRef.current != null;
+      const isCallUsurped = agentLifecycleRef.current === 'ringing' || activeCallRef.current != null;
 
       if (isCallUsurped) {
         console.warn('⚠️ handleCall errored, but ignoring because an incoming call is already active.');
@@ -2338,6 +2311,8 @@ const useJssip = (isMobile = false) => {
         console.error('Unknown error');
         toast.error('Failed to initiate the call. Please try again.');
       }
+    } finally {
+      isManualDialingRef.current = false;
     }
   };
 
@@ -2361,7 +2336,7 @@ const useJssip = (isMobile = false) => {
           isMerged: !!isMerged,
         };
 
-        const callendedUrl = `https://devapp.iotcom.io/user/callended${username}`;
+        const callendedUrl = `${window.location.origin}/user/callended${username}`;
 
         const callendedResponse = await axios.post(callendedUrl, callendedPayload, {
           headers: {
@@ -2375,7 +2350,7 @@ const useJssip = (isMobile = false) => {
         if (isMobile || !isDispositionEnabled) {
           // 2. On Mobile or when disposition is disabled, perform SILENT auto-disposition
           try {
-            const dispoUrl = `https://devapp.iotcom.io/user/disposition${username}`;
+            const dispoUrl = `${window.location.origin}/user/disposition${username}`;
             const finalBridgeID = bridgeIDRef.current || bridgeID;
             const dispoPayload = {
               bridgeID: finalBridgeID || 'deadCallId',
