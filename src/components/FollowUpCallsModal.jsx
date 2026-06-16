@@ -12,7 +12,7 @@ const ACTIVE_CALLBACK_STORAGE_KEY = 'activeFollowUpCallback';
 const TABS = [
   { key: 'pending', label: 'Pending' },
   { key: 'upcoming', label: 'Upcoming' },
-  { key: 'completed', label: 'Completed' },
+  { key: 'active', label: 'Active' },
 ];
 
 const resolveScheduledAt = (item = {}) => {
@@ -33,7 +33,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
   const [activeTab, setActiveTab] = useState('pending');
   const [loadingCaller, setLoadingCaller] = useState(null);
   const [updatingCallbackId, setUpdatingCallbackId] = useState(null);
-  const { setActiveFollowUpData } = useContext(JssipContext);
+  const { activeFollowUpData, setActiveFollowUpData } = useContext(JssipContext);
 
   const authHeaders = useMemo(
     () =>
@@ -47,7 +47,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
 
   const callbackBuckets = useMemo(() => {
     const now = new Date();
-    return (followUpDispoes || []).reduce(
+    const buckets = (followUpDispoes || []).reduce(
       (accumulator, item, index) => {
         let scheduledAt = resolveScheduledAt(item);
         if (!scheduledAt) {
@@ -61,10 +61,19 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
           .trim()
           .toLowerCase();
 
+        const itemId = item._id || item.id;
+        const isActive =
+          activeFollowUpData &&
+          (activeFollowUpData.callbackId === itemId ||
+            (activeFollowUpData.phoneNumber &&
+              (item.phoneNumber || item.contactNumber) &&
+              String(activeFollowUpData.phoneNumber).replace(/\D/g, '') ===
+                String(item.phoneNumber || item.contactNumber).replace(/\D/g, '')));
+
         let tab = null;
 
-        if (normalizedStatus === 'completed' && moment(callTime).isBetween(startOfToday, endOfToday, null, '[]')) {
-          tab = 'completed';
+        if (isActive) {
+          tab = 'active';
         } else if (normalizedStatus === 'completed') {
           return accumulator;
         } else if (moment(callTime).isBefore(startOfToday)) {
@@ -86,7 +95,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
 
         const normalized = {
           ...item,
-          id: item._id || item.id || `${scheduledAt}-${item.phoneNumber || item.contactNumber || 'callback'}-${index}`,
+          id: itemId || `${scheduledAt}-${item.phoneNumber || item.contactNumber || 'callback'}-${index}`,
           callTime,
           tab,
           isAlert,
@@ -95,17 +104,35 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
 
         if (tab === 'pending') accumulator.pending.push(normalized);
         else if (tab === 'upcoming') accumulator.upcoming.push(normalized);
-        else if (tab === 'completed') accumulator.completed.push(normalized);
+        else if (tab === 'active') accumulator.active.push(normalized);
 
         return accumulator;
       },
       {
         pending: [],
         upcoming: [],
-        completed: [],
+        active: [],
       },
     );
-  }, [followUpDispoes]);
+
+    // Ensure currently dialed call shows in Active tab even if not in the main response yet
+    if (activeFollowUpData && buckets.active.length === 0) {
+      const scheduledAt = activeFollowUpData.scheduledAt
+        ? resolveScheduledAt({ scheduledAt: activeFollowUpData.scheduledAt })
+        : activeFollowUpData.startedAt;
+      buckets.active.push({
+        id: activeFollowUpData.callbackId || 'active-callback',
+        _id: activeFollowUpData.callbackId,
+        comment: activeFollowUpData.comment || 'Active Follow-up Call',
+        phoneNumber: activeFollowUpData.phoneNumber,
+        callTime: new Date(scheduledAt || Date.now()),
+        tab: 'active',
+        isAlert: false,
+      });
+    }
+
+    return buckets;
+  }, [followUpDispoes, activeFollowUpData]);
 
   const formatTimeAgo = (date) => moment(date).fromNow();
   const formatDateTime = (date) => moment(date).format('MMM DD, YYYY • hh:mm A');
@@ -115,7 +142,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
     () => ({
       pending: callbackBuckets.pending.length,
       upcoming: callbackBuckets.upcoming.length,
-      completed: callbackBuckets.completed.length,
+      active: callbackBuckets.active.length,
     }),
     [callbackBuckets],
   );
@@ -195,6 +222,10 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
           },
         );
         toast.success(`Callback marked ${status}.`);
+        if (status === 'completed') {
+          setActiveFollowUpData(null);
+          localStorage.removeItem(ACTIVE_CALLBACK_STORAGE_KEY);
+        }
         window.dispatchEvent(new CustomEvent('refreshFollowUps'));
         setCallAlert(false);
       } catch (error) {
@@ -203,7 +234,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
         setUpdatingCallbackId(null);
       }
     },
-    [authHeaders, setCallAlert],
+    [authHeaders, setCallAlert, setActiveFollowUpData],
   );
 
   return (
@@ -279,7 +310,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-foreground text-sm mb-1 truncate">
+                            <div className="font-medium text-foreground text-sm mb-1 whitespace-pre-wrap break-words">
                               {call.comment || 'Follow-up Call'}
                             </div>
                             <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
@@ -301,7 +332,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                       </div>
 
                       <div className="flex items-center gap-2 ml-2">
-                        {(activeTab === 'pending' || activeTab === 'upcoming') && (
+                        {(activeTab === 'pending' || activeTab === 'upcoming' || activeTab === 'active') && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -312,7 +343,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
                             Done
                           </Button>
                         )}
-                        {(activeTab === 'pending' || activeTab === 'upcoming') && (
+                        {(activeTab === 'pending' || activeTab === 'upcoming' || activeTab === 'active') && (
                           <Button
                             size="icon"
                             className={`w-8 h-8 rounded-full text-white shadow-md

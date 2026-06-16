@@ -2511,6 +2511,7 @@ const useJssip = (isMobile = false) => {
     isAutomationLoading,
     setIsAutomationLoading,
     isSticky,
+    setIsSticky,
     state.activeFollowUpData,
     state.setActiveFollowUpData,
     currentCallqueueCount,
