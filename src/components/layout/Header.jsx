@@ -195,7 +195,7 @@ export default function Header() {
       localStorage.removeItem('formNavigationState');
       localStorage.removeItem('selectedBreak');
       Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith('breakStartTime_')) {
+        if (key.startsWith('breakStartTime_') || key.startsWith('leadFormDraft:')) {
           localStorage.removeItem(key);
         }
       });

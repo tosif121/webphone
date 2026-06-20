@@ -727,7 +727,7 @@ const useJssip = (isMobile = false) => {
     localStorage.removeItem('formNavigationState');
     localStorage.removeItem('selectedBreak');
     Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('breakStartTime_')) {
+      if (key.startsWith('breakStartTime_') || key.startsWith('leadFormDraft:')) {
         localStorage.removeItem(key);
       }
     });
@@ -1407,6 +1407,11 @@ const useJssip = (isMobile = false) => {
             localStorage.removeItem('savedPassword');
             localStorage.removeItem('call-history');
             localStorage.removeItem('selectedBreak');
+            Object.keys(localStorage).forEach((key) => {
+              if (key.startsWith('leadFormDraft:')) {
+                localStorage.removeItem(key);
+              }
+            });
             window.location.href = '/webphone/v1/login';
             return;
           }

@@ -23,6 +23,11 @@ export default function Layout({ children }) {
     toast.success('Force login allowed. Logging out...');
     setShowSecurityAlert(false);
     localStorage.removeItem('token');
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('leadFormDraft:')) {
+        localStorage.removeItem(key);
+      }
+    });
     localStorage.setItem('userLoggedOut', 'true');
     router.push('/');
   };

@@ -415,6 +415,7 @@ export default function LeadAndCallInfoPanel({
 
     if (isDispositionEnabled) {
       if (!formSubmitted) {
+        console.log('[Draft] Disposition flow, setting formSubmitted = true');
         setFormSubmitted(true);
       }
       return;
@@ -424,6 +425,7 @@ export default function LeadAndCallInfoPanel({
     setRetainedUserCall(null);
     setWorkspaceActiveCall(null);
     setFormSubmitted(false);
+    console.log('[Draft] Post-call finalized, setFormSubmitted = false');
     setActiveTab('callerInfo');
     setDispositionModal?.(false);
   }, [
@@ -1378,11 +1380,36 @@ export default function LeadAndCallInfoPanel({
     }
 
     try {
-      const savedDraft = localStorage.getItem(draftStorageKey);
-      if (savedDraft) {
-        Object.assign(initialFormData, JSON.parse(savedDraft));
+      console.log(
+        '[Draft] Initializing, draftStorageKey:',
+        draftStorageKey,
+        'editedInAdmin:',
+        latestConversation?.editedInAdmin,
+        'formSubmitted:',
+        formSubmitted,
+      );
+      if (latestConversation?.editedInAdmin || formSubmitted) {
+        if (latestConversation?.editedInAdmin) {
+          console.log('[Draft] Admin edited, clearing draft for key:', draftStorageKey, '- keeping current form data');
+        }
+        if (formSubmitted) console.log('[Draft] Form submitted, skipping draft restore');
+        localStorage.removeItem(draftStorageKey);
+        localStorage.removeItem(`formNavigationState:${draftStorageKey}`);
+        if (isFormDataInitialized) {
+          console.log('[Draft] Form already initialized, keeping user data');
+          setLastDraftKey(initializationSignature);
+          return;
+        }
+      } else {
+        const savedDraft = localStorage.getItem(draftStorageKey);
+        console.log('[Draft] Restoring draft:', savedDraft ? 'found' : 'not found', 'key:', draftStorageKey);
+        if (savedDraft) {
+          Object.assign(initialFormData, JSON.parse(savedDraft));
+        }
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error('[Draft] Error:', error);
+    }
 
     if (manualEntryMode && localFormData && Object.keys(localFormData).length > 0) {
       Object.assign(initialFormData, localFormData);
@@ -1400,6 +1427,7 @@ export default function LeadAndCallInfoPanel({
     contactProfile,
     draftStorageKey,
     formConfig,
+    formSubmitted,
     lastDraftKey,
     latestConversation,
     localFormData,
@@ -1411,9 +1439,15 @@ export default function LeadAndCallInfoPanel({
 
   useEffect(() => {
     if (formSubmitted) {
+      console.log('[Draft] Form submitted, clearing drafts for contact');
       if (draftStorageKey) {
-        localStorage.removeItem(draftStorageKey);
-        localStorage.removeItem(`formNavigationState:${draftStorageKey}`);
+        const contactSuffix = draftStorageKey.split(':').pop();
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith('leadFormDraft:') && key.endsWith(`:${contactSuffix}`)) {
+            localStorage.removeItem(key);
+            localStorage.removeItem(`formNavigationState:${key}`);
+          }
+        });
       }
       setActiveFollowUpData(null);
       setLocalFormData({});
@@ -1426,16 +1460,20 @@ export default function LeadAndCallInfoPanel({
   }, [draftStorageKey, formSubmitted, setActiveFollowUpData, setWorkspaceActiveCall]);
 
   useEffect(() => {
-    if (!draftStorageKey) return;
+    if (!draftStorageKey || formSubmitted) return;
 
     if (localFormData && Object.keys(localFormData).length > 0) {
+      console.log('[Draft] Saving draft for key:', draftStorageKey, 'values:', JSON.stringify(localFormData));
       localStorage.setItem(draftStorageKey, JSON.stringify(localFormData));
     }
-  }, [draftStorageKey, localFormData]);
+  }, [draftStorageKey, localFormData, formSubmitted]);
 
   // Update local form data handler
   const updateLocalFormData = useCallback(
     (newData) => {
+      if (typeof newData === 'object' && newData !== null) {
+        Object.entries(newData).forEach(([k, v]) => console.log(`[FormFill] ${k}:`, v));
+      }
       setLocalFormData((prev) => {
         const next = typeof newData === 'function' ? newData(prev) : { ...prev, ...newData };
 
@@ -1543,7 +1581,11 @@ export default function LeadAndCallInfoPanel({
       return;
     }
 
+    console.log('[FormSubmit] formDataToSubmit:', JSON.stringify(formDataToSubmit, null, 2));
+    console.log('[FormSubmit] localFormData:', JSON.stringify(localFormData, null, 2));
     const { contactData, contactNumber, conversationFields } = buildDynamicFormPayloads(formDataToSubmit);
+    console.log('[FormSubmit] contactData:', JSON.stringify(contactData, null, 2));
+    console.log('[FormSubmit] conversationFields:', JSON.stringify(conversationFields, null, 2));
     const isStickyContact = localFormData?.isSticky;
     const conversationData = buildConversationRecord({
       ...conversationFields,
