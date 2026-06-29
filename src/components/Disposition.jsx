@@ -887,7 +887,9 @@ const Disposition = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div
+                className={`grid grid-cols-2 ${dispositionActions.length > 15 ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-3 max-h-[40vh] overflow-y-auto pr-1`}
+              >
                 {dispositionActions.map((item) => {
                   const isSelected = selectedAction === item.action;
                   const styles = getStylesForAction(item.action, isSelected);
