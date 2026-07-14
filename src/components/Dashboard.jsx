@@ -156,7 +156,11 @@ function Dashboard() {
   const router = useRouter();
 
   const computedMissedCallsLength = useMemo(() => {
-    return Object.values(usermissedCalls || {}).filter((call) => call?.campaign === userCampaign).length;
+    return Object.values(usermissedCalls || {}).filter(
+      (call) =>
+        call?.campaign === userCampaign ||
+        (!call?.campaign && call?.hangupcause === 'callmenu call hangup'),
+    ).length;
   }, [usermissedCalls, userCampaign]);
 
   const [leadDashboardLoading, setLeadDashboardLoading] = useState(false);

@@ -15,7 +15,11 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
   const userCampaign = parsedData?.userData?.campaign;
 
   const groupedCalls = useMemo(() => {
-    const filteredCalls = Object.values(usermissedCalls || {}).filter((call) => call?.campaign === userCampaign);
+    const filteredCalls = Object.values(usermissedCalls || {}).filter(
+      (call) =>
+        call?.campaign === userCampaign ||
+        (!call?.campaign && call?.hangupcause === 'callmenu call hangup'),
+    );
     return filteredCalls.reduce((acc, call) => {
       if (!call?.Caller) return acc;
       if (!acc[call.Caller]) {
