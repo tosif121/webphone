@@ -158,8 +158,8 @@ function Dashboard() {
   const computedMissedCallsLength = useMemo(() => {
     return Object.values(usermissedCalls || {}).filter(
       (call) =>
-        call?.campaign === userCampaign ||
-        (!call?.campaign && call?.hangupcause === 'callmenu call hangup'),
+        !call?.campaign ||
+        (userCampaign && call?.campaign === userCampaign),
     ).length;
   }, [usermissedCalls, userCampaign]);
 
