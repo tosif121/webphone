@@ -3,9 +3,8 @@ import toast from 'react-hot-toast';
 
 export default function MobileNavigation({ activeTab, onTabChange, isCallActive = false }) {
   const handleTabChange = (tab) => {
-    // Prevent switching to Leads or Stats during an active call
-    if (isCallActive && (tab === 'leads' || tab === 'stats')) {
-      toast.error('Cannot access Leads or Stats during an active call');
+    if (isCallActive) {
+      toast.error('You are on a call. Please finish the call first.');
       return;
     }
 
@@ -36,11 +35,12 @@ export default function MobileNavigation({ activeTab, onTabChange, isCallActive 
         <div className="flex items-center justify-around p-1 safe-area-inset-bottom">
           <button
             onClick={() => handleTabChange('recents')}
+            disabled={isCallActive}
             className={`flex flex-col items-center justify-center flex-1 py-1.5 px-2 rounded-xl transition-all duration-200 ${
               activeTab === 'recents'
                 ? 'text-primary bg-primary/10 font-semibold'
                 : 'text-muted-foreground hover:bg-muted/50'
-            }`}
+            } ${isCallActive && activeTab !== 'recents' ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
             <History className={`w-5 h-5 mb-0.5 transition-transform ${activeTab === 'recents' ? 'scale-110' : ''}`} />
             <span className="text-[10px]">Recents</span>

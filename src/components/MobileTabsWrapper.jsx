@@ -4,6 +4,8 @@ import AgentDashboard from './AgentDashboard';
 import MobileNavigation from './MobileNavigation';
 import DropCallsModal from './DropCallsModal';
 import FollowUpCallsModal from './FollowUpCallsModal';
+import Disposition from './Disposition';
+import LeadAndCallInfoPanel from './LeadAndCallInfoPanel';
 import HistoryContext from '@/context/HistoryContext';
 import { JssipContext } from '@/context/JssipContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,7 +17,26 @@ export default function MobileTabsWrapper() {
   const [isMobile, setIsMobile] = useState(false);
   const [dialpadOpen, setDialpadOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const { status, followUpDispoes } = useContext(JssipContext);
+  const {
+    status,
+    followUpDispoes,
+    dispositionModal,
+    setDispositionModal,
+    bridgeID,
+    callType,
+    setCallType,
+    activeLead,
+    setActiveLead,
+    leadLockToken,
+    setLeadLockToken,
+    setAgentLifecycle,
+    phoneNumber,
+    setPhoneNumber,
+    userCall,
+    setUserCall,
+    connectionStatus,
+    activeCallContext,
+  } = useContext(JssipContext);
   const {
     dropCalls,
     setDropCalls,
@@ -30,8 +51,9 @@ export default function MobileTabsWrapper() {
   const username = authUser?.userid || authUser?.username || '';
   const userCampaign = authUser?.campaign || '';
   const [usermissedCalls, setUsermissedCalls] = useState([]);
+  const [formSubmitted, setFormSubmitted] = useState(false);
 
-  const isCallActive = status === 'calling' || status === 'conference' || status === 'incoming';
+  const isCallActive = status === 'calling' || status === 'conference' || status === 'incoming' || status === 'on_call';
 
   const getAuthHeaders = useCallback(
     (extra = {}) => {
@@ -131,6 +153,24 @@ export default function MobileTabsWrapper() {
       window.dispatchEvent(new CustomEvent('mobileTabHidePhone'));
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (isCallActive && activeTab !== 'dialpad') {
+      setActiveTab('dialpad');
+      setDialpadOpen(true);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('openDialpad'));
+      }
+    }
+  }, [isCallActive]);
+
+  // Auto-set formSubmitted when disposition modal opens on mobile
+  // Auto-set formSubmitted when disposition modal opens on mobile
+  useEffect(() => {
+    if (!dispositionModal) {
+      setFormSubmitted(false);
+    }
+  }, [dispositionModal]);
 
   useEffect(() => {
     // Set client flag first to prevent hydration mismatch
@@ -242,6 +282,47 @@ export default function MobileTabsWrapper() {
           setCallAlert={setCallAlert}
           username={username}
           token={token}
+        />
+      )}
+      {/* Disposition Workspace - matches desktop: LeadAndCallInfoPanel first, then Disposition */}
+      {!formSubmitted && dispositionModal && (
+        <div className="fixed inset-0 z-[1002] bg-background">
+          <LeadAndCallInfoPanel
+            userCall={userCall}
+            status={status}
+            formSubmitted={formSubmitted}
+            connectionStatus={connectionStatus}
+            dispositionModal={dispositionModal}
+            userCampaign={userCampaign}
+            username={username}
+            token={token}
+            callType={callType}
+            setFormSubmitted={setFormSubmitted}
+            activeCallContext={activeCallContext}
+            fetchCallDataByAgent={() => {}}
+            fetchLeadsWithDateRange={() => {}}
+          />
+        </div>
+      )}
+      {formSubmitted && dispositionModal && (
+        <Disposition
+          bridgeID={bridgeID}
+          setDispositionModal={setDispositionModal}
+          userCall={userCall}
+          callType={callType}
+          setCallType={setCallType}
+          phoneNumber={userCall?.contactNumber}
+          formSubmitted={formSubmitted}
+          setFormSubmitted={setFormSubmitted}
+          fetchLeadsWithDateRange={() => {}}
+          setPhoneNumber={setPhoneNumber}
+          campaignID={userCampaign}
+          user={username}
+          activeLead={activeLead}
+          leadLockToken={leadLockToken}
+          setActiveLead={setActiveLead}
+          setLeadLockToken={setLeadLockToken}
+          setAgentLifecycle={setAgentLifecycle}
         />
       )}
 

@@ -177,6 +177,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
           }),
         );
 
+        window.dispatchEvent(new CustomEvent('setDialingNumber', { detail: cleanPhoneNumber }));
         await axios.post(
           `${window.location.origin}/dialmissedcall`,
           {

@@ -354,7 +354,7 @@ const CallScreen = ({
   };
 
   return (
-    <div className="flex flex-col overflow-auto md:mt-0 mt-8 px-4 pt-2.5 pb-4">
+    <div className="flex flex-col overflow-hidden md:mt-0 mt-8 px-4 pt-2.5 pb-4">
       {session && session.connection && (
         <div className="flex items-center gap-3 mb-1">
           <NetworkIndicator peerConnection={session.connection} showTime={true} />

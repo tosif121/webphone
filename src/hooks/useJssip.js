@@ -172,10 +172,10 @@ const useJssip = (isMobile = false) => {
     getSessionStats,
   } = monitoring;
 
-  useEffect(() => {
-    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-    setOrigin(originWithoutProtocol);
-  }, []);
+  // useEffect(() => {
+  //   const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+  //   setOrigin(originWithoutProtocol);
+  // }, []);
 
   const getStoredTokenPayload = useCallback(() => {
     try {
@@ -1261,6 +1261,19 @@ const useJssip = (isMobile = false) => {
       window.removeEventListener('refreshFollowUps', handleRefreshFollowUps);
     };
   }, [connectioncheck]);
+
+  useEffect(() => {
+    const handleSetDialingNumber = (e) => {
+      const number = e.detail;
+      if (number) {
+        dialingNumberRef.current = String(number).replace(/\D/g, '');
+      }
+    };
+    window.addEventListener('setDialingNumber', handleSetDialingNumber);
+    return () => {
+      window.removeEventListener('setDialingNumber', handleSetDialingNumber);
+    };
+  }, []);
 
   useEffect(() => {
     if (!username) {
@@ -2385,8 +2398,8 @@ const useJssip = (isMobile = false) => {
         const tokenPayload = getStoredTokenPayload();
         const isDispositionEnabled = tokenPayload?.userData?.disposition !== false;
 
-        if (isMobile || !isDispositionEnabled) {
-          // 2. On Mobile or when disposition is disabled, perform SILENT auto-disposition
+        if (!isDispositionEnabled) {
+          // When disposition is disabled, perform SILENT auto-disposition
           try {
             const dispoUrl = `${window.location.origin}/user/disposition${username}`;
             const finalBridgeID = bridgeIDRef.current || bridgeID;
