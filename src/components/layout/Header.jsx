@@ -280,11 +280,6 @@ export default function Header() {
       name: 'System Monitoring',
       icon: <MonitorCog className="w-4 h-4" />,
     },
-    {
-      href: '/login',
-      name: 'Stable Version',
-      icon: <Settings className="w-4 h-4" />,
-    },
   ];
 
   return (
@@ -449,11 +444,21 @@ export default function Header() {
                     return (
                       <Link
                         key={link.href}
-                        href={link.href}
-                        onClick={() => setUserMenuOpen(false)}
+                        href={isAgentBusy ? '#' : link.href}
+                        onClick={(e) => {
+                          if (isAgentBusy) {
+                            e.preventDefault();
+                            return;
+                          }
+                          setUserMenuOpen(false);
+                        }}
                         className={cn(
                           'flex items-center gap-3 px-4 py-2 my-2 text-sm transition-colors',
-                          isActive ? 'bg-accent text-accent-foreground' : 'text-foreground hover:bg-accent',
+                          isActive
+                            ? 'bg-accent text-accent-foreground'
+                            : isAgentBusy
+                              ? 'text-foreground opacity-50 cursor-not-allowed'
+                              : 'text-foreground hover:bg-accent',
                         )}
                       >
                         {link.icon}
@@ -521,54 +526,16 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile View Indicators */}
-        <div className="flex md:hidden items-center gap-3 mr-4">
-          <Button
-            onClick={() => setDropCalls(true)}
-            variant="ghost"
-            size="icon"
-            className={cn(
-              'relative h-9 w-9 rounded-full',
-              campaignMissedCallsLength > 0 && !dropCalls && 'animate-pulse ring-2 ring-destructive ring-offset-1',
-            )}
-            disabled={isAgentBusy}
-            aria-label="Show Missed Calls"
-          >
-            <PhoneMissed
-              className={cn(
-                'w-5 h-5',
-                campaignMissedCallsLength > 0 && !dropCalls ? 'text-destructive' : 'text-muted-foreground',
-              )}
-            />
-            {campaignMissedCallsLength > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[1.125rem] h-4.5 flex items-center justify-center rounded-full bg-destructive text-white text-[10px] font-bold px-1 shadow-sm border-2 border-background">
-                {campaignMissedCallsLength}
-              </span>
-            )}
-          </Button>
-
-          <Button
-            onClick={() => setCallAlert(true)}
-            variant="ghost"
-            size="icon"
-            className="relative h-9 w-9 rounded-full"
-            disabled={isAgentBusy}
-            aria-label="Show Followup"
-          >
-            <PhoneForwarded className="w-5 h-5 text-muted-foreground" />
-            {scheduleCallsLength > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[1.125rem] h-4.5 flex items-center justify-center rounded-full bg-destructive text-white text-[10px] font-bold px-1 shadow-sm border-2 border-background">
-                {scheduleCallsLength}
-              </span>
-            )}
-          </Button>
-        </div>
-
         {/* Mobile Menu Button */}
         <div className="flex md:hidden items-center">
           <div
-            className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors duration-200 cursor-pointer"
-            onClick={toggleMobileMenu}
+            className={cn(
+              'relative w-8 h-8 flex items-center justify-center rounded-lg transition-colors duration-200',
+              isAgentBusy ? 'cursor-not-allowed opacity-50' : 'hover:bg-accent cursor-pointer',
+            )}
+            onClick={() => {
+              if (!isAgentBusy) toggleMobileMenu();
+            }}
           >
             <Menu
               className={cn(
@@ -613,7 +580,7 @@ export default function Header() {
           aria-modal="true"
           role="dialog"
         >
-          <div className="flex flex-col h-full mt-6">
+          <div className="flex flex-col h-full">
             {/* Header with close button */}
             <div className="flex items-center justify-between p-4 border-b bg-muted/30">
               <div className="flex items-center gap-3">
@@ -632,7 +599,7 @@ export default function Header() {
             </div>
 
             {/* Scrollable content */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
               {/* User Info */}
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                 <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-sm shadow-sm">
@@ -725,13 +692,21 @@ export default function Header() {
                     return (
                       <Link
                         key={link.href}
-                        href={link.href}
-                        onClick={() => setMobileMenuOpen(false)}
+                        href={isAgentBusy ? '#' : link.href}
+                        onClick={(e) => {
+                          if (isAgentBusy) {
+                            e.preventDefault();
+                            return;
+                          }
+                          setMobileMenuOpen(false);
+                        }}
                         className={cn(
                           'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group',
                           isActive
                             ? 'bg-primary text-primary-foreground shadow-sm'
-                            : 'hover:bg-accent hover:translate-x-1',
+                            : isAgentBusy
+                              ? 'opacity-50 cursor-not-allowed'
+                              : 'hover:bg-accent hover:translate-x-1',
                         )}
                         style={{
                           transitionDelay: `${index * 50}ms`,
@@ -745,7 +720,7 @@ export default function Header() {
               </div>
 
               {/* Theme Toggle */}
-              <div className="py-3 border-t">
+              <div className="border-t pt-3">
                 <ThemeToggle />
               </div>
 
@@ -767,7 +742,7 @@ export default function Header() {
                   onCheckedChange={handleTroubleshootingToggle}
                 />
               </div>
-              <div className="p-4 border-t">
+              <div className="border-t">
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);

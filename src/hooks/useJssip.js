@@ -1741,6 +1741,23 @@ const useJssip = (isMobile = false) => {
                     return;
                   }
 
+                  // Don't show incoming call screen if there's an outgoing call in progress
+                  if (
+                    statusRef.current === 'calling' ||
+                    statusRef.current === 'on_call' ||
+                    statusRef.current === 'conference'
+                  ) {
+                    console.log(
+                      `[CallGuard] REJECTING incoming call — outgoing call in progress (status=${statusRef.current}, remoteUser=${e.session?.remote_identity?.uri?.user || 'unknown'})`,
+                    );
+                    try {
+                      e.session.terminate();
+                    } catch (err) {
+                      /* ignore */
+                    }
+                    return;
+                  }
+
                   // Continue with normal mobile incoming call flow
                   if (isMobile) {
                     // Mobile: Show UI with ringtone
@@ -1852,6 +1869,22 @@ const useJssip = (isMobile = false) => {
                     console.log(
                       `[CallGuard] SKIPPING .catch() — session no longer active (${e.session?.remote_identity?.uri?.user || 'unknown'})`,
                     );
+                    return;
+                  }
+                  // Don't show incoming call screen if there's an outgoing call in progress
+                  if (
+                    statusRef.current === 'calling' ||
+                    statusRef.current === 'on_call' ||
+                    statusRef.current === 'conference'
+                  ) {
+                    console.log(
+                      `[CallGuard] REJECTING incoming call (.catch fallback) — outgoing call in progress (status=${statusRef.current}, remoteUser=${e.session?.remote_identity?.uri?.user || 'unknown'})`,
+                    );
+                    try {
+                      e.session.terminate();
+                    } catch (err) {
+                      /* ignore */
+                    }
                     return;
                   }
                   if (isMobile) {

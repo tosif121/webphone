@@ -16,9 +16,7 @@ const DropCallsModal = ({ usermissedCalls, setDropCalls, username, campaignMisse
 
   const groupedCalls = useMemo(() => {
     const filteredCalls = Object.values(usermissedCalls || {}).filter(
-      (call) =>
-        !call?.campaign ||
-        (userCampaign && call?.campaign === userCampaign),
+      (call) => !call?.campaign || (userCampaign && call?.campaign === userCampaign),
     );
     return filteredCalls.reduce((acc, call) => {
       if (!call?.Caller) return acc;

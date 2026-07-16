@@ -1,4 +1,4 @@
-import { History, LayoutGrid, BarChart3, PhoneCall, TableOfContents } from 'lucide-react';
+import { History, LayoutGrid, BarChart3, PhoneCall, TableOfContents, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function MobileNavigation({ activeTab, onTabChange, isCallActive = false }) {
@@ -47,6 +47,19 @@ export default function MobileNavigation({ activeTab, onTabChange, isCallActive 
           </button>
 
 
+
+          <button
+            onClick={() => handleTabChange('leads')}
+            disabled={isCallActive}
+            className={`flex flex-col items-center justify-center flex-1 py-1.5 px-2 rounded-xl transition-all duration-200 ${
+              activeTab === 'leads'
+                ? 'text-primary bg-primary/10 font-semibold'
+                : 'text-muted-foreground hover:bg-muted/50'
+            } ${isCallActive ? 'opacity-40 cursor-not-allowed' : ''}`}
+          >
+            <Users className={`w-5 h-5 mb-0.5 transition-transform ${activeTab === 'leads' ? 'scale-110' : ''}`} />
+            <span className="text-[10px]">Leads</span>
+          </button>
 
           <button
             onClick={() => handleTabChange('stats')}

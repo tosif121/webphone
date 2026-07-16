@@ -18,8 +18,12 @@ const HistoryItem = ({ date, phone, status, type, start, end, index, handleCall,
       <div className="flex-1 min-w-0">
         {/* Date and Time */}
         <div className="flex flex-wrap gap-x-3 sm:gap-x-4 gap-y-1 mb-2">
-          <span className="text-xs text-gray-600">{format(new Date(date), 'MM/dd/yyyy')}</span>
-          <span className="text-xs text-gray-600">{format(new Date(date), 'hh:mm bbbb')}</span>
+          <span className="text-xs text-gray-600">
+            {date ? format(new Date(date), 'MM/dd/yyyy') : 'N/A'}
+          </span>
+          <span className="text-xs text-gray-600">
+            {date ? format(new Date(date), 'hh:mm aa') : ''}
+          </span>
         </div>
 
         {/* Phone and Status */}

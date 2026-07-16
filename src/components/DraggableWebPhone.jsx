@@ -328,14 +328,34 @@ export default function DraggableWebPhone() {
       }
     };
 
+    const handleMobileTabShowPhone = () => {
+      setPhoneShow(true);
+      setActiveTab('dialpad');
+    };
+
+    const handleMobileTabShowPhoneRecents = () => {
+      setPhoneShow(true);
+      setActiveTab('recents');
+    };
+
+    const handleMobileTabHidePhone = () => {
+      setPhoneShow(false);
+    };
+
     window.addEventListener('openDialpad', handleOpenDialpad);
     window.addEventListener('openDialpadRecents', handleOpenDialpadRecents);
     window.addEventListener('closeDialpad', handleCloseDialpad);
+    window.addEventListener('mobileTabShowPhone', handleMobileTabShowPhone);
+    window.addEventListener('mobileTabShowPhoneRecents', handleMobileTabShowPhoneRecents);
+    window.addEventListener('mobileTabHidePhone', handleMobileTabHidePhone);
 
     return () => {
       window.removeEventListener('openDialpad', handleOpenDialpad);
       window.removeEventListener('openDialpadRecents', handleOpenDialpadRecents);
       window.removeEventListener('closeDialpad', handleCloseDialpad);
+      window.removeEventListener('mobileTabShowPhone', handleMobileTabShowPhone);
+      window.removeEventListener('mobileTabShowPhoneRecents', handleMobileTabShowPhoneRecents);
+      window.removeEventListener('mobileTabHidePhone', handleMobileTabHidePhone);
     };
   }, [isWorkspaceCallMode]);
 

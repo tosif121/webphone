@@ -42,7 +42,7 @@ import { endCallAudioBase64 } from '../constants/audioData';
 import { DEFAULT_AGENT_UI_PREFERENCES, getStoredAgentUiPreferences } from '@/utils/agent-preferences';
 import { useAuth } from '@/hooks/useAuth';
 
-function Dashboard() {
+function Dashboard({ hideModals = false }) {
   const {
     ringtone,
     conferenceStatus,
@@ -157,9 +157,7 @@ function Dashboard() {
 
   const computedMissedCallsLength = useMemo(() => {
     return Object.values(usermissedCalls || {}).filter(
-      (call) =>
-        !call?.campaign ||
-        (userCampaign && call?.campaign === userCampaign),
+      (call) => !call?.campaign || (userCampaign && call?.campaign === userCampaign),
     ).length;
   }, [usermissedCalls, userCampaign]);
 
@@ -1494,7 +1492,7 @@ function Dashboard() {
         userLogin={userLogin}
         customMessage={timeoutMessage}
       />
-      {dropCalls && (
+      {!hideModals && dropCalls && (
         <DropCallsModal
           usermissedCalls={usermissedCalls}
           campaignMissedCallsLength={campaignMissedCallsLength}
@@ -1503,7 +1501,7 @@ function Dashboard() {
           token={token}
         />
       )}
-      {callAlert && (
+      {!hideModals && callAlert && (
         <FollowUpCallsModal
           followUpDispoes={followUpDispoes}
           scheduleCallsLength={scheduleCallsLength}

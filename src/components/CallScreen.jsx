@@ -342,19 +342,19 @@ const CallScreen = ({
         disabled={isDisabled}
         title={title}
         className={`
-          w-16 h-16 sm:w-12 sm:h-12 rounded-xl transition-all duration-200 flex items-center justify-center
+          w-12 h-12 sm:w-10 sm:h-10 rounded-xl transition-all duration-200 flex items-center justify-center
           ${active ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card/80 text-primary hover:bg-accent'}
           ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105 hover:shadow-lg active:scale-95'}
           ${className}
         `}
       >
-        {isProcessing ? <Loader2 size={isMobile ? 28 : 22} className="animate-spin" /> : icon}
+        {isProcessing ? <Loader2 size={isMobile ? 22 : 18} className="animate-spin" /> : icon}
       </button>
     );
   };
 
   return (
-    <div className="flex flex-col overflow-auto md:mt-0 mt-18 px-4 pt-2.5 pb-4">
+    <div className="flex flex-col overflow-auto md:mt-0 mt-8 px-4 pt-2.5 pb-4">
       {session && session.connection && (
         <div className="flex items-center gap-3 mb-1">
           <NetworkIndicator peerConnection={session.connection} showTime={true} />
@@ -407,13 +407,13 @@ const CallScreen = ({
           {!showKeyPad ? (
             <>
               {/* Primary Controls Row */}
-              <div className="flex justify-center gap-6 sm:gap-4">
+              <div className="flex justify-center gap-4 sm:gap-3">
                 <ControlButton
                   buttonId="hold-button"
                   onClick={handleToggleHoldDebounced}
                   disabled={!session || conferenceStatus}
                   active={isHeld}
-                  icon={<Pause size={isMobile ? 30 : 22} />}
+                  icon={<Pause size={isMobile ? 22 : 18} />}
                   title="Hold"
                   debounceTime={200}
                 />
@@ -421,7 +421,7 @@ const CallScreen = ({
                   buttonId="transfer-button"
                   disabled={!isMerged}
                   onClick={handleTransfer}
-                  icon={<PhoneForwarded size={isMobile ? 30 : 22} />}
+                  icon={<PhoneForwarded size={isMobile ? 22 : 18} />}
                   title="Transfer"
                   className={!isMerged ? 'opacity-40' : ''}
                   debounceTime={200}
@@ -429,14 +429,14 @@ const CallScreen = ({
                 <ControlButton
                   buttonId="keypad-button"
                   onClick={() => setShowKeyPad(true)}
-                  icon={<Grip size={isMobile ? 30 : 22} />}
+                  icon={<Grip size={isMobile ? 22 : 18} />}
                   title="Keypad"
                   debounceTime={200}
                 />
               </div>
 
               {/* Secondary Controls Row */}
-              <div className="flex justify-center gap-4 sm:gap-3">
+              <div className="flex justify-center gap-3 sm:gap-2">
                 {conferenceStatus ? (
                   <>
                     {!isMerged && (
@@ -444,7 +444,7 @@ const CallScreen = ({
                         buttonId="merge-button"
                         disabled={hasParticipants !== 'connected'}
                         onClick={handleMerge}
-                        icon={<Merge size={isMobile ? 28 : 20} />}
+                        icon={<Merge size={isMobile ? 22 : 18} />}
                         title="Merge"
                         active={isMerged}
                         debounceTime={200}
@@ -454,7 +454,7 @@ const CallScreen = ({
                       buttonId="disconnect-conf-button"
                       onClick={handleConferenceHangup}
                       icon={
-                        <PhoneOff size={isMobile ? 28 : 20} className={conferenceStatus ? 'text-destructive' : ''} />
+                        <PhoneOff size={isMobile ? 22 : 18} className={conferenceStatus ? 'text-destructive' : ''} />
                       }
                       title="Disconnect Conference"
                       disabled={!conferenceStatus}
@@ -467,7 +467,7 @@ const CallScreen = ({
                       buttonId="add-call-button"
                       disabled={!session || !isCustomerAnswered || isMerged || conferenceStatus}
                       onClick={() => setCallConference?.(true)}
-                      icon={<UserPlus size={isMobile ? 28 : 20} />}
+                      icon={<UserPlus size={isMobile ? 22 : 18} />}
                       title="Add Call"
                       debounceTime={200}
                     />
@@ -480,7 +480,7 @@ const CallScreen = ({
                   disabled={!session && !isRecording}
                   icon={
                     <Square
-                      size={isMobile ? 28 : 20}
+                      size={isMobile ? 22 : 18}
                       className={isRecording ? 'text-destructive' : 'text-secondary-foreground'}
                     />
                   }
@@ -493,7 +493,7 @@ const CallScreen = ({
                   buttonId="mute-button"
                   active={muted}
                   onClick={handleMuteToggle}
-                  icon={<MicOff size={isMobile ? 28 : 20} />}
+                  icon={<MicOff size={isMobile ? 22 : 18} />}
                   title="Mute"
                   debounceTime={200}
                 />
@@ -523,7 +523,7 @@ const CallScreen = ({
           {/* End Call Button */}
           <div className="flex justify-center md:py-0 py-4">
             <button
-              className="text-white cursor-pointer w-16 h-16 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-destructive shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 rotate-[133deg] focus:outline-none focus:ring-2 focus:ring-destructive"
+              className="text-white cursor-pointer w-12 h-12 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-destructive shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 rotate-[133deg] focus:outline-none focus:ring-2 focus:ring-destructive"
               onClick={() => {
                 if (conferenceNumber && conferenceStatus) {
                   handleConferenceHangup();
@@ -535,7 +535,7 @@ const CallScreen = ({
               title="End Call"
               type="button"
             >
-              <Phone size={isMobile ? 24 : 18} />
+              <Phone size={isMobile ? 20 : 16} />
             </button>
           </div>
 

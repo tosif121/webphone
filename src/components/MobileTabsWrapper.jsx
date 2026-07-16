@@ -1,8 +1,13 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import Dashboard from './Dashboard';
 import AgentDashboard from './AgentDashboard';
 import MobileNavigation from './MobileNavigation';
+import DropCallsModal from './DropCallsModal';
+import FollowUpCallsModal from './FollowUpCallsModal';
+import HistoryContext from '@/context/HistoryContext';
 import { JssipContext } from '@/context/JssipContext';
+import { useAuth } from '@/hooks/useAuth';
+import axios from 'axios';
 import toast from 'react-hot-toast';
 
 export default function MobileTabsWrapper() {
@@ -10,10 +15,122 @@ export default function MobileTabsWrapper() {
   const [isMobile, setIsMobile] = useState(false);
   const [dialpadOpen, setDialpadOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const { status } = useContext(JssipContext);
+  const { status, followUpDispoes } = useContext(JssipContext);
+  const {
+    dropCalls,
+    setDropCalls,
+    callAlert,
+    setCallAlert,
+    campaignMissedCallsLength,
+    setCampaignMissedCallsLength,
+    scheduleCallsLength,
+    selectedBreak,
+  } = useContext(HistoryContext);
+  const { token, user: authUser } = useAuth();
+  const username = authUser?.userid || authUser?.username || '';
+  const userCampaign = authUser?.campaign || '';
+  const [usermissedCalls, setUsermissedCalls] = useState([]);
 
-  // Check if there's an active call
   const isCallActive = status === 'calling' || status === 'conference' || status === 'incoming';
+
+  const getAuthHeaders = useCallback(
+    (extra = {}) => {
+      const headers = { ...extra };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      return headers;
+    },
+    [token],
+  );
+
+  const computedMissedCallsLength = useCallback(() => {
+    return Object.values(usermissedCalls || {}).filter(
+      (call) => !call?.campaign || (userCampaign && call?.campaign === userCampaign),
+    ).length;
+  }, [usermissedCalls, userCampaign]);
+
+  const fetchUserMissedCalls = useCallback(async () => {
+    if (!token || !username) {
+      setUsermissedCalls([]);
+      return;
+    }
+    try {
+      const response = await axios.post(
+        `${window.location.origin}/userMissedCalls/${username}`,
+        {},
+        { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
+      );
+      if (response.data) {
+        setUsermissedCalls(response.data.result || []);
+      }
+    } catch (error) {
+      console.error('Error fetching missed calls:', error);
+      setUsermissedCalls([]);
+    }
+  }, [getAuthHeaders, token, username]);
+
+  useEffect(() => {
+    setCampaignMissedCallsLength(computedMissedCallsLength());
+  }, [computedMissedCallsLength, setCampaignMissedCallsLength]);
+
+  useEffect(() => {
+    if (token && username) {
+      fetchUserMissedCalls();
+    }
+  }, [fetchUserMissedCalls, token, username]);
+
+  useEffect(() => {
+    if (!token || !username) return;
+    const intervalId = setInterval(() => {
+      fetchUserMissedCalls();
+    }, 30000);
+    return () => clearInterval(intervalId);
+  }, [fetchUserMissedCalls, token, username]);
+
+  useEffect(() => {
+    let isMounted = true;
+    let timeoutId;
+    if ((status === 'start' && username) || dropCalls) {
+      fetchUserMissedCalls();
+      timeoutId = setTimeout(() => {
+        if (isMounted) fetchUserMissedCalls();
+      }, 2500);
+    }
+    return () => {
+      isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [dropCalls, fetchUserMissedCalls, status, username]);
+
+  useEffect(() => {
+    let isMounted = true;
+    let timeoutId;
+    if (username && selectedBreak) {
+      fetchUserMissedCalls();
+      timeoutId = setTimeout(() => {
+        if (isMounted) fetchUserMissedCalls();
+      }, 2500);
+    }
+    return () => {
+      isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [selectedBreak, fetchUserMissedCalls, username]);
+
+  const isInitialTabRef = useRef(true);
+  useEffect(() => {
+    if (isInitialTabRef.current) {
+      isInitialTabRef.current = false;
+      return;
+    }
+    if (typeof window === 'undefined') return;
+    if (activeTab === 'dialpad') {
+      window.dispatchEvent(new CustomEvent('mobileTabShowPhone'));
+    } else if (activeTab === 'recents') {
+      window.dispatchEvent(new CustomEvent('mobileTabShowPhoneRecents'));
+    } else {
+      window.dispatchEvent(new CustomEvent('mobileTabHidePhone'));
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     // Set client flag first to prevent hydration mismatch
@@ -108,12 +225,32 @@ export default function MobileTabsWrapper() {
       {/* Mobile Navigation Header - Always visible */}
       <MobileNavigation activeTab={activeTab} onTabChange={handleTabChange} isCallActive={isCallActive} />
 
+      {/* Missed Calls & Follow-up Calls Modals - Always available on mobile */}
+      {dropCalls && (
+        <DropCallsModal
+          usermissedCalls={usermissedCalls}
+          campaignMissedCallsLength={campaignMissedCallsLength}
+          setDropCalls={setDropCalls}
+          username={username}
+          token={token}
+        />
+      )}
+      {callAlert && (
+        <FollowUpCallsModal
+          followUpDispoes={followUpDispoes}
+          scheduleCallsLength={scheduleCallsLength}
+          setCallAlert={setCallAlert}
+          username={username}
+          token={token}
+        />
+      )}
+
       {/* Content Area with padding for header and bottom nav */}
       {/* Only show content area for leads and stats tabs, dialpad and recents are handled by DraggableWebPhone */}
       {(activeTab === 'leads' || activeTab === 'stats') && (
         <div className="flex-1 overflow-y-auto">
           <>
-            {activeTab === 'leads' && <Dashboard />}
+            {activeTab === 'leads' && <Dashboard hideModals />}
             {activeTab === 'stats' && <AgentDashboard />}
           </>
         </div>
