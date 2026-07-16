@@ -142,6 +142,19 @@ export default function MobileTabsWrapper() {
     }
   }, [isCallActive]);
 
+  // When call ends, force back to dialpad tab
+  const prevCallActiveRef = useRef(isCallActive);
+  useEffect(() => {
+    if (prevCallActiveRef.current && !isCallActive) {
+      setActiveTab('dialpad');
+      setDialpadOpen(true);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('openDialpad'));
+      }
+    }
+    prevCallActiveRef.current = isCallActive;
+  }, [isCallActive]);
+
   useEffect(() => {
     // Set client flag first to prevent hydration mismatch
     setIsClient(true);
