@@ -214,7 +214,6 @@ export const useJssipUtils = (state) => {
       return notification;
     } catch (error) {
       console.error('Error creating regular notification:', error);
-      toast.error('Failed to create notification: ' + error.message);
     }
   }
 
