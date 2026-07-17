@@ -2421,7 +2421,7 @@ export default function LeadAndCallInfoPanel({
     }
 
     return (
-      <div className="flex h-full min-h-0 flex-col gap-4">
+      <div className="flex h-full flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-sm text-muted-foreground">Showing call attempts for the last selected range.</div>
           <div className="flex flex-wrap items-center gap-2">
@@ -3001,7 +3001,7 @@ export default function LeadAndCallInfoPanel({
               </AlertDialogDescription>
             </AlertDialogHeader>
             <Card
-              className="flex h-full min-h-0 w-full flex-col border-0 shadow-none !gap-0"
+              className="flex h-full w-full flex-col border-0 shadow-none !gap-0"
               style={{ maxHeight: 'min(90vh, 85vh)' }}
             >
               {!activeUserCall ? (
@@ -3015,7 +3015,7 @@ export default function LeadAndCallInfoPanel({
                 <Tabs
                   value={activeTab}
                   onValueChange={setActiveTab}
-                  className="flex h-full min-h-0 w-full flex-col gap-0 overflow-hidden"
+                  className="flex h-full w-full flex-col gap-0 overflow-hidden"
                 >
                   <CardHeader className="flex shrink-0 flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-2 sm:gap-3 pb-3 px-3 sm:px-6 pt-4 sm:pt-6">
                     <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
@@ -3087,7 +3087,7 @@ export default function LeadAndCallInfoPanel({
   // Normal panel view
   return (
     <>
-      <Card className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden !gap-0">
+      <Card className="flex h-full w-full min-w-0 flex-col overflow-hidden !gap-0">
         {!activeUserCall ? (
           <>
             <CardHeader className="flex shrink-0 flex-wrap items-center justify-between gap-3 pb-2">
@@ -3152,7 +3152,7 @@ export default function LeadAndCallInfoPanel({
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
-            className="flex h-full min-h-0 w-full flex-col gap-0 overflow-hidden"
+            className="flex h-full w-full flex-col gap-0 overflow-hidden"
           >
             <CardHeader className="flex shrink-0 flex-wrap items-center justify-between gap-3 pb-3">
               <div className="flex min-w-0 flex-wrap items-center gap-3">
