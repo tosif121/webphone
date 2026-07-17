@@ -2004,7 +2004,7 @@ export default function LeadAndCallInfoPanel({
       <div className="h-full overflow-y-auto pr-1">
         <div className="space-y-4">
           <Card className="border bg-background/95 shadow-sm">
-            <CardContent className="space-y-4 p-4 sm:p-5">
+            <CardContent className="space-y-4">
               <div className="space-y-2">
                 <div className="text-xl font-semibold text-foreground">
                   {String(workspaceContact?.name || '').trim() ||
@@ -2458,7 +2458,8 @@ export default function LeadAndCallInfoPanel({
 
         <div className="min-h-0 flex-1 rounded-2xl border border-border/70">
           <div className="h-full overflow-auto">
-            <Table>
+            {/* Desktop Table */}
+            <Table className="hidden sm:table">
               <TableHeader className="sticky top-0 z-10 bg-card">
                 <TableRow>
                   <TableHead>Time</TableHead>
@@ -2596,14 +2597,130 @@ export default function LeadAndCallInfoPanel({
                 })}
               </TableBody>
             </Table>
+
+            {/* Mobile Card List */}
+            <div className="sm:hidden divide-y divide-border/50">
+              {workspaceCallsWithConversations.map(({ call, historyId, relatedConversation }) => {
+                const isIncoming =
+                  String(call?.Type || '')
+                    .trim()
+                    .toLowerCase() === 'incoming';
+                const previewText = getConversationRemark(relatedConversation) || 'Tagging not updated for this call.';
+                return (
+                  <div key={historyId} className="px-3 py-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 space-y-1">
+                        <div className="text-xs text-muted-foreground">
+                          {moment(call?.startTime).isValid()
+                            ? moment(call.startTime).format('DD MMM YYYY, hh:mm A')
+                            : '-'}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={isIncoming ? 'default' : 'secondary'} className="text-[10px]">
+                            {isIncoming ? (
+                              <PhoneIncoming size={12} className="mr-0.5" />
+                            ) : (
+                              <PhoneOutgoing size={12} className="mr-0.5" />
+                            )}
+                            {isIncoming ? 'Incoming' : 'Outgoing'}
+                          </Badge>
+                          <span className="text-xs font-medium">{formatCallDuration(call)}</span>
+                          <span className="text-xs text-muted-foreground">{String(call?.Disposition || 'N/A')}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate max-w-[250px]">{previewText}</div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 shrink-0 rounded-full px-2 text-xs text-primary"
+                        onClick={() => setExpandedCallHistoryId((prev) => (prev === historyId ? null : historyId))}
+                      >
+                        <Eye className="mr-1 h-3 w-3" />
+                        {expandedCallHistoryId === historyId ? 'Hide' : 'View'}
+                      </Button>
+                    </div>
+                    {expandedCallHistoryId === historyId && relatedConversation && (
+                      <div
+                        ref={(node) => {
+                          if (node) {
+                            callHistoryRowRefs.current[historyId] = node;
+                          } else {
+                            delete callHistoryRowRefs.current[historyId];
+                          }
+                        }}
+                        className="mt-2 rounded-xl border border-border/60 bg-background/80 px-3 py-2 space-y-2"
+                      >
+                        <div className="text-xs font-medium text-foreground">
+                          {relatedConversation?.formTitle || 'Tagging Conversation'}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {getConversationRemark(relatedConversation) || 'Tagging updated for this call.'}
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {Object.entries(relatedConversation)
+                            .filter(([key, value]) => {
+                              if (value === undefined || value === null || `${value}`.trim() === '') return false;
+                              return ![
+                                'id',
+                                '_id',
+                                '__v',
+                                'createdAt',
+                                'updatedAt',
+                                'contactNumber',
+                                'agentName',
+                                'formId',
+                                'formID',
+                                'formTitle',
+                                'campaignId',
+                                'campaignName',
+                                'entryMode',
+                                'callReference',
+                              ].includes(key);
+                            })
+                            .slice(0, 8)
+                            .map(([key, value]) => (
+                              <div key={key} className="rounded-lg border border-border/50 bg-muted/10 px-2 py-1.5">
+                                <div className="text-[9px] uppercase tracking-wide text-muted-foreground">
+                                  {key
+                                    .replace(/([A-Z])/g, ' $1')
+                                    .replace(/_/g, ' ')
+                                    .trim()}
+                                </div>
+                                <div className="mt-0.5 break-words text-[11px] font-medium text-foreground">
+                                  {String(value)}
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                    {expandedCallHistoryId === historyId && !relatedConversation && (
+                      <div
+                        ref={(node) => {
+                          if (node) {
+                            callHistoryRowRefs.current[historyId] = node;
+                          } else {
+                            delete callHistoryRowRefs.current[historyId];
+                          }
+                        }}
+                        className="mt-2 text-xs text-muted-foreground"
+                      >
+                        Tagging not updated for this call.
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center justify-between">
-          <div className="text-sm text-muted-foreground">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+          <div className="text-xs sm:text-sm text-muted-foreground">
             Page {callHistoryPage + 1} of {callHistoryTotalPages}
-            <span className="mx-2 text-border">|</span>
-            <span className="text-muted-foreground">{filteredWorkspaceCalls.length} total rows</span>
+            <span className="mx-1.5 sm:mx-2 text-border">|</span>
+            <span className="text-muted-foreground">{filteredWorkspaceCalls.length} total</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -2876,7 +2993,7 @@ export default function LeadAndCallInfoPanel({
     return (
       <>
         <AlertDialog open={true}>
-          <AlertDialogContent className="!max-w-7xl w-full max-h-[85vh] overflow-hidden p-0 rounded-xl">
+          <AlertDialogContent className="!max-w-7xl w-[calc(100%-2rem)] sm:w-full max-h-[90vh] sm:max-h-[85vh] overflow-hidden p-0 rounded-xl">
             <AlertDialogHeader className="sr-only">
               <AlertDialogTitle>Active call workspace</AlertDialogTitle>
               <AlertDialogDescription>
@@ -2885,7 +3002,7 @@ export default function LeadAndCallInfoPanel({
             </AlertDialogHeader>
             <Card
               className="flex h-full min-h-0 w-full flex-col border-0 shadow-none !gap-0"
-              style={{ maxHeight: '85vh' }}
+              style={{ maxHeight: 'min(90vh, 85vh)' }}
             >
               {!activeUserCall ? (
                 <CardContent className="flex flex-1 items-center justify-center">
@@ -2900,9 +3017,9 @@ export default function LeadAndCallInfoPanel({
                   onValueChange={setActiveTab}
                   className="flex h-full min-h-0 w-full flex-col gap-0 overflow-hidden"
                 >
-                  <CardHeader className="flex shrink-0 flex-wrap items-center justify-between gap-3 pb-3">
-                    <div className="flex min-w-0 flex-wrap items-center gap-3">
-                      <span className="text-lg font-semibold">Active Call</span>
+                  <CardHeader className="flex shrink-0 flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-2 sm:gap-3 pb-3 px-3 sm:px-6 pt-4 sm:pt-6">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+                      <span className="text-base sm:text-lg font-semibold">Active Call</span>
                       {(resolvedCallContext.didNumber || resolvedCallContext.isAfterHours || isStickyContact) && (
                         <div className="flex flex-wrap items-center gap-2">
                           {resolvedCallContext.didNumber ? (
@@ -2922,25 +3039,31 @@ export default function LeadAndCallInfoPanel({
                     <TabsList className="grid min-w-0 flex-1 grid-cols-3 gap-2 rounded-xl bg-muted/40 p-1 lg:max-w-[760px]">
                       <TabsTrigger
                         value="callerInfo"
-                        className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4"
+                        className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-sm px-1.5 sm:px-4"
                       >
-                        <PhoneCall size={16} /> <span>Caller Information</span>
+                        <PhoneCall size={16} /> <span className="hidden sm:inline">Caller Information</span>
+                        <span className="sm:hidden">Caller</span>
                       </TabsTrigger>
                       <TabsTrigger
                         value="contactDetails"
-                        className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4"
+                        className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-sm px-1.5 sm:px-4"
                       >
-                        <User size={16} /> <span>Contact Details</span>
+                        <User size={16} /> <span className="hidden sm:inline">Contact Details</span>
+                        <span className="sm:hidden">Contact</span>
                       </TabsTrigger>
-                      <TabsTrigger value="history" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                        <History size={16} /> <span>History</span>
-                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary">
+                      <TabsTrigger
+                        value="history"
+                        className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-sm px-1.5 sm:px-4"
+                      >
+                        <History size={16} /> <span className="hidden sm:inline">History</span>
+                        <span className="sm:hidden">History</span>
+                        <span className="inline-flex min-w-4 sm:min-w-5 items-center justify-center rounded-full bg-primary/10 px-1 sm:px-1.5 py-0.5 text-[10px] sm:text-[11px] font-semibold text-primary">
                           {filteredWorkspaceCalls.length}
                         </span>
                       </TabsTrigger>
                     </TabsList>
                   </CardHeader>
-                  <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden pt-0">
+                  <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden pt-0 px-3 sm:px-6 pb-3 sm:pb-6">
                     <TabsContent value="callerInfo" className="mt-0 h-full min-h-0 flex-1 overflow-hidden">
                       {renderContactTab()}
                     </TabsContent>

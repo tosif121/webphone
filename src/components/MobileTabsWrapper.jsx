@@ -15,7 +15,7 @@ export default function MobileTabsWrapper() {
   const [isMobile, setIsMobile] = useState(false);
   const [dialpadOpen, setDialpadOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const { status, followUpDispoes } = useContext(JssipContext);
+  const { status, followUpDispoes, dispositionModal } = useContext(JssipContext);
   const {
     dropCalls,
     setDropCalls,
@@ -268,13 +268,12 @@ export default function MobileTabsWrapper() {
         />
       )}
 
-      {/* Content Area with padding for header and bottom nav */}
-      {/* Only show content area for leads and stats tabs, dialpad and recents are handled by DraggableWebPhone */}
-      {(activeTab === 'leads' || activeTab === 'stats') && (
+      {/* Content Area - always show Dashboard when dispositionModal is open */}
+      {(activeTab === 'leads' || activeTab === 'stats' || dispositionModal) && (
         <div className="flex-1 overflow-y-auto">
           <>
-            {activeTab === 'leads' && <Dashboard hideModals />}
-            {activeTab === 'stats' && <AgentDashboard />}
+            {(activeTab === 'leads' || dispositionModal) && <Dashboard hideModals />}
+            {activeTab === 'stats' && !dispositionModal && <AgentDashboard />}
           </>
         </div>
       )}

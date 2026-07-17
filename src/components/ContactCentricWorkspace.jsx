@@ -1362,18 +1362,23 @@ export default function ContactCentricWorkspace({
 
   const renderSplit = () => (
     <Card className="flex h-auto min-h-0 w-full min-w-0 flex-col border border-border/70 shadow-sm">
-      <CardHeader className="shrink-0 space-y-4">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-wrap items-center gap-3">
-            <Button type="button" variant="outline" className="rounded-full px-4" onClick={handleBackToList}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
+      <CardHeader className="shrink-0 space-y-2 sm:space-y-4 px-3 sm:px-6 py-3 sm:py-6">
+        <div className="flex flex-col gap-2 sm:gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-full px-3 sm:px-4 text-xs sm:text-sm"
+              onClick={handleBackToList}
+            >
+              <ArrowLeft className="mr-1.5 sm:mr-2 h-3.5 sm:h-4 w-3.5 sm:w-4" />
               Back
             </Button>
             <div>
-              <CardTitle className="text-xl font-semibold">
+              <CardTitle className="text-base sm:text-xl font-semibold">
                 {selectedRow?.callerName || selectedRow?.callerNumber || 'Contact Workspace'}
               </CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-muted-foreground hidden sm:block">
                 Contact details on the left and call history with tagging on the right.
               </p>
             </div>
@@ -1381,18 +1386,18 @@ export default function ContactCentricWorkspace({
           <Tabs mode={mode} onModeChange={onModeChange} />
         </div>
       </CardHeader>
-      <CardContent className="flex min-h-0 h-auto flex-col pt-0">
-        <div className="grid min-h-0 h-auto gap-4 xl:grid-cols-[minmax(0,0.3fr)_minmax(0,0.7fr)]">
+      <CardContent className="flex min-h-0 h-auto flex-col pt-0 px-3 sm:px-6 pb-3 sm:pb-6">
+        <div className="grid min-h-0 h-auto gap-3 sm:gap-4 grid-cols-1 xl:grid-cols-[minmax(0,0.3fr)_minmax(0,0.7fr)]">
           <div className="min-h-0">
-            <div className="flex h-auto flex-col rounded-3xl border border-border/70 bg-card shadow-sm">
-              <div className="border-b border-border/60 px-5 py-4">
-                <div className="flex items-start justify-between gap-3">
+            <div className="flex h-auto flex-col rounded-2xl sm:rounded-3xl border border-border/70 bg-card shadow-sm">
+              <div className="border-b border-border/60 px-3 sm:px-5 py-3 sm:py-4">
+                <div className="flex items-start justify-between gap-2 sm:gap-3">
                   <div>
-                    <div className="text-xl font-semibold text-foreground">
+                    <div className="text-base sm:text-xl font-semibold text-foreground">
                       {contact?.name || selectedRow?.callerName || 'Unknown Contact'}
                     </div>
-                    <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                      <PhoneCall className="h-4 w-4" />
+                    <div className="mt-0.5 sm:mt-1 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+                      <PhoneCall className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                       <span>{contact?.phone || selectedRow?.callerNumber || '-'}</span>
                     </div>
                   </div>
@@ -1400,7 +1405,7 @@ export default function ContactCentricWorkspace({
                     <Button
                       type="button"
                       size="icon"
-                      className="h-11 w-11 rounded-full bg-green-600 text-white hover:bg-green-700"
+                      className="h-9 w-9 sm:h-11 sm:w-11 rounded-full bg-green-600 text-white hover:bg-green-700"
                       onClick={() =>
                         handleDialAction(
                           contact?.phone || selectedRow?.callerNumber || '',
@@ -1413,56 +1418,67 @@ export default function ContactCentricWorkspace({
                   ) : null}
                 </div>
                 {Array.isArray(contact?.tags) && contact.tags.length > 0 ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-2 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">
                     {contact.tags.map((tag, index) => (
-                      <Badge key={`${tag}-${index}`} variant="outline">
+                      <Badge key={`${tag}-${index}`} variant="outline" className="text-[10px] sm:text-xs">
                         {tag}
                       </Badge>
                     ))}
                   </div>
                 ) : null}
               </div>
-              <div className="h-auto overflow-y-auto px-5 py-4">
+              <div className="h-auto overflow-y-auto px-3 sm:px-5 py-3 sm:py-4">
                 {workspaceLoading ? (
                   <SkeletonRows />
                 ) : workspaceError ? (
-                  <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-4 text-sm text-destructive">
+                  <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-3 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-destructive">
                     {workspaceError}
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="grid gap-3">
-                      <div className="rounded-2xl border border-border/70 bg-background/80 px-4 py-3">
-                        <div className="text-xs uppercase tracking-wide text-muted-foreground">Last Interaction</div>
-                        <div className="mt-2 text-sm font-medium text-foreground">
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-3">
+                      <div className="rounded-xl sm:rounded-2xl border border-border/70 bg-background/80 px-3 sm:px-4 py-2.5 sm:py-3">
+                        <div className="text-[10px] sm:text-xs uppercase tracking-wide text-muted-foreground">
+                          Last Interaction
+                        </div>
+                        <div className="mt-1 sm:mt-2 text-xs sm:text-sm font-medium text-foreground">
                           {formatTimestamp(
                             contact?.lastCallTime || calls[0]?.startTime || latestConversation?.updatedAt,
                           )}
                         </div>
                       </div>
-                      <div className="rounded-2xl border border-border/70 bg-background/80 px-4 py-3">
-                        <div className="text-xs uppercase tracking-wide text-muted-foreground">Total Calls</div>
-                        <div className="mt-2 text-sm font-medium text-foreground">
+                      <div className="rounded-xl sm:rounded-2xl border border-border/70 bg-background/80 px-3 sm:px-4 py-2.5 sm:py-3">
+                        <div className="text-[10px] sm:text-xs uppercase tracking-wide text-muted-foreground">
+                          Total Calls
+                        </div>
+                        <div className="mt-1 sm:mt-2 text-xs sm:text-sm font-medium text-foreground">
                           {quickStats.totalCalls ?? contact?.totalCalls ?? 0}
                         </div>
                       </div>
-                      <div className="rounded-2xl border border-border/70 bg-background/80 px-4 py-3">
-                        <div className="text-xs uppercase tracking-wide text-muted-foreground">Latest Remark</div>
-                        <div className="mt-2 text-sm font-medium text-foreground">
+                      <div className="rounded-xl sm:rounded-2xl border border-border/70 bg-background/80 px-3 sm:px-4 py-2.5 sm:py-3">
+                        <div className="text-[10px] sm:text-xs uppercase tracking-wide text-muted-foreground">
+                          Latest Remark
+                        </div>
+                        <div className="mt-1 sm:mt-2 text-xs sm:text-sm font-medium text-foreground truncate">
                           {latestPreview || contact?.lastDisposition || 'No remark captured yet.'}
                         </div>
                       </div>
                     </div>
                     {detailEntries.length > 0 ? (
-                      <div className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-4">
-                        <div className="mb-3 text-sm font-semibold text-foreground">Contact Details</div>
-                        <div className="space-y-3">
+                      <div className="rounded-xl sm:rounded-2xl border border-border/70 bg-muted/10 px-3 sm:px-4 py-3 sm:py-4">
+                        <div className="mb-2 sm:mb-3 text-xs sm:text-sm font-semibold text-foreground">
+                          Contact Details
+                        </div>
+                        <div className="space-y-2 sm:space-y-3">
                           {detailEntries.map(([key, value]) => (
-                            <div key={key} className="rounded-xl border border-border/60 bg-background/80 px-3 py-3">
-                              <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                            <div
+                              key={key}
+                              className="rounded-lg sm:rounded-xl border border-border/60 bg-background/80 px-2.5 sm:px-3 py-2 sm:py-3"
+                            >
+                              <div className="text-[10px] sm:text-xs uppercase tracking-wide text-muted-foreground">
                                 {toLabel(key)}
                               </div>
-                              <div className="mt-2 break-words text-sm font-medium text-foreground">
+                              <div className="mt-1 sm:mt-2 break-words text-xs sm:text-sm font-medium text-foreground">
                                 {String(value)}
                               </div>
                             </div>
@@ -1470,19 +1486,21 @@ export default function ContactCentricWorkspace({
                         </div>
                       </div>
                     ) : null}
-                    <div className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-4">
-                      <div className="mb-3 text-sm font-semibold text-foreground">Notes</div>
+                    <div className="rounded-xl sm:rounded-2xl border border-border/70 bg-muted/10 px-3 sm:px-4 py-3 sm:py-4">
+                      <div className="mb-2 sm:mb-3 text-xs sm:text-sm font-semibold text-foreground">Notes</div>
                       {notes.length === 0 ? (
-                        <div className="text-sm text-muted-foreground">No notes added for this contact yet.</div>
+                        <div className="text-xs sm:text-sm text-muted-foreground">
+                          No notes added for this contact yet.
+                        </div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-2 sm:space-y-3">
                           {notes.slice(0, 4).map((note) => (
                             <div
                               key={note.id || note._id}
-                              className="rounded-xl border border-border/60 bg-background/80 px-3 py-3"
+                              className="rounded-lg sm:rounded-xl border border-border/60 bg-background/80 px-2.5 sm:px-3 py-2 sm:py-3"
                             >
-                              <div className="text-sm text-foreground">{note.text || note.note || '-'}</div>
-                              <div className="mt-2 text-xs text-muted-foreground">
+                              <div className="text-xs sm:text-sm text-foreground">{note.text || note.note || '-'}</div>
+                              <div className="mt-1.5 sm:mt-2 text-[10px] sm:text-xs text-muted-foreground">
                                 {formatTimestamp(note.createdAt || note.updatedAt)}
                               </div>
                             </div>
@@ -1496,20 +1514,20 @@ export default function ContactCentricWorkspace({
             </div>
           </div>
           <div className="min-h-0">
-            <div className="flex h-auto flex-col rounded-3xl border border-border/70 bg-card shadow-sm">
-              <div className="flex flex-col gap-3 border-b border-border/60 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex h-auto flex-col rounded-2xl sm:rounded-3xl border border-border/70 bg-card shadow-sm">
+              <div className="flex flex-col gap-2 sm:gap-3 border-b border-border/60 px-3 sm:px-5 py-3 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <div className="text-lg font-semibold text-foreground">Call History + Tagging</div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-base sm:text-lg font-semibold text-foreground">Call History + Tagging</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">
                     Recent attempts for this contact with call-specific tagging preview.
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                   <Select
                     value={String(historyRowsPerPage)}
                     onValueChange={(value) => setHistoryRowsPerPage(Number(value))}
                   >
-                    <SelectTrigger className="h-10 w-[126px] rounded-full border-border/70 bg-background text-sm">
+                    <SelectTrigger className="h-8 sm:h-10 w-[100px] sm:w-[126px] rounded-full border-border/70 bg-background text-[10px] sm:text-sm">
                       <SelectValue placeholder="10 rows" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1521,9 +1539,9 @@ export default function ContactCentricWorkspace({
                     </SelectContent>
                   </Select>
                   <Select value={historyDatePreset} onValueChange={setHistoryDatePreset}>
-                    <SelectTrigger className="h-10 w-[170px] rounded-full border-border/70 bg-background text-sm">
-                      <div className="flex items-center gap-2">
-                        <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                    <SelectTrigger className="h-8 sm:h-10 w-[130px] sm:w-[170px] rounded-full border-border/70 bg-background text-[10px] sm:text-sm">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <CalendarDays className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-muted-foreground" />
                         <SelectValue placeholder="Last 7 Days" />
                       </div>
                     </SelectTrigger>
@@ -1535,19 +1553,20 @@ export default function ContactCentricWorkspace({
                   </Select>
                 </div>
               </div>
-              <div className="h-auto overflow-y-auto px-5 py-4">
+              <div className="h-auto overflow-y-auto px-3 sm:px-5 py-3 sm:py-4">
                 {workspaceLoading ? (
                   <SkeletonRows />
                 ) : historyRowsWithConversations.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-border/60 px-4 py-8 sm:px-6 sm:py-16 text-center">
-                    <div className="text-base sm:text-lg font-semibold text-foreground">No contact history found</div>
-                    <p className="mt-2 text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+                  <div className="rounded-xl sm:rounded-2xl border border-dashed border-border/60 px-3 sm:px-6 py-6 sm:py-16 text-center">
+                    <div className="text-sm sm:text-lg font-semibold text-foreground">No contact history found</div>
+                    <p className="mt-1.5 sm:mt-2 text-[10px] sm:text-sm text-muted-foreground max-w-md mx-auto">
                       There are no call attempts for this contact in the selected range.
                     </p>
                   </div>
                 ) : (
-                  <div className="overflow-hidden rounded-2xl border border-border/70">
-                    <Table>
+                  <div className="overflow-hidden rounded-xl sm:rounded-2xl border border-border/70">
+                    {/* Desktop Table */}
+                    <Table className="hidden sm:table">
                       <TableHeader className="sticky top-0 z-10 bg-card">
                         <TableRow>
                           <TableHead>Time</TableHead>
@@ -1695,24 +1714,145 @@ export default function ContactCentricWorkspace({
                         })}
                       </TableBody>
                     </Table>
+
+                    {/* Mobile Card List */}
+                    <div className="sm:hidden divide-y divide-border/50">
+                      {historyRowsWithConversations.map(({ call, historyId, relatedConversation, previewText }) => {
+                        const callType =
+                          String(call?.Type || call?.callType || '')
+                            .trim()
+                            .toLowerCase() === 'incoming'
+                            ? 'Incoming'
+                            : 'Outgoing';
+                        return (
+                          <div key={historyId} className="px-3 py-2.5">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 space-y-1">
+                                <div className="text-[10px] text-muted-foreground">
+                                  {formatTimestamp(call?.startTime || call?.createdAt || call?.updatedAt)}
+                                </div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <Badge
+                                    variant={callType === 'Incoming' ? 'default' : 'secondary'}
+                                    className="text-[10px] px-1.5 py-0"
+                                  >
+                                    {callType === 'Incoming' ? (
+                                      <PhoneIncoming className="mr-0.5 h-3 w-3" />
+                                    ) : (
+                                      <PhoneOutgoing className="mr-0.5 h-3 w-3" />
+                                    )}
+                                    {callType}
+                                  </Badge>
+                                  <span className="text-[11px] font-medium">{formatDuration(call)}</span>
+                                  {getCallDialLabel(call).isAnswered ? (
+                                    <Badge
+                                      variant="default"
+                                      className="text-[10px] px-1.5 py-0 bg-green-600 text-white"
+                                    >
+                                      {getCallDialLabel(call).label}
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                      {getCallDialLabel(call).label}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-muted-foreground truncate max-w-[250px]">
+                                  {previewText}
+                                </div>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 shrink-0 rounded-full px-2 text-[10px] text-primary"
+                                onClick={() => setExpandedHistoryId((prev) => (prev === historyId ? null : historyId))}
+                              >
+                                <Eye className="mr-1 h-3 w-3" />
+                                {expandedHistoryId === historyId ? 'Hide' : 'View'}
+                              </Button>
+                            </div>
+                            {expandedHistoryId === historyId && relatedConversation && (
+                              <div
+                                ref={(node) => {
+                                  if (node) {
+                                    historyRowRefs.current[historyId] = node;
+                                  } else {
+                                    delete historyRowRefs.current[historyId];
+                                  }
+                                }}
+                                className="mt-2 rounded-xl border border-border/60 bg-background/80 px-2.5 py-2 space-y-1.5"
+                              >
+                                <div className="text-[11px] font-medium text-foreground">
+                                  {relatedConversation?.formTitle || 'Tagging Conversation'}
+                                </div>
+                                <div className="text-[10px] text-muted-foreground">
+                                  {getConversationRemark(relatedConversation) || 'Tagging updated for this call.'}
+                                </div>
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  {Object.entries(relatedConversation)
+                                    .filter(
+                                      ([key, value]) =>
+                                        value !== undefined &&
+                                        value !== null &&
+                                        String(value).trim() !== '' &&
+                                        ![
+                                          'id',
+                                          '_id',
+                                          '__v',
+                                          'createdAt',
+                                          'updatedAt',
+                                          'callId',
+                                          'callRecordId',
+                                          'callHistoryId',
+                                          'historyId',
+                                          'leadId',
+                                        ].includes(key),
+                                    )
+                                    .slice(0, 4)
+                                    .map(([key, value]) => (
+                                      <div
+                                        key={key}
+                                        className="rounded-lg border border-border/50 bg-muted/10 px-2 py-1.5"
+                                      >
+                                        <div className="text-[9px] uppercase tracking-wide text-muted-foreground">
+                                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                                        </div>
+                                        <div className="mt-0.5 break-words text-[11px] font-medium text-foreground">
+                                          {String(value)}
+                                        </div>
+                                      </div>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+                            {expandedHistoryId === historyId && !relatedConversation && (
+                              <div className="mt-2 text-[10px] text-muted-foreground">
+                                Tagging not updated for this call.
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
-              <div className="flex items-center justify-between border-t border-border/60 px-5 py-4">
-                <div className="text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 px-3 sm:px-5 py-2.5 sm:py-4">
+                <div className="text-[10px] sm:text-sm text-muted-foreground">
                   Page {historyPage + 1} of {historyTotalPages}
-                  <span className="mx-2 text-border">|</span>
-                  <span className="text-muted-foreground">{filteredHistoryRows.length} total rows</span>
+                  <span className="mx-1 sm:mx-2 text-border">|</span>
+                  <span className="text-muted-foreground">{filteredHistoryRows.length} total</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     disabled={historyPage === 0}
-                    onClick={() => setHistoryPage((prev) => Math.max(prev - 1, 0))}
+                    onClick={() => setHistoryPage((prev) => Math.max(prev - 0))}
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                   </Button>
                   <Button
                     type="button"
@@ -1721,7 +1861,7 @@ export default function ContactCentricWorkspace({
                     disabled={historyPage + 1 >= historyTotalPages}
                     onClick={() => setHistoryPage((prev) => Math.min(prev + 1, historyTotalPages - 1))}
                   >
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                   </Button>
                 </div>
               </div>

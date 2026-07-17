@@ -829,7 +829,7 @@ const Disposition = ({
         modal={true}
       >
         <DialogContent
-          className="sm:max-w-2xl [&>button]:hidden w-full p-0 border-none bg-transparent shadow-none flex items-center justify-center"
+          className="sm:max-w-2xl [&>button]:hidden w-[calc(100%-2rem)] sm:w-full p-0 border-none bg-transparent shadow-none flex items-center justify-center"
           // Prevent closing on outside click
           onPointerDownOutside={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
@@ -838,28 +838,28 @@ const Disposition = ({
             {/* Custom close button with validation */}
             <button
               onClick={handleXButtonClick}
-              className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none z-10"
+              className="absolute right-3 top-3 sm:right-4 sm:top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none z-10"
               disabled={isSubmitting}
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
             </button>
 
-            <div className="p-6 space-y-6 overflow-auto">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-auto max-h-[90vh]">
               <div className="space-y-1 pr-8">
-                <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+                <DialogTitle className="text-lg sm:text-xl font-bold text-foreground flex items-center gap-2">
                   Select Disposition
                   {makeSticky && (
                     <Badge className="bg-primary/10 text-primary hover:bg-primary/10 transition-all">Sticky</Badge>
                   )}
                 </DialogTitle>
-                <p className="text-sm text-muted-foreground">Choose the appropriate outcome for this call</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Choose the appropriate outcome for this call</p>
               </div>
               <div className="flex flex-row gap-2 sm:gap-4 items-start justify-start overflow-x-auto">
                 {/* Call Type */}
-                <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-3 sm:px-4 py-2 sm:py-3 md:w-full w-max">
+                <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-3 py-2 sm:py-3 shrink-0">
                   <div className="flex flex-col">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">Type</span>
+                    <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">Type</span>
                     <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-100 whitespace-nowrap">
                       {callType === 'outgoing' ? 'Outgoing' : 'Incoming'}
                     </span>
@@ -867,9 +867,9 @@ const Disposition = ({
                 </div>
 
                 {/* Phone Number */}
-                <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-3 sm:px-4 py-2 sm:py-3 md:w-full w-max">
+                <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-3 py-2 sm:py-3 shrink-0">
                   <div className="flex flex-col">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">Number</span>
+                    <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">Number</span>
                     <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-100 whitespace-nowrap">
                       {normalizePhone(stickyTargetNumber) || 'N/A'}
                     </span>
@@ -877,9 +877,9 @@ const Disposition = ({
                 </div>
 
                 {/* Campaign */}
-                <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-3 sm:px-4 py-2 sm:py-3 md:w-full w-max">
+                <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 rounded-lg px-3 py-2 sm:py-3 shrink-0">
                   <div className="flex flex-col">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">Campaign</span>
+                    <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">Campaign</span>
                     <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-100 capitalize whitespace-nowrap">
                       {campaignName}
                     </span>
@@ -888,7 +888,7 @@ const Disposition = ({
               </div>
 
               <div
-                className={`grid grid-cols-2 ${dispositionActions.length > 15 ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-3 max-h-[40vh] overflow-y-auto pr-1`}
+                className={`grid grid-cols-2 ${dispositionActions.length > 15 ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-2 sm:gap-3 max-h-[35vh] sm:max-h-[40vh] overflow-y-auto pr-1`}
               >
                 {dispositionActions.map((item) => {
                   const isSelected = selectedAction === item.action;
@@ -897,7 +897,7 @@ const Disposition = ({
                     <Button
                       key={`${item.action}-${item.label}`}
                       variant={styles.variant}
-                      className={`h-auto py-3 px-4 whitespace-normal text-xs sm:text-sm font-medium transition-all duration-200 ${styles.className}`}
+                      className={`h-auto py-2 sm:py-3 px-3 sm:px-4 whitespace-normal text-[11px] sm:text-sm font-medium transition-all duration-200 ${styles.className}`}
                       onClick={(event) => handleActionClick(item.action, event)}
                       disabled={isSubmitting || hasSubmittedSuccessfully}
                       type="button"
@@ -908,16 +908,16 @@ const Disposition = ({
                 })}
               </div>
               {stickyTargetNumber ? (
-                <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-3">
-                  <div className="space-y-1">
-                    <Label htmlFor="sticky-customer" className="text-sm font-medium text-foreground">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 rounded-lg border bg-muted/40 px-3 sm:px-4 py-2.5 sm:py-3">
+                  <div className="space-y-0.5 sm:space-y-1">
+                    <Label htmlFor="sticky-customer" className="text-xs sm:text-sm font-medium text-foreground">
                       Make this customer sticky
                     </Label>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
                       Route this contact back to the same agent when possible.
                     </p>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4">
                     <Checkbox
                       id="sticky-customer"
                       checked={makeSticky}
@@ -929,7 +929,7 @@ const Disposition = ({
                       onValueChange={handleStickyModeChange}
                       disabled={isSubmitting || hasSubmittedSuccessfully || savingStickyMode}
                     >
-                      <SelectTrigger className="h-7 w-32 text-xs">
+                      <SelectTrigger className="h-7 w-28 sm:w-32 text-[10px] sm:text-xs">
                         <SelectValue placeholder="Select mode" />
                       </SelectTrigger>
                       <SelectContent>
@@ -941,27 +941,23 @@ const Disposition = ({
                   </div>
                 </div>
               ) : null}
-              <div className="flex flex-col lg:flex-row gap-4 justify-end items-start border-t pt-4">
-                <div className="flex flex-row gap-2 w-full lg:w-auto md:justify-end">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-end items-stretch sm:items-center border-t pt-3 sm:pt-4">
+                <div className="flex flex-row gap-2 w-full sm:w-auto sm:justify-end">
                   <div>
                     <BreakDropdown bridgeID={resolvedBridgeID} dispoWithBreak={true} selectedAction={selectedAction} />
                   </div>
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 sm:flex-none">
                     <Button
                       onClick={() => {
-                        // Check if break is queued in localStorage
                         const queuedBreak = localStorage.getItem('selectedBreak');
-
                         if (queuedBreak && queuedBreak !== 'Break') {
-                          // Break is queued - submit with dispoWithBreak
                           submitForm(null, true);
                         } else {
-                          // No break queued - regular submit
                           submitForm();
                         }
                       }}
                       disabled={isSubmitting || !selectedAction || hasSubmittedSuccessfully}
-                      className={hasSubmittedSuccessfully}
+                      className={`w-full sm:w-auto ${hasSubmittedSuccessfully}`}
                     >
                       {isSubmitting ? (
                         <>

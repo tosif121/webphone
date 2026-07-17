@@ -969,8 +969,8 @@ export default function DynamicForm({
       }`}
     >
       <CardHeader className={userCallDialog ? 'shrink-0 pb-3' : 'pb-4'}>
-        <div className="flex items-center justify-between mb-4">
-          <CardTitle className="text-2xl text-primary">{formConfig.formTitle || 'Form'}</CardTitle>
+        <div className="flex items-center justify-between md:mb-4">
+          <CardTitle className="md:text-2xl text-primary">{formConfig.formTitle || 'Form'}</CardTitle>
           <div className="text-sm text-muted-foreground">
             Step {currentSectionIndex + 1} of {sortedSections.length}
           </div>
