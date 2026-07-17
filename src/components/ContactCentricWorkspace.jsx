@@ -690,18 +690,18 @@ export default function ContactCentricWorkspace({
                 Review the next lead and dial directly from this panel.
               </p>
             </div>
-            <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-3">
-              <div className="flex items-center gap-2 rounded-full border border-border/70 bg-background px-2 py-1 shadow-sm">
+            <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-3 flex-wrap">
+              <div className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-border/70 bg-background px-2 py-1 shadow-sm">
                 <Button
                   type="button"
                   variant={autoLeadDialEnabled ? 'default' : 'outline'}
-                  className="h-8 rounded-full px-3 text-xs font-semibold"
+                  className="h-7 sm:h-8 rounded-full px-2 sm:px-3 text-[10px] sm:text-xs font-semibold"
                   onClick={() => onAutoLeadDialEnabledChange?.(!autoLeadDialEnabled)}
                 >
                   {autoLeadDialEnabled ? 'Auto Active' : 'Auto Paused'}
                 </Button>
                 <Select value={String(autoLeadDialCountdownSeconds)} disabled>
-                  <SelectTrigger className="h-8 w-[74px] rounded-full text-xs">
+                  <SelectTrigger className="h-7 sm:h-8 w-[60px] sm:w-[74px] rounded-full text-[10px] sm:text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -713,7 +713,7 @@ export default function ContactCentricWorkspace({
                   </SelectContent>
                 </Select>
                 {autoLeadDialEnabled && autoLeadDialRemaining > 0 ? (
-                  <Badge variant="secondary" className="rounded-full text-xs">
+                  <Badge variant="secondary" className="rounded-full text-[10px] sm:text-xs hidden sm:inline-flex">
                     Dialing in {autoLeadDialRemaining}s
                   </Badge>
                 ) : null}
@@ -721,7 +721,7 @@ export default function ContactCentricWorkspace({
               {}
               <Button
                 type="button"
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-green-600 px-4 text-xs font-bold text-white hover:bg-green-700 shadow-md transition-all active:scale-95"
+                className="inline-flex h-8 sm:h-9 items-center justify-center gap-1.5 sm:gap-2 rounded-full bg-green-600 px-3 sm:px-4 text-[10px] sm:text-xs font-bold text-white hover:bg-green-700 shadow-md transition-all active:scale-95"
                 disabled={
                   !activeLeadNumber ||
                   !leadLockToken ||
@@ -731,24 +731,24 @@ export default function ContactCentricWorkspace({
                 onClick={() => handleDialAction(activeLeadNumber, activeLead)}
               >
                 <Phone className="h-3.5 w-3.5" />
-                <span className="sm:block hidden">Dial</span>
+                <span className="hidden sm:inline">Dial</span>
               </Button>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  className="inline-flex h-9 items-center justify-center gap-2 rounded-full px-4 text-xs font-semibold shadow-sm"
+                  className="inline-flex h-8 sm:h-9 items-center justify-center gap-1 sm:gap-2 rounded-full px-2.5 sm:px-4 text-[10px] sm:text-xs font-semibold shadow-sm"
                   disabled={!canGoBack || smartLeadLoading || !['lead_locked', 'idle'].includes(agentLifecycle)}
                   onClick={onBackLead}
                   title="Previous Lead"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
-                  <span className="sm:block hidden">Back</span>
+                  <span className="hidden sm:inline">Back</span>
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  className="inline-flex h-9 items-center justify-center gap-2 rounded-full px-4 text-xs font-semibold shadow-sm"
+                  className="inline-flex h-8 sm:h-9 items-center justify-center gap-1 sm:gap-2 rounded-full px-2.5 sm:px-4 text-[10px] sm:text-xs font-semibold shadow-sm"
                   disabled={
                     !activeLead?.leadId ||
                     !leadLockToken ||
@@ -758,13 +758,13 @@ export default function ContactCentricWorkspace({
                   onClick={onSkipLead}
                 >
                   <SkipForward className="h-3.5 w-3.5" />
-                  <span className="sm:block hidden">Skip</span>
+                  <span className="hidden sm:inline">Skip</span>
                 </Button>
                 <Button
                   type="button"
                   size="icon"
                   variant="outline"
-                  className="h-9 w-9 rounded-full shrink-0 shadow-sm"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-full shrink-0 shadow-sm"
                   onClick={onRefreshLead}
                   title="Refresh Lead"
                 >
@@ -777,70 +777,70 @@ export default function ContactCentricWorkspace({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="flex min-h-0 flex-1 flex-col space-y-4 px-4 sm:px-6 py-0 pb-6 overflow-y-auto">
+        <CardContent className="flex min-h-0 flex-1 flex-col space-y-3 sm:space-y-4 px-3 sm:px-6 py-0 pb-6 overflow-y-auto">
           {smartLeadLoading ? (
             <SkeletonRows />
           ) : activeLead ? (
             <>
-              <div className="grid gap-3 sm:gap-4 xl:grid-cols-3">
-                <div className="rounded-2xl border border-border/70 bg-primary/5 px-4 py-4 xl:col-span-2 shadow-sm">
+              <div className="grid gap-2 sm:gap-3 xl:grid-cols-3">
+                <div className="rounded-xl sm:rounded-2xl border border-border/70 bg-primary/5 px-3 sm:px-4 py-3 sm:py-4 xl:col-span-2 shadow-sm">
                   <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary/70">
                     Lead Details
                   </div>
-                  <div className="mt-2 text-xl sm:text-2xl font-bold text-foreground truncate">
+                  <div className="mt-1.5 sm:mt-2 text-lg sm:text-2xl font-bold text-foreground truncate">
                     {activeLead?.name || activeLead?.fullName || activeLead?.patientName || 'Lead Ready'}
                   </div>
-                  <div className="mt-3 flex items-center gap-2 text-xs sm:text-sm text-foreground/80 font-medium">
-                    <div className="flex h-7 items-center gap-2 rounded-full bg-background px-3 border border-border/50">
-                      <PhoneCall className="h-3.5 w-3.5 text-primary" />
+                  <div className="mt-2 sm:mt-3 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-sm text-foreground/80 font-medium">
+                    <div className="flex h-6 sm:h-7 items-center gap-1.5 sm:gap-2 rounded-full bg-background px-2 sm:px-3 border border-border/50">
+                      <PhoneCall className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-primary" />
                       <span>{activeLeadNumber || 'No number'}</span>
                     </div>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-4 shadow-sm border-l-4 border-l-blue-500">
+                <div className="rounded-xl sm:rounded-2xl border border-border/70 bg-background/70 px-3 sm:px-4 py-3 sm:py-4 shadow-sm border-l-4 border-l-blue-500">
                   <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Last Updated
                   </div>
-                  <div className="mt-2 text-sm font-bold text-foreground">
+                  <div className="mt-1.5 sm:mt-2 text-xs sm:text-sm font-bold text-foreground">
                     {formatTimestamp(activeLead?.updatedAt || activeLead?.uploadDate || activeLead?.createdAt)}
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:mb-10 mb-20">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:mb-10 mb-20">
                 {smartLeadDetailEntries.length > 0 ? (
                   smartLeadDetailEntries.map((entry) => (
                     <div
                       key={entry.label}
-                      className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4 transition-colors hover:bg-muted/30"
+                      className="rounded-xl sm:rounded-2xl border border-border/70 bg-muted/20 px-3 sm:px-4 py-3 sm:py-4 transition-colors hover:bg-muted/30"
                     >
                       <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                         {entry.label}
                       </div>
-                      <div className="mt-1.5 break-words text-sm font-semibold text-foreground">
+                      <div className="mt-1 sm:mt-1.5 break-words text-xs sm:text-sm font-semibold text-foreground">
                         {entry.value || 'N/A'}
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-border/60 px-4 py-8 text-center sm:text-left text-xs sm:text-sm text-muted-foreground col-span-full">
+                  <div className="rounded-xl sm:rounded-2xl border border-dashed border-border/60 px-3 sm:px-4 py-6 sm:py-8 text-center sm:text-left text-[11px] sm:text-sm text-muted-foreground col-span-full">
                     No additional lead fields are available for this record.
                   </div>
                 )}
               </div>
-              <div className="flex h-auto flex-col rounded-3xl border border-border/70 bg-card shadow-sm">
-                <div className="flex flex-col gap-3 border-b border-border/60 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex h-auto flex-col rounded-2xl sm:rounded-3xl border border-border/70 bg-card shadow-sm">
+                <div className="flex flex-col gap-2 sm:gap-3 border-b border-border/60 px-3 sm:px-5 py-3 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <div className="text-lg font-semibold text-foreground">Call History + Tagging</div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-base sm:text-lg font-semibold text-foreground">Call History + Tagging</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground">
                       Recent attempts for this contact with call-specific tagging preview.
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                     <Select
                       value={String(historyRowsPerPage)}
                       onValueChange={(value) => setHistoryRowsPerPage(Number(value))}
                     >
-                      <SelectTrigger className="h-10 w-[126px] rounded-full border-border/70 bg-background text-sm">
+                      <SelectTrigger className="h-8 sm:h-10 w-[100px] sm:w-[126px] rounded-full border-border/70 bg-background text-[10px] sm:text-sm">
                         <SelectValue placeholder="10 rows" />
                       </SelectTrigger>
                       <SelectContent>
@@ -852,9 +852,9 @@ export default function ContactCentricWorkspace({
                       </SelectContent>
                     </Select>
                     <Select value={historyDatePreset} onValueChange={setHistoryDatePreset}>
-                      <SelectTrigger className="h-10 w-[170px] rounded-full border-border/70 bg-background text-sm">
-                        <div className="flex items-center gap-2">
-                          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                      <SelectTrigger className="h-8 sm:h-10 w-[130px] sm:w-[170px] rounded-full border-border/70 bg-background text-[10px] sm:text-sm">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <CalendarDays className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-muted-foreground" />
                           <SelectValue placeholder="Last 7 Days" />
                         </div>
                       </SelectTrigger>
@@ -866,19 +866,20 @@ export default function ContactCentricWorkspace({
                     </Select>
                   </div>
                 </div>
-                <div className="h-auto overflow-y-auto px-5 py-4">
+                <div className="h-auto overflow-y-auto px-3 sm:px-5 py-3 sm:py-4">
                   {workspaceLoading ? (
                     <SkeletonRows />
                   ) : historyRowsWithConversations.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-border/60 px-4 py-8 sm:px-6 sm:py-16 text-center">
-                      <div className="text-base sm:text-lg font-semibold text-foreground">No contact history found</div>
-                      <p className="mt-2 text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+                    <div className="rounded-xl sm:rounded-2xl border border-dashed border-border/60 px-3 sm:px-6 py-6 sm:py-16 text-center">
+                      <div className="text-sm sm:text-lg font-semibold text-foreground">No contact history found</div>
+                      <p className="mt-1.5 sm:mt-2 text-[10px] sm:text-sm text-muted-foreground max-w-md mx-auto">
                         There are no call attempts for this contact in the selected range.
                       </p>
                     </div>
                   ) : (
-                    <div className="overflow-hidden rounded-2xl border border-border/70">
-                      <Table>
+                    <div className="overflow-hidden rounded-xl sm:rounded-2xl border border-border/70">
+                      {/* Desktop Table */}
+                      <Table className="hidden sm:table">
                         <TableHeader className="sticky top-0 z-10 bg-card">
                           <TableRow>
                             <TableHead>Time</TableHead>
@@ -1026,6 +1027,129 @@ export default function ContactCentricWorkspace({
                           })}
                         </TableBody>
                       </Table>
+
+                      {/* Mobile Card List */}
+                      <div className="sm:hidden divide-y divide-border/50">
+                        {historyRowsWithConversations.map(({ call, historyId, relatedConversation, previewText }) => {
+                          const callType =
+                            String(call?.Type || call?.callType || '')
+                              .trim()
+                              .toLowerCase() === 'incoming'
+                              ? 'Incoming'
+                              : 'Outgoing';
+                          return (
+                            <div key={historyId} className="px-3 py-2.5">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0 space-y-1">
+                                  <div className="text-[10px] text-muted-foreground">
+                                    {formatTimestamp(call?.startTime || call?.createdAt || call?.updatedAt)}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <Badge
+                                      variant={callType === 'Incoming' ? 'default' : 'secondary'}
+                                      className="text-[10px] px-1.5 py-0"
+                                    >
+                                      {callType === 'Incoming' ? (
+                                        <PhoneIncoming className="mr-0.5 h-3 w-3" />
+                                      ) : (
+                                        <PhoneOutgoing className="mr-0.5 h-3 w-3" />
+                                      )}
+                                      {callType}
+                                    </Badge>
+                                    <span className="text-[11px] font-medium">{formatDuration(call)}</span>
+                                    {getCallDialLabel(call).isAnswered ? (
+                                      <Badge
+                                        variant="default"
+                                        className="text-[10px] px-1.5 py-0 bg-green-600 text-white"
+                                      >
+                                        {getCallDialLabel(call).label}
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                        {getCallDialLabel(call).label}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate max-w-[250px]">
+                                    {previewText}
+                                  </div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 shrink-0 rounded-full px-2 text-[10px] text-primary"
+                                  onClick={() =>
+                                    setExpandedHistoryId((prev) => (prev === historyId ? null : historyId))
+                                  }
+                                >
+                                  <Eye className="mr-1 h-3 w-3" />
+                                  {expandedHistoryId === historyId ? 'Hide' : 'View'}
+                                </Button>
+                              </div>
+                              {expandedHistoryId === historyId && relatedConversation && (
+                                <div
+                                  ref={(node) => {
+                                    if (node) {
+                                      historyRowRefs.current[historyId] = node;
+                                    } else {
+                                      delete historyRowRefs.current[historyId];
+                                    }
+                                  }}
+                                  className="mt-2 rounded-xl border border-border/60 bg-background/80 px-2.5 py-2 space-y-1.5"
+                                >
+                                  <div className="text-[11px] font-medium text-foreground">
+                                    {relatedConversation?.formTitle || 'Tagging Conversation'}
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground">
+                                    {getConversationRemark(relatedConversation) || 'Tagging updated for this call.'}
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    {Object.entries(relatedConversation)
+                                      .filter(
+                                        ([key, value]) =>
+                                          value !== undefined &&
+                                          value !== null &&
+                                          String(value).trim() !== '' &&
+                                          ![
+                                            'id',
+                                            '_id',
+                                            '__v',
+                                            'createdAt',
+                                            'updatedAt',
+                                            'callId',
+                                            'callRecordId',
+                                            'callHistoryId',
+                                            'historyId',
+                                            'leadId',
+                                          ].includes(key),
+                                      )
+                                      .slice(0, 4)
+                                      .map(([key, value]) => (
+                                        <div
+                                          key={key}
+                                          className="rounded-lg border border-border/50 bg-muted/10 px-2 py-1.5"
+                                        >
+                                          <div className="text-[9px] uppercase tracking-wide text-muted-foreground">
+                                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                                          </div>
+                                          <div className="mt-0.5 break-words text-[11px] font-medium text-foreground">
+                                            {String(value)}
+                                          </div>
+                                        </div>
+                                      ))}
+                                  </div>
+                                </div>
+                              )}
+                              {expandedHistoryId === historyId && !relatedConversation && (
+                                <div className="mt-2 text-[10px] text-muted-foreground">
+                                  Tagging not updated for this call.
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
