@@ -254,7 +254,7 @@ export default function DraggableWebPhone() {
   const isPostCallPhase = dispositionModal && !isCallLive;
   const hasPostCallContext = Boolean(dispositionModal || workspaceActiveCall || userCall || activeCallContext);
   const hasCallUiContext = isWorkspaceCallMode || hasPostCallContext || isCallLive;
-  const shouldShowCompactCallControls = isWorkspaceCallMode && !isIncomingRinging && !isExpandedDuringCall;
+  const shouldShowCompactCallControls = isWorkspaceCallMode && !isIncomingRinging && !isExpandedDuringCall && !effectiveIsMobile;
   const liveDurationLabel = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
   useEffect(() => {
