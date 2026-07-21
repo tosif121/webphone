@@ -41,7 +41,7 @@ const HistoryScreen = ({ setSeeLogs, setPhoneNumber, handleCall }) => {
             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-muted rounded-full flex items-center justify-center mb-3 sm:mb-4">
               <Phone className="w-6 h-6 text-primary/40" />
             </div>
-            <h3 className="text-base sm:text-lg font-medium text-foreground mb-1 sm:mb-2">No call history</h3>
+            <h3 className="text-base font-medium text-foreground mb-1 sm:mb-2">No call history</h3>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-xs">
               Your recent calls will appear here once you start making calls.
             </p>

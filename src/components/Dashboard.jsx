@@ -1485,13 +1485,15 @@ function Dashboard({ hideModals = false }) {
           setAgentLifecycle={setAgentLifecycle}
         />
       )}
-      <SessionTimeoutModal
-        isOpen={showTimeoutModal}
-        onClose={closeTimeoutModal}
-        onLoginSuccess={handleLoginSuccess}
-        userLogin={userLogin}
-        customMessage={timeoutMessage}
-      />
+      {!hideModals && (
+        <SessionTimeoutModal
+          isOpen={showTimeoutModal}
+          onClose={closeTimeoutModal}
+          onLoginSuccess={handleLoginSuccess}
+          userLogin={userLogin}
+          customMessage={timeoutMessage}
+        />
+      )}
       {!hideModals && dropCalls && (
         <DropCallsModal
           usermissedCalls={usermissedCalls}
@@ -1550,7 +1552,7 @@ function Dashboard({ hideModals = false }) {
             );
           })}
         </div>
-        <div className="min-h-0 flex-1">
+        <div className="min-h-0 flex-1 sm:mb-0 mb-22">
           {status === 'start' && !dispositionModal ? (
             <div
               ref={workspaceShellRef}

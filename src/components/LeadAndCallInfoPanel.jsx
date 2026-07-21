@@ -1917,7 +1917,7 @@ export default function LeadAndCallInfoPanel({
     if (workspaceTimeline.length === 0) {
       return (
         <div className="text-center py-8">
-          <Activity size={48} className="mx-auto text-muted-foreground mb-4" />
+          <Activity className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground">No contact activity is available for this number yet.</p>
         </div>
       );
@@ -2203,7 +2203,7 @@ export default function LeadAndCallInfoPanel({
     if (!currentLead) {
       return (
         <div className="text-center py-8">
-          <Building2 size={48} className="mx-auto text-muted-foreground mb-4" />
+          <Building2 className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground">No campaign lead context is available for this contact.</p>
         </div>
       );
@@ -2300,7 +2300,7 @@ export default function LeadAndCallInfoPanel({
     if (!currentApiCallRecord) {
       return (
         <div className="text-center py-8">
-          <Info size={48} className="mx-auto text-muted-foreground mb-4" />
+          <Info className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground">No call information found for this number in the selected date range.</p>
         </div>
       );
@@ -2414,7 +2414,7 @@ export default function LeadAndCallInfoPanel({
     if (workspaceCalls.length === 0) {
       return (
         <div className="text-center py-8">
-          <History size={48} className="mx-auto text-muted-foreground mb-4" />
+          <History className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground">No call history was found for this contact.</p>
         </div>
       );
@@ -2773,7 +2773,7 @@ export default function LeadAndCallInfoPanel({
 
       {workspaceNotes.length === 0 ? (
         <div className="text-center py-8">
-          <MessageSquare size={48} className="mx-auto text-muted-foreground mb-4" />
+          <MessageSquare className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground">No notes have been added for this contact yet.</p>
         </div>
       ) : (
@@ -2819,7 +2819,7 @@ export default function LeadAndCallInfoPanel({
     if (workspaceTimeline.length === 0) {
       return (
         <div className="text-center py-8">
-          <Activity size={48} className="mx-auto text-muted-foreground mb-4" />
+          <Activity className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground">No contact activity is available for this number yet.</p>
         </div>
       );
@@ -3007,7 +3007,7 @@ export default function LeadAndCallInfoPanel({
               {!activeUserCall ? (
                 <CardContent className="flex flex-1 items-center justify-center">
                   <div className="text-center py-8">
-                    <Phone size={48} className="mx-auto text-muted-foreground mb-4" />
+                    <Phone className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 mx-auto text-muted-foreground mb-4" />
                     <p className="text-muted-foreground">No call data available for disposition.</p>
                   </div>
                 </CardContent>
@@ -3017,7 +3017,7 @@ export default function LeadAndCallInfoPanel({
                   onValueChange={setActiveTab}
                   className="flex h-full w-full flex-col gap-0 overflow-hidden"
                 >
-                  <CardHeader className="flex shrink-0 flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-2 sm:gap-3 pb-3 px-3 sm:px-6 pt-4 sm:pt-6">
+                  <CardHeader className="flex shrink-0 flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-2 sm:gap-3 px-3 sm:px-6 sm:pt-6">
                     <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
                       <span className="text-base sm:text-lg font-semibold">Active Call</span>
                       {(resolvedCallContext.didNumber || resolvedCallContext.isAfterHours || isStickyContact) && (
@@ -3135,10 +3135,7 @@ export default function LeadAndCallInfoPanel({
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-border/60 px-4 py-8 sm:px-6 sm:py-16 text-center">
-                  <Phone
-                    size={48}
-                    className="mx-auto text-muted-foreground mb-4 opacity-50 transition-opacity group-hover:opacity-100"
-                  />
+                  <Phone className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 mx-auto text-muted-foreground mb-4 opacity-50 transition-opacity group-hover:opacity-100" />
                   <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto">
                     {allowManualEntry
                       ? 'No active call to display details. You can still create a manual form entry.'

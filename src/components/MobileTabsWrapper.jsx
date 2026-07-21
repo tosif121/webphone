@@ -4,6 +4,7 @@ import AgentDashboard from './AgentDashboard';
 import MobileNavigation from './MobileNavigation';
 import DropCallsModal from './DropCallsModal';
 import FollowUpCallsModal from './FollowUpCallsModal';
+import SessionTimeoutModal from './SessionTimeoutModal';
 import HistoryContext from '@/context/HistoryContext';
 import { JssipContext } from '@/context/JssipContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,7 +16,17 @@ export default function MobileTabsWrapper() {
   const [isMobile, setIsMobile] = useState(false);
   const [dialpadOpen, setDialpadOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const { status, followUpDispoes, dispositionModal } = useContext(JssipContext);
+  const {
+    status,
+    followUpDispoes,
+    dispositionModal,
+    showTimeoutModal,
+    setShowTimeoutModal,
+    closeTimeoutModal,
+    handleLoginSuccess,
+    userLogin,
+    timeoutMessage,
+  } = useContext(JssipContext);
   const {
     dropCalls,
     setDropCalls,
@@ -267,13 +278,20 @@ export default function MobileTabsWrapper() {
           token={token}
         />
       )}
+      <SessionTimeoutModal
+        isOpen={showTimeoutModal}
+        onClose={closeTimeoutModal}
+        onLoginSuccess={handleLoginSuccess}
+        userLogin={userLogin}
+        customMessage={timeoutMessage}
+      />
 
       {/* Content Area - always show Dashboard when dispositionModal is open */}
       {(activeTab === 'leads' || activeTab === 'stats' || dispositionModal) && (
         <div className="flex-1 overflow-y-auto">
           <>
             {(activeTab === 'leads' || dispositionModal) && <Dashboard hideModals />}
-            {activeTab === 'stats' && !dispositionModal && <AgentDashboard />}
+            {activeTab === 'stats' && !dispositionModal && <AgentDashboard hideModals />}
           </>
         </div>
       )}

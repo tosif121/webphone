@@ -68,7 +68,7 @@ const TimeStatCard = ({ label, value, index }) => (
   </div>
 );
 
-export default function AgentDashboard() {
+export default function AgentDashboard({ hideModals = false }) {
   const [incomingCallData, setIncomingCallData] = useState(false);
   const [dashboardData, setDashboardData] = useState({
     summary: { totalCalls: 0, dropCalls: 0, myCalls: 0, avgDuration: 0 },
@@ -240,13 +240,15 @@ export default function AgentDashboard() {
 
   return (
     <>
-      <SessionTimeoutModal
-        isOpen={showTimeoutModal}
-        onClose={closeTimeoutModal}
-        onLoginSuccess={handleLoginSuccess}
-        userLogin={userLogin}
-        customMessage={timeoutMessage}
-      />
+      {!hideModals && (
+        <SessionTimeoutModal
+          isOpen={showTimeoutModal}
+          onClose={closeTimeoutModal}
+          onLoginSuccess={handleLoginSuccess}
+          userLogin={userLogin}
+          customMessage={timeoutMessage}
+        />
+      )}
 
       <div className="space-y-8 w-full md:mb-0 mb-28">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

@@ -718,7 +718,6 @@ export default function ContactCentricWorkspace({
                   </Badge>
                 ) : null}
               </div>
-              {}
               <Button
                 type="button"
                 className="inline-flex h-8 sm:h-9 items-center justify-center gap-1.5 sm:gap-2 rounded-full bg-green-600 px-3 sm:px-4 text-[10px] sm:text-xs font-bold text-white hover:bg-green-700 shadow-md transition-all active:scale-95"
@@ -771,13 +770,13 @@ export default function ContactCentricWorkspace({
                   <RefreshCcw className="h-3.5 w-3.5" />
                 </Button>
               </div>
-              <div className="w-full sm:w-auto mt-2 sm:mt-0">
+              <div className="w-full sm:w-auto">
                 <Tabs mode={mode} onModeChange={onModeChange} />
               </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="flex min-h-0 flex-1 flex-col space-y-3 sm:space-y-4 px-3 sm:px-6 py-0 pb-6 overflow-y-auto">
+        <CardContent className="flex min-h-0 flex-1 flex-col space-y-3 sm:space-y-4 px-3 sm:px-6 py-0 sm:pb-6 overflow-y-auto">
           {smartLeadLoading ? (
             <SkeletonRows />
           ) : activeLead ? (
@@ -1485,8 +1484,8 @@ export default function ContactCentricWorkspace({
   );
 
   const renderSplit = () => (
-    <Card className="flex h-auto min-h-0 w-full min-w-0 flex-col border border-border/70 shadow-sm">
-      <CardHeader className="shrink-0 space-y-2 sm:space-y-4 px-3 sm:px-6 py-3 sm:py-6">
+    <Card className="flex !gap-0 h-auto min-h-0 w-full min-w-0 flex-col border !pt-0 border-border/70 shadow-sm">
+      <CardHeader className="shrink-0 space-y-2 sm:space-y-4 p-3 sm:p-6">
         <div className="flex flex-col gap-2 sm:gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Button
@@ -1510,7 +1509,7 @@ export default function ContactCentricWorkspace({
           <Tabs mode={mode} onModeChange={onModeChange} />
         </div>
       </CardHeader>
-      <CardContent className="flex min-h-0 h-auto flex-col pt-0 px-3 sm:px-6 pb-3 sm:pb-6">
+      <CardContent className="flex min-h-0 h-auto flex-col py-0 px-3 sm:px-6 sm:pb-6">
         <div className="grid min-h-0 h-auto gap-3 sm:gap-4 grid-cols-1 xl:grid-cols-[minmax(0,0.3fr)_minmax(0,0.7fr)]">
           <div className="min-h-0">
             <div className="flex h-auto flex-col rounded-2xl sm:rounded-3xl border border-border/70 bg-card shadow-sm">

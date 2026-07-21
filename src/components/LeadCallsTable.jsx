@@ -410,7 +410,7 @@ function LeadCallsTable({
       if (!hasMeaningfulData && !selectedRow.name && !selectedRow.email && !selectedRow.phone) {
         return (
           <div className="text-center py-8">
-            <User size={48} className="mx-auto text-muted-foreground mb-4" />
+            <User className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground">Lead Information not found for this number.</p>
           </div>
         );
@@ -591,7 +591,7 @@ function LeadCallsTable({
     if (!selectedRow || !selectedRow.history || selectedRow.history.length === 0) {
       return (
         <div className="text-center py-8">
-          <History size={48} className="mx-auto text-muted-foreground mb-4" />
+          <History className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground">No call history available for this entry.</p>
         </div>
       );
@@ -768,7 +768,7 @@ function LeadCallsTable({
         <CardContent className="space-y-4">
           {!selectedRow ? (
             <div className="text-center py-8">
-              <User size={48} className="mx-auto text-muted-foreground mb-4" />
+              <User className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">Select an entry to view details.</p>
             </div>
           ) : (
