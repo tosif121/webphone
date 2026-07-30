@@ -39,6 +39,14 @@ export default function IncomingCall({
     }
   }, [isIncomingRinging]);
 
+  useEffect(() => {
+    if (isIncomingRinging) {
+      console.log(
+        `📞 [IncomingCall] RENDERING incoming screen | number="${incomingNumber}" | session=${!!incomingSession} | isSticky=${!!isSticky}`,
+      );
+    }
+  }, [isIncomingRinging, incomingNumber, incomingSession, isSticky]);
+
   const handleAnswer = () => {
     if (answerIncomingCall) answerIncomingCall();
   };

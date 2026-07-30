@@ -254,7 +254,8 @@ export default function DraggableWebPhone() {
   const isPostCallPhase = dispositionModal && !isCallLive;
   const hasPostCallContext = Boolean(dispositionModal || workspaceActiveCall || userCall || activeCallContext);
   const hasCallUiContext = isWorkspaceCallMode || hasPostCallContext || isCallLive;
-  const shouldShowCompactCallControls = isWorkspaceCallMode && !isIncomingRinging && !isExpandedDuringCall && !effectiveIsMobile;
+  const shouldShowCompactCallControls =
+    isWorkspaceCallMode && !isIncomingRinging && !isExpandedDuringCall && !effectiveIsMobile;
   const liveDurationLabel = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
   useEffect(() => {
@@ -314,11 +315,13 @@ export default function DraggableWebPhone() {
     const handleOpenDialpad = () => {
       setPhoneShow(true);
       setActiveTab('dialpad');
+      setSeeLogs(false);
     };
 
     const handleOpenDialpadRecents = () => {
       setPhoneShow(true);
       setActiveTab('recents');
+      setSeeLogs(true);
     };
 
     const handleCloseDialpad = () => {
@@ -331,11 +334,13 @@ export default function DraggableWebPhone() {
     const handleMobileTabShowPhone = () => {
       setPhoneShow(true);
       setActiveTab('dialpad');
+      setSeeLogs(false);
     };
 
     const handleMobileTabShowPhoneRecents = () => {
       setPhoneShow(true);
       setActiveTab('recents');
+      setSeeLogs(true);
     };
 
     const handleMobileTabHidePhone = () => {
@@ -824,8 +829,12 @@ export default function DraggableWebPhone() {
         <>
           {effectiveIsMobile ? (
             <div
-              className={`fixed left-0 right-0 z-[49] overflow-hidden bg-card ${
-                isIncomingRinging || isCallLive ? 'top-14 bottom-16' : 'bottom-16 top-auto h-[72vh] rounded-t-[28px]'
+              className={`fixed left-0 right-0 z-[49] overflow-auto bg-card ${
+                isIncomingRinging || isCallLive
+                  ? 'top-14 bottom-16'
+                  : activeTab === 'recents' || seeLogs
+                    ? 'top-14 bottom-6 h-auto rounded-none'
+                    : 'bottom-16 top-auto h-[72vh] rounded-t-[28px]'
               }`}
             >
               {renderPhoneContent()}

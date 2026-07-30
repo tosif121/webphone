@@ -153,6 +153,7 @@ const useJssip = (isMobile = false) => {
     stopRingtone,
     notifyMe,
     createNotification,
+    showNotificationDirect,
     checkUserReady,
     validatePhoneNumber,
     storeInLocalStorage,
@@ -221,6 +222,7 @@ const useJssip = (isMobile = false) => {
   const readySyncLastSuccessRef = useRef(0);
   const connectioncheckInFlightRef = useRef(false);
   const callendedInFlightRef = useRef(false);
+  const needsDispositionRef = useRef(false);
   const connectioncheckRef = useRef(null);
   const connectionFailureCountRef = useRef(0);
   const lastAriMessageAtRef = useRef(0);
@@ -430,6 +432,7 @@ const useJssip = (isMobile = false) => {
       return;
     }
 
+    needsDispositionRef.current = callHandledRef.current || callConnectedRef.current;
     manualHangupRequestedRef.current = false;
     pendingPostCallRef.current = true;
     setIsCustomerAnswered(false);
@@ -536,8 +539,10 @@ const useJssip = (isMobile = false) => {
             );
             setUserCall(response.data.contactData);
           }
-          if (!pendingPostCallRef.current) {
-            setAgentLifecycle('on_call');
+          if (!pendingPostCallRef.current && activeCallRef.current) {
+            if (agentLifecycleRef.current !== 'ringing') {
+              setAgentLifecycle('on_call');
+            }
           } else if (agentLifecycleRef.current === 'idle') {
             pendingPostCallRef.current = false;
           }
@@ -697,24 +702,50 @@ const useJssip = (isMobile = false) => {
   // In useJssip.js
 
   const handleLoginSuccess = async () => {
-    // Close the modal
     setShowTimeoutModal(false);
-
-    // Clear connection lost flag
     setIsConnectionLost(false);
-
-    // Clear timeout message
     setTimeoutMessage('');
 
-    // Show success message
     toast.success('Re-login successful. Reconnecting...', {
       duration: 2000,
     });
 
-    // ✅ Full page reload to re-initialize everything
     setTimeout(() => {
       window.location.reload();
     }, 500);
+  };
+
+  const autoRelogin = async () => {
+    const savedUsername = localStorage.getItem('savedUsername');
+    const savedPassword = localStorage.getItem('savedPassword');
+
+    if (!savedUsername || !savedPassword) {
+      return false;
+    }
+
+    try {
+      const { data: response } = await axios.post(
+        `${window.location.origin}/userlogin/${savedUsername}`,
+        { username: savedUsername, password: savedPassword },
+        {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 10000,
+        },
+      );
+
+      if (response && (response.success || response.token || response.message === 'Login successful')) {
+        localStorage.setItem('token', JSON.stringify(response));
+        if (response?.userData?.uiPreferences) {
+          const { applyAgentUiPreferencesToDom } = await import('@/utils/agent-preferences');
+          applyAgentUiPreferencesToDom(response.userData.uiPreferences);
+        }
+        handleLoginSuccess();
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
   };
 
   const closeTimeoutModal = () => {
@@ -755,17 +786,17 @@ const useJssip = (isMobile = false) => {
       const hasRecentAriHeartbeat =
         lastAriMessageAtRef.current > 0 && now - lastAriMessageAtRef.current <= MESSAGE_HEARTBEAT_STALE_MS;
       const hasProtectedSessionPhase =
-        dispositionModal ||
-        connectionStatus === 'Disposition' ||
-        status === 'calling' ||
-        status === 'conference' ||
-        Boolean(incomingSession) ||
-        isIncomingRinging ||
-        agentLifecycle === 'dialing' ||
-        agentLifecycle === 'ringing' ||
-        agentLifecycle === 'on_call' ||
-        agentLifecycle === 'disposition' ||
-        isAutomationLoading;
+        dispositionModalRef.current ||
+        connectionStatusRef.current === 'Disposition' ||
+        statusRef.current === 'calling' ||
+        statusRef.current === 'conference' ||
+        Boolean(incomingSessionRef.current) ||
+        isIncomingRingingRef.current ||
+        agentLifecycleRef.current === 'dialing' ||
+        agentLifecycleRef.current === 'ringing' ||
+        agentLifecycleRef.current === 'on_call' ||
+        agentLifecycleRef.current === 'disposition' ||
+        isAutomationLoadingRef.current;
 
       if (!force) {
         if (reason === 'interval' && hasRecentAriHeartbeat) {
@@ -841,17 +872,13 @@ const useJssip = (isMobile = false) => {
           return false;
         }
 
-        // ✅ 2. Force logout - set userLogin to true
+        // ✅ 2. Auth failure — auto-reconnect instead of force logout
         if (response.status === 401 || !data.isUserLogin) {
-          /* console.warn('⚠️ Authentication failure detected'); */
-
-          if (status === 'start' && !dispositionModal) {
+          if (statusRef.current === 'start' && !dispositionModalRef.current) {
             setTimeoutMessage('');
-            await handleLogout(token, 'Force logout. Please log in again.');
-
-            // ✅ SET userLogin to true - force to login page
-            setUserLogin(true);
-
+            const reconnected = await autoRelogin();
+            if (reconnected) return true;
+            await handleLogout(token, 'Connection lost. Please re-connect.');
             return true;
           }
           return false;
@@ -1048,16 +1075,10 @@ const useJssip = (isMobile = false) => {
   }, [connectioncheck]);
 
   const handleLogout = async (token, message) => {
+    console.log(
+      `[CallGuard] handleLogout CALLED | message="${message}" | hasToken=${!!token} | lifecycle=${agentLifecycleRef.current} | status=${statusRef.current}`,
+    );
     try {
-      if (token) {
-        await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      }
-
-      // REPLACED window.alert with existing timeout modal state
       setShowTimeoutModal(true);
 
       if (session && session.status < 6) {
@@ -1108,6 +1129,9 @@ const useJssip = (isMobile = false) => {
       setIsConnectionLost(true);
 
       if (!hasProtectedSessionPhase && connectionFailureCountRef.current >= 2) {
+        console.log(
+          `[CallGuard] Session expired modal triggered from connection error (count=${connectionFailureCountRef.current}, hasProtectedSessionPhase=${hasProtectedSessionPhase})`,
+        );
         setTimeoutMessage('');
         setShowTimeoutModal(true);
         setUserLogin(true);
@@ -1336,16 +1360,17 @@ const useJssip = (isMobile = false) => {
   };
 
   const rejectIncomingCall = () => {
+    const session = incomingSessionRef.current;
     stopRingtone();
-    const remoteUser = incomingSession?.remote_identity?.uri?.user || 'unknown';
-    const callId = incomingSession?.call_id || incomingSession?.id || 'unknown';
+    const remoteUser = session?.remote_identity?.uri?.user || 'unknown';
+    const callId = session?.call_id || session?.id || 'unknown';
     console.log(
       `[CallGuard] Call MANUAL REJECTED by agent — remoteUser=${remoteUser} | callId=${callId} | releasing lock`,
     );
     activeCallRef.current = null;
 
-    if (incomingSession && incomingSession.status < 6) {
-      incomingSession.terminate();
+    if (session && session.status < 6) {
+      session.terminate();
     }
     void clearRejectedCall(remoteUser);
     setIncomingSession(null);
@@ -1691,6 +1716,7 @@ const useJssip = (isMobile = false) => {
 
               // Even for outgoing calls, check if user is away and show notification
               const incomingNumber = e.request.from._uri._user;
+              showNotificationDirect(incomingNumber);
               setInNotification(incomingNumber);
 
               handleIncomingCall(e.session, e.request, {
@@ -1730,7 +1756,8 @@ const useJssip = (isMobile = false) => {
 
                   const incomingNumber = e.request.from._uri._user;
 
-                  // Always trigger notification check (will only show if user is away)
+                  // Trigger notification directly (works in background, bypasses React effect)
+                  showNotificationDirect(incomingNumber);
                   setInNotification(incomingNumber);
 
                   // Auto-answer the call
@@ -1783,7 +1810,8 @@ const useJssip = (isMobile = false) => {
                     setStatus('incoming');
                     setAgentLifecycle('ringing');
 
-                    // Trigger web notification (will check if user is away)
+                    // Trigger notification directly (works in background, bypasses React effect)
+                    showNotificationDirect(incomingNumber);
                     setInNotification(incomingNumber);
 
                     playRingtone(); // Play ringtone on mobile
@@ -1824,8 +1852,13 @@ const useJssip = (isMobile = false) => {
                       ]);
                       pause();
                       setStatus('start');
-                      setIsCallended(true);
-                      setAgentLifecycle('disposition');
+                      if (callHandledRef.current) {
+                        setIsCallended(true);
+                        setAgentLifecycle('disposition');
+                      } else {
+                        setIsCallended(false);
+                        setAgentLifecycle('idle');
+                      }
                       setCallHandled(false);
                       callHandledRef.current = false;
                       setConferenceNumber('');
@@ -1867,7 +1900,8 @@ const useJssip = (isMobile = false) => {
                     // Desktop: Check if user is away and show notification before auto-answer
                     const incomingNumber = e.request.from._uri._user;
 
-                    // Always trigger notification check (will only show if user is away)
+                    // Trigger notification directly (works in background, bypasses React effect)
+                    showNotificationDirect(incomingNumber);
                     setInNotification(incomingNumber);
 
                     // Auto-answer the call (existing logic)
@@ -1908,7 +1942,8 @@ const useJssip = (isMobile = false) => {
                     setStatus('incoming');
                     setAgentLifecycle('ringing');
 
-                    // Trigger web notification (will check if user is away)
+                    // Trigger notification directly (works in background, bypasses React effect)
+                    showNotificationDirect(incomingNumber);
                     setInNotification(incomingNumber);
 
                     playRingtone();
@@ -2155,6 +2190,9 @@ const useJssip = (isMobile = false) => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         void sendSipHeartbeat({ source: 'visibility', force: true });
+        if (isIncomingRingingRef.current && ringtoneRef.current) {
+          playRingtone();
+        }
       }
     };
 
@@ -2340,21 +2378,18 @@ const useJssip = (isMobile = false) => {
         console.error('Bad request (400)');
         toast.error('Invalid phone number or user not found');
       } else if (error.response?.status === 401 || error.response?.status === 403) {
-        // ✅ 11a. Authentication errors - force logout
         console.error('Authentication error (401/403)');
 
         const tokenDataString = localStorage.getItem('token');
         const parsedTokenData = tokenDataString ? JSON.parse(tokenDataString) : null;
         const token = parsedTokenData?.token;
 
-        // Clear custom message (use default)
         setTimeoutMessage('');
 
-        // Trigger logout
-        await handleLogout(token, 'Session expired. Please log in again.');
+        const reconnected = await autoRelogin();
+        if (reconnected) return;
 
-        // Force to login page
-        setUserLogin(true);
+        await handleLogout(token, 'Session expired. Please re-connect.');
       } else if (error.response?.status >= 500) {
         console.error('Server error (5xx)');
         toast.error('Server error. Please try again later.');
@@ -2398,7 +2433,34 @@ const useJssip = (isMobile = false) => {
         const tokenPayload = getStoredTokenPayload();
         const isDispositionEnabled = tokenPayload?.userData?.disposition !== false;
 
-        if (!isDispositionEnabled) {
+        // Auto-disposition for calls that were never answered
+        if (!needsDispositionRef.current) {
+          try {
+            const dispoUrl = `${window.location.origin}/user/disposition${username}`;
+            const finalBridgeID = bridgeIDRef.current || bridgeID;
+            const dispoPayload = {
+              bridgeID: finalBridgeID || 'deadCallId',
+              Disposition: 'Auto Disposed',
+              autoDialDisabled: false,
+              leadId: activeCallContext?.leadId || undefined,
+              leadLockToken: leadLockToken || undefined,
+              contactNumber: phoneNumber || '',
+            };
+            await axios.post(dispoUrl, dispoPayload, {
+              headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+            });
+          } catch (dispoError) {
+            console.error('[autoDispo] FAILED:', dispoError.response?.data || dispoError.message);
+          }
+          setIsHeld(false);
+          setIsCallended(false);
+          setActiveLead(null);
+          setLeadLockToken('');
+          setAgentLifecycle('idle');
+          setDispositionModal(false);
+          setCallType('');
+          setPhoneNumber('');
+        } else if (!isDispositionEnabled) {
           // When disposition is disabled, perform SILENT auto-disposition
           try {
             const dispoUrl = `${window.location.origin}/user/disposition${username}`;

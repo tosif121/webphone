@@ -2133,7 +2133,7 @@ export default function LeadAndCallInfoPanel({
     if (formConfig && formConfig?.sections && formConfig?.sections?.length > 0) {
       return (
         <div className="flex flex-col h-full min-h-0 overflow-hidden">
-          {stickyCheckbox && <div className="shrink-0">{stickyCheckbox}</div>}
+          {stickyCheckbox && <div className="shrink-0 mt-2">{stickyCheckbox}</div>}
           {activeUserCall?.isFollowUpCall && (
             <div className="shrink-0 p-4 mb-4 rounded-xl border bg-card/50 space-y-3">
               <div className="flex items-center gap-2">

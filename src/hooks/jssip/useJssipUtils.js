@@ -24,8 +24,21 @@ export const useJssipUtils = (state) => {
     }
   }, []);
 
-  // Request notification permission on component mount
+  // Register service worker for reliable background notifications
   useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register(withWebphoneBasePath('/sw.js')).catch((err) => {
+        console.error('SW registration failed:', err);
+      });
+
+      const handleSWMessage = (event) => {
+        if (event.data?.type === 'NOTIFICATION_CLICKED') {
+          window.dispatchEvent(new CustomEvent('incomingCallNotificationClicked', { detail: event.data }));
+        }
+      };
+      navigator.serviceWorker.addEventListener('message', handleSWMessage);
+      return () => navigator.serviceWorker.removeEventListener('message', handleSWMessage);
+    }
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
@@ -63,8 +76,11 @@ export const useJssipUtils = (state) => {
   };
 
   function notifyMe() {
+    if ('vibrate' in navigator) {
+      navigator.vibrate([200, 100, 200, 100, 500]);
+    }
+
     if (!('Notification' in window)) {
-      toast.error('This browser does not support desktop notifications');
       return;
     }
 
@@ -76,8 +92,6 @@ export const useJssipUtils = (state) => {
           createNotification();
         }
       });
-    } else {
-      toast.error('Notification permission denied');
     }
   }
 
@@ -129,56 +143,55 @@ export const useJssipUtils = (state) => {
     return false;
   }
 
-  function createNotification() {
-    // Ensure inNotification is a string and clean it for display
-    const notificationValue = Array.isArray(inNotification) ? inNotification.join(', ') : String(inNotification || '');
+  const showNotificationDirect = useCallback((number) => {
+    if ('vibrate' in navigator) {
+      navigator.vibrate([200, 100, 200, 100, 500]);
+    }
 
-    const displayNumber = notificationValue.replace('FORCE_TEST:', '').replace('Away Test: ', '').replace('Test:', '');
-
-    let notificationShown = false;
-
-    // Set a timeout to ensure we always show a notification
-    const fallbackTimeout = setTimeout(() => {
-      if (!notificationShown) {
-        createRegularNotification(displayNumber);
-        notificationShown = true;
-      }
-    }, 2000); // 2 second timeout
-
-    // Try to use Service Worker notification first
-    if ('serviceWorker' in navigator && 'showNotification' in ServiceWorkerRegistration.prototype) {
+    const showViaSW = () => {
+      if (!('serviceWorker' in navigator)) return false;
       navigator.serviceWorker.ready
         .then((registration) => {
-          if (notificationShown) return; // Don't show if fallback already triggered
-
-          return registration.showNotification('Incoming Call', {
-            body: `Incoming call from ${displayNumber}`,
+          registration.showNotification('Incoming Call', {
+            body: `Incoming call from ${number}`,
             icon: withWebphoneBasePath('/badge.png'),
             badge: withWebphoneBasePath('/badge.png'),
             vibrate: [200, 100, 200],
             tag: 'incoming-call',
             renotify: true,
             requireInteraction: true,
-            silent: false, // Use system notification sound
+            silent: false,
+            data: { number },
           });
         })
-        .then(() => {
-          clearTimeout(fallbackTimeout);
-          notificationShown = true;
-        })
-        .catch((error) => {
-          console.error('Service Worker notification failed:', error);
-          if (!notificationShown) {
-            createRegularNotification(displayNumber);
-            notificationShown = true;
-          }
-          clearTimeout(fallbackTimeout);
+        .catch(() => {
+          createFallbackNotification(number);
         });
-    } else {
-      clearTimeout(fallbackTimeout);
-      createRegularNotification(displayNumber);
-      notificationShown = true;
+      return true;
+    };
+
+    const createFallbackNotification = (num) => {
+      if (!('Notification' in window)) return;
+      if (Notification.permission === 'granted') {
+        createRegularNotification(num);
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then((permission) => {
+          if (permission === 'granted') {
+            createRegularNotification(num);
+          }
+        });
+      }
+    };
+
+    if (!showViaSW()) {
+      createFallbackNotification(number);
     }
+  }, []);
+
+  function createNotification() {
+    const notificationValue = Array.isArray(inNotification) ? inNotification.join(', ') : String(inNotification || '');
+    const displayNumber = notificationValue.replace('FORCE_TEST:', '').replace('Away Test: ', '').replace('Test:', '');
+    showNotificationDirect(displayNumber);
   }
 
   function createRegularNotification(displayNumber) {
@@ -199,12 +212,13 @@ export const useJssipUtils = (state) => {
       notification.onclick = function (event) {
         event.preventDefault();
         window.focus();
-        notification.close();
 
-        // Try to bring the window to front
         if (window.parent) {
           window.parent.focus();
         }
+
+        notification.close();
+        window.dispatchEvent(new CustomEvent('incomingCallNotificationClicked'));
       };
 
       notification.onerror = function (event) {
@@ -365,6 +379,7 @@ export const useJssipUtils = (state) => {
     notifyMeIfAway,
     createNotification,
     createRegularNotification,
+    showNotificationDirect,
     isUserAway,
     testNotification,
     checkUserReady,

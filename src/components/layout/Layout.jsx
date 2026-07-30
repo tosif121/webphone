@@ -5,12 +5,13 @@ import { JssipContext } from '@/context/JssipContext';
 import HistoryContext from '../../context/HistoryContext';
 import DraggableWebPhone from '../DraggableWebPhone';
 import { ConsentRequestModal } from '../ForceLoginModals';
+import { withWebphoneBasePath } from '@/lib/basePath';
 import Footer from './Footer';
 import Header from './Header';
 
 export default function Layout({ children }) {
   const router = useRouter();
-  const { audioRef } = useContext(JssipContext);
+  const { audioRef, ringtoneRef } = useContext(JssipContext);
   const {
     showSecurityAlert,
     setShowSecurityAlert,
@@ -112,6 +113,7 @@ export default function Layout({ children }) {
       </div>
 
       <audio ref={audioRef} autoPlay playsInline style={{ display: 'none' }} />
+      <audio ref={ringtoneRef} preload="auto" style={{ display: 'none' }} src={withWebphoneBasePath('/ringtone.mp3')} />
     </>
   );
 }
