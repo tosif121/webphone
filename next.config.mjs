@@ -4,8 +4,8 @@ const nextConfig = {
   devIndicators: false,
   output: 'export',
   distDir: 'out',
-  basePath: '/webphone/v1',
-  assetPrefix: '/webphone/v1',
+  basePath: '/webphone/mobile',
+  assetPrefix: '/webphone/mobile',
   images: {
     unoptimized: true,
   },
