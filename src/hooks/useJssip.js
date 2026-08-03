@@ -2217,7 +2217,11 @@ const useJssip = (isMobile = false) => {
         setDevices(audioDevices);
 
         if (audioDevices.length > 0) {
-          setSelectedDeviceId(audioDevices[0].deviceId);
+          // Prefer a headset / earpiece device so calls default to private audio
+          const preferredDevice =
+            audioDevices.find((device) => /headset|headphone|earpiece|handset|wired/i.test(device.label)) ||
+            audioDevices[0];
+          setSelectedDeviceId(preferredDevice.deviceId);
         }
       } catch (error) {
         console.error('Error enumerating devices:', error);
