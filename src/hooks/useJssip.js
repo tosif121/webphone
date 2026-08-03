@@ -857,8 +857,7 @@ const useJssip = (isMobile = false) => {
           return false;
         }
 
-        // ✅ 3. Set follow-up dispositions and connection status
-        setFollowUpDispoes(data.followUpDispoes || []);
+        // ✅ 3. Set connection status
         setConnectionStatus(data.status);
         setCurrentCallqueueCount(data.currentCallqueueCount !== undefined ? data.currentCallqueueCount : 0);
 
@@ -964,6 +963,34 @@ const useJssip = (isMobile = false) => {
       username,
     ],
   );
+
+  const fetchAgentCallbacks = useCallback(async () => {
+    if (!username) return;
+    try {
+      const response = await axios.post(
+        `${window.location.origin}/agent-callbacks`,
+        { user: username },
+        { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) }
+      );
+      if (response.data && response.data.success) {
+        setFollowUpDispoes(response.data.followUpDispoes || []);
+      }
+    } catch (err) {
+      console.error('Error fetching agent callbacks:', err);
+    }
+  }, [username, getAuthHeaders, setFollowUpDispoes]);
+
+  useEffect(() => {
+    if (username && status === 'start') {
+      // Fetch immediately upon successful login/ready
+      fetchAgentCallbacks();
+      
+      // Setup 1 hour interval (3,600,000 ms)
+      const intervalId = setInterval(fetchAgentCallbacks, 3600000);
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [username, status, fetchAgentCallbacks]);
 
   const sendSipHeartbeat = useCallback(
     async ({ source = 'interval', force = false, minGapMs = SIP_HEARTBEAT_MIN_GAP_MS } = {}) => {
