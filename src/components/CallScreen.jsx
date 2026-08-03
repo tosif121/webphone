@@ -69,7 +69,7 @@ const CallScreen = ({
   const [isHovered, setIsHovered] = useState(false);
   const [showKeyPad, setShowKeyPad] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [audioOutput, setAudioOutput] = useState('speaker');
+  const [audioOutput, setAudioOutput] = useState('earpiece');
 
   // Switch call audio between earpiece and loudspeaker. Best-effort via
   // setSinkId on the call audio element, plus the native Flutter bridge so the
@@ -496,29 +496,27 @@ const CallScreen = ({
                     />
                   </>
                 )}
-                {/* Audio Output Toggle (Earpiece / Loudspeaker) */}
-                <div className="flex items-center justify-center">
-                  <ControlButton
-                    buttonId="audio-output-toggle"
-                    onClick={() => handleAudioOutput(audioOutput === 'speaker' ? 'earpiece' : 'speaker')}
-                    active={audioOutput === 'speaker'}
-                    icon={
-                      audioOutput === 'speaker' ? (
-                        <Volume2 size={isMobile ? 22 : 18} />
-                      ) : (
-                        <Volume1 size={isMobile ? 22 : 18} />
-                      )
-                    }
-                    title={audioOutput === 'speaker' ? 'Earpiece' : 'Loudspeaker'}
-                    debounceTime={200}
-                  />
-                </div>
                 <ControlButton
                   buttonId="mute-button"
                   active={muted}
                   onClick={handleMuteToggle}
                   icon={<MicOff size={isMobile ? 22 : 18} />}
                   title="Mute"
+                  debounceTime={200}
+                />
+                {/* Audio Output Toggle (Earpiece / Loudspeaker) */}
+                <ControlButton
+                  buttonId="audio-output-toggle"
+                  onClick={() => handleAudioOutput(audioOutput === 'speaker' ? 'earpiece' : 'speaker')}
+                  active={audioOutput === 'speaker'}
+                  icon={
+                    audioOutput === 'speaker' ? (
+                      <Volume2 size={isMobile ? 22 : 18} />
+                    ) : (
+                      <Volume1 size={isMobile ? 22 : 18} />
+                    )
+                  }
+                  title={audioOutput === 'speaker' ? 'Earpiece' : 'Loudspeaker'}
                   debounceTime={200}
                 />
               </div>
