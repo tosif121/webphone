@@ -496,22 +496,20 @@ const CallScreen = ({
                     />
                   </>
                 )}
-                {/* Audio Output Icons (Earpiece / Loudspeaker) */}
-                <div className="flex items-center justify-center gap-4">
+                {/* Audio Output Toggle (Earpiece / Loudspeaker) */}
+                <div className="flex items-center justify-center">
                   <ControlButton
-                    buttonId="audio-earpiece"
-                    onClick={() => handleAudioOutput('earpiece')}
-                    active={audioOutput === 'earpiece'}
-                    icon={<Volume1 size={isMobile ? 22 : 18} />}
-                    title="Earpiece"
-                    debounceTime={200}
-                  />
-                  <ControlButton
-                    buttonId="audio-loudspeaker"
-                    onClick={() => handleAudioOutput('speaker')}
+                    buttonId="audio-output-toggle"
+                    onClick={() => handleAudioOutput(audioOutput === 'speaker' ? 'earpiece' : 'speaker')}
                     active={audioOutput === 'speaker'}
-                    icon={<Volume2 size={isMobile ? 22 : 18} />}
-                    title="Loudspeaker"
+                    icon={
+                      audioOutput === 'speaker' ? (
+                        <Volume2 size={isMobile ? 22 : 18} />
+                      ) : (
+                        <Volume1 size={isMobile ? 22 : 18} />
+                      )
+                    }
+                    title={audioOutput === 'speaker' ? 'Earpiece' : 'Loudspeaker'}
                     debounceTime={200}
                   />
                 </div>
