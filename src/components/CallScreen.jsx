@@ -496,7 +496,25 @@ const CallScreen = ({
                     />
                   </>
                 )}
-
+                {/* Audio Output Icons (Earpiece / Loudspeaker) */}
+                <div className="flex items-center justify-center gap-4">
+                  <ControlButton
+                    buttonId="audio-earpiece"
+                    onClick={() => handleAudioOutput('earpiece')}
+                    active={audioOutput === 'earpiece'}
+                    icon={<Volume1 size={isMobile ? 22 : 18} />}
+                    title="Earpiece"
+                    debounceTime={200}
+                  />
+                  <ControlButton
+                    buttonId="audio-loudspeaker"
+                    onClick={() => handleAudioOutput('speaker')}
+                    active={audioOutput === 'speaker'}
+                    icon={<Volume2 size={isMobile ? 22 : 18} />}
+                    title="Loudspeaker"
+                    debounceTime={200}
+                  />
+                </div>
                 <ControlButton
                   buttonId="mute-button"
                   active={muted}
@@ -544,36 +562,6 @@ const CallScreen = ({
               type="button"
             >
               <Phone size={isMobile ? 20 : 16} />
-            </button>
-          </div>
-
-          {/* Audio Output Icons (Earpiece / Loudspeaker) */}
-          <div className="flex items-center justify-center gap-4">
-            <button
-              type="button"
-              onClick={() => handleAudioOutput('earpiece')}
-              title="Earpiece"
-              aria-label="Earpiece"
-              className={`
-                w-12 h-12 sm:w-10 sm:h-10 rounded-xl transition-all duration-200 flex items-center justify-center
-                ${audioOutput === 'earpiece' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card/80 text-primary hover:bg-accent'}
-                hover:scale-105 hover:shadow-lg active:scale-95
-              `}
-            >
-              <Volume1 size={isMobile ? 22 : 18} />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleAudioOutput('speaker')}
-              title="Loudspeaker"
-              aria-label="Loudspeaker"
-              className={`
-                w-12 h-12 sm:w-10 sm:h-10 rounded-xl transition-all duration-200 flex items-center justify-center
-                ${audioOutput === 'speaker' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card/80 text-primary hover:bg-accent'}
-                hover:scale-105 hover:shadow-lg active:scale-95
-              `}
-            >
-              <Volume2 size={isMobile ? 22 : 18} />
             </button>
           </div>
         </div>
