@@ -103,6 +103,17 @@ const CallScreen = ({
     return () => mediaQuery.removeEventListener('change', handleResize);
   }, []);
 
+  // Default call audio to earpiece when the call screen opens
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.FlutterFCMBridge) {
+      try {
+        window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'speakerphone', on: false }));
+      } catch (e) {
+        console.error('Error setting default earpiece:', e);
+      }
+    }
+  }, []);
+
   // Determine if conference participant has actually joined (via strict socket string or fallback REST array)
   const isConfConnected =
     hasParticipants === 'connected' || (Array.isArray(conferenceCalls) && conferenceCalls.length > 0);
