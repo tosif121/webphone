@@ -13,7 +13,6 @@ import {
   Clock,
   Volume1,
   Volume2,
-  Speaker,
   Loader2,
   Phone,
 } from 'lucide-react';
@@ -507,20 +506,6 @@ const CallScreen = ({
                   debounceTime={200}
                 />
               </div>
-
-              <ControlButton
-                buttonId="speaker-button"
-                onClick={() => handleAudioOutput(audioOutput === 'speaker' ? 'earpiece' : 'speaker')}
-                icon={
-                  <Speaker
-                    size={isMobile ? 22 : 18}
-                    className={audioOutput === 'speaker' ? 'text-primary' : 'text-secondary-foreground'}
-                  />
-                }
-                title={audioOutput === 'speaker' ? 'Earpiece' : 'Speaker'}
-                active={audioOutput === 'speaker'}
-                debounceTime={200}
-              />
             </>
           ) : (
             /* Keypad Section */
