@@ -8,11 +8,12 @@ import {
   Grip,
   XCircle,
   PhoneOff,
-  Square,
   Merge,
   PhoneForwarded,
   Clock,
+  Volume1,
   Volume2,
+  Speaker,
   Loader2,
   Phone,
 } from 'lucide-react';
@@ -69,6 +70,29 @@ const CallScreen = ({
   const [isHovered, setIsHovered] = useState(false);
   const [showKeyPad, setShowKeyPad] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [audioOutput, setAudioOutput] = useState('speaker');
+
+  // Switch call audio between earpiece and loudspeaker. Best-effort via
+  // setSinkId on the call audio element, plus the native Flutter bridge so the
+  // Android app can call AudioManager.setSpeakerphoneOn().
+  const handleAudioOutput = async (mode) => {
+    setAudioOutput(mode);
+    const audioEl = audioRef?.current;
+    if (audioEl && typeof audioEl.setSinkId === 'function') {
+      try {
+        await audioEl.setSinkId('');
+      } catch (e) {
+        console.error('Error switching audio output:', e);
+      }
+    }
+    if (typeof window !== 'undefined' && window.FlutterFCMBridge) {
+      try {
+        window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'speakerphone', on: mode === 'speaker' }));
+      } catch (e) {
+        console.error('Error notifying native speakerphone toggle:', e);
+      }
+    }
+  };
 
   // Detect mobile screen size
   useEffect(() => {
@@ -91,7 +115,7 @@ const CallScreen = ({
   const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const parsedData = tokenData ? JSON.parse(tokenData) : {};
   const { username } = useContext(HistoryContext);
-  const { bridgeID, activeCallContext, callType } = useContext(JssipContext);
+  const { bridgeID, activeCallContext, callType, audioRef } = useContext(JssipContext);
   const numberMasking = parsedData?.userData?.numberMasking;
 
   // Start conference timer when participants join but not merged
@@ -148,7 +172,7 @@ const CallScreen = ({
     try {
       const transferBridgeID = activeCallContext?.bridgeID || bridgeID;
 
-      const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, {
+      const res = await axios.post(`https://devapp.iotcom.io/reqTransfer/${username}`, {
         bridgeID: transferBridgeID,
       });
       if (res.data?.success) {
@@ -243,7 +267,7 @@ const CallScreen = ({
       }
 
       const response = await axios.post(
-        `${window.location.origin}/hangup/hostChannel/Conf`,
+        `https://devapp.iotcom.io/hangup/hostChannel/Conf`,
         {
           user: username,
           hostNumber: cleanNumber,
@@ -475,21 +499,6 @@ const CallScreen = ({
                 )}
 
                 <ControlButton
-                  buttonId="record-button"
-                  onClick={!isRecording ? startRecording : stopRecording}
-                  disabled={!session && !isRecording}
-                  icon={
-                    <Square
-                      size={isMobile ? 22 : 18}
-                      className={isRecording ? 'text-destructive' : 'text-secondary-foreground'}
-                    />
-                  }
-                  title={isRecording ? 'Stop Recording' : 'Start Recording'}
-                  active={isRecording}
-                  debounceTime={200}
-                />
-
-                <ControlButton
                   buttonId="mute-button"
                   active={muted}
                   onClick={handleMuteToggle}
@@ -498,6 +507,20 @@ const CallScreen = ({
                   debounceTime={200}
                 />
               </div>
+
+              <ControlButton
+                buttonId="speaker-button"
+                onClick={() => handleAudioOutput(audioOutput === 'speaker' ? 'earpiece' : 'speaker')}
+                icon={
+                  <Speaker
+                    size={isMobile ? 22 : 18}
+                    className={audioOutput === 'speaker' ? 'text-primary' : 'text-secondary-foreground'}
+                  />
+                }
+                title={audioOutput === 'speaker' ? 'Earpiece' : 'Speaker'}
+                active={audioOutput === 'speaker'}
+                debounceTime={200}
+              />
             </>
           ) : (
             /* Keypad Section */
@@ -539,24 +562,34 @@ const CallScreen = ({
             </button>
           </div>
 
-          {/* Audio Device Selector */}
-          <div className="text-center">
-            <select
-              id="audio-device"
-              value={selectedDeviceId}
-              onChange={(e) => changeAudioDevice?.(e.target.value)}
-              className="md:w-full max-w-xs text-center bg-muted border border-border text-foreground text-xs rounded-lg p-2 outline-none focus:ring-2 focus:ring-accent transition-all duration-200"
+          {/* Audio Output Icons (Earpiece / Loudspeaker) */}
+          <div className="flex items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => handleAudioOutput('earpiece')}
+              title="Earpiece"
+              aria-label="Earpiece"
+              className={`
+                w-12 h-12 sm:w-10 sm:h-10 rounded-xl transition-all duration-200 flex items-center justify-center
+                ${audioOutput === 'earpiece' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card/80 text-primary hover:bg-accent'}
+                hover:scale-105 hover:shadow-lg active:scale-95
+              `}
             >
-              {Array.isArray(devices) && devices.length > 0 ? (
-                devices.map((device, index) => (
-                  <option key={device.deviceId} value={device.deviceId}>
-                    {device.label || `Audio device ${index + 1}`}
-                  </option>
-                ))
-              ) : (
-                <option value="default">Default Audio Device</option>
-              )}
-            </select>
+              <Volume1 size={isMobile ? 22 : 18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleAudioOutput('speaker')}
+              title="Loudspeaker"
+              aria-label="Loudspeaker"
+              className={`
+                w-12 h-12 sm:w-10 sm:h-10 rounded-xl transition-all duration-200 flex items-center justify-center
+                ${audioOutput === 'speaker' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card/80 text-primary hover:bg-accent'}
+                hover:scale-105 hover:shadow-lg active:scale-95
+              `}
+            >
+              <Volume2 size={isMobile ? 22 : 18} />
+            </button>
           </div>
         </div>
       </div>
