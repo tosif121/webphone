@@ -25,7 +25,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
 
   const performLogin = async (username, password) => {
     const { data: response } = await axios.post(
-      `${window.location.origin}/userlogin/${username}`,
+      `https://devapp.iotcom.io/userlogin/${username}`,
       { username, password },
       {
         headers: { 'Content-Type': 'application/json' },
@@ -76,7 +76,11 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
 
         // Auth errors - retrying will not help, stop immediately
         if (err.response?.status === 401 || err.response?.status === 404) {
-          setError(err.response?.status === 401 ? 'Invalid credentials. Please login manually.' : 'User not found. Please login manually.');
+          setError(
+            err.response?.status === 401
+              ? 'Invalid credentials. Please login manually.'
+              : 'User not found. Please login manually.',
+          );
           break;
         }
       } finally {
@@ -119,7 +123,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
           localStorage.removeItem(key);
         }
       });
-      window.location.href = '/webphone/v1/login';
+      window.location.href = '/webphone/mobile/login';
     }
   };
 

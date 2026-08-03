@@ -49,7 +49,7 @@ class ErrorBoundary extends React.Component {
   handleGoHome = () => {
     if (typeof window !== 'undefined') {
       localStorage.clear();
-      window.location.href = '/webphone/v1/';
+      window.location.href = '/webphone/mobile/';
     }
   };
 

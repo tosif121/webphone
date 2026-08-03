@@ -781,7 +781,7 @@ const useJssip = (isMobile = false) => {
       }
     });
 
-    window.location.href = '/webphone/v1/login';
+    window.location.href = '/webphone/mobile/login';
   };
 
   const withTimeout = (promise, timeoutMs) => {
@@ -1520,7 +1520,7 @@ const useJssip = (isMobile = false) => {
                 localStorage.removeItem(key);
               }
             });
-            window.location.href = '/webphone/v1/login';
+            window.location.href = '/webphone/mobile/login';
             return;
           }
 

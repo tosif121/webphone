@@ -1,4 +1,4 @@
-export const WEBPHONE_BASE_PATH = '/webphone/v1';
+export const WEBPHONE_BASE_PATH = '/webphone/mobile';
 
 export function withWebphoneBasePath(path = '/') {
   const normalizedPath = String(path || '/').startsWith('/') ? String(path || '/') : `/${String(path || '/')}`;
