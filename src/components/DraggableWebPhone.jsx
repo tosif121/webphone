@@ -50,6 +50,7 @@ export default function DraggableWebPhone() {
     followUpDispoes,
     incomingSession,
     incomingNumber,
+    callerName,
     isIncomingRinging,
     answerIncomingCall,
     rejectIncomingCall,
@@ -416,6 +417,7 @@ export default function DraggableWebPhone() {
       {effectiveIsMobile && isIncomingRinging && (
         <IncomingCall
           incomingNumber={incomingNumber}
+          callerName={callerName}
           incomingSession={incomingSession}
           isIncomingRinging={isIncomingRinging}
           answerIncomingCall={answerIncomingCall}

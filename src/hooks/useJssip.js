@@ -77,6 +77,8 @@ const useJssip = (isMobile = false) => {
     setIncomingSession,
     incomingNumber,
     setIncomingNumber,
+    callerName,
+    setCallerName,
     isIncomingRinging,
     setIsIncomingRinging,
     followUpDispoes,
@@ -234,6 +236,9 @@ const useJssip = (isMobile = false) => {
   const sipHeartbeatFailureCountRef = useRef(0);
   const lastRuntimeResyncAttemptAtRef = useRef(0);
   const isManualDialingRef = useRef(false);
+  const pendingFcmCallRef = useRef(null);
+  const pendingAnswerFcmRef = useRef(false);
+  const fcmGraceTimeoutRef = useRef(null);
 
   const MESSAGE_HEARTBEAT_STALE_MS = 10000;
   const CONNECTION_CHECK_TIMEOUT_MS = 8000;
@@ -292,8 +297,15 @@ const useJssip = (isMobile = false) => {
       setDispositionModal(false);
       setShowTimeoutModal(false);
       setIsIncomingRinging(false);
+      setCallerName('');
       setCallConference(false);
       setConferenceStatus(false);
+      pendingFcmCallRef.current = null;
+      pendingAnswerFcmRef.current = false;
+      if (fcmGraceTimeoutRef.current) {
+        clearTimeout(fcmGraceTimeoutRef.current);
+        fcmGraceTimeoutRef.current = null;
+      }
     }
   }, [status]);
 
@@ -715,7 +727,7 @@ const useJssip = (isMobile = false) => {
     }, 500);
   };
 
-  const autoRelogin = async () => {
+  const autoRelogin = async (attempts = 3) => {
     const savedUsername = localStorage.getItem('savedUsername');
     const savedPassword = localStorage.getItem('savedPassword');
 
@@ -723,29 +735,35 @@ const useJssip = (isMobile = false) => {
       return false;
     }
 
-    try {
-      const { data: response } = await axios.post(
-        `${window.location.origin}/userlogin/${savedUsername}`,
-        { username: savedUsername, password: savedPassword },
-        {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 10000,
-        },
-      );
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      try {
+        const { data: response } = await axios.post(
+          `${window.location.origin}/userlogin/${savedUsername}`,
+          { username: savedUsername, password: savedPassword },
+          {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 10000,
+          },
+        );
 
-      if (response && (response.success || response.token || response.message === 'Login successful')) {
-        localStorage.setItem('token', JSON.stringify(response));
-        if (response?.userData?.uiPreferences) {
-          const { applyAgentUiPreferencesToDom } = await import('@/utils/agent-preferences');
-          applyAgentUiPreferencesToDom(response.userData.uiPreferences);
+        if (response && (response.success || response.token || response.message === 'Login successful')) {
+          localStorage.setItem('token', JSON.stringify(response));
+          if (response?.userData?.uiPreferences) {
+            const { applyAgentUiPreferencesToDom } = await import('@/utils/agent-preferences');
+            applyAgentUiPreferencesToDom(response.userData.uiPreferences);
+          }
+          handleLoginSuccess();
+          return true;
         }
-        handleLoginSuccess();
-        return true;
+      } catch {
+        // transient failure - retry below
       }
-      return false;
-    } catch {
-      return false;
+
+      if (attempt < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
     }
+    return false;
   };
 
   const closeTimeoutModal = () => {
@@ -881,6 +899,11 @@ const useJssip = (isMobile = false) => {
         // ✅ 2. Auth failure — auto-reconnect instead of force logout
         if (response.status === 401 || !data.isUserLogin) {
           if (statusRef.current === 'start' && !dispositionModalRef.current) {
+            // App in background: skip, recover on return via visibility handler
+            if (typeof document !== 'undefined' && document.hidden) {
+              return true;
+            }
+
             setTimeoutMessage('');
             const reconnected = await autoRelogin();
             if (reconnected) return true;
@@ -908,14 +931,18 @@ const useJssip = (isMobile = false) => {
           }
         }
 
-        // ✅ 4. Handle other connection issues
+        // ✅ 4. Handle other connection issues - recover in background, modal only when visible
         if (data.message !== 'ok connection for user') {
-          /* console.warn('⚠️ Connection issue:', data.message); */
+          if (statusRef.current === 'start' && !dispositionModalRef.current) {
+            // App in background: skip, recover silently on return
+            if (typeof document !== 'undefined' && document.hidden) {
+              return true;
+            }
 
-          if (status === 'start' && !dispositionModal) {
-            // Clear custom timeout message
+            const reconnected = await autoRelogin();
+            if (reconnected) return true;
+
             setTimeoutMessage('');
-
             await handleConnectionLost();
             return true;
           }
@@ -1134,14 +1161,16 @@ const useJssip = (isMobile = false) => {
       connectionFailureCountRef.current += 1;
       setIsConnectionLost(true);
 
-      if (!hasProtectedSessionPhase && connectionFailureCountRef.current >= 2) {
-        console.log(
-          `[CallGuard] Session expired modal triggered from connection error (count=${connectionFailureCountRef.current}, hasProtectedSessionPhase=${hasProtectedSessionPhase})`,
-        );
-        setTimeoutMessage('');
-        setShowTimeoutModal(true);
-        setUserLogin(true);
-        toast.error('Session expired. Please log in again.');
+      if (!hasProtectedSessionPhase) {
+        // Skip modal in background - recover silently on return
+        if (typeof document === 'undefined' || !document.hidden) {
+          const reconnected = await autoRelogin();
+          if (reconnected) return true;
+
+          setTimeoutMessage('');
+          setShowTimeoutModal(true);
+          toast.error('Session expired. Please reconnect.');
+        }
       }
 
       return false;
@@ -1327,22 +1356,34 @@ const useJssip = (isMobile = false) => {
   }, [connectioncheck, username]);
 
   const answerIncomingCall = async () => {
-    if (incomingSession) {
+    const targetSession = incomingSessionRef.current;
+
+    // FCM-originated wake: agent tapped answer before the SIP session arrived.
+    if (!targetSession && pendingFcmCallRef.current) {
+      pendingAnswerFcmRef.current = true;
+      console.log('[CallGuard] answerIncomingCall — no SIP session yet (FCM wake), waiting for session across channel reconnect');
+      try {
+        toast('Connecting call... please wait.');
+      } catch (e) {}
+      return;
+    }
+
+    if (targetSession) {
       try {
         stopRingtone(); // Stop ringtone when call is answered
-        if (incomingSession.isAutoRejected) {
+        if (targetSession.isAutoRejected) {
           console.log('[CallGuard] BLOCKED answerIncomingCall — session was auto-rejected');
           setIncomingSession(null);
           setIsIncomingRinging(false);
           return;
         }
-        console.log(`[CallGuard] answerIncomingCall for ${incomingSession?.remote_identity?.uri?.user || 'unknown'}`);
+        console.log(`[CallGuard] answerIncomingCall for ${targetSession?.remote_identity?.uri?.user || 'unknown'}`);
         callConnectedRef.current = false;
-        activeCallRef.current = incomingSession;
+        activeCallRef.current = targetSession;
         setCallHandled(true);
         callHandledRef.current = true;
-        incomingSession.answer(options);
-        setSession(incomingSession);
+        targetSession.answer(options);
+        setSession(targetSession);
         setIncomingSession(null);
         setIsIncomingRinging(false);
         pendingPostCallRef.current = false;
@@ -1354,7 +1395,7 @@ const useJssip = (isMobile = false) => {
         reset();
 
         // Set up audio stream
-        incomingSession.connection.addEventListener('addstream', (event) => {
+        targetSession.connection.addEventListener('addstream', (event) => {
           if (audioRef.current) {
             audioRef.current.srcObject = event.stream;
           }
@@ -1374,6 +1415,13 @@ const useJssip = (isMobile = false) => {
   const rejectIncomingCall = () => {
     const session = incomingSessionRef.current;
     stopRingtone();
+    pendingFcmCallRef.current = null;
+    pendingAnswerFcmRef.current = false;
+    setCallerName('');
+    if (fcmGraceTimeoutRef.current) {
+      clearTimeout(fcmGraceTimeoutRef.current);
+      fcmGraceTimeoutRef.current = null;
+    }
     const remoteUser = session?.remote_identity?.uri?.user || 'unknown';
     const callId = session?.call_id || session?.id || 'unknown';
     console.log(
@@ -1815,6 +1863,27 @@ const useJssip = (isMobile = false) => {
                     // Mobile: Show UI with ringtone
                     const incomingNumber = e.request.from._uri._user;
                     console.log(`[CallGuard] Setting incoming UI for ${incomingNumber}`);
+
+                    // If this session matches a pending FCM wake, mark it as the
+                    // real session so the FCM grace timer won't auto-dismiss it,
+                    // and auto-answer if the agent already tapped answer.
+                    if (pendingFcmCallRef.current && pendingFcmCallRef.current.number === incomingNumber) {
+                      const pendingFcmName = pendingFcmCallRef.current.name;
+                      const shouldAutoAnswer = pendingAnswerFcmRef.current;
+                      pendingFcmCallRef.current = null;
+                      pendingAnswerFcmRef.current = false;
+                      if (pendingFcmName) setCallerName(pendingFcmName);
+                      if (fcmGraceTimeoutRef.current) {
+                        clearTimeout(fcmGraceTimeoutRef.current);
+                        fcmGraceTimeoutRef.current = null;
+                      }
+                      if (shouldAutoAnswer) {
+                        setTimeout(() => {
+                          answerIncomingCall();
+                        }, 300);
+                      }
+                    }
+
                     setIncomingSession(e.session);
                     setIncomingNumber(incomingNumber);
                     setIsIncomingRinging(true);
@@ -2201,6 +2270,21 @@ const useJssip = (isMobile = false) => {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
+        // If SIP WebSocket was killed while backgrounded, reconnect the UA
+        const currentUa = uaRef.current;
+        if (currentUa) {
+          try {
+            const wsStatus = getWebSocketStatus();
+            if (!wsStatus.connected || !currentUa.isRegistered()) {
+              console.warn('[JsSIP] WS dead after background - reconnecting UA');
+              currentUa.stop();
+              currentUa.start();
+            }
+          } catch (e) {
+            console.error('[JsSIP] Reconnect error:', e);
+          }
+        }
+
         void sendSipHeartbeat({ source: 'visibility', force: true });
         if (isIncomingRingingRef.current && ringtoneRef.current) {
           playRingtone();
@@ -2220,7 +2304,149 @@ const useJssip = (isMobile = false) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
     };
-  }, [sendSipHeartbeat, ua, username]);
+  }, [getWebSocketStatus, sendSipHeartbeat, ua, username]);
+
+  // Native (Flutter/Android) FCM incoming-call wake-up: bridges a call that
+  // arrived while the app was backgrounded/killed, before the SIP WS reconnects.
+  useEffect(() => {
+    const dismissPendingFcm = () => {
+      if (fcmGraceTimeoutRef.current) {
+        clearTimeout(fcmGraceTimeoutRef.current);
+        fcmGraceTimeoutRef.current = null;
+      }
+      pendingFcmCallRef.current = null;
+      pendingAnswerFcmRef.current = false;
+      setCallerName('');
+    };
+
+    const handleFcmIncomingCall = (event) => {
+      const detail =
+        event?.detail && Object.keys(event.detail).length > 0
+          ? event.detail
+          : window.pendingIncomingCall || {};
+      const number = (detail && (detail.number || detail.callerNumber || detail.caller)) || '';
+      const name = (detail && (detail.name || detail.callerName)) || '';
+      if (!number) {
+        console.warn('[FCM] fcmIncomingCall received without a number:', event);
+        return;
+      }
+
+      console.log(`[FCM] Native incoming call received — number=${number}, name=${name}`);
+
+      // If the real SIP session is already ringing, just re-trigger ringtone + notification.
+      if (incomingSessionRef.current && isIncomingRingingRef.current) {
+        playRingtone();
+        showNotificationDirect(number);
+        if (incomingNumber === number) {
+          if (name) setCallerName(name);
+        }
+        return;
+      }
+
+      // Never interrupt an already active call.
+      if (
+        activeCallRef.current ||
+        statusRef.current === 'on_call' ||
+        statusRef.current === 'calling' ||
+        agentLifecycleRef.current === 'disposition'
+      ) {
+        console.log(`[FCM] Already busy (activeCall=${!!activeCallRef.current}, status=${statusRef.current}), ignoring FCM call from ${number}`);
+        return;
+      }
+
+      // Reconnect the UA if the WebSocket died while backgrounded.
+      const currentUa = uaRef.current;
+      if (currentUa) {
+        try {
+          const wsStatus = getWebSocketStatus();
+          if (!wsStatus.connected || !currentUa.isRegistered()) {
+            console.warn('[FCM] WS dead after background — reconnecting UA');
+            currentUa.stop();
+            currentUa.start();
+          }
+        } catch (e) {
+          console.error('[FCM] Reconnect error:', e);
+        }
+      }
+
+      dismissPendingFcm(); // clear any prior stale pending call/timer
+
+      const fcmNumber = number;
+      const fcmName = name;
+      pendingFcmCallRef.current = { number: fcmNumber, name: fcmName, ts: Date.now() };
+
+      // Surface the incoming-call UI immediately so the agent sees the caller
+      // while the UA reconnects and the real SIP INVITE is routed in.
+      setIncomingSession(null);
+      setIncomingNumber(fcmNumber);
+      setCallerName(fcmName);
+      setIsIncomingRinging(true);
+      setStatus('incoming');
+      setAgentLifecycle('ringing');
+
+      playRingtone();
+      showNotificationDirect(fcmNumber);
+
+      setHistory((prev) => [
+        ...prev,
+        {
+          phoneNumber: fcmNumber,
+          type: 'incoming',
+          status: 'Ringing',
+          start: new Date().getTime(),
+          startTime: new Date(),
+        },
+      ]);
+
+      // Grace window: if the real SIP INVITE doesn't arrive (call already missed
+      // before re-registration), auto-dismiss so we never leave a stuck screen.
+      fcmGraceTimeoutRef.current = setTimeout(() => {
+        if (!pendingFcmCallRef.current) return;
+        if (incomingSessionRef.current) {
+          // Actual SIP session arrived and is being handled by the normal flow.
+          pendingFcmCallRef.current = null;
+          pendingAnswerFcmRef.current = false;
+          return;
+        }
+        console.log(`[FCM] No SIP session arrived within grace window — treating call as missed: ${fcmNumber}`);
+        pendingFcmCallRef.current = null;
+        pendingAnswerFcmRef.current = false;
+        setIncomingSession(null);
+        setIsIncomingRinging(false);
+        setCallerName('');
+        stopRingtone();
+        setStatus(activeCallRef.current ? statusRef.current : 'start');
+        setAgentLifecycle('idle');
+        setHistory((prev) => {
+          if (!prev.length) return prev;
+          return [...prev.slice(0, -1), { ...prev[prev.length - 1], status: 'Missed', end: Date.now() }];
+        });
+      }, 20000);
+    };
+
+    window.addEventListener('fcmIncomingCall', handleFcmIncomingCall);
+
+    // A pending call may be set synchronously by Flutter in onPageFinished
+    // before React mounted this listener, so also read the property.
+    let preMountTimer = null;
+    if (window.pendingIncomingCall && window.pendingIncomingCall.number) {
+      preMountTimer = setTimeout(() => {
+        if (window.pendingIncomingCall && window.pendingIncomingCall.number) {
+          handleFcmIncomingCall({ detail: window.pendingIncomingCall });
+        }
+      }, 500);
+    }
+
+    return () => {
+      window.removeEventListener('fcmIncomingCall', handleFcmIncomingCall);
+      if (preMountTimer) clearTimeout(preMountTimer);
+      if (fcmGraceTimeoutRef.current) {
+        clearTimeout(fcmGraceTimeoutRef.current);
+        fcmGraceTimeoutRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [getWebSocketStatus, playRingtone, showNotificationDirect, stopRingtone, incomingNumber]);
 
   const handleCall = async (formattedNumber, metadata = {}) => {
     // ✅ 1. Early return - Check connection status

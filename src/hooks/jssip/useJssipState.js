@@ -58,6 +58,7 @@ export const useJssipState = () => {
   /* ---------------------------- incoming call ------------------------------ */
   const [incomingSession, setIncomingSession] = useState(null);
   const [incomingNumber, setIncomingNumber] = useState('');
+  const [callerName, setCallerName] = useState('');
   const [isIncomingRinging, setIsIncomingRinging] = useState(false);
   const [isCustomerHostDisconnected, setIsCustomerHostDisconnected] = useState(false);
 
@@ -204,6 +205,8 @@ export const useJssipState = () => {
     setIncomingSession,
     incomingNumber,
     setIncomingNumber,
+    callerName,
+    setCallerName,
     isIncomingRinging,
     setIsIncomingRinging,
 

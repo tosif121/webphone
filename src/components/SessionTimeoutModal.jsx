@@ -23,65 +23,86 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
     setIsClient(true);
   }, []);
 
-  const handleReLogin = async () => {
+  const performLogin = async (username, password) => {
+    const { data: response } = await axios.post(
+      `${window.location.origin}/userlogin/${username}`,
+      { username, password },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 10000,
+      },
+    );
+
+    if (!(response && (response.success || response.token || response.message === 'Login successful'))) {
+      throw new Error('Invalid response from server');
+    }
+    return response;
+  };
+
+  const handleReLogin = async (retries = 3) => {
     if (!isClient) return;
 
-    setIsLoading(true);
+    const savedUsername = typeof window !== 'undefined' ? localStorage.getItem('savedUsername') : null;
+    const savedPassword = typeof window !== 'undefined' ? localStorage.getItem('savedPassword') : null;
+
+    if (!savedUsername || !savedPassword) {
+      setError('No saved credentials found. Please login manually.');
+      return;
+    }
+
     setError('');
+    let lastError = null;
 
-    try {
-      const savedUsername = typeof window !== 'undefined' ? localStorage.getItem('savedUsername') : null;
-      const savedPassword = typeof window !== 'undefined' ? localStorage.getItem('savedPassword') : null;
-
-      if (!savedUsername || !savedPassword) {
-        setError('No saved credentials found. Please login manually.');
-        setIsLoading(false);
-        return;
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      if (attempt > 0) {
+        setError(`Connection issue, retrying (${attempt}/${retries})...`);
       }
+      setIsLoading(true);
 
-      const { data: response } = await axios.post(
-        `${window.location.origin}/userlogin/${savedUsername}`,
-        { username: savedUsername, password: savedPassword },
-        {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 10000,
-        },
-      );
-
-      if (response && (response.success || response.token || response.message === 'Login successful')) {
+      try {
+        const response = await performLogin(savedUsername, savedPassword);
         if (typeof window !== 'undefined') {
           localStorage.setItem('token', JSON.stringify(response));
           if (response?.userData?.uiPreferences) {
             applyAgentUiPreferencesToDom(response.userData.uiPreferences);
           }
         }
-
         onLoginSuccess();
         toast.success('Re-login successful');
-      } else {
-        throw new Error('Invalid response from server');
-      }
-    } catch (err) {
-      console.error('Re-login failed:', err);
+        return;
+      } catch (err) {
+        console.error(`Re-login attempt ${attempt + 1} failed:`, err);
+        lastError = err;
 
-      if (err.code === 'ECONNABORTED') {
-        setError('Request timed out. Please try again.');
-      } else if (err.response?.status === 401) {
-        setError('Invalid credentials. Please login manually.');
-      } else if (err.response?.status === 404) {
-        setError('User not found. Please login manually.');
-      } else if (err.response?.status >= 500) {
-        setError('Server error. Please try again later.');
-      } else if (err.message === 'Invalid response from server') {
-        setError('Invalid server response. Please login manually.');
-      } else {
-        setError('Re-login failed. Please login manually.');
+        // Auth errors - retrying will not help, stop immediately
+        if (err.response?.status === 401 || err.response?.status === 404) {
+          setError(err.response?.status === 401 ? 'Invalid credentials. Please login manually.' : 'User not found. Please login manually.');
+          break;
+        }
+      } finally {
+        setIsLoading(false);
       }
 
-      toast.error('Re-login failed');
-    } finally {
-      setIsLoading(false);
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
     }
+
+    if (lastError?.response?.status === 401) {
+      setError('Invalid credentials. Please login manually.');
+    } else if (lastError?.response?.status === 404) {
+      setError('User not found. Please login manually.');
+    } else if (lastError?.response?.status >= 500) {
+      setError('Server error. Please try again later.');
+    } else if (lastError?.code === 'ECONNABORTED') {
+      setError('Request timed out. Please try again.');
+    } else if (lastError?.message === 'Invalid response from server') {
+      setError('Invalid server response. Please try reconnecting again.');
+    } else {
+      setError('Re-login failed. Please try again.');
+    }
+
+    toast.error('Re-login failed');
   };
 
   const handleGoToLogin = () => {
