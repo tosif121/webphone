@@ -175,10 +175,10 @@ const useJssip = (isMobile = false) => {
     getSessionStats,
   } = monitoring;
 
-  useEffect(() => {
-    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-    setOrigin(originWithoutProtocol);
-  }, []);
+  // useEffect(() => {
+  //   const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+  //   setOrigin(originWithoutProtocol);
+  // }, []);
 
   const getStoredTokenPayload = useCallback(() => {
     try {
@@ -508,7 +508,7 @@ const useJssip = (isMobile = false) => {
             phoneNumber: incomingNumber || phoneNumber || '',
           };
 
-          const response = await axios.post(`${window.location.origin}/useroncall/${username}`, payload, {
+          const response = await axios.post(`https://devapp.iotcom.io/useroncall/${username}`, payload, {
             headers: {
               ...getAuthHeaders({ 'Content-Type': 'application/json' }),
             },
@@ -615,7 +615,7 @@ const useJssip = (isMobile = false) => {
       try {
         console.log(`[CallGuard] Requesting clearRejectedCallFromAgent for ${callerNumber}...`);
         const response = await axios.post(
-          `${window.location.origin}/clearRejectedCallFromAgent`,
+          `https://devapp.iotcom.io/clearRejectedCallFromAgent`,
           { caller: callerNumber },
           {
             headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -738,7 +738,7 @@ const useJssip = (isMobile = false) => {
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       try {
         const { data: response } = await axios.post(
-          `${window.location.origin}/userlogin/${savedUsername}`,
+          `https://devapp.iotcom.io/userlogin/${savedUsername}`,
           { username: savedUsername, password: savedPassword },
           {
             headers: { 'Content-Type': 'application/json' },
@@ -784,8 +784,16 @@ const useJssip = (isMobile = false) => {
     window.location.href = '/webphone/v1/login';
   };
 
-  const withTimeout = (promise, timeoutMs) =>
-    Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))]);
+  const withTimeout = (promise, timeoutMs) => {
+    let timer;
+    const timeoutPromise = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Timeout')), timeoutMs);
+    });
+    // If the wrapped promise loses the race and rejects later, mark it handled
+    // so it never surfaces as an unhandled rejection in the dev overlay.
+    promise.catch(() => {});
+    return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+  };
 
   const addTimeout = (type) => {
     setTimeoutArray((prev) => {
@@ -868,7 +876,7 @@ const useJssip = (isMobile = false) => {
         const userconTs = Date.now();
         const response = await withTimeout(
           axios.post(
-            `${window.location.origin}/userconnection`,
+            `https://devapp.iotcom.io/userconnection`,
             { user: username },
             { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
           ),
@@ -1318,7 +1326,7 @@ const useJssip = (isMobile = false) => {
 
   useEffect(() => {
     const handleRefreshFollowUps = () => {
-      void connectioncheck({ reason: 'refresh', force: true });
+      void connectioncheck({ reason: 'refresh', force: true }).catch(() => {});
     };
 
     window.addEventListener('refreshFollowUps', handleRefreshFollowUps);
@@ -1345,9 +1353,9 @@ const useJssip = (isMobile = false) => {
       return undefined;
     }
 
-    void connectioncheck({ reason: 'initial', force: true });
+    void connectioncheck({ reason: 'initial', force: true }).catch(() => {});
     const heartbeatInterval = setInterval(() => {
-      void connectioncheck({ reason: 'interval' });
+      void connectioncheck({ reason: 'interval' }).catch(() => {});
     }, CONNECTION_CHECK_SCHEDULER_MS);
 
     return () => {
@@ -1361,7 +1369,9 @@ const useJssip = (isMobile = false) => {
     // FCM-originated wake: agent tapped answer before the SIP session arrived.
     if (!targetSession && pendingFcmCallRef.current) {
       pendingAnswerFcmRef.current = true;
-      console.log('[CallGuard] answerIncomingCall — no SIP session yet (FCM wake), waiting for session across channel reconnect');
+      console.log(
+        '[CallGuard] answerIncomingCall — no SIP session yet (FCM wake), waiting for session across channel reconnect',
+      );
       try {
         toast('Connecting call... please wait.');
       } catch (e) {}
@@ -1535,7 +1545,7 @@ const useJssip = (isMobile = false) => {
               await new Promise((resolve) => setTimeout(resolve, 1000));
 
               const response = await axios.post(
-                `${window.location.origin}/user/breakuser:${username}`,
+                `https://devapp.iotcom.io/user/breakuser:${username}`,
                 { breakType: storedBreak },
                 { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
               );
@@ -1592,7 +1602,7 @@ const useJssip = (isMobile = false) => {
           // void sendSipHeartbeat({ source: 'incoming-message' }); // DISABLED as it may interfere with SIP signaling
           /* console.log(message, 'message'); */
           // Always run connection check as per request
-          void connectioncheck({ reason: 'sip-message' });
+          void connectioncheck({ reason: 'sip-message' }).catch(() => {});
           // ✅ Check for force login request
           if (message.includes('force_login_request') || message.includes('Force Login Request')) {
             // Dispatch custom event that Layout can listen to
@@ -2321,9 +2331,7 @@ const useJssip = (isMobile = false) => {
 
     const handleFcmIncomingCall = (event) => {
       const detail =
-        event?.detail && Object.keys(event.detail).length > 0
-          ? event.detail
-          : window.pendingIncomingCall || {};
+        event?.detail && Object.keys(event.detail).length > 0 ? event.detail : window.pendingIncomingCall || {};
       const number = (detail && (detail.number || detail.callerNumber || detail.caller)) || '';
       const name = (detail && (detail.name || detail.callerName)) || '';
       if (!number) {
@@ -2350,7 +2358,9 @@ const useJssip = (isMobile = false) => {
         statusRef.current === 'calling' ||
         agentLifecycleRef.current === 'disposition'
       ) {
-        console.log(`[FCM] Already busy (activeCall=${!!activeCallRef.current}, status=${statusRef.current}), ignoring FCM call from ${number}`);
+        console.log(
+          `[FCM] Already busy (activeCall=${!!activeCallRef.current}, status=${statusRef.current}), ignoring FCM call from ${number}`,
+        );
         return;
       }
 
@@ -2515,7 +2525,7 @@ const useJssip = (isMobile = false) => {
         autoLeadDial: metadata?.autoLeadDial,
       };
 
-      const response = await axios.post(`${window.location.origin}/dialnumber`, dialPayload, {
+      const response = await axios.post(`https://devapp.iotcom.io/dialnumber`, dialPayload, {
         headers: {
           ...getAuthHeaders({
             'Content-Type': 'application/json',
@@ -2660,7 +2670,7 @@ const useJssip = (isMobile = false) => {
           isMerged: !!isMerged,
         };
 
-        const callendedUrl = `${window.location.origin}/user/callended${username}`;
+        const callendedUrl = `https://devapp.iotcom.io/user/callended${username}`;
 
         const callendedResponse = await axios.post(callendedUrl, callendedPayload, {
           headers: {
@@ -2674,7 +2684,7 @@ const useJssip = (isMobile = false) => {
         // Auto-disposition for calls that were never answered
         if (!needsDispositionRef.current) {
           try {
-            const dispoUrl = `${window.location.origin}/user/disposition${username}`;
+            const dispoUrl = `https://devapp.iotcom.io/user/disposition${username}`;
             const finalBridgeID = bridgeIDRef.current || bridgeID;
             const dispoPayload = {
               bridgeID: finalBridgeID || 'deadCallId',
@@ -2701,7 +2711,7 @@ const useJssip = (isMobile = false) => {
         } else if (!isDispositionEnabled) {
           // When disposition is disabled, perform SILENT auto-disposition
           try {
-            const dispoUrl = `${window.location.origin}/user/disposition${username}`;
+            const dispoUrl = `https://devapp.iotcom.io/user/disposition${username}`;
             const finalBridgeID = bridgeIDRef.current || bridgeID;
             const dispoPayload = {
               bridgeID: finalBridgeID || 'deadCallId',
