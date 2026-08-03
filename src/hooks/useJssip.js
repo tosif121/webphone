@@ -175,6 +175,18 @@ const useJssip = (isMobile = false) => {
     getSessionStats,
   } = monitoring;
 
+  // Notify the native Flutter shell about call state changes so it can
+  // set earpiece audio routing (callStarted) or reset (callEnded).
+  const notifyNativeCallState = useCallback((action) => {
+    if (typeof window !== 'undefined' && window.FlutterFCMBridge) {
+      try {
+        window.FlutterFCMBridge.postMessage(JSON.stringify({ action }));
+      } catch (e) {
+        console.error(`[NATIVE] Error sending ${action}:`, e);
+      }
+    }
+  }, []);
+
   // useEffect(() => {
   //   const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
   //   setOrigin(originWithoutProtocol);
@@ -1144,7 +1156,15 @@ const useJssip = (isMobile = false) => {
 
   // Helper function for connection lost scenarios
   const handleConnectionLost = async () => {
-    // REPLACED window.alert with existing timeout modal state
+    // Try auto-reconnect first before showing the modal
+    const reconnected = await autoRelogin();
+    if (reconnected) {
+      console.log('[CONNECTION] Auto-reconnected after connection loss');
+      setIsConnectionLost(false);
+      return;
+    }
+
+    // Only show modal if auto-reconnect failed
     setShowTimeoutModal(true);
 
     if (session && session.status < 6) {
@@ -1152,7 +1172,7 @@ const useJssip = (isMobile = false) => {
     }
 
     stopRecording();
-    toast.error('Connection lost. Please log in again.');
+    toast.error('Connection lost. Reconnecting failed.');
     setIsConnectionLost(true);
     setCurrentCallqueueCount(0);
   };
@@ -1201,6 +1221,14 @@ const useJssip = (isMobile = false) => {
       }
 
       if (!hasProtectedSessionPhase && connectionFailureCountRef.current >= 2) {
+        // Try auto-reconnect before showing modal
+        const reconnected = await autoRelogin();
+        if (reconnected) {
+          console.log('[CONNECTION] Auto-reconnected after timeout');
+          connectionFailureCountRef.current = 0;
+          setIsConnectionLost(false);
+          return true;
+        }
         // Skip modal in background - recover silently on return via visibility heartbeat
         if (typeof document === 'undefined' || !document.hidden) {
           setTimeoutMessage('Connection to telephony session was lost. Please reconnect.');
@@ -1227,6 +1255,14 @@ const useJssip = (isMobile = false) => {
       }
 
       if (!hasProtectedSessionPhase && connectionFailureCountRef.current >= 2) {
+        // Try auto-reconnect before showing modal
+        const reconnected = await autoRelogin();
+        if (reconnected) {
+          console.log('[CONNECTION] Auto-reconnected after network error');
+          connectionFailureCountRef.current = 0;
+          setIsConnectionLost(false);
+          return true;
+        }
         // Skip modal in background - recover silently on return via visibility heartbeat
         if (typeof document === 'undefined' || !document.hidden) {
           setTimeoutMessage('Connection to telephony session was lost. Please reconnect.');
@@ -2059,6 +2095,7 @@ const useJssip = (isMobile = false) => {
             // Add event listeners for outgoing calls
             e.session.on('confirmed', () => {
               logSessionEvent('confirmed', { sessionId: callId, remoteUser, direction: 'outgoing' });
+              notifyNativeCallState('callStarted');
               pendingPostCallRef.current = false;
               callConnectedRef.current = true;
               reset(undefined, true);
@@ -2080,6 +2117,7 @@ const useJssip = (isMobile = false) => {
             e.session.once('ended', () => {
               console.log(`[CallGuard] Outgoing session ENDED | remoteUser=${remoteUser} | callId=${callId}`);
               logSessionEvent('ended', { sessionId: callId, remoteUser, direction: 'outgoing', cause: 'ended' });
+              notifyNativeCallState('callEnded');
               if (isRecordingRef.current) {
                 stopRecording();
               }
@@ -2159,6 +2197,7 @@ const useJssip = (isMobile = false) => {
 
       session.once('confirmed', () => {
         logSessionEvent('confirmed', { sessionId, remoteUser: incomingNumber, direction: 'incoming' });
+        notifyNativeCallState('callStarted');
         callConnectedRef.current = true;
         setIsCustomerAnswered(true);
         if (!startTimerImmediately) {
@@ -2178,6 +2217,7 @@ const useJssip = (isMobile = false) => {
         console.log(
           `[CallGuard] handleIncomingCall session ENDED | remoteUser=${incomingNumber} | sessionId=${sessionId}`,
         );
+        notifyNativeCallState('callEnded');
         if (isRecording) {
           stopRecording();
         }
