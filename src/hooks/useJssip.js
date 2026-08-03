@@ -859,14 +859,20 @@ const useJssip = (isMobile = false) => {
 
         const data = response.data;
 
-        // ✅ 1. Poor connection - don't set userLogin, allow re-connect
+        // ✅ 1. Poor connection - auto-reconnect, avoid modal in background
         if (data.message === 'poor connection problem ,please login again') {
-          /* console.warn('⚠️ Poor connection detected from server'); */
+          if (statusRef.current === 'start' && !dispositionModalRef.current) {
+            // App in background: skip modal, recover silently on return
+            if (typeof document !== 'undefined' && document.hidden) {
+              return true;
+            }
 
-          if (status === 'start' && !dispositionModal) {
-            setTimeoutMessage('Poor connection problem. Please login again.');
+            setTimeoutMessage('');
+            const reconnected = await autoRelogin();
+            if (reconnected) return true;
+
+            setTimeoutMessage('Poor connection problem. Please reconnect.');
             setShowTimeoutModal(true);
-
             return true;
           }
           return false;
@@ -1158,8 +1164,11 @@ const useJssip = (isMobile = false) => {
       }
 
       if (!hasProtectedSessionPhase && connectionFailureCountRef.current >= 2) {
-        setTimeoutMessage('Connection to telephony session was lost. Please reconnect.');
-        setShowTimeoutModal(true);
+        // Skip modal in background - recover silently on return via visibility heartbeat
+        if (typeof document === 'undefined' || !document.hidden) {
+          setTimeoutMessage('Connection to telephony session was lost. Please reconnect.');
+          setShowTimeoutModal(true);
+        }
       }
       return false;
     }
@@ -1181,8 +1190,11 @@ const useJssip = (isMobile = false) => {
       }
 
       if (!hasProtectedSessionPhase && connectionFailureCountRef.current >= 2) {
-        setTimeoutMessage('Connection to telephony session was lost. Please reconnect.');
-        setShowTimeoutModal(true);
+        // Skip modal in background - recover silently on return via visibility heartbeat
+        if (typeof document === 'undefined' || !document.hidden) {
+          setTimeoutMessage('Connection to telephony session was lost. Please reconnect.');
+          setShowTimeoutModal(true);
+        }
       }
       return false;
     }
