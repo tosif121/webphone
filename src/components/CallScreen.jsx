@@ -11,6 +11,8 @@ import {
   Merge,
   PhoneForwarded,
   Clock,
+  Volume1,
+  Volume2,
   Loader2,
   Phone,
 } from 'lucide-react';
@@ -67,6 +69,20 @@ const CallScreen = ({
   const [isHovered, setIsHovered] = useState(false);
   const [showKeyPad, setShowKeyPad] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [audioOutput, setAudioOutput] = useState('earpiece');
+
+  // Switch call audio between earpiece and loudspeaker via the native Flutter
+  // bridge (Android WebView can't route WebRTC output itself).
+  const handleAudioOutput = (mode) => {
+    setAudioOutput(mode);
+    if (typeof window !== 'undefined' && window.FlutterFCMBridge) {
+      try {
+        window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'speakerphone', on: mode === 'speaker' }));
+      } catch (e) {
+        console.error('Error notifying native speakerphone toggle:', e);
+      }
+    }
+  };
 
   // Detect mobile screen size
   useEffect(() => {
@@ -76,6 +92,17 @@ const CallScreen = ({
     const handleResize = () => setIsMobile(mediaQuery.matches);
     mediaQuery.addEventListener('change', handleResize);
     return () => mediaQuery.removeEventListener('change', handleResize);
+  }, []);
+
+  // Default call audio to earpiece when the call screen opens
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.FlutterFCMBridge) {
+      try {
+        window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'speakerphone', on: false }));
+      } catch (e) {
+        console.error('Error setting default earpiece:', e);
+      }
+    }
   }, []);
 
   // Determine if conference participant has actually joined (via strict socket string or fallback REST array)
@@ -477,6 +504,21 @@ const CallScreen = ({
                   onClick={handleMuteToggle}
                   icon={<MicOff size={isMobile ? 22 : 18} />}
                   title="Mute"
+                  debounceTime={200}
+                />
+                {/* Audio Output Toggle (Earpiece / Loudspeaker) */}
+                <ControlButton
+                  buttonId="audio-output-toggle"
+                  onClick={() => handleAudioOutput(audioOutput === 'speaker' ? 'earpiece' : 'speaker')}
+                  active={audioOutput === 'speaker'}
+                  icon={
+                    audioOutput === 'speaker' ? (
+                      <Volume2 size={isMobile ? 22 : 18} />
+                    ) : (
+                      <Volume1 size={isMobile ? 22 : 18} />
+                    )
+                  }
+                  title={audioOutput === 'speaker' ? 'Earpiece' : 'Loudspeaker'}
                   debounceTime={200}
                 />
               </div>
