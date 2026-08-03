@@ -11,8 +11,6 @@ import {
   Merge,
   PhoneForwarded,
   Clock,
-  Volume1,
-  Volume2,
   Loader2,
   Phone,
 } from 'lucide-react';
@@ -69,29 +67,6 @@ const CallScreen = ({
   const [isHovered, setIsHovered] = useState(false);
   const [showKeyPad, setShowKeyPad] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [audioOutput, setAudioOutput] = useState('earpiece');
-
-  // Switch call audio between earpiece and loudspeaker. Best-effort via
-  // setSinkId on the call audio element, plus the native Flutter bridge so the
-  // Android app can call AudioManager.setSpeakerphoneOn().
-  const handleAudioOutput = async (mode) => {
-    setAudioOutput(mode);
-    const audioEl = audioRef?.current;
-    if (audioEl && typeof audioEl.setSinkId === 'function') {
-      try {
-        await audioEl.setSinkId('');
-      } catch (e) {
-        console.error('Error switching audio output:', e);
-      }
-    }
-    if (typeof window !== 'undefined' && window.FlutterFCMBridge) {
-      try {
-        window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'speakerphone', on: mode === 'speaker' }));
-      } catch (e) {
-        console.error('Error notifying native speakerphone toggle:', e);
-      }
-    }
-  };
 
   // Detect mobile screen size
   useEffect(() => {
@@ -101,17 +76,6 @@ const CallScreen = ({
     const handleResize = () => setIsMobile(mediaQuery.matches);
     mediaQuery.addEventListener('change', handleResize);
     return () => mediaQuery.removeEventListener('change', handleResize);
-  }, []);
-
-  // Default call audio to earpiece when the call screen opens
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.FlutterFCMBridge) {
-      try {
-        window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'speakerphone', on: false }));
-      } catch (e) {
-        console.error('Error setting default earpiece:', e);
-      }
-    }
   }, []);
 
   // Determine if conference participant has actually joined (via strict socket string or fallback REST array)
@@ -125,7 +89,7 @@ const CallScreen = ({
   const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const parsedData = tokenData ? JSON.parse(tokenData) : {};
   const { username } = useContext(HistoryContext);
-  const { bridgeID, activeCallContext, callType, audioRef } = useContext(JssipContext);
+  const { bridgeID, activeCallContext, callType } = useContext(JssipContext);
   const numberMasking = parsedData?.userData?.numberMasking;
 
   // Start conference timer when participants join but not merged
@@ -515,21 +479,6 @@ const CallScreen = ({
                   title="Mute"
                   debounceTime={200}
                 />
-                {/* Audio Output Toggle (Earpiece / Loudspeaker) */}
-                <ControlButton
-                  buttonId="audio-output-toggle"
-                  onClick={() => handleAudioOutput(audioOutput === 'speaker' ? 'earpiece' : 'speaker')}
-                  active={audioOutput === 'speaker'}
-                  icon={
-                    audioOutput === 'speaker' ? (
-                      <Volume2 size={isMobile ? 22 : 18} />
-                    ) : (
-                      <Volume1 size={isMobile ? 22 : 18} />
-                    )
-                  }
-                  title={audioOutput === 'speaker' ? 'Earpiece' : 'Loudspeaker'}
-                  debounceTime={200}
-                />
               </div>
             </>
           ) : (
@@ -570,6 +519,26 @@ const CallScreen = ({
             >
               <Phone size={isMobile ? 20 : 16} />
             </button>
+          </div>
+
+          {/* Audio Device Selector */}
+          <div className="text-center">
+            <select
+              id="audio-device"
+              value={selectedDeviceId}
+              onChange={(e) => changeAudioDevice?.(e.target.value)}
+              className="md:w-full max-w-xs text-center bg-muted border border-border text-foreground text-xs rounded-lg p-2 outline-none focus:ring-2 focus:ring-accent transition-all duration-200"
+            >
+              {Array.isArray(devices) && devices.length > 0 ? (
+                devices.map((device, index) => (
+                  <option key={device.deviceId} value={device.deviceId}>
+                    {device.label || `Audio device ${index + 1}`}
+                  </option>
+                ))
+              ) : (
+                <option value="default">Default Audio Device</option>
+              )}
+            </select>
           </div>
         </div>
       </div>
