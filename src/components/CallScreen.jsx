@@ -13,6 +13,7 @@ import {
   Clock,
   Volume1,
   Volume2,
+  Headphones,
   Loader2,
   Phone,
 } from 'lucide-react';
@@ -104,6 +105,21 @@ const CallScreen = ({
       }
     }
   }, []);
+
+  // Cycle to the next available audio device and select it
+  const handleAudioDeviceCycle = () => {
+    if (!Array.isArray(devices) || devices.length === 0) return;
+    const currentIndex = devices.findIndex((device) => device.deviceId === selectedDeviceId);
+    const nextIndex = (currentIndex + 1) % devices.length;
+    changeAudioDevice?.(devices[nextIndex].deviceId);
+  };
+
+  const currentDeviceLabel = () => {
+    if (!Array.isArray(devices) || devices.length === 0) return 'Audio device';
+    const device = devices.find((d) => d.deviceId === selectedDeviceId);
+    if (!device) return 'Audio device';
+    return device.label || 'Audio device';
+  };
 
   // Determine if conference participant has actually joined (via strict socket string or fallback REST array)
   const isConfConnected =
@@ -521,6 +537,14 @@ const CallScreen = ({
                   title={audioOutput === 'speaker' ? 'Earpiece' : 'Loudspeaker'}
                   debounceTime={200}
                 />
+                {/* Audio Device Selector */}
+                <ControlButton
+                  buttonId="audio-device-cycle"
+                  onClick={handleAudioDeviceCycle}
+                  icon={<Headphones size={isMobile ? 22 : 18} />}
+                  title={`Audio device: ${currentDeviceLabel()}`}
+                  debounceTime={200}
+                />
               </div>
             </>
           ) : (
@@ -561,26 +585,6 @@ const CallScreen = ({
             >
               <Phone size={isMobile ? 20 : 16} />
             </button>
-          </div>
-
-          {/* Audio Device Selector */}
-          <div className="text-center">
-            <select
-              id="audio-device"
-              value={selectedDeviceId}
-              onChange={(e) => changeAudioDevice?.(e.target.value)}
-              className="md:w-full max-w-xs text-center bg-muted border border-border text-foreground text-xs rounded-lg p-2 outline-none focus:ring-2 focus:ring-accent transition-all duration-200"
-            >
-              {Array.isArray(devices) && devices.length > 0 ? (
-                devices.map((device, index) => (
-                  <option key={device.deviceId} value={device.deviceId}>
-                    {device.label || `Audio device ${index + 1}`}
-                  </option>
-                ))
-              ) : (
-                <option value="default">Default Audio Device</option>
-              )}
-            </select>
           </div>
         </div>
       </div>
