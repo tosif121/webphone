@@ -562,6 +562,26 @@ const CallScreen = ({
               <Phone size={isMobile ? 20 : 16} />
             </button>
           </div>
+
+          {/* Audio Device Selector */}
+          <div className="text-center">
+            <select
+              id="audio-device"
+              value={selectedDeviceId}
+              onChange={(e) => changeAudioDevice?.(e.target.value)}
+              className="md:w-full max-w-xs text-center bg-muted border border-border text-foreground text-xs rounded-lg p-2 outline-none focus:ring-2 focus:ring-accent transition-all duration-200"
+            >
+              {Array.isArray(devices) && devices.length > 0 ? (
+                devices.map((device, index) => (
+                  <option key={device.deviceId} value={device.deviceId}>
+                    {device.label || `Audio device ${index + 1}`}
+                  </option>
+                ))
+              ) : (
+                <option value="default">Default Audio Device</option>
+              )}
+            </select>
+          </div>
         </div>
       </div>
     </div>
