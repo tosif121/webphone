@@ -13,7 +13,6 @@ import {
   Clock,
   Volume1,
   Volume2,
-  Headphones,
   Loader2,
   Phone,
 } from 'lucide-react';
@@ -105,21 +104,6 @@ const CallScreen = ({
       }
     }
   }, []);
-
-  // Cycle to the next available audio device and select it
-  const handleAudioDeviceCycle = () => {
-    if (!Array.isArray(devices) || devices.length === 0) return;
-    const currentIndex = devices.findIndex((device) => device.deviceId === selectedDeviceId);
-    const nextIndex = (currentIndex + 1) % devices.length;
-    changeAudioDevice?.(devices[nextIndex].deviceId);
-  };
-
-  const currentDeviceLabel = () => {
-    if (!Array.isArray(devices) || devices.length === 0) return 'Audio device';
-    const device = devices.find((d) => d.deviceId === selectedDeviceId);
-    if (!device) return 'Audio device';
-    return device.label || 'Audio device';
-  };
 
   // Determine if conference participant has actually joined (via strict socket string or fallback REST array)
   const isConfConnected =
@@ -535,14 +519,6 @@ const CallScreen = ({
                     )
                   }
                   title={audioOutput === 'speaker' ? 'Earpiece' : 'Loudspeaker'}
-                  debounceTime={200}
-                />
-                {/* Audio Device Selector */}
-                <ControlButton
-                  buttonId="audio-device-cycle"
-                  onClick={handleAudioDeviceCycle}
-                  icon={<Headphones size={isMobile ? 22 : 18} />}
-                  title={`Audio device: ${currentDeviceLabel()}`}
                   debounceTime={200}
                 />
               </div>
