@@ -2812,6 +2812,7 @@ const useJssip = (isMobile = false) => {
     followUpDispoes,
     incomingSession,
     incomingNumber,
+    callerName,
     isIncomingRinging,
     answerIncomingCall,
     rejectIncomingCall,
