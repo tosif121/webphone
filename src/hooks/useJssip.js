@@ -187,10 +187,10 @@ const useJssip = (isMobile = false) => {
     }
   }, []);
 
-  // useEffect(() => {
-  //   const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-  //   setOrigin(originWithoutProtocol);
-  // }, []);
+  useEffect(() => {
+    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+    setOrigin(originWithoutProtocol);
+  }, []);
 
   const getStoredTokenPayload = useCallback(() => {
     try {
@@ -521,7 +521,7 @@ const useJssip = (isMobile = false) => {
             phoneNumber: incomingNumber || phoneNumber || '',
           };
 
-          const response = await axios.post(`https://devapp.iotcom.io/useroncall/${username}`, payload, {
+          const response = await axios.post(`${window.location.origin}/useroncall/${username}`, payload, {
             headers: {
               ...getAuthHeaders({ 'Content-Type': 'application/json' }),
             },
@@ -628,7 +628,7 @@ const useJssip = (isMobile = false) => {
       try {
         console.log(`[CallGuard] Requesting clearRejectedCallFromAgent for ${callerNumber}...`);
         const response = await axios.post(
-          `https://devapp.iotcom.io/clearRejectedCallFromAgent`,
+          `${window.location.origin}/clearRejectedCallFromAgent`,
           { caller: callerNumber },
           {
             headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -759,7 +759,7 @@ const useJssip = (isMobile = false) => {
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       try {
         const { data: response } = await axios.post(
-          `https://devapp.iotcom.io/userlogin/${savedUsername}`,
+          `${window.location.origin}/userlogin/${savedUsername}`,
           { username: savedUsername, password: savedPassword },
           {
             headers: { 'Content-Type': 'application/json' },
@@ -897,7 +897,7 @@ const useJssip = (isMobile = false) => {
         const userconTs = Date.now();
         const response = await withTimeout(
           axios.post(
-            `https://devapp.iotcom.io/userconnection`,
+            `${window.location.origin}/userconnection`,
             { user: username },
             { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
           ),
@@ -1644,7 +1644,7 @@ const useJssip = (isMobile = false) => {
               await new Promise((resolve) => setTimeout(resolve, 1000));
 
               const response = await axios.post(
-                `https://devapp.iotcom.io/user/breakuser:${username}`,
+                `${window.location.origin}/user/breakuser:${username}`,
                 { breakType: storedBreak },
                 { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
               );
@@ -2730,7 +2730,7 @@ const useJssip = (isMobile = false) => {
         autoLeadDial: metadata?.autoLeadDial,
       };
 
-      const response = await axios.post(`https://devapp.iotcom.io/dialnumber`, dialPayload, {
+      const response = await axios.post(`${window.location.origin}/dialnumber`, dialPayload, {
         headers: {
           ...getAuthHeaders({
             'Content-Type': 'application/json',
@@ -2882,7 +2882,7 @@ const useJssip = (isMobile = false) => {
           isMerged: !!isMerged,
         };
 
-        const callendedUrl = `https://devapp.iotcom.io/user/callended${username}`;
+        const callendedUrl = `${window.location.origin}/user/callended${username}`;
 
         const callendedResponse = await axios.post(callendedUrl, callendedPayload, {
           headers: {
@@ -2896,7 +2896,7 @@ const useJssip = (isMobile = false) => {
         // Auto-disposition for calls that were never answered
         if (!needsDispositionRef.current) {
           try {
-            const dispoUrl = `https://devapp.iotcom.io/user/disposition${username}`;
+            const dispoUrl = `${window.location.origin}/user/disposition${username}`;
             const finalBridgeID = bridgeIDRef.current || bridgeID;
             const dispoPayload = {
               bridgeID: finalBridgeID || 'deadCallId',
@@ -2923,7 +2923,7 @@ const useJssip = (isMobile = false) => {
         } else if (!isDispositionEnabled) {
           // When disposition is disabled, perform SILENT auto-disposition
           try {
-            const dispoUrl = `https://devapp.iotcom.io/user/disposition${username}`;
+            const dispoUrl = `${window.location.origin}/user/disposition${username}`;
             const finalBridgeID = bridgeIDRef.current || bridgeID;
             const dispoPayload = {
               bridgeID: finalBridgeID || 'deadCallId',
