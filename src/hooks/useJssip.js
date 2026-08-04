@@ -1505,6 +1505,39 @@ const useJssip = (isMobile = false) => {
     if (!username || !password || !origin) {
       return;
     }
+
+    // Self-heal: re-create the UA (and re-register) when the SIP WebSocket
+    // drops. Skipped while the document is hidden — Android suspends JS in the
+    // background, so the resume handlers reconnect on return to the foreground.
+    let reconnectInFlight = false;
+    const scheduleUaReconnect = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (reconnectInFlight) return;
+      const currentUa = uaRef.current;
+      if (!currentUa) return;
+
+      reconnectInFlight = true;
+      console.warn('[JsSIP] Scheduling UA reconnect');
+      window.setTimeout(() => {
+        try {
+          const connected = currentUa.transport ? currentUa.transport.isConnected() : false;
+          if (!connected) {
+            currentUa.stop();
+            currentUa.start();
+          } else if (!currentUa.isRegistered()) {
+            currentUa.register();
+          }
+        } catch (e) {
+          console.error('[JsSIP] UA reconnect failed:', e);
+          reconnectInFlight = false;
+          return;
+        }
+        window.setTimeout(() => {
+          reconnectInFlight = false;
+        }, 5000);
+      }, 1000);
+    };
+
     const initializeJsSIP = () => {
       try {
         var socket = new JsSIP.WebSocketInterface(`wss://${origin}:8089/ws`);
@@ -1513,13 +1546,21 @@ const useJssip = (isMobile = false) => {
         socket.onclose = function (event) {
           if (!event.wasClean) {
             console.error('WebSocket connection died unexpectedly');
-            toast.error('Connection lost');
+            // Don't raise a false "Connection lost" alarm while backgrounded —
+            // Android suspends JS and the socket naturally dies; resume will heal it.
+            if (typeof document === 'undefined' || !document.hidden) {
+              toast.error('Connection lost');
+            }
+            scheduleUaReconnect();
           }
         };
 
         socket.onerror = function (error) {
           console.error('WebSocket error:', error);
-          toast.error('Connection failed');
+          if (typeof document === 'undefined' || !document.hidden) {
+            toast.error('Connection failed');
+          }
+          scheduleUaReconnect();
         };
 
         var configuration = {
@@ -1730,7 +1771,8 @@ const useJssip = (isMobile = false) => {
         });
 
         ua.on('disconnected', () => {
-          toast.error('Connection lost');
+          console.warn('[JsSIP] Disconnected from WebSocket');
+          scheduleUaReconnect();
         });
         ua.on('newRTCSession', function (e) {
           const session = e.session;
@@ -2290,9 +2332,7 @@ const useJssip = (isMobile = false) => {
         // WebSocket.CLOSED = 3, WebSocket.CLOSING = 2
         if (socketState === 3 || socketState === 2) {
           console.error('Socket connection lost');
-          toast.error('Connection lost');
-          // localStorage.clear();
-          // window.location.href = '/webphone/v1';
+          scheduleUaReconnect();
         }
       }
     };
