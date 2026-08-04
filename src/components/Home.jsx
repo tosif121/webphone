@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import KeyPad from './KeyPad';
 import NetworkIndicator from './NetworkIndicator';
-import { Delete, Phone, Volume1, Volume2 } from 'lucide-react';
+import { Delete, Phone } from 'lucide-react';
 import useFormatPhoneNumber from '../hooks/useFormatPhoneNumber';
 
 const Home = ({
@@ -29,20 +29,6 @@ const Home = ({
     if (e.key === 'Enter') {
       e.preventDefault();
       handleCall();
-    }
-  };
-
-  // Test hook: route call audio to earpiece (false) or loudspeaker (true)
-  // via the native Flutter bridge (AudioManager.setSpeakerphoneOn).
-  const setSpeakerphoneForTest = (on) => {
-    if (typeof window !== 'undefined' && window.FlutterFCMBridge) {
-      try {
-        window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'speakerphone', on }));
-      } catch (e) {
-        console.error('Error switching audio output (test):', e);
-      }
-    } else {
-      console.warn('FlutterFCMBridge not available — native audio routing cannot be tested.');
     }
   };
 
@@ -104,28 +90,6 @@ const Home = ({
             aria-label="Call"
           >
             <Phone className="h-5 w-5 text-white" />
-          </button>
-        </div>
-
-        {/* Audio route test buttons */}
-        <div className="flex items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => setSpeakerphoneForTest(false)}
-            className="flex items-center gap-1.5 rounded-full border border-border bg-muted px-4 py-2 text-xs font-medium text-foreground transition-all hover:bg-accent"
-            title="Route call audio to earpiece"
-          >
-            <Volume1 className="h-4 w-4" />
-            Earpiece
-          </button>
-          <button
-            type="button"
-            onClick={() => setSpeakerphoneForTest(true)}
-            className="flex items-center gap-1.5 rounded-full border border-border bg-muted px-4 py-2 text-xs font-medium text-foreground transition-all hover:bg-accent"
-            title="Route call audio to loudspeaker"
-          >
-            <Volume2 className="h-4 w-4" />
-            Loudspeaker
           </button>
         </div>
       </div>
