@@ -187,10 +187,10 @@ const useJssip = (isMobile = false) => {
     }
   }, []);
 
-  useEffect(() => {
-    const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
-    setOrigin(originWithoutProtocol);
-  }, []);
+  // useEffect(() => {
+  //   const originWithoutProtocol = window.location.origin.replace(/^https?:\/\//, '');
+  //   setOrigin(originWithoutProtocol);
+  // }, []);
 
   const getStoredTokenPayload = useCallback(() => {
     try {
@@ -520,7 +520,7 @@ const useJssip = (isMobile = false) => {
             phoneNumber: incomingNumber || phoneNumber || '',
           };
 
-          const response = await axios.post(`${window.location.origin}/useroncall/${username}`, payload, {
+          const response = await axios.post(`https://devapp.iotcom.io/useroncall/${username}`, payload, {
             headers: {
               ...getAuthHeaders({ 'Content-Type': 'application/json' }),
             },
@@ -627,7 +627,7 @@ const useJssip = (isMobile = false) => {
       try {
         console.log(`[CallGuard] Requesting clearRejectedCallFromAgent for ${callerNumber}...`);
         const response = await axios.post(
-          `${window.location.origin}/clearRejectedCallFromAgent`,
+          `https://devapp.iotcom.io/clearRejectedCallFromAgent`,
           { caller: callerNumber },
           {
             headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -750,7 +750,7 @@ const useJssip = (isMobile = false) => {
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       try {
         const { data: response } = await axios.post(
-          `${window.location.origin}/userlogin/${savedUsername}`,
+          `https://devapp.iotcom.io/userlogin/${savedUsername}`,
           { username: savedUsername, password: savedPassword },
           {
             headers: { 'Content-Type': 'application/json' },
@@ -888,7 +888,7 @@ const useJssip = (isMobile = false) => {
         const userconTs = Date.now();
         const response = await withTimeout(
           axios.post(
-            `${window.location.origin}/userconnection`,
+            `https://devapp.iotcom.io/userconnection`,
             { user: username },
             { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
           ),
@@ -1131,6 +1131,17 @@ const useJssip = (isMobile = false) => {
     console.log(
       `[CallGuard] handleLogout CALLED | message="${message}" | hasToken=${!!token} | lifecycle=${agentLifecycleRef.current} | status=${statusRef.current}`,
     );
+
+    // Last-resort auto-reconnect attempt before forcing logout
+    try {
+      const reconnected = await autoRelogin();
+      if (reconnected) {
+        console.log('[CallGuard] Auto-reconnected in handleLogout — avoiding logout');
+        setIsConnectionLost(false);
+        return;
+      }
+    } catch (_) {}
+
     try {
       setShowTimeoutModal(true);
 
@@ -1138,12 +1149,8 @@ const useJssip = (isMobile = false) => {
         session.terminate();
       }
       stopRecording();
-
-      // Don't redirect here - let the modal handle it
     } catch (error) {
       console.error('Error during logout:', error);
-
-      // REPLACED window.alert with existing timeout modal state
       setShowTimeoutModal(true);
     }
 
@@ -1568,6 +1575,12 @@ const useJssip = (isMobile = false) => {
 
           if (!readySync?.success) {
             console.error('[WebPhone] Agent session sync failed after SIP registration:', readySync?.message);
+            // Try auto-reconnect before showing modal
+            const reconnected = await autoRelogin();
+            if (reconnected) {
+              console.log('[WebPhone] Auto-reconnected after SIP sync failure');
+              return;
+            }
             setTimeoutMessage('Agent session could not be restored. Please log in again.');
             setShowTimeoutModal(true);
             return;
@@ -1581,7 +1594,7 @@ const useJssip = (isMobile = false) => {
               await new Promise((resolve) => setTimeout(resolve, 1000));
 
               const response = await axios.post(
-                `${window.location.origin}/user/breakuser:${username}`,
+                `https://devapp.iotcom.io/user/breakuser:${username}`,
                 { breakType: storedBreak },
                 { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
               );
@@ -2322,41 +2335,132 @@ const useJssip = (isMobile = false) => {
       void sendSipHeartbeat({ source: 'interval' });
     }, SIP_HEARTBEAT_SEND_INTERVAL_MS);
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // If SIP WebSocket was killed while backgrounded, reconnect the UA
-        const currentUa = uaRef.current;
-        if (currentUa) {
-          try {
-            const wsStatus = getWebSocketStatus();
-            if (!wsStatus.connected || !currentUa.isRegistered()) {
-              console.warn('[JsSIP] WS dead after background - reconnecting UA');
-              currentUa.stop();
-              currentUa.start();
-            }
-          } catch (e) {
-            console.error('[JsSIP] Reconnect error:', e);
-          }
-        }
+    // Run whenever the app returns to the foreground. Reconnects the SIP UA,
+    // re-validates the backend session, and re-runs the connection check so the
+    // agent becomes available again after Android suspended JS in the background.
+    const recoverAfterBackground = async (source) => {
+      console.log(`[JsSIP] App returned to foreground (${source})`);
 
-        void sendSipHeartbeat({ source: 'visibility', force: true });
-        if (isIncomingRingingRef.current && ringtoneRef.current) {
-          playRingtone();
+      // Reset failure counters so connectioncheck doesn't immediately show modal
+      connectionFailureCountRef.current = 0;
+      lastConnectionCheckAtRef.current = Date.now();
+      setIsConnectionLost(false);
+      setShowTimeoutModal(false);
+
+      const currentUa = uaRef.current;
+      let wsHealthy = false;
+      if (currentUa) {
+        try {
+          wsHealthy = getWebSocketStatus()?.connected && currentUa.isRegistered();
+        } catch (e) {
+          console.error('[JsSIP] Error checking WS status:', e);
         }
+      }
+
+      // If SIP WebSocket was killed while backgrounded, reconnect the UA
+      if (currentUa && !wsHealthy) {
+        try {
+          console.warn('[JsSIP] WS dead after background - reconnecting UA');
+          currentUa.stop();
+          currentUa.start();
+        } catch (e) {
+          console.error('[JsSIP] Reconnect error:', e);
+        }
+      }
+
+      if (wsHealthy) {
+        // Connection is healthy — just refresh the heartbeat, no heavy work
+        void sendSipHeartbeat({ source, force: true });
+        return;
+      }
+
+      // Try silent auto-relogin to restore the backend session
+      // (autoRelogin is safe to call even if already logged in — it just re-validates)
+      try {
+        const reconnected = await autoRelogin();
+        if (reconnected) {
+          console.log('[JsSIP] Auto-reconnected after background return');
+          setIsConnectionLost(false);
+          setShowTimeoutModal(false);
+        }
+      } catch (_) {}
+
+      void sendSipHeartbeat({ source, force: true });
+
+      // Force a fresh backend connection check so the agent re-registers as available
+      try {
+        await connectioncheckRef.current?.({ reason: 'foreground', force: true });
+      } catch (_) {}
+
+      if (isIncomingRingingRef.current && ringtoneRef.current) {
+        playRingtone();
       }
     };
 
-    const handleOnline = () => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void recoverAfterBackground('visibility');
+      }
+    };
+
+    // Redundant wake signals: some Android WebViews (e.g. inside Flutter) never
+    // fire visibilitychange when the app resumes, so the agent was left stuck on
+    // the "connection lost" modal with no way to reconnect.
+    const handlePageShow = () => {
+      void recoverAfterBackground('pageshow');
+    };
+    const handleWindowFocus = () => {
+      void recoverAfterBackground('focus');
+    };
+    const handleAppResume = () => {
+      void recoverAfterBackground('resume-event');
+    };
+
+    const handleOnline = async () => {
+      console.log('[JsSIP] Network came back online');
+      connectionFailureCountRef.current = 0;
+      lastConnectionCheckAtRef.current = Date.now();
+
+      // Reconnect UA if WebSocket died
+      const currentUa = uaRef.current;
+      if (currentUa) {
+        try {
+          const wsStatus = getWebSocketStatus();
+          if (!wsStatus.connected || !currentUa.isRegistered()) {
+            console.warn('[JsSIP] WS dead after offline — reconnecting UA');
+            currentUa.stop();
+            currentUa.start();
+          }
+        } catch (e) {
+          console.error('[JsSIP] Reconnect error on online:', e);
+        }
+      }
+
+      // Auto-relogin to restore backend session
+      try {
+        const reconnected = await autoRelogin();
+        if (reconnected) {
+          setIsConnectionLost(false);
+          setShowTimeoutModal(false);
+        }
+      } catch (_) {}
+
       void sendSipHeartbeat({ source: 'online', force: true });
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('online', handleOnline);
+    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('focus', handleWindowFocus);
+    window.addEventListener('samvaad-resume', handleAppResume);
 
     return () => {
       clearInterval(heartbeatId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('samvaad-resume', handleAppResume);
     };
   }, [getWebSocketStatus, sendSipHeartbeat, ua, username]);
 
@@ -2569,7 +2673,7 @@ const useJssip = (isMobile = false) => {
         autoLeadDial: metadata?.autoLeadDial,
       };
 
-      const response = await axios.post(`${window.location.origin}/dialnumber`, dialPayload, {
+      const response = await axios.post(`https://devapp.iotcom.io/dialnumber`, dialPayload, {
         headers: {
           ...getAuthHeaders({
             'Content-Type': 'application/json',
@@ -2593,21 +2697,26 @@ const useJssip = (isMobile = false) => {
 
         // ✅ 7a. Check if it's the "agent not ready" error
         if (errorMessage?.includes('Agent is not in a ready state') || errorMessage?.includes('Please Login again')) {
-          console.warn('⚠️ Agent not in ready state');
+          console.warn('⚠️ Agent not in ready state — trying auto-reconnect');
 
-          // Set custom timeout message
+          const reconnected = await autoRelogin();
+          if (reconnected) {
+            toast('Reconnected. Please try again.', { icon: '🔄' });
+            setStatus('start');
+            setPhoneNumber('');
+            dialingNumberRef.current = '';
+            setCallType('');
+            setAgentLifecycle(nextLeadLockToken ? 'lead_locked' : 'idle');
+            return;
+          }
+
           setTimeoutMessage('Agent is not in a ready state. Please login again.');
-
-          // Show modal (don't set userLogin to allow re-connect)
           setShowTimeoutModal(true);
-
-          // Reset call state
           setStatus('start');
           setPhoneNumber('');
           dialingNumberRef.current = '';
           setCallType('');
           setAgentLifecycle(nextLeadLockToken ? 'lead_locked' : 'idle');
-
           return;
         }
 
@@ -2650,14 +2759,16 @@ const useJssip = (isMobile = false) => {
 
         // ✅ 10a. Agent not ready error from error response
         if (errorMessage?.includes('Agent is not in a ready state') || errorMessage?.includes('Please Login again')) {
-          console.warn('⚠️ Agent not in ready state (from error response)');
+          console.warn('⚠️ Agent not in ready state (from error response) — trying auto-reconnect');
 
-          // Set custom timeout message
+          const reconnected = await autoRelogin();
+          if (reconnected) {
+            toast('Reconnected. Please try again.', { icon: '🔄' });
+            return;
+          }
+
           setTimeoutMessage('Agent is not in a ready state. Please login again.');
-
-          // Show modal (don't set userLogin to allow re-connect)
           setShowTimeoutModal(true);
-
           return;
         }
       }
@@ -2714,7 +2825,7 @@ const useJssip = (isMobile = false) => {
           isMerged: !!isMerged,
         };
 
-        const callendedUrl = `${window.location.origin}/user/callended${username}`;
+        const callendedUrl = `https://devapp.iotcom.io/user/callended${username}`;
 
         const callendedResponse = await axios.post(callendedUrl, callendedPayload, {
           headers: {
@@ -2728,7 +2839,7 @@ const useJssip = (isMobile = false) => {
         // Auto-disposition for calls that were never answered
         if (!needsDispositionRef.current) {
           try {
-            const dispoUrl = `${window.location.origin}/user/disposition${username}`;
+            const dispoUrl = `https://devapp.iotcom.io/user/disposition${username}`;
             const finalBridgeID = bridgeIDRef.current || bridgeID;
             const dispoPayload = {
               bridgeID: finalBridgeID || 'deadCallId',
@@ -2755,7 +2866,7 @@ const useJssip = (isMobile = false) => {
         } else if (!isDispositionEnabled) {
           // When disposition is disabled, perform SILENT auto-disposition
           try {
-            const dispoUrl = `${window.location.origin}/user/disposition${username}`;
+            const dispoUrl = `https://devapp.iotcom.io/user/disposition${username}`;
             const finalBridgeID = bridgeIDRef.current || bridgeID;
             const dispoPayload = {
               bridgeID: finalBridgeID || 'deadCallId',
