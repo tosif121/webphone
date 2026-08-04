@@ -252,6 +252,8 @@ const useJssip = (isMobile = false) => {
   const pendingAnswerFcmRef = useRef(false);
   const fcmGraceTimeoutRef = useRef(null);
   const suppressReloadRef = useRef(false);
+  const recentlyRejectedNumbersRef = useRef({});
+  const rejectIncomingCallRef = useRef(null);
 
   const MESSAGE_HEARTBEAT_STALE_MS = 10000;
   const CONNECTION_CHECK_TIMEOUT_MS = 8000;
@@ -487,6 +489,11 @@ const useJssip = (isMobile = false) => {
   const endCurrentCall = useCallback(() => {
     manualHangupRequestedRef.current = true;
     pendingPostCallRef.current = false;
+
+    if (isIncomingRingingRef.current) {
+      rejectIncomingCallRef.current?.();
+      return;
+    }
 
     try {
       if (session && typeof session.terminate === 'function' && session.status !== 8) {
@@ -1475,16 +1482,30 @@ const useJssip = (isMobile = false) => {
   };
 
   const rejectIncomingCall = () => {
+    rejectIncomingCallRef.current = rejectIncomingCall;
     const session = incomingSessionRef.current;
     stopRingtone();
     pendingFcmCallRef.current = null;
     pendingAnswerFcmRef.current = false;
     setCallerName('');
+    if (typeof window !== 'undefined') {
+      window.pendingIncomingCall = null;
+      if (window.FlutterFCMBridge) {
+        try {
+          window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'stopRingtone' }));
+          window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'clearNotification' }));
+          window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'clearPendingCall' }));
+        } catch (_) {}
+      }
+    }
     if (fcmGraceTimeoutRef.current) {
       clearTimeout(fcmGraceTimeoutRef.current);
       fcmGraceTimeoutRef.current = null;
     }
-    const remoteUser = session?.remote_identity?.uri?.user || 'unknown';
+    const remoteUser = session?.remote_identity?.uri?.user || incomingNumber || 'unknown';
+    if (remoteUser && remoteUser !== 'unknown') {
+      recentlyRejectedNumbersRef.current[remoteUser] = Date.now();
+    }
     const callId = session?.call_id || session?.id || 'unknown';
     console.log(
       `[CallGuard] Call MANUAL REJECTED by agent — remoteUser=${remoteUser} | callId=${callId} | releasing lock`,
@@ -1492,14 +1513,19 @@ const useJssip = (isMobile = false) => {
     activeCallRef.current = null;
 
     if (session && session.status < 6) {
-      session.terminate();
+      try {
+        session.terminate({ status_code: 486, reason_phrase: 'Busy Here' });
+      } catch (_) {}
     }
     void clearRejectedCall(remoteUser);
     setIncomingSession(null);
     setIsIncomingRinging(false);
     setStatus('start');
+    statusRef.current = 'start';
     setCallType('');
-    // finalizePostCallContext(); // REMOVED: Don't clear bridgeID yet, we need it for automation
+    setAgentLifecycle('idle');
+    agentLifecycleRef.current = 'idle';
+
     // Update history as rejected
     setHistory((prev) => [
       ...prev.slice(0, -1),
@@ -1509,6 +1535,7 @@ const useJssip = (isMobile = false) => {
     setDispositionModal(false);
     void syncAgentReadyState({ source: 'rejectIncomingCall', attempts: 2, retryDelayMs: 500 });
   };
+  rejectIncomingCallRef.current = rejectIncomingCall;
 
   useEffect(() => {
     if (!username || !password || !origin) {
@@ -1801,20 +1828,29 @@ const useJssip = (isMobile = false) => {
             `[CallGuard] newRTCSession — new=${remoteUser}, dir=${session.direction}, totalSessions=${sessionIds.length}, activeLock=${!!activeCallRef.current}`,
           );
 
-          // Guard: only one call at a time or agent in post-call disposition
+          const isRecentlyRejected =
+            remoteUser &&
+            remoteUser !== 'unknown' &&
+            recentlyRejectedNumbersRef.current[remoteUser] &&
+            Date.now() - recentlyRejectedNumbersRef.current[remoteUser] < 15000;
+
+          // Guard: only one call at a time or agent in post-call disposition or recently rejected
           // Primary: activeCallRef (reliable), Secondary: agentLifecycleRef (blocks during disposition), Tertiary: ua.sessions (JsSIP built-in)
           if (
             activeCallRef.current ||
             isManualDialingRef.current ||
             agentLifecycleRef.current === 'disposition' ||
-            sessionIds.length > 1
+            sessionIds.length > 1 ||
+            isRecentlyRejected
           ) {
             console.log(
-              `[CallGuard] AUTO-REJECTING incoming from ${remoteUser} — ${isManualDialingRef.current ? 'manual dialing in progress' : 'already on call or in disposition'} (activeLock=${!!activeCallRef.current}, lifecycle=${agentLifecycleRef.current}, ua.sessions=${sessionIds.length}, sessionId=${callId})`,
+              `[CallGuard] AUTO-REJECTING incoming from ${remoteUser} — ${isRecentlyRejected ? 'recently rejected by agent' : isManualDialingRef.current ? 'manual dialing in progress' : 'already on call or in disposition'} (activeLock=${!!activeCallRef.current}, lifecycle=${agentLifecycleRef.current}, ua.sessions=${sessionIds.length}, sessionId=${callId})`,
             );
             session.isAutoRejected = true;
             session.isAcceptedCall = false;
-            session.terminate({ status_code: 486, reason_phrase: 'Busy Here' });
+            try {
+              session.terminate({ status_code: 486, reason_phrase: 'Busy Here' });
+            } catch (_) {}
             logSessionEvent('failed', {
               sessionId: callId,
               remoteUser,

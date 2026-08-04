@@ -95,7 +95,7 @@ const CallScreen = ({
   const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const parsedData = tokenData ? JSON.parse(tokenData) : {};
   const { username } = useContext(HistoryContext);
-  const { bridgeID, activeCallContext, callType } = useContext(JssipContext);
+  const { bridgeID, activeCallContext, callType, isIncomingRinging, rejectIncomingCall } = useContext(JssipContext);
   const numberMasking = parsedData?.userData?.numberMasking;
 
   // NEW: Bridge to the native Android layer (Flutter WebView host) so it can
@@ -579,6 +579,8 @@ const CallScreen = ({
               onClick={() => {
                 if (conferenceNumber && conferenceStatus) {
                   handleConferenceHangup();
+                } else if (isIncomingRinging) {
+                  rejectIncomingCall?.();
                 } else {
                   endCurrentCall?.();
                 }

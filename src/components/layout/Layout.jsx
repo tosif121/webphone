@@ -113,7 +113,7 @@ export default function Layout({ children }) {
       </div>
 
       <audio ref={audioRef} autoPlay playsInline style={{ display: 'none' }} />
-      <audio ref={ringtoneRef} preload="auto" style={{ display: 'none' }} src={withWebphoneBasePath('/ringtone.mp3')} />
+      <audio ref={ringtoneRef} loop preload="auto" style={{ display: 'none' }} src={withWebphoneBasePath('/ringtone.mp3')} />
     </>
   );
 }

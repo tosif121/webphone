@@ -46,6 +46,11 @@ export const useJssipUtils = (state) => {
 
   const playRingtone = () => {
     if (ringtoneRef.current) {
+      ringtoneRef.current.loop = true;
+      // If ringtone is ALREADY playing, don't interrupt and restart from 0
+      if (!ringtoneRef.current.paused && ringtoneRef.current.currentTime > 0) {
+        return;
+      }
       ringtoneRef.current.currentTime = 0;
       ringtoneRef.current.volume = 0.5;
 
@@ -72,6 +77,15 @@ export const useJssipUtils = (state) => {
     if (ringtoneRef.current) {
       ringtoneRef.current.pause();
       ringtoneRef.current.currentTime = 0;
+    }
+    if (typeof window !== 'undefined') {
+      window.pendingIncomingCall = null;
+      if (window.FlutterFCMBridge) {
+        try {
+          window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'stopRingtone' }));
+          window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'clearNotification' }));
+        } catch (_) {}
+      }
     }
   };
 
