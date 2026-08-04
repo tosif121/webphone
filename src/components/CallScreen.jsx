@@ -8,10 +8,10 @@ import {
   Grip,
   XCircle,
   PhoneOff,
+  Square,
   Merge,
   PhoneForwarded,
   Clock,
-  Volume1,
   Volume2,
   Loader2,
   Phone,
@@ -69,20 +69,6 @@ const CallScreen = ({
   const [isHovered, setIsHovered] = useState(false);
   const [showKeyPad, setShowKeyPad] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [audioOutput, setAudioOutput] = useState('earpiece');
-
-  // Switch call audio between earpiece and loudspeaker via the native Flutter
-  // bridge (Android WebView can't route WebRTC output itself).
-  const handleAudioOutput = (mode) => {
-    setAudioOutput(mode);
-    if (typeof window !== 'undefined' && window.FlutterFCMBridge) {
-      try {
-        window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'speakerphone', on: mode === 'speaker' }));
-      } catch (e) {
-        console.error('Error notifying native speakerphone toggle:', e);
-      }
-    }
-  };
 
   // Detect mobile screen size
   useEffect(() => {
@@ -94,17 +80,6 @@ const CallScreen = ({
     return () => mediaQuery.removeEventListener('change', handleResize);
   }, []);
 
-  // Default call audio to earpiece when the call screen opens
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.FlutterFCMBridge) {
-      try {
-        window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'speakerphone', on: false }));
-      } catch (e) {
-        console.error('Error setting default earpiece:', e);
-      }
-    }
-  }, []);
-
   // Determine if conference participant has actually joined (via strict socket string or fallback REST array)
   const isConfConnected =
     hasParticipants === 'connected' || (Array.isArray(conferenceCalls) && conferenceCalls.length > 0);
@@ -113,11 +88,63 @@ const CallScreen = ({
   const processingRef = useRef(new Set());
   const [, forceUpdate] = useState({});
 
+  // NEW: Track whether the user has manually picked an audio device.
+  // Until they do, we're free to auto-default to a headset/earpiece device.
+  const userSelectedDeviceRef = useRef(false);
+
   const tokenData = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const parsedData = tokenData ? JSON.parse(tokenData) : {};
   const { username } = useContext(HistoryContext);
   const { bridgeID, activeCallContext, callType } = useContext(JssipContext);
   const numberMasking = parsedData?.userData?.numberMasking;
+
+  // NEW: Bridge to the native Android layer (Flutter WebView host) so it can
+  // force earpiece/headset audio routing. Without this, the native
+  // setCallMode/resetCallMode handlers never fire and Android falls back to
+  // its own default routing.
+  const hasNotifiedCallStartRef = useRef(false);
+
+  const notifyNativeBridge = useCallback((payload) => {
+    if (typeof window === 'undefined' || !window.FlutterFCMBridge) return;
+    try {
+      window.FlutterFCMBridge.postMessage(JSON.stringify(payload));
+    } catch (error) {
+      console.warn('Failed to notify native bridge', error);
+    }
+  }, []);
+
+  // Fire 'callStarted' once the call is actually answered — this is when
+  // WebRTC grabs the audio route, so it's the right moment to tell native to
+  // start enforcing earpiece/headset routing.
+  useEffect(() => {
+    if (isCustomerAnswered && !hasNotifiedCallStartRef.current) {
+      hasNotifiedCallStartRef.current = true;
+      notifyNativeBridge({ action: 'callStarted' });
+    }
+  }, [isCustomerAnswered, notifyNativeBridge]);
+
+  // Fire 'callEnded' when this call screen goes away, so native resets audio
+  // mode back to normal. Only fires if we actually told it the call started.
+  useEffect(() => {
+    return () => {
+      if (hasNotifiedCallStartRef.current) {
+        notifyNativeBridge({ action: 'callEnded' });
+      }
+    };
+  }, [notifyNativeBridge]);
+
+  // NEW: Default the audio output to a headset/earpiece device when one is
+  // available, unless the user has already made their own selection.
+  useEffect(() => {
+    if (userSelectedDeviceRef.current) return;
+    if (!Array.isArray(devices) || devices.length === 0) return;
+
+    const headsetDevice = devices.find((device) => /headset|earpiece|headphone/i.test(device?.label || ''));
+
+    if (headsetDevice && headsetDevice.deviceId !== selectedDeviceId) {
+      changeAudioDevice?.(headsetDevice.deviceId);
+    }
+  }, [devices]);
 
   // Start conference timer when participants join but not merged
   useEffect(() => {
@@ -173,7 +200,7 @@ const CallScreen = ({
     try {
       const transferBridgeID = activeCallContext?.bridgeID || bridgeID;
 
-      const res = await axios.post(`https://devapp.iotcom.io/reqTransfer/${username}`, {
+      const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, {
         bridgeID: transferBridgeID,
       });
       if (res.data?.success) {
@@ -268,7 +295,7 @@ const CallScreen = ({
       }
 
       const response = await axios.post(
-        `https://devapp.iotcom.io/hangup/hostChannel/Conf`,
+        `${window.location.origin}/hangup/hostChannel/Conf`,
         {
           user: username,
           hostNumber: cleanNumber,
@@ -498,27 +525,28 @@ const CallScreen = ({
                     />
                   </>
                 )}
+
+                <ControlButton
+                  buttonId="record-button"
+                  onClick={!isRecording ? startRecording : stopRecording}
+                  disabled={!session && !isRecording}
+                  icon={
+                    <Square
+                      size={isMobile ? 22 : 18}
+                      className={isRecording ? 'text-destructive' : 'text-secondary-foreground'}
+                    />
+                  }
+                  title={isRecording ? 'Stop Recording' : 'Start Recording'}
+                  active={isRecording}
+                  debounceTime={200}
+                />
+
                 <ControlButton
                   buttonId="mute-button"
                   active={muted}
                   onClick={handleMuteToggle}
                   icon={<MicOff size={isMobile ? 22 : 18} />}
                   title="Mute"
-                  debounceTime={200}
-                />
-                {/* Audio Output Toggle (Earpiece / Loudspeaker) */}
-                <ControlButton
-                  buttonId="audio-output-toggle"
-                  onClick={() => handleAudioOutput(audioOutput === 'speaker' ? 'earpiece' : 'speaker')}
-                  active={audioOutput === 'speaker'}
-                  icon={
-                    audioOutput === 'speaker' ? (
-                      <Volume2 size={isMobile ? 22 : 18} />
-                    ) : (
-                      <Volume1 size={isMobile ? 22 : 18} />
-                    )
-                  }
-                  title={audioOutput === 'speaker' ? 'Earpiece' : 'Loudspeaker'}
                   debounceTime={200}
                 />
               </div>
@@ -568,7 +596,23 @@ const CallScreen = ({
             <select
               id="audio-device"
               value={selectedDeviceId}
-              onChange={(e) => changeAudioDevice?.(e.target.value)}
+              onChange={(e) => {
+                const deviceId = e.target.value;
+
+                // Once the user picks a device themselves, stop
+                // auto-defaulting to the headset/earpiece.
+                userSelectedDeviceRef.current = true;
+                changeAudioDevice?.(deviceId);
+
+                // NEW: Tell native which route the user actually wants, so
+                // its route-change listener enforces *this* choice instead
+                // of fighting it back to earpiece.
+                const chosenDevice = Array.isArray(devices)
+                  ? devices.find((device) => device.deviceId === deviceId)
+                  : null;
+                const isSpeakerChoice = /speaker/i.test(chosenDevice?.label || '');
+                notifyNativeBridge({ action: 'speakerphone', on: isSpeakerChoice });
+              }}
               className="md:w-full max-w-xs text-center bg-muted border border-border text-foreground text-xs rounded-lg p-2 outline-none focus:ring-2 focus:ring-accent transition-all duration-200"
             >
               {Array.isArray(devices) && devices.length > 0 ? (
