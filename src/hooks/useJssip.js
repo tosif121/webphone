@@ -251,6 +251,7 @@ const useJssip = (isMobile = false) => {
   const pendingFcmCallRef = useRef(null);
   const pendingAnswerFcmRef = useRef(false);
   const fcmGraceTimeoutRef = useRef(null);
+  const suppressReloadRef = useRef(false);
 
   const MESSAGE_HEARTBEAT_STALE_MS = 10000;
   const CONNECTION_CHECK_TIMEOUT_MS = 8000;
@@ -733,6 +734,14 @@ const useJssip = (isMobile = false) => {
     toast.success('Re-login successful. Reconnecting...', {
       duration: 2000,
     });
+
+    // During background recovery (app just resumed, possibly with an incoming
+    // FCM call on screen) a full page reload would wipe the incoming-call UI
+    // and logged-in state. Reconnect in place instead.
+    if (suppressReloadRef.current) {
+      console.log('[RELOAD] Suppressed auto-reload during background recovery');
+      return;
+    }
 
     setTimeout(() => {
       window.location.reload();
@@ -2397,6 +2406,12 @@ const useJssip = (isMobile = false) => {
         }
       }
 
+      if (wsHealthy) {
+        // Connection is healthy — just refresh the heartbeat, no heavy work
+        void sendSipHeartbeat({ source, force: true });
+        return;
+      }
+
       // If SIP WebSocket was killed while backgrounded, reconnect the UA
       if (currentUa && !wsHealthy) {
         try {
@@ -2408,11 +2423,13 @@ const useJssip = (isMobile = false) => {
         }
       }
 
-      if (wsHealthy) {
-        // Connection is healthy — just refresh the heartbeat, no heavy work
-        void sendSipHeartbeat({ source, force: true });
-        return;
-      }
+      // For the duration of this recovery window, suppress any full page reload
+      // that autoRelogin -> handleLoginSuccess would otherwise trigger — it would
+      // wipe an incoming-call UI we may have just surfaced.
+      suppressReloadRef.current = true;
+      window.setTimeout(() => {
+        suppressReloadRef.current = false;
+      }, 8000);
 
       // Try silent auto-relogin to restore the backend session
       // (autoRelogin is safe to call even if already logged in — it just re-validates)
