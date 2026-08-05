@@ -179,7 +179,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
 
         window.dispatchEvent(new CustomEvent('setDialingNumber', { detail: cleanPhoneNumber }));
         await axios.post(
-          `${window.location.origin}o/dialmissedcall`,
+          `${window.location.origin}/dialmissedcall`,
           {
             receiver: cleanPhoneNumber,
           },
@@ -210,7 +210,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
       try {
         setUpdatingCallbackId(callbackId);
         await axios.post(
-          `${window.location.origin}o/callback/update-status`,
+          `${window.location.origin}/callback/update-status`,
           {
             callbackId,
             status,

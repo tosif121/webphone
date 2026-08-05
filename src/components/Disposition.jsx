@@ -113,7 +113,7 @@ const Disposition = ({
     setSavingStickyMode(true);
     try {
       await axios.post(
-        `${window.location.origin}o/campaign/${campaignId}`,
+        `${window.location.origin}/campaign/${campaignId}`,
         {
           stickyMode: isNone ? '' : value,
           stickyEnabled: !isNone,
@@ -209,7 +209,7 @@ const Disposition = ({
       }
 
       await axios.post(
-        `${window.location.origin}o/callback/update-status`,
+        `${window.location.origin}/callback/update-status`,
         {
           callbackId,
           status: 'completed',
@@ -366,7 +366,7 @@ const Disposition = ({
         stickyMode: stickyMode === 'disabled' ? '' : stickyMode,
       };
 
-      const response = await axios.post(`${window.location.origin}o/user/disposition${username}`, requestBody, {
+      const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       });
 
@@ -666,7 +666,7 @@ const Disposition = ({
         }
 
         // 1. Submit disposition FIRST
-        const response = await axios.post(`${window.location.origin}o/user/disposition${username}`, requestBody, {
+        const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         });
 
@@ -679,7 +679,7 @@ const Disposition = ({
             try {
               // Apply the break after disposition
               await axios.post(
-                `${window.location.origin}o/user/breakuser:${username}`,
+                `${window.location.origin}/user/breakuser:${username}`,
                 {
                   breakType: selectedBreakType,
                 },

@@ -206,7 +206,7 @@ const BreakDropdown = ({
   const removeBreak = async () => {
     try {
       await axios.post(
-        `${window.location.origin}o/user/removebreakuser:${username}`,
+        `${window.location.origin}/user/removebreakuser:${username}`,
         {},
         {
           headers: {
@@ -254,7 +254,7 @@ const BreakDropdown = ({
 
     try {
       await axios.post(
-        `${window.location.origin}o/user/breakuser:${username}`,
+        `${window.location.origin}/user/breakuser:${username}`,
         { breakType },
         {
           headers: {

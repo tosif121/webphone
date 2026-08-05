@@ -200,7 +200,7 @@ const CallScreen = ({
     try {
       const transferBridgeID = activeCallContext?.bridgeID || bridgeID;
 
-      const res = await axios.post(`${window.location.origin}o/reqTransfer/${username}`, {
+      const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, {
         bridgeID: transferBridgeID,
       });
       if (!res.data?.success) {
@@ -292,7 +292,7 @@ const CallScreen = ({
       }
 
       const response = await axios.post(
-        `${window.location.origin}o/hangup/hostChannel/Conf`,
+        `${window.location.origin}/hangup/hostChannel/Conf`,
         {
           user: username,
           hostNumber: cleanNumber,

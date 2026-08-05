@@ -25,7 +25,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
 
   const performLogin = async (username, password) => {
     const { data: response } = await axios.post(
-      `${window.location.origin}o/userlogin/${username}`,
+      `${window.location.origin}/userlogin/${username}`,
       { username, password },
       {
         headers: { 'Content-Type': 'application/json' },

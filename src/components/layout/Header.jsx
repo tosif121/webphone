@@ -137,7 +137,7 @@ export default function Header() {
     setIsSavingPreferences(true);
     try {
       await axios.patch(
-        `${window.location.origin}o/agent/profile`,
+        `${window.location.origin}/agent/profile`,
         {
           uiPreferences: normalizedPreferences,
         },
@@ -171,7 +171,7 @@ export default function Header() {
     if (typeof window !== 'undefined') {
       try {
         if (token) {
-          await axios.delete(`${window.location.origin}o/deleteFirebaseToken`, {
+          await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },

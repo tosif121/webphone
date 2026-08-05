@@ -290,7 +290,7 @@ export const useJssipUtils = (state) => {
     }
 
     try {
-      const url = `${window.location.origin}o/userready/${username}/Web`;
+      const url = `${window.location.origin}/userready/${username}/Web`;
       const response = await axios.post(url, {}, { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) });
       const payload = response?.data || {};
       const success = response.status === 200 && payload.message === 'success';
@@ -314,11 +314,7 @@ export const useJssipUtils = (state) => {
 
   const removeBreak = async () => {
     try {
-      await axios.post(
-        `${window.location.origin}o/user/removebreakuser:${username}`,
-        {},
-        { headers: getAuthHeaders() },
-      );
+      await axios.post(`${window.location.origin}/user/removebreakuser:${username}`, {}, { headers: getAuthHeaders() });
       setSelectedBreak('Break');
       localStorage.removeItem('selectedBreak');
       Object.keys(localStorage).forEach((key) => {

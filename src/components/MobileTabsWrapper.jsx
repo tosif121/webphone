@@ -66,7 +66,7 @@ export default function MobileTabsWrapper() {
     }
     try {
       const response = await axios.post(
-        `${window.location.origin}o/userMissedCalls/${username}`,
+        `${window.location.origin}/userMissedCalls/${username}`,
         {},
         { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
       );
