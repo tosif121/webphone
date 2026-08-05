@@ -42,8 +42,19 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
   const handleReLogin = async (retries = 3) => {
     if (!isClient) return;
 
-    const savedUsername = typeof window !== 'undefined' ? localStorage.getItem('savedUsername') : null;
-    const savedPassword = typeof window !== 'undefined' ? localStorage.getItem('savedPassword') : null;
+    let savedUsername = typeof window !== 'undefined' ? localStorage.getItem('savedUsername') || localStorage.getItem('username') : null;
+    let savedPassword = typeof window !== 'undefined' ? localStorage.getItem('savedPassword') || localStorage.getItem('password') : null;
+
+    if ((!savedUsername || !savedPassword) && typeof window !== 'undefined') {
+      try {
+        const tokenStr = localStorage.getItem('token');
+        if (tokenStr) {
+          const tokenObj = JSON.parse(tokenStr);
+          savedUsername = savedUsername || tokenObj?.savedUsername || tokenObj?.username || tokenObj?.userData?.username || tokenObj?.user;
+          savedPassword = savedPassword || tokenObj?.savedPassword || tokenObj?.password || tokenObj?.userData?.password || tokenObj?.userData?.savedPassword;
+        }
+      } catch (_) {}
+    }
 
     if (!savedUsername || !savedPassword) {
       setError('No saved credentials found. Please login manually.');
@@ -63,9 +74,19 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
         const response = await performLogin(savedUsername, savedPassword);
         if (typeof window !== 'undefined') {
           localStorage.setItem('token', JSON.stringify(response));
+          localStorage.setItem('savedUsername', savedUsername);
+          localStorage.setItem('savedPassword', savedPassword);
           if (response?.userData?.uiPreferences) {
             applyAgentUiPreferencesToDom(response.userData.uiPreferences);
           }
+          // Restore agent ready state on backend
+          try {
+            await axios.post(
+              `${window.location.origin}/userready/${savedUsername}/Web`,
+              {},
+              { headers: { 'Content-Type': 'application/json' } },
+            );
+          } catch (_) {}
         }
         onLoginSuccess();
         return;

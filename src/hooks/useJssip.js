@@ -753,12 +753,26 @@ const useJssip = (isMobile = false) => {
   };
 
   const autoRelogin = async (attempts = 3) => {
-    const savedUsername = localStorage.getItem('savedUsername');
-    const savedPassword = localStorage.getItem('savedPassword');
+    let savedUsername = typeof window !== 'undefined' ? localStorage.getItem('savedUsername') || localStorage.getItem('username') : null;
+    let savedPassword = typeof window !== 'undefined' ? localStorage.getItem('savedPassword') || localStorage.getItem('password') : null;
+
+    if ((!savedUsername || !savedPassword) && typeof window !== 'undefined') {
+      try {
+        const tokenStr = localStorage.getItem('token');
+        if (tokenStr) {
+          const tokenObj = JSON.parse(tokenStr);
+          savedUsername = savedUsername || tokenObj?.savedUsername || tokenObj?.username || tokenObj?.userData?.username || tokenObj?.user;
+          savedPassword = savedPassword || tokenObj?.savedPassword || tokenObj?.password || tokenObj?.userData?.password || tokenObj?.userData?.savedPassword;
+        }
+      } catch (_) {}
+    }
 
     if (!savedUsername || !savedPassword) {
+      console.warn('[AutoRelogin] Missing credentials for auto-relogin');
       return false;
     }
+
+    suppressReloadRef.current = true;
 
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       try {
@@ -773,15 +787,35 @@ const useJssip = (isMobile = false) => {
 
         if (response && (response.success || response.token || response.message === 'Login successful')) {
           localStorage.setItem('token', JSON.stringify(response));
+          localStorage.setItem('savedUsername', savedUsername);
+          localStorage.setItem('savedPassword', savedPassword);
+
           if (response?.userData?.uiPreferences) {
             const { applyAgentUiPreferencesToDom } = await import('@/utils/agent-preferences');
             applyAgentUiPreferencesToDom(response.userData.uiPreferences);
           }
+
+          // Restore agent ready state on backend (/userready/${username}/Web)
+          try {
+            await syncAgentReadyState({ source: 'autoRelogin', attempts: 3, retryDelayMs: 500 });
+          } catch (readyErr) {
+            console.error('[AutoRelogin] Error syncing ready state:', readyErr);
+          }
+
+          // Re-register SIP UA if WebSocket dropped
+          const currentUa = uaRef.current;
+          if (currentUa && (!currentUa.isRegistered() || !getWebSocketStatus().connected)) {
+            try {
+              currentUa.stop();
+              currentUa.start();
+            } catch (_) {}
+          }
+
           handleLoginSuccess();
           return true;
         }
-      } catch {
-        // transient failure - retry below
+      } catch (err) {
+        console.warn(`[AutoRelogin] Attempt ${attempt + 1} failed:`, err?.message || err);
       }
 
       if (attempt < attempts - 1) {
