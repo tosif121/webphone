@@ -414,7 +414,7 @@ export default function DraggableWebPhone() {
   // Render phone content
   const renderPhoneContent = () => (
     <div className={effectiveIsMobile ? 'w-full flex flex-col' : 'w-full h-full flex flex-col'}>
-      {effectiveIsMobile && isIncomingRinging && (
+      {isIncomingRinging && (
         <IncomingCall
           incomingNumber={incomingNumber}
           callerName={callerName}

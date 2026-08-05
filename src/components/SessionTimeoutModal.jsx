@@ -25,7 +25,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
 
   const performLogin = async (username, password) => {
     const { data: response } = await axios.post(
-      `${window.location.origin}/userlogin/${username}`,
+      `https://devapp.iotcom.io/userlogin/${username}`,
       { username, password },
       {
         headers: { 'Content-Type': 'application/json' },
@@ -42,16 +42,28 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
   const handleReLogin = async (retries = 3) => {
     if (!isClient) return;
 
-    let savedUsername = typeof window !== 'undefined' ? localStorage.getItem('savedUsername') || localStorage.getItem('username') : null;
-    let savedPassword = typeof window !== 'undefined' ? localStorage.getItem('savedPassword') || localStorage.getItem('password') : null;
+    let savedUsername =
+      typeof window !== 'undefined' ? localStorage.getItem('savedUsername') || localStorage.getItem('username') : null;
+    let savedPassword =
+      typeof window !== 'undefined' ? localStorage.getItem('savedPassword') || localStorage.getItem('password') : null;
 
     if ((!savedUsername || !savedPassword) && typeof window !== 'undefined') {
       try {
         const tokenStr = localStorage.getItem('token');
         if (tokenStr) {
           const tokenObj = JSON.parse(tokenStr);
-          savedUsername = savedUsername || tokenObj?.savedUsername || tokenObj?.username || tokenObj?.userData?.username || tokenObj?.user;
-          savedPassword = savedPassword || tokenObj?.savedPassword || tokenObj?.password || tokenObj?.userData?.password || tokenObj?.userData?.savedPassword;
+          savedUsername =
+            savedUsername ||
+            tokenObj?.savedUsername ||
+            tokenObj?.username ||
+            tokenObj?.userData?.username ||
+            tokenObj?.user;
+          savedPassword =
+            savedPassword ||
+            tokenObj?.savedPassword ||
+            tokenObj?.password ||
+            tokenObj?.userData?.password ||
+            tokenObj?.userData?.savedPassword;
         }
       } catch (_) {}
     }
@@ -82,7 +94,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
           // Restore agent ready state on backend
           try {
             await axios.post(
-              `${window.location.origin}/userready/${savedUsername}/Web`,
+              `https://devapp.iotcom.io/userready/${savedUsername}/Web`,
               {},
               { headers: { 'Content-Type': 'application/json' } },
             );
