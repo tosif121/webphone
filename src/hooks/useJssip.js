@@ -1833,18 +1833,45 @@ const useJssip = (isMobile = false) => {
           }
         });
 
-        ua.on('registrationFailed', (data) => {
-          console.error('[JsSIP] Registration failed:', data.cause, data);
-          toast.error('Registration failed');
+        ua.on('registrationFailed', async (data) => {
+          const cause = data?.cause || 'unknown';
+          console.error('[JsSIP] SIP Registration failed — cause:', cause, data);
+
+          // If registration failed due to auth/credentials, try auto-relogin to refresh session
+          if (
+            cause === 'Authentication Error' ||
+            cause === 'Rejected' ||
+            data?.response?.status_code === 401 ||
+            data?.response?.status_code === 403
+          ) {
+            console.warn('[JsSIP] Registration auth error — attempting autoRelogin');
+            const reconnected = await autoRelogin();
+            if (reconnected) {
+              console.log('[JsSIP] Auto-relogin succeeded after registration failure');
+              return;
+            }
+          }
+
+          // Schedule automatic re-registration
+          scheduleUaReconnect();
+
+          if (typeof document === 'undefined' || !document.hidden) {
+            if (Date.now() - lastConnectionToastAtRef.current > 15000) {
+              lastConnectionToastAtRef.current = Date.now();
+              toast('Re-registering connection...', { icon: '🔄' });
+            }
+          }
         });
 
         ua.on('unregistered', (data) => {
-          console.warn('[JsSIP] Unregistered:', data.cause);
+          console.warn('[JsSIP] Unregistered from SIP server:', data?.cause || 'unknown');
+          if (typeof document === 'undefined' || !document.hidden) {
+            scheduleUaReconnect();
+          }
         });
 
         ua.on('stopped', () => {
           console.log('[JsSIP] UA Stopped');
-          toast.error('Connection stopped');
         });
 
         ua.on('disconnected', () => {
