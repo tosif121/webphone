@@ -114,11 +114,6 @@ export default function Header() {
     setTroubleshootingMode(checked);
     if (typeof window !== 'undefined') {
       localStorage.setItem('jssip_troubleshooting_mode', checked.toString());
-      if (checked) {
-        toast.success('Troubleshooting Mode enabled. Network graph will now persist.');
-      } else {
-        toast.success('Troubleshooting Mode disabled.');
-      }
 
       // Dispatch storage event manually to sync across hooks/tabs
       window.dispatchEvent(
@@ -142,7 +137,7 @@ export default function Header() {
     setIsSavingPreferences(true);
     try {
       await axios.patch(
-        `${window.location.origin}/agent/profile`,
+        `${window.location.origin}o/agent/profile`,
         {
           uiPreferences: normalizedPreferences,
         },
@@ -164,7 +159,6 @@ export default function Header() {
       }
       setProfilePreferences(normalizedPreferences);
       setIsPreferencesOpen(false);
-      toast.success('Preferences saved');
     } catch (error) {
       console.error('Failed to save agent preferences:', error);
       toast.error(error.response?.data?.message || 'Failed to save preferences');
@@ -177,7 +171,7 @@ export default function Header() {
     if (typeof window !== 'undefined') {
       try {
         if (token) {
-          await axios.delete(`${window.location.origin}/deleteFirebaseToken`, {
+          await axios.delete(`${window.location.origin}o/deleteFirebaseToken`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -199,7 +193,6 @@ export default function Header() {
           localStorage.removeItem(key);
         }
       });
-      toast.success('Logged out successfully');
       setUserMenuOpen(false);
       window.location.href = '/webphone/mobile/login';
     }

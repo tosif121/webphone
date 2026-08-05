@@ -206,7 +206,7 @@ const BreakDropdown = ({
   const removeBreak = async () => {
     try {
       await axios.post(
-        `${window.location.origin}/user/removebreakuser:${username}`,
+        `${window.location.origin}o/user/removebreakuser:${username}`,
         {},
         {
           headers: {
@@ -226,7 +226,6 @@ const BreakDropdown = ({
           localStorage.removeItem(key);
         }
       });
-      toast.success('Break removed successfully');
     } catch (error) {
       console.error('Error removing break:', error);
       toast.error('Error removing break');
@@ -250,13 +249,12 @@ const BreakDropdown = ({
       localStorage.setItem(breakStartKey, Date.now());
 
       setSelectedBreak(breakType);
-      toast.success(`${breakType} queued - will be applied when you submit`);
       return;
     }
 
     try {
       await axios.post(
-        `${window.location.origin}/user/breakuser:${username}`,
+        `${window.location.origin}o/user/breakuser:${username}`,
         { breakType },
         {
           headers: {
@@ -270,8 +268,6 @@ const BreakDropdown = ({
       localStorage.setItem('selectedBreak', breakType);
       const breakStartKey = `breakStartTime_${breakType}`;
       localStorage.setItem(breakStartKey, Date.now());
-
-      toast.success('Break applied successfully');
     } catch (error) {
       console.error('Error applying break:', error);
       toast.error('Error applying break');

@@ -21,7 +21,6 @@ export default function Layout({ children }) {
   const shouldShowPhone = !hiddenPhoneRoutes.includes(router.pathname) && !showSecurityAlert;
 
   const handleAllowForceLogin = () => {
-    toast.success('Force login allowed. Logging out...');
     setShowSecurityAlert(false);
     localStorage.removeItem('token');
     Object.keys(localStorage).forEach((key) => {

@@ -653,7 +653,6 @@ export default function DynamicForm({
 
       if (handleSubmit) {
         await handleSubmit(finalData);
-        toast.success('Form submitted successfully!');
       }
     } catch (error) {
       toast.error('Failed to submit form. Please try again.');

@@ -327,7 +327,7 @@ function Dashboard({ hideModals = false }) {
     setLeadError('');
 
     try {
-      const leadDashboardResponse = await axios.get(`${window.location.origin}/lead/dashboard`, {
+      const leadDashboardResponse = await axios.get(`${window.location.origin}o/lead/dashboard`, {
         params: {
           limit: 200,
           includeCompleted: true,
@@ -404,7 +404,7 @@ function Dashboard({ hideModals = false }) {
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/reports/calls/byAgent`,
+        `${window.location.origin}o/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -481,7 +481,7 @@ function Dashboard({ hideModals = false }) {
 
     try {
       const response = await axios.post(
-        `${window.location.origin}/userMissedCalls/${username}`,
+        `${window.location.origin}o/userMissedCalls/${username}`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -519,7 +519,7 @@ function Dashboard({ hideModals = false }) {
 
     try {
       const response = await axios.post(
-        `${window.location.origin}/lead/next`,
+        `${window.location.origin}o/lead/next`,
         {},
         {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -549,7 +549,7 @@ function Dashboard({ hideModals = false }) {
 
     try {
       await axios.post(
-        `${window.location.origin}/lead/skip`,
+        `${window.location.origin}o/lead/skip`,
         {
           leadId: activeLead.leadId,
           lockToken: leadLockToken,
@@ -844,7 +844,7 @@ function Dashboard({ hideModals = false }) {
 
         try {
           const { data } = await axios.post(
-            `${window.location.origin}/user/agentAvailable/${username}`,
+            `${window.location.origin}o/user/agentAvailable/${username}`,
             {},
             {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),

@@ -200,12 +200,10 @@ const CallScreen = ({
     try {
       const transferBridgeID = activeCallContext?.bridgeID || bridgeID;
 
-      const res = await axios.post(`${window.location.origin}/reqTransfer/${username}`, {
+      const res = await axios.post(`${window.location.origin}o/reqTransfer/${username}`, {
         bridgeID: transferBridgeID,
       });
-      if (res.data?.success) {
-        toast.success(res.data.message || 'Request successful!');
-      } else {
+      if (!res.data?.success) {
         toast.error(res.data?.message || 'Request failed. Please try again.');
       }
     } catch (error) {
@@ -268,7 +266,6 @@ const CallScreen = ({
     }
 
     setIsMerged(true);
-    toast.success('Merged with conference participants');
   }, [hasParticipants, username, conferenceNumber, isHeld, status, reqUnHold, callType]);
 
   const handleMuteToggle = useCallback(() => {
@@ -295,7 +292,7 @@ const CallScreen = ({
       }
 
       const response = await axios.post(
-        `${window.location.origin}/hangup/hostChannel/Conf`,
+        `${window.location.origin}o/hangup/hostChannel/Conf`,
         {
           user: username,
           hostNumber: cleanNumber,
@@ -309,7 +306,6 @@ const CallScreen = ({
       );
 
       if (response.data.success || response.data.message === 'Host channel not found in conference') {
-        toast.success(response.data.message || 'Conference disconnected successfully');
         setHasParticipants('Conference disconnected');
       } else {
         toast.error('Failed to disconnect conference');

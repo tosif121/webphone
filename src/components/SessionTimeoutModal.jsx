@@ -25,7 +25,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
 
   const performLogin = async (username, password) => {
     const { data: response } = await axios.post(
-      `${window.location.origin}/userlogin/${username}`,
+      `${window.location.origin}o/userlogin/${username}`,
       { username, password },
       {
         headers: { 'Content-Type': 'application/json' },
@@ -68,7 +68,6 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
           }
         }
         onLoginSuccess();
-        toast.success('Re-login successful');
         return;
       } catch (err) {
         console.error(`Re-login attempt ${attempt + 1} failed:`, err);

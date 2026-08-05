@@ -5,10 +5,14 @@ import { JssipProvider } from '@/context/JssipContext';
 import '../styles/globals.css';
 import { Jost } from 'next/font/google';
 import { useRouter } from 'next/router';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 import Layout from '@/components/layout/Layout';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { logError, checkHydrationIssues } from '@/utils/debugUtils';
+
+if (typeof toast !== 'undefined' && toast.success) {
+  toast.success = () => {};
+}
 
 const jostSans = Jost({
   variable: '--font-jost-sans',

@@ -151,7 +151,7 @@ export default function AgentDashboard({ hideModals = false }) {
       try {
         const tokenData = JSON.parse(localStorage.getItem('token'));
         const response = await axios.post(
-          `${window.location.origin}/agentDashboardData`,
+          `${window.location.origin}o/agentDashboardData`,
           { user: tokenData.userData.userid },
           {
             headers: {

@@ -52,7 +52,7 @@ export default function AgentCallData() {
         enddate: endDate,
       };
 
-      const { data } = await axios.post(`${window.location.origin}/agentcallData`, payload, {
+      const { data } = await axios.post(`${window.location.origin}o/agentcallData`, payload, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${tokenDetails.token}`,
@@ -143,7 +143,7 @@ export default function AgentCallData() {
         return;
       }
 
-      const response = await axios.get(`${window.location.origin}/recording/recording${bridgeID}.wav`, {
+      const response = await axios.get(`${window.location.origin}o/recording/recording${bridgeID}.wav`, {
         headers: {
           Authorization: `Bearer ${tokenDetails.token}`,
         },
@@ -157,7 +157,7 @@ export default function AgentCallData() {
       setCurrentAudioUrl(localAudioUrl);
       setCurrentBridgeId(bridgeID);
       setIsAudioPlayerOpen(true);
-      toast.success('Recording loaded.', { id: toastId });
+      toast.dismiss(toastId);
     } catch (error) {
       console.error('Error fetching audio:', error);
       if (error.response?.status === 403 || error.response?.status === 401) {

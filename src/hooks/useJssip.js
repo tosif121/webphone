@@ -254,6 +254,7 @@ const useJssip = (isMobile = false) => {
   const suppressReloadRef = useRef(false);
   const recentlyRejectedNumbersRef = useRef({});
   const rejectIncomingCallRef = useRef(null);
+  const lastInNotificationValueRef = useRef('');
 
   const MESSAGE_HEARTBEAT_STALE_MS = 10000;
   const CONNECTION_CHECK_TIMEOUT_MS = 8000;
@@ -528,7 +529,7 @@ const useJssip = (isMobile = false) => {
             phoneNumber: incomingNumber || phoneNumber || '',
           };
 
-          const response = await axios.post(`${window.location.origin}/useroncall/${username}`, payload, {
+          const response = await axios.post(`${window.location.origin}o/useroncall/${username}`, payload, {
             headers: {
               ...getAuthHeaders({ 'Content-Type': 'application/json' }),
             },
@@ -635,7 +636,7 @@ const useJssip = (isMobile = false) => {
       try {
         console.log(`[CallGuard] Requesting clearRejectedCallFromAgent for ${callerNumber}...`);
         const response = await axios.post(
-          `${window.location.origin}/clearRejectedCallFromAgent`,
+          `${window.location.origin}o/clearRejectedCallFromAgent`,
           { caller: callerNumber },
           {
             headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -738,10 +739,6 @@ const useJssip = (isMobile = false) => {
     setIsConnectionLost(false);
     setTimeoutMessage('');
 
-    toast.success('Re-login successful. Reconnecting...', {
-      duration: 2000,
-    });
-
     // During background recovery (app just resumed, possibly with an incoming
     // FCM call on screen) a full page reload would wipe the incoming-call UI
     // and logged-in state. Reconnect in place instead.
@@ -766,7 +763,7 @@ const useJssip = (isMobile = false) => {
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       try {
         const { data: response } = await axios.post(
-          `${window.location.origin}/userlogin/${savedUsername}`,
+          `${window.location.origin}o/userlogin/${savedUsername}`,
           { username: savedUsername, password: savedPassword },
           {
             headers: { 'Content-Type': 'application/json' },
@@ -904,7 +901,7 @@ const useJssip = (isMobile = false) => {
         const userconTs = Date.now();
         const response = await withTimeout(
           axios.post(
-            `${window.location.origin}/userconnection`,
+            `${window.location.origin}o/userconnection`,
             { user: username },
             { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
           ),
@@ -1012,12 +1009,22 @@ const useJssip = (isMobile = false) => {
         if (data.currentCallqueue?.length > 0) {
           if (campaign === data.currentCallqueue[0].campaign) {
             setRingtone(data.currentCallqueue);
-            setInNotification(data.currentCallqueue.map((call) => call.Caller || data.currentCallqueue[0].Caller));
+            // Only notify when the queued callers actually change, otherwise the
+            // 5s poll would fire a fresh notification every cycle.
+            const notifiedCallers = data.currentCallqueue
+              .map((call) => call.Caller || data.currentCallqueue[0].Caller)
+              .join(',');
+            if (notifiedCallers !== lastInNotificationValueRef.current) {
+              lastInNotificationValueRef.current = notifiedCallers;
+              setInNotification(data.currentCallqueue.map((call) => call.Caller || data.currentCallqueue[0].Caller));
+            }
           } else {
             setRingtone([]);
+            lastInNotificationValueRef.current = '';
           }
         } else {
           setRingtone([]);
+          lastInNotificationValueRef.current = '';
         }
 
         // ✅ 8. Connection successful
@@ -1671,7 +1678,7 @@ const useJssip = (isMobile = false) => {
               await new Promise((resolve) => setTimeout(resolve, 1000));
 
               const response = await axios.post(
-                `${window.location.origin}/user/breakuser:${username}`,
+                `${window.location.origin}o/user/breakuser:${username}`,
                 { breakType: storedBreak },
                 { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
               );
@@ -2766,7 +2773,7 @@ const useJssip = (isMobile = false) => {
         autoLeadDial: metadata?.autoLeadDial,
       };
 
-      const response = await axios.post(`${window.location.origin}/dialnumber`, dialPayload, {
+      const response = await axios.post(`${window.location.origin}o/dialnumber`, dialPayload, {
         headers: {
           ...getAuthHeaders({
             'Content-Type': 'application/json',
@@ -2918,7 +2925,7 @@ const useJssip = (isMobile = false) => {
           isMerged: !!isMerged,
         };
 
-        const callendedUrl = `${window.location.origin}/user/callended${username}`;
+        const callendedUrl = `${window.location.origin}o/user/callended${username}`;
 
         const callendedResponse = await axios.post(callendedUrl, callendedPayload, {
           headers: {
@@ -2932,7 +2939,7 @@ const useJssip = (isMobile = false) => {
         // Auto-disposition for calls that were never answered
         if (!needsDispositionRef.current) {
           try {
-            const dispoUrl = `${window.location.origin}/user/disposition${username}`;
+            const dispoUrl = `${window.location.origin}o/user/disposition${username}`;
             const finalBridgeID = bridgeIDRef.current || bridgeID;
             const dispoPayload = {
               bridgeID: finalBridgeID || 'deadCallId',
@@ -2959,7 +2966,7 @@ const useJssip = (isMobile = false) => {
         } else if (!isDispositionEnabled) {
           // When disposition is disabled, perform SILENT auto-disposition
           try {
-            const dispoUrl = `${window.location.origin}/user/disposition${username}`;
+            const dispoUrl = `${window.location.origin}o/user/disposition${username}`;
             const finalBridgeID = bridgeIDRef.current || bridgeID;
             const dispoPayload = {
               bridgeID: finalBridgeID || 'deadCallId',

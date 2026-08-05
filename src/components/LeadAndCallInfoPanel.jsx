@@ -710,7 +710,7 @@ export default function LeadAndCallInfoPanel({
     try {
       setSavingSticky(true);
       await axios.post(
-        `${window.location.origin}/contact/sticky`,
+        `${window.location.origin}o/contact/sticky`,
         {
           contactNumber: normalizedContactNumber,
           campaignId: userCampaign,
@@ -725,7 +725,6 @@ export default function LeadAndCallInfoPanel({
         },
       );
       setStickyOverride(!isStickyContact);
-      toast.success(!isStickyContact ? 'Customer marked sticky.' : 'Sticky removed for this customer.');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to update sticky preference.');
     } finally {
@@ -791,7 +790,7 @@ export default function LeadAndCallInfoPanel({
             throw new Error('No saved credentials found');
           }
 
-          const refreshRes = await axios.post(`${window.location.origin}/refresh-token-agent`, {
+          const refreshRes = await axios.post(`${window.location.origin}o/refresh-token-agent`, {
             userid: savedUsername,
             password: savedPassword,
           });
@@ -853,7 +852,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `${window.location.origin}/getDynamicFormDataAgent/${userCampaign}`,
+          `${window.location.origin}o/getDynamicFormDataAgent/${userCampaign}`,
           token,
           refreshToken,
         );
@@ -960,7 +959,7 @@ export default function LeadAndCallInfoPanel({
         }
 
         const res = await fetchWithTokenRetry(
-          `${window.location.origin}/getDynamicFormData/${formId}`,
+          `${window.location.origin}o/getDynamicFormData/${formId}`,
           token,
           refreshToken,
         );
@@ -992,7 +991,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/leadswithdaterange`,
+        `${window.location.origin}o/leadswithdaterange`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -1022,7 +1021,7 @@ export default function LeadAndCallInfoPanel({
       const formattedEndDate = moment(endDate).format('YYYY-MM-DD');
 
       const response = await axios.post(
-        `${window.location.origin}/reports/calls/byAgent`,
+        `${window.location.origin}o/reports/calls/byAgent`,
         {
           startDate: formattedStartDate,
           endDate: formattedEndDate,
@@ -1557,12 +1556,11 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}o/addModifyContact`, payload, {
         headers: authHeaders,
       });
 
       if (response.data?.success) {
-        toast.success(response.data.message || 'Contact saved successfully.');
         setFormSubmitted(true);
         setTimeout(() => {
           setLocalFormData({});
@@ -1607,12 +1605,11 @@ export default function LeadAndCallInfoPanel({
     };
 
     try {
-      const response = await axios.post(`${window.location.origin}/addModifyContact`, payload, {
+      const response = await axios.post(`${window.location.origin}o/addModifyContact`, payload, {
         headers: authHeaders,
       });
 
       if (response.data?.success) {
-        toast.success(response.data.message || 'Contact saved successfully.');
         setFormSubmitted(true);
 
         // Refresh global data
@@ -1727,7 +1724,7 @@ export default function LeadAndCallInfoPanel({
     try {
       setLoadingContactConversationHistory(true);
       setLoadingContactProfile(true);
-      const response = await axios.get(`${window.location.origin}/contact/${encodeURIComponent(contactNumber)}/full`, {
+      const response = await axios.get(`${window.location.origin}o/contact/${encodeURIComponent(contactNumber)}/full`, {
         params: {
           limit: 75,
         },
@@ -1778,7 +1775,7 @@ export default function LeadAndCallInfoPanel({
     try {
       setSavingNote(true);
       const response = await axios.post(
-        `${window.location.origin}/contact/notes`,
+        `${window.location.origin}o/contact/notes`,
         {
           contactNumber: normalizedContactNumber,
           text: trimmedNote,
@@ -1794,7 +1791,6 @@ export default function LeadAndCallInfoPanel({
       );
 
       if (response.data?.success) {
-        toast.success('Note saved successfully.');
         setNoteText('');
         await fetchContactWorkspace();
         setActiveTab('contactDetails');

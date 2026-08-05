@@ -192,7 +192,7 @@ export default function Login() {
 
     try {
       const { data: response } = await axios.post(
-        `${window.location.origin}/userlogin/${loginUsername}`,
+        `${window.location.origin}o/userlogin/${loginUsername}`,
         { username: loginUsername, password: loginPassword },
         { headers: { 'Content-Type': 'application/json' } },
       );
@@ -257,7 +257,6 @@ export default function Login() {
 
         const toastMessage = await handleSubscriptionDelay(daysExpired);
         toast.error(toastMessage);
-        toast.success('Login successfully');
         setIsLoading(false);
         await router.push('/');
       } else if (differenceInDays < 3) {
@@ -270,11 +269,9 @@ export default function Login() {
           setSubscriptionDialog((prev) => ({ ...prev, isOpen: false }));
         }, 3000);
         toast.error('Your subscription is about to expire. Please renew soon!');
-        toast.success('Login successfully');
         setIsLoading(false);
         await router.push('/');
       } else {
-        toast.success('Login successfully');
         setIsLoading(false);
         await router.push('/');
       }
@@ -346,7 +343,6 @@ export default function Login() {
     setTimeout(() => {
       setShowTimerWaiting(false);
       // Here you would make the force login API call
-      toast.success('Force login request sent');
       // Retry the login after force login request
       performLogin();
     }, 5000);

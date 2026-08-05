@@ -1,5 +1,5 @@
 // hooks/jssip/useJssipUtils.js
-import { useCallback, useContext, useEffect } from 'react';
+import { useCallback, useContext, useEffect, useRef } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import HistoryContext from '../../context/HistoryContext';
@@ -8,6 +8,30 @@ import { withWebphoneBasePath } from '../../lib/basePath';
 export const useJssipUtils = (state) => {
   const { username, setSelectedBreak } = useContext(HistoryContext);
   const { ringtoneRef, inNotification, setInNotification } = state;
+
+  // Dedupe ring notifications per caller so a single call never triggers
+  // repeated vibrations/notifications (e.g. from the 5s connection poll or the
+  // FCM + SIP double path). Keyed by the caller's last 10 digits so +91/91/
+  // plain 10-digit variants of the same number collapse to one key.
+  const lastRingNotificationRef = useRef({ key: '', ts: 0 });
+  const RING_NOTIFICATION_DEDUP_MS = 45000;
+
+  const normalizeCallerKey = (value) =>
+    String(value || '')
+      .replace(/\D/g, '')
+      .slice(-10);
+
+  const shouldFireRingNotification = (value) => {
+    const key = normalizeCallerKey(value);
+    if (!key) return false;
+    const now = Date.now();
+    const last = lastRingNotificationRef.current;
+    if (last.key === key && now - last.ts < RING_NOTIFICATION_DEDUP_MS) {
+      return false;
+    }
+    lastRingNotificationRef.current = { key, ts: now };
+    return true;
+  };
 
   const getAuthHeaders = useCallback((extraHeaders = {}) => {
     try {
@@ -78,6 +102,8 @@ export const useJssipUtils = (state) => {
       ringtoneRef.current.pause();
       ringtoneRef.current.currentTime = 0;
     }
+    // Allow the next call to ring/notify again (dedupe only applies while ringing).
+    lastRingNotificationRef.current = { key: '', ts: 0 };
     if (typeof window !== 'undefined') {
       window.pendingIncomingCall = null;
       if (window.FlutterFCMBridge) {
@@ -141,6 +167,12 @@ export const useJssipUtils = (state) => {
       return true;
     }
 
+    // Never re-notify for the same caller while it's still ringing (blocks the
+    // repeated 5s poll notifications and the FCM + SIP double path).
+    if (!shouldFireRingNotification(notificationValue)) {
+      return false;
+    }
+
     // Always show notification if user is away from website
     if (isUserAway()) {
       notifyMe();
@@ -158,6 +190,9 @@ export const useJssipUtils = (state) => {
   }
 
   const showNotificationDirect = useCallback((number) => {
+    // Skip if we already notified for this caller within the dedupe window.
+    if (!shouldFireRingNotification(number)) return;
+
     if ('vibrate' in navigator) {
       navigator.vibrate([200, 100, 200, 100, 500]);
     }
@@ -255,7 +290,7 @@ export const useJssipUtils = (state) => {
     }
 
     try {
-      const url = `${window.location.origin}/userready/${username}/Web`;
+      const url = `${window.location.origin}o/userready/${username}/Web`;
       const response = await axios.post(url, {}, { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) });
       const payload = response?.data || {};
       const success = response.status === 200 && payload.message === 'success';
@@ -279,7 +314,11 @@ export const useJssipUtils = (state) => {
 
   const removeBreak = async () => {
     try {
-      await axios.post(`${window.location.origin}/user/removebreakuser:${username}`, {}, { headers: getAuthHeaders() });
+      await axios.post(
+        `${window.location.origin}o/user/removebreakuser:${username}`,
+        {},
+        { headers: getAuthHeaders() },
+      );
       setSelectedBreak('Break');
       localStorage.removeItem('selectedBreak');
       Object.keys(localStorage).forEach((key) => {
@@ -287,7 +326,6 @@ export const useJssipUtils = (state) => {
           localStorage.removeItem(key);
         }
       });
-      toast.success('Break removed successfully');
       return true;
     } catch (error) {
       console.error('Error removing break:', error);

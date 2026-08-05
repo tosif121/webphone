@@ -113,14 +113,13 @@ const Disposition = ({
     setSavingStickyMode(true);
     try {
       await axios.post(
-        `${window.location.origin}/campaign/${campaignId}`,
+        `${window.location.origin}o/campaign/${campaignId}`,
         {
           stickyMode: isNone ? '' : value,
           stickyEnabled: !isNone,
         },
         { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) },
       );
-      toast.success(isNone ? 'Sticky mode disabled' : `Sticky mode: ${value}`);
     } catch {
       toast.error('Failed to update sticky mode');
     } finally {
@@ -210,7 +209,7 @@ const Disposition = ({
       }
 
       await axios.post(
-        `${window.location.origin}/callback/update-status`,
+        `${window.location.origin}o/callback/update-status`,
         {
           callbackId,
           status: 'completed',
@@ -367,13 +366,12 @@ const Disposition = ({
         stickyMode: stickyMode === 'disabled' ? '' : stickyMode,
       };
 
-      const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
+      const response = await axios.post(`${window.location.origin}o/user/disposition${username}`, requestBody, {
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       });
 
       if (response.data.success) {
         await completeActiveFollowUpCallback();
-        toast.success('Auto disposition completed successfully');
 
         // Set completion flag before calling other functions
         setIsAutoDispositionComplete(true);
@@ -668,7 +666,7 @@ const Disposition = ({
         }
 
         // 1. Submit disposition FIRST
-        const response = await axios.post(`${window.location.origin}/user/disposition${username}`, requestBody, {
+        const response = await axios.post(`${window.location.origin}o/user/disposition${username}`, requestBody, {
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         });
 
@@ -681,7 +679,7 @@ const Disposition = ({
             try {
               // Apply the break after disposition
               await axios.post(
-                `${window.location.origin}/user/breakuser:${username}`,
+                `${window.location.origin}o/user/breakuser:${username}`,
                 {
                   breakType: selectedBreakType,
                 },
@@ -689,13 +687,9 @@ const Disposition = ({
                   headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                 },
               );
-              toast.success('Disposition submitted and break applied successfully');
             } catch (breakError) {
               console.error('Break application failed:', breakError);
-              toast.success('Disposition submitted successfully, but break application failed');
             }
-          } else {
-            toast.success('Disposition submitted successfully');
           }
 
           setHasSubmittedSuccessfully(true);
