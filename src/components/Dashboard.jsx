@@ -463,7 +463,7 @@ function Dashboard({ hideModals = false }) {
         });
       }
     } catch (error) {
-      console.error('Error fetching API data for Call Info tab:', error);
+      console.warn('Error fetching API data for Call Info tab:', error?.message || error);
       setCallError(error.response?.data?.message || error.message || 'Failed to fetch call stats.');
       setApiCallData([]);
       setCallStats({ incomingCalls: 0, outgoingCalls: 0, totalCalls: 0, connectedCalls: 0, avgDurationSeconds: 0 });
@@ -491,7 +491,7 @@ function Dashboard({ hideModals = false }) {
         setUsermissedCalls(response.data.result || []);
       }
     } catch (error) {
-      console.error('Error fetching missed calls:', error);
+      console.warn('Error fetching missed calls:', error?.message || error);
       setUsermissedCalls([]);
     }
   }, [getAuthHeaders, token, username]);

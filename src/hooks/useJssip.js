@@ -634,21 +634,26 @@ const useJssip = (isMobile = false) => {
         console.warn('[CallGuard] Skipping clearRejectedCall — invalid caller number');
         return;
       }
-      try {
-        console.log(`[CallGuard] Requesting clearRejectedCallFromAgent for ${callerNumber}...`);
-        const response = await axios.post(
-          `${window.location.origin}/clearRejectedCallFromAgent`,
-          { caller: callerNumber },
-          {
-            headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-          },
-        );
-        console.log(`[CallGuard] clearRejectedCallFromAgent response:`, response.data);
-      } catch (error) {
-        console.error(
-          `[CallGuard] clearRejectedCallFromAgent failed for ${callerNumber}:`,
-          error?.response?.data || error?.message || error,
-        );
+      const rawNumber = String(callerNumber).replace(/^\+91/, '').replace(/^\+/, '');
+      const numberVariants = Array.from(new Set([callerNumber, rawNumber, `+91${rawNumber}`]));
+
+      for (const num of numberVariants) {
+        try {
+          console.log(`[CallGuard] Requesting clearRejectedCallFromAgent for ${num}...`);
+          const response = await axios.post(
+            `${window.location.origin}/clearRejectedCallFromAgent`,
+            { caller: num },
+            {
+              headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+            },
+          );
+          console.log(`[CallGuard] clearRejectedCallFromAgent response for ${num}:`, response.data);
+        } catch (error) {
+          console.error(
+            `[CallGuard] clearRejectedCallFromAgent failed for ${num}:`,
+            error?.response?.data || error?.message || error,
+          );
+        }
       }
     },
     [getAuthHeaders],
@@ -858,11 +863,11 @@ const useJssip = (isMobile = false) => {
 
   const withTimeout = (promise, timeoutMs) => {
     let timer;
-    const timeoutPromise = new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error('Timeout')), timeoutMs);
+    const timeoutPromise = new Promise((resolve) => {
+      timer = setTimeout(() => resolve({ isTimeout: true, data: {} }), timeoutMs);
     });
     // If the wrapped promise loses the race and rejects later, mark it handled
-    // so it never surfaces as an unhandled rejection in the dev overlay.
+    // so it never surfaces as an unhandled rejection in Next.js dev overlay.
     promise.catch(() => {});
     return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
   };
@@ -883,32 +888,43 @@ const useJssip = (isMobile = false) => {
       const now = Date.now();
       const hasRecentAriHeartbeat =
         lastAriMessageAtRef.current > 0 && now - lastAriMessageAtRef.current <= MESSAGE_HEARTBEAT_STALE_MS;
-      const hasProtectedSessionPhase =
-        dispositionModalRef.current ||
-        connectionStatusRef.current === 'Disposition' ||
-        statusRef.current === 'calling' ||
-        statusRef.current === 'conference' ||
-        Boolean(incomingSessionRef.current) ||
-        isIncomingRingingRef.current ||
-        agentLifecycleRef.current === 'dialing' ||
-        agentLifecycleRef.current === 'ringing' ||
-        agentLifecycleRef.current === 'on_call' ||
-        agentLifecycleRef.current === 'disposition' ||
-        isAutomationLoadingRef.current;
 
-      if (!force) {
-        if (reason === 'interval' && hasRecentAriHeartbeat) {
-          return false;
-        }
-
-        if (reason === 'interval' && now - lastConnectionCheckAtRef.current < CONNECTION_CHECK_MIN_REQUEST_GAP_MS) {
+      // Skip throttle when forced or when explicit post-ready check.
+      if (!force && reason !== 'post-ready' && !hasRecentAriHeartbeat) {
+        if (now - lastConnectionCheckAtRef.current < CONNECTION_CHECK_MIN_INTERVAL_MS) {
           return false;
         }
       }
 
+      connectioncheckInFlightRef.current = true;
+      lastConnectionCheckAtRef.current = now;
+
       try {
-        connectioncheckInFlightRef.current = true;
-        lastConnectionCheckAtRef.current = now;
+        const tokenStr = localStorage.getItem('token');
+        if (!tokenStr) {
+          /* console.error('No token found for connection check'); */
+          return false;
+        }
+
+        const parsedTokenData = getStoredTokenPayload();
+        const username =
+          localStorage.getItem('savedUsername') ||
+          localStorage.getItem('username') ||
+          parsedTokenData?.savedUsername ||
+          parsedTokenData?.username ||
+          parsedTokenData?.userData?.username ||
+          parsedTokenData?.user;
+
+        if (!username) {
+          /* console.error('Username missing in token data'); */
+          return false;
+        }
+
+        const campaign = parsedTokenData?.userData?.campaign;
+        if (!campaign) {
+          /* console.error('Campaign information missing in token data'); */
+          return false;
+        }
 
         if (readySyncLastSuccessRef.current === 0) {
           if (!isUARegistered()) {
@@ -928,24 +944,6 @@ const useJssip = (isMobile = false) => {
 
         setIsConnectionLost(false);
 
-        // Parse token data once at the beginning
-        const tokenDataString = localStorage.getItem('token');
-        if (!tokenDataString) {
-          console.error('No token data found');
-          return false;
-        }
-
-        const parsedTokenData = JSON.parse(tokenDataString);
-        const token = parsedTokenData.token;
-
-        if (!parsedTokenData?.userData?.campaign) {
-          /* console.error('Campaign information missing in token data'); */
-          return false;
-        }
-
-        const campaign = parsedTokenData.userData.campaign;
-
-        const userconTs = Date.now();
         const response = await withTimeout(
           axios.post(
             `${window.location.origin}/userconnection`,
@@ -954,6 +952,15 @@ const useJssip = (isMobile = false) => {
           ),
           CONNECTION_CHECK_TIMEOUT_MS,
         );
+
+        if (!response || response.isTimeout) {
+          console.warn('[ConnectionCheck] userconnection request timed out silently');
+          addTimeout('timeout');
+          if (!hasRecentAriHeartbeat) {
+            connectionFailureCountRef.current += 1;
+          }
+          return false;
+        }
 
         const data = response.data;
 
@@ -979,16 +986,9 @@ const useJssip = (isMobile = false) => {
         // ✅ 2. Auth failure — auto-reconnect instead of force logout
         if (response.status === 401 || !data.isUserLogin) {
           if (statusRef.current === 'start' && !dispositionModalRef.current) {
-            // App in background: skip, recover on return via visibility handler
-            if (typeof document !== 'undefined' && document.hidden) {
-              return true;
-            }
-
-            setTimeoutMessage('');
             const reconnected = await autoRelogin();
             if (reconnected) return true;
-            await handleLogout(token, 'Connection lost. Please re-connect.');
-            return true;
+            return false;
           }
           return false;
         }
@@ -1535,7 +1535,7 @@ const useJssip = (isMobile = false) => {
     }
   };
 
-  const rejectIncomingCall = () => {
+  const rejectIncomingCall = async () => {
     rejectIncomingCallRef.current = rejectIncomingCall;
     const session = incomingSessionRef.current;
 
@@ -1589,7 +1589,11 @@ const useJssip = (isMobile = false) => {
         session.terminate({ status_code: 486, reason_phrase: 'Busy Here' });
       } catch (_) {}
     }
-    void clearRejectedCall(remoteUser);
+
+    // 1. Clear call from Asterisk queue FIRST
+    try {
+      await clearRejectedCall(remoteUser);
+    } catch (_) {}
 
     // Update history as rejected
     setHistory((prev) => [
@@ -1598,7 +1602,9 @@ const useJssip = (isMobile = false) => {
     ]);
 
     setDispositionModal(false);
-    void syncAgentReadyState({ source: 'rejectIncomingCall', attempts: 2, retryDelayMs: 500 });
+
+    // 2. Mark agent ready ONLY after queue has been cleared
+    await syncAgentReadyState({ source: 'rejectIncomingCall', attempts: 2, retryDelayMs: 500 });
   };
   rejectIncomingCallRef.current = rejectIncomingCall;
 
@@ -3028,7 +3034,7 @@ const useJssip = (isMobile = false) => {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             });
           } catch (dispoError) {
-            console.error('[autoDispo] FAILED:', dispoError.response?.data || dispoError.message);
+            console.warn('[autoDispo] FAILED:', dispoError.response?.data || dispoError.message);
           }
           setIsHeld(false);
           setIsCallended(false);
@@ -3056,7 +3062,7 @@ const useJssip = (isMobile = false) => {
               headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             });
           } catch (dispoError) {
-            console.error('[autoDispo] FAILED:', dispoError.response?.data || dispoError.message);
+            console.warn('[autoDispo] FAILED:', dispoError.response?.data || dispoError.message);
           }
 
           // 3. Reset to IDLE / Home Screen instantly
@@ -3077,7 +3083,7 @@ const useJssip = (isMobile = false) => {
           setDispositionModal(true);
         }
       } catch (error) {
-        console.error('[WebPhone] Error in post-call automation:', error);
+        console.warn('[WebPhone] Post-call automation network issue:', error?.message || error);
         // Safety reset even on error
         setIsCallended(false);
         setActiveLead(null);

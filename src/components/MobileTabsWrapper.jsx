@@ -74,7 +74,7 @@ export default function MobileTabsWrapper() {
         setUsermissedCalls(response.data.result || []);
       }
     } catch (error) {
-      console.error('Error fetching missed calls:', error);
+      console.warn('Error fetching missed calls:', error?.message || 'Network Error');
       setUsermissedCalls([]);
     }
   }, [getAuthHeaders, token, username]);

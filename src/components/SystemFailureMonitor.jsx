@@ -357,7 +357,7 @@ const SystemFailureMonitors = () => {
           return u.length > maxPts ? u.slice(-maxPts) : u;
         });
         if (troubleshootingMode && latency > HIGH_LATENCY_MS && !latencyToastRef.current) {
-          toast.error(`High Network Latency: ${latency}ms`);
+          // toast.error(`High Network Latency: ${latency}ms`);
           latencyToastRef.current = true;
           setTimeout(() => {
             latencyToastRef.current = false;
@@ -371,7 +371,7 @@ const SystemFailureMonitors = () => {
           return u.length > maxPts ? u.slice(-maxPts) : u;
         });
         if (troubleshootingMode && !latencyToastRef.current) {
-          toast.error(`Ping Failed. RTT Fallback: ${fb}ms`);
+          // toast.error(`Ping Failed. RTT Fallback: ${fb}ms`);
           latencyToastRef.current = true;
           setTimeout(() => {
             latencyToastRef.current = false;
