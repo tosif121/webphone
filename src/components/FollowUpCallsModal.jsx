@@ -179,7 +179,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
 
         window.dispatchEvent(new CustomEvent('setDialingNumber', { detail: cleanPhoneNumber }));
         await axios.post(
-          `https://devapp.iotcom.io/dialmissedcall`,
+          `${window.location.origin}/dialmissedcall`,
           {
             receiver: cleanPhoneNumber,
           },
@@ -210,7 +210,7 @@ const FollowUpCallsModal = ({ followUpDispoes, setCallAlert, username, scheduleC
       try {
         setUpdatingCallbackId(callbackId);
         await axios.post(
-          `https://devapp.iotcom.io/callback/update-status`,
+          `${window.location.origin}/callback/update-status`,
           {
             callbackId,
             status,
