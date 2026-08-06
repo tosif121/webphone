@@ -14,6 +14,7 @@ export default function IncomingCall({
   isIncomingRinging,
   answerIncomingCall,
   rejectIncomingCall,
+  stopRingtone,
   session,
   isSticky,
 }) {
@@ -48,10 +49,12 @@ export default function IncomingCall({
   }, [isIncomingRinging, incomingNumber, incomingSession, isSticky]);
 
   const handleAnswer = () => {
+    if (stopRingtone) stopRingtone();
     if (answerIncomingCall) answerIncomingCall();
   };
 
   const handleDecline = () => {
+    if (stopRingtone) stopRingtone();
     if (rejectIncomingCall) rejectIncomingCall();
   };
 

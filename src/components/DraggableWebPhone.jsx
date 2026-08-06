@@ -422,6 +422,7 @@ export default function DraggableWebPhone() {
           isIncomingRinging={isIncomingRinging}
           answerIncomingCall={answerIncomingCall}
           rejectIncomingCall={rejectIncomingCall}
+          stopRingtone={stopRingtone}
           session={session}
           isSticky={currentCallData?.isSticky}
         />

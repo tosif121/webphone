@@ -99,9 +99,25 @@ export const useJssipUtils = (state) => {
 
   const stopRingtone = () => {
     if (ringtoneRef.current) {
-      ringtoneRef.current.pause();
-      ringtoneRef.current.currentTime = 0;
+      try {
+        ringtoneRef.current.pause();
+        ringtoneRef.current.currentTime = 0;
+      } catch (_) {}
     }
+
+    if (typeof document !== 'undefined') {
+      try {
+        const audioElements = document.getElementsByTagName('audio');
+        for (let i = 0; i < audioElements.length; i += 1) {
+          const audio = audioElements[i];
+          if (audio && (audio.src?.includes('ringtone') || !audio.paused)) {
+            audio.pause();
+            audio.currentTime = 0;
+          }
+        }
+      } catch (_) {}
+    }
+
     // Allow the next call to ring/notify again (dedupe only applies while ringing).
     lastRingNotificationRef.current = { key: '', ts: 0 };
     if (typeof window !== 'undefined') {
@@ -110,6 +126,7 @@ export const useJssipUtils = (state) => {
         try {
           window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'stopRingtone' }));
           window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'clearNotification' }));
+          window.FlutterFCMBridge.postMessage(JSON.stringify({ action: 'clearPendingCall' }));
         } catch (_) {}
       }
     }
@@ -302,7 +319,7 @@ export const useJssipUtils = (state) => {
     }
 
     try {
-      const url = `${window.location.origin}/userready/${username}/Web`;
+      const url = `https://devapp.iotcom.io/userready/${username}/Web`;
       const response = await axios.post(url, {}, { headers: getAuthHeaders({ 'Content-Type': 'application/json' }) });
       const payload = response?.data || {};
       const success = response.status === 200 && payload.message === 'success';
@@ -326,7 +343,7 @@ export const useJssipUtils = (state) => {
 
   const removeBreak = async () => {
     try {
-      await axios.post(`${window.location.origin}/user/removebreakuser:${username}`, {}, { headers: getAuthHeaders() });
+      await axios.post(`https://devapp.iotcom.io/user/removebreakuser:${username}`, {}, { headers: getAuthHeaders() });
       setSelectedBreak('Break');
       localStorage.removeItem('selectedBreak');
       Object.keys(localStorage).forEach((key) => {

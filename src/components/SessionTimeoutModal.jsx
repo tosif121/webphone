@@ -25,7 +25,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
 
   const performLogin = async (username, password) => {
     const { data: response } = await axios.post(
-      `${window.location.origin}/userlogin/${username}`,
+      `https://devapp.iotcom.io/userlogin/${username}`,
       { username, password },
       {
         headers: { 'Content-Type': 'application/json' },
@@ -94,7 +94,7 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
           // Restore agent ready state on backend
           try {
             await axios.post(
-              `${window.location.origin}/userready/${savedUsername}/Web`,
+              `https://devapp.iotcom.io/userready/${savedUsername}/Web`,
               {},
               { headers: { 'Content-Type': 'application/json' } },
             );
