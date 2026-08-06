@@ -159,102 +159,14 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
     }
   };
 
-  // ✅ Determine the issue type
-  const isPoorConnection = customMessage?.toLowerCase().includes('poor connection');
-  const isNotReady = customMessage?.toLowerCase().includes('not in a ready state');
-  const isForceLogout = userLogin === true;
+  useEffect(() => {
+    if (isOpen && isClient) {
+      handleReLogin(5);
+    }
+  }, [isOpen, isClient]);
 
-  // ✅ NEW: Check if error requires manual login
-  const requiresManualLogin =
-    error.includes('Please login manually') ||
-    error.includes('Invalid credentials') ||
-    error.includes('User not found') ||
-    error.includes('No saved credentials found');
-
-  // ✅ Select appropriate icon
-  const getIcon = () => {
-    if (isPoorConnection) return <WifiOff className="h-6 w-6 text-red-600" />;
-    if (isNotReady) return <UserX className="h-6 w-6 text-orange-600" />;
-    return <AlertCircle className="h-6 w-6 text-yellow-600" />;
-  };
-
-  // ✅ Select appropriate title
-  const getTitle = () => {
-    if (isForceLogout) return 'Session Expired';
-    if (isPoorConnection) return 'Connection Issue';
-    if (isNotReady) return 'Agent Not Ready';
-    return 'Session Expired';
-  };
-
-  return (
-    <AlertDialog open={isOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <div className="flex items-center space-x-2">
-            {getIcon()}
-            <AlertDialogTitle>{getTitle()}</AlertDialogTitle>
-          </div>
-          <AlertDialogDescription>
-            {customMessage ||
-              'Session timed out due to inactivity or no keep-alive response from server. Please re-login to continue.'}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* ✅ Show helpful tips based on error type */}
-        {!error && !isForceLogout && (
-          <>
-            {isPoorConnection && (
-              <Alert>
-                <AlertDescription>
-                  This may be due to network instability. Please check your internet connection and try re-connecting.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {isNotReady && (
-              <Alert>
-                <AlertDescription>
-                  Your agent status may have changed. Please re-login to restore your ready state.
-                </AlertDescription>
-              </Alert>
-            )}
-          </>
-        )}
-
-        <AlertDialogFooter>
-          {/* ✅ Show buttons based on scenario */}
-          {isForceLogout || requiresManualLogin ? (
-            /* Show only "Go to Login" button */
-            <Button onClick={handleGoToLogin} className="w-full">
-              Go to Login
-            </Button>
-          ) : (
-            /* Show both buttons */
-            <div className="flex gap-2 w-full">
-              {/* Show "Go to Login" as secondary option when there's an error */}
-              {error && (
-                <Button onClick={handleGoToLogin} variant="outline" className="flex-1">
-                  Go to Login
-                </Button>
-              )}
-
-              {/* Show "Re-Connect" button */}
-              <Button onClick={handleReLogin} disabled={isLoading || requiresManualLogin} className="flex-1">
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? 'Re-connecting...' : 'Re-Connect'}
-              </Button>
-            </div>
-          )}
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
+  // Hide modal dialog completely — auto-reconnect silently in background
+  return null;
 };
 
 export default SessionTimeoutModal;
