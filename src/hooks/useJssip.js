@@ -252,7 +252,7 @@ const useJssip = (isMobile = false) => {
   const pendingAnswerFcmRef = useRef(false);
   const fcmGraceTimeoutRef = useRef(null);
   const suppressReloadRef = useRef(false);
-  const recentlyRejectedNumbersRef = useRef({});
+  const recentlyRejectedSessionIdsRef = useRef({});
   const rejectIncomingCallRef = useRef(null);
   const lastInNotificationValueRef = useRef('');
 
@@ -1556,10 +1556,10 @@ const useJssip = (isMobile = false) => {
       fcmGraceTimeoutRef.current = null;
     }
     const remoteUser = session?.remote_identity?.uri?.user || incomingNumber || 'unknown';
-    if (remoteUser && remoteUser !== 'unknown') {
-      recentlyRejectedNumbersRef.current[remoteUser] = Date.now();
-    }
     const callId = session?.call_id || session?.id || 'unknown';
+    if (callId && callId !== 'unknown') {
+      recentlyRejectedSessionIdsRef.current[callId] = Date.now();
+    }
     console.log(
       `[CallGuard] Call MANUAL REJECTED by agent — remoteUser=${remoteUser} | callId=${callId} | releasing lock`,
     );
@@ -1908,23 +1908,23 @@ const useJssip = (isMobile = false) => {
             `[CallGuard] newRTCSession — new=${remoteUser}, dir=${session.direction}, totalSessions=${sessionIds.length}, activeLock=${!!activeCallRef.current}`,
           );
 
-          const isRecentlyRejected =
-            remoteUser &&
-            remoteUser !== 'unknown' &&
-            recentlyRejectedNumbersRef.current[remoteUser] &&
-            Date.now() - recentlyRejectedNumbersRef.current[remoteUser] < 15000;
+          const isRecentlyRejectedSession =
+            callId &&
+            callId !== 'unknown' &&
+            recentlyRejectedSessionIdsRef.current[callId] &&
+            Date.now() - recentlyRejectedSessionIdsRef.current[callId] < 15000;
 
-          // Guard: only one call at a time or agent in post-call disposition or recently rejected
+          // Guard: only one call at a time or agent in post-call disposition or recently rejected session
           // Primary: activeCallRef (reliable), Secondary: agentLifecycleRef (blocks during disposition), Tertiary: ua.sessions (JsSIP built-in)
           if (
             activeCallRef.current ||
             isManualDialingRef.current ||
             agentLifecycleRef.current === 'disposition' ||
             sessionIds.length > 1 ||
-            isRecentlyRejected
+            isRecentlyRejectedSession
           ) {
             console.log(
-              `[CallGuard] AUTO-REJECTING incoming from ${remoteUser} — ${isRecentlyRejected ? 'recently rejected by agent' : isManualDialingRef.current ? 'manual dialing in progress' : 'already on call or in disposition'} (activeLock=${!!activeCallRef.current}, lifecycle=${agentLifecycleRef.current}, ua.sessions=${sessionIds.length}, sessionId=${callId})`,
+              `[CallGuard] AUTO-REJECTING incoming from ${remoteUser} — ${isRecentlyRejectedSession ? 'duplicate rejected session' : isManualDialingRef.current ? 'manual dialing in progress' : 'already on call or in disposition'} (activeLock=${!!activeCallRef.current}, lifecycle=${agentLifecycleRef.current}, ua.sessions=${sessionIds.length}, sessionId=${callId})`,
             );
             session.isAutoRejected = true;
             session.isAcceptedCall = false;
