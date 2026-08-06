@@ -253,6 +253,7 @@ const useJssip = (isMobile = false) => {
   const fcmGraceTimeoutRef = useRef(null);
   const suppressReloadRef = useRef(false);
   const recentlyRejectedSessionIdsRef = useRef({});
+  const recentlyRejectedNumbersRef = useRef({});
   const rejectIncomingCallRef = useRef(null);
   const lastInNotificationValueRef = useRef('');
 
@@ -1537,10 +1538,23 @@ const useJssip = (isMobile = false) => {
   const rejectIncomingCall = () => {
     rejectIncomingCallRef.current = rejectIncomingCall;
     const session = incomingSessionRef.current;
+
+    // Instant UI dismissal & audio silence
+    setIsIncomingRinging(false);
+    isIncomingRingingRef.current = false;
+    setIncomingSession(null);
+    incomingSessionRef.current = null;
+    setStatus('start');
+    statusRef.current = 'start';
+    setCallType('');
+    setAgentLifecycle('idle');
+    agentLifecycleRef.current = 'idle';
+
     stopRingtone();
     pendingFcmCallRef.current = null;
     pendingAnswerFcmRef.current = false;
     setCallerName('');
+
     if (typeof window !== 'undefined') {
       window.pendingIncomingCall = null;
       if (window.FlutterFCMBridge) {
@@ -1560,6 +1574,11 @@ const useJssip = (isMobile = false) => {
     if (callId && callId !== 'unknown') {
       recentlyRejectedSessionIdsRef.current[callId] = Date.now();
     }
+    if (remoteUser && remoteUser !== 'unknown') {
+      recentlyRejectedNumbersRef.current[remoteUser] = Date.now();
+      const rawNumber = remoteUser.replace(/^\+91/, '').replace(/^\+/, '');
+      recentlyRejectedNumbersRef.current[rawNumber] = Date.now();
+    }
     console.log(
       `[CallGuard] Call MANUAL REJECTED by agent — remoteUser=${remoteUser} | callId=${callId} | releasing lock`,
     );
@@ -1571,13 +1590,6 @@ const useJssip = (isMobile = false) => {
       } catch (_) {}
     }
     void clearRejectedCall(remoteUser);
-    setIncomingSession(null);
-    setIsIncomingRinging(false);
-    setStatus('start');
-    statusRef.current = 'start';
-    setCallType('');
-    setAgentLifecycle('idle');
-    agentLifecycleRef.current = 'idle';
 
     // Update history as rejected
     setHistory((prev) => [
@@ -1873,7 +1885,6 @@ const useJssip = (isMobile = false) => {
           if (typeof document === 'undefined' || !document.hidden) {
             if (Date.now() - lastConnectionToastAtRef.current > 15000) {
               lastConnectionToastAtRef.current = Date.now();
-              toast('Re-registering connection...', { icon: '🔄' });
             }
           }
         });
@@ -1915,6 +1926,14 @@ const useJssip = (isMobile = false) => {
             recentlyRejectedSessionIdsRef.current[callId] &&
             Date.now() - recentlyRejectedSessionIdsRef.current[callId] < 15000;
 
+          const isRecentlyRejectedNumber =
+            remoteUser &&
+            remoteUser !== 'unknown' &&
+            recentlyRejectedNumbersRef.current[remoteUser] &&
+            Date.now() - recentlyRejectedNumbersRef.current[remoteUser] < 5000;
+
+          const isRecentlyRejected = isRecentlyRejectedSession || isRecentlyRejectedNumber;
+
           // Guard: only one call at a time or agent in post-call disposition or recently rejected session
           // Primary: activeCallRef (reliable), Secondary: agentLifecycleRef (blocks during disposition), Tertiary: ua.sessions (JsSIP built-in)
           if (
@@ -1922,10 +1941,10 @@ const useJssip = (isMobile = false) => {
             isManualDialingRef.current ||
             agentLifecycleRef.current === 'disposition' ||
             sessionIds.length > 1 ||
-            isRecentlyRejectedSession
+            isRecentlyRejected
           ) {
             console.log(
-              `[CallGuard] AUTO-REJECTING incoming from ${remoteUser} — ${isRecentlyRejectedSession ? 'duplicate rejected session' : isManualDialingRef.current ? 'manual dialing in progress' : 'already on call or in disposition'} (activeLock=${!!activeCallRef.current}, lifecycle=${agentLifecycleRef.current}, ua.sessions=${sessionIds.length}, sessionId=${callId})`,
+              `[CallGuard] AUTO-REJECTING incoming from ${remoteUser} — ${isRecentlyRejected ? 'duplicate/recently rejected call' : isManualDialingRef.current ? 'manual dialing in progress' : 'already on call or in disposition'} (activeLock=${!!activeCallRef.current}, lifecycle=${agentLifecycleRef.current}, ua.sessions=${sessionIds.length}, sessionId=${callId})`,
             );
             session.isAutoRejected = true;
             session.isAcceptedCall = false;
@@ -2743,9 +2762,9 @@ const useJssip = (isMobile = false) => {
     // A pending call may be set synchronously by Flutter in onPageFinished
     // before React mounted this listener, so also read the property.
     let preMountTimer = null;
-    if (window.pendingIncomingCall && window.pendingIncomingCall.number) {
+    if (window.pendingIncomingCall && window.pendingIncomingCall.number && !pendingFcmCallRef.current) {
       preMountTimer = setTimeout(() => {
-        if (window.pendingIncomingCall && window.pendingIncomingCall.number) {
+        if (window.pendingIncomingCall && window.pendingIncomingCall.number && !pendingFcmCallRef.current) {
           handleFcmIncomingCall({ detail: window.pendingIncomingCall });
         }
       }, 500);

@@ -63,8 +63,10 @@ export const useJssipUtils = (state) => {
       navigator.serviceWorker.addEventListener('message', handleSWMessage);
       return () => navigator.serviceWorker.removeEventListener('message', handleSWMessage);
     }
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+    if (typeof window !== 'undefined' && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      try {
+        Notification.requestPermission().catch(() => {});
+      } catch (_) {}
     }
   }, []);
 
@@ -217,12 +219,13 @@ export const useJssipUtils = (state) => {
     }
 
     const showViaSW = () => {
-      if (!('serviceWorker' in navigator) || !('Notification' in window)) return false;
+      if (!('serviceWorker' in navigator) || typeof window === 'undefined' || typeof Notification === 'undefined')
+        return false;
       if (Notification.permission !== 'granted') return false;
 
       navigator.serviceWorker.ready
         .then((registration) => {
-          if (Notification.permission === 'granted') {
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
             return registration
               .showNotification('Incoming Call', {
                 body: `Incoming call from ${number}`,
@@ -243,7 +246,7 @@ export const useJssipUtils = (state) => {
     };
 
     const createFallbackNotification = (num) => {
-      if (!('Notification' in window)) return;
+      if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
       if (Notification.permission === 'granted') {
         createRegularNotification(num);
       } else if (Notification.permission !== 'denied') {
@@ -271,7 +274,8 @@ export const useJssipUtils = (state) => {
   }
 
   function createRegularNotification(displayNumber) {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    if (typeof window === 'undefined' || typeof Notification === 'undefined' || Notification.permission !== 'granted')
+      return;
 
     const notifiOptions = {
       body: `Incoming call from ${displayNumber}`,
@@ -412,7 +416,7 @@ export const useJssipUtils = (state) => {
 
   // Simple test function for notifications (can be called from console)
   const testNotification = () => {
-    if ('Notification' in window) {
+    if (typeof window !== 'undefined' && typeof Notification !== 'undefined') {
       if (Notification.permission === 'granted') {
         try {
           const testNotif = new Notification('Test Notification', {
@@ -436,11 +440,13 @@ export const useJssipUtils = (state) => {
           console.error('Error creating test notification:', error);
         }
       } else if (Notification.permission === 'default') {
-        Notification.requestPermission().then((permission) => {
-          if (permission === 'granted') {
-            testNotification(); // Retry after permission granted
-          }
-        });
+        try {
+          Notification.requestPermission().then((permission) => {
+            if (permission === 'granted') {
+              testNotification(); // Retry after permission granted
+            }
+          });
+        } catch (_) {}
       } else {
         console.error('Notification permission denied');
       }
