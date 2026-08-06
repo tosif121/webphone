@@ -194,28 +194,34 @@ export const useJssipUtils = (state) => {
     if (!shouldFireRingNotification(number)) return;
 
     if ('vibrate' in navigator) {
-      navigator.vibrate([200, 100, 200, 100, 500]);
+      try {
+        navigator.vibrate([200, 100, 200, 100, 500]);
+      } catch (_) {}
     }
 
     const showViaSW = () => {
-      if (!('serviceWorker' in navigator)) return false;
+      if (!('serviceWorker' in navigator) || !('Notification' in window)) return false;
+      if (Notification.permission !== 'granted') return false;
+
       navigator.serviceWorker.ready
         .then((registration) => {
-          registration.showNotification('Incoming Call', {
-            body: `Incoming call from ${number}`,
-            icon: withWebphoneBasePath('/badge.png'),
-            badge: withWebphoneBasePath('/badge.png'),
-            vibrate: [200, 100, 200],
-            tag: 'incoming-call',
-            renotify: true,
-            requireInteraction: true,
-            silent: false,
-            data: { number },
-          });
+          if (Notification.permission === 'granted') {
+            return registration
+              .showNotification('Incoming Call', {
+                body: `Incoming call from ${number}`,
+                icon: withWebphoneBasePath('/badge.png'),
+                badge: withWebphoneBasePath('/badge.png'),
+                vibrate: [200, 100, 200],
+                tag: 'incoming-call',
+                renotify: true,
+                requireInteraction: true,
+                silent: false,
+                data: { number },
+              })
+              .catch(() => {});
+          }
         })
-        .catch(() => {
-          createFallbackNotification(number);
-        });
+        .catch(() => {});
       return true;
     };
 
@@ -224,11 +230,15 @@ export const useJssipUtils = (state) => {
       if (Notification.permission === 'granted') {
         createRegularNotification(num);
       } else if (Notification.permission !== 'denied') {
-        Notification.requestPermission().then((permission) => {
-          if (permission === 'granted') {
-            createRegularNotification(num);
-          }
-        });
+        try {
+          Notification.requestPermission()
+            .then((permission) => {
+              if (permission === 'granted') {
+                createRegularNotification(num);
+              }
+            })
+            .catch(() => {});
+        } catch (_) {}
       }
     };
 
@@ -244,6 +254,8 @@ export const useJssipUtils = (state) => {
   }
 
   function createRegularNotification(displayNumber) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
     const notifiOptions = {
       body: `Incoming call from ${displayNumber}`,
       icon: withWebphoneBasePath('/badge.png'),
