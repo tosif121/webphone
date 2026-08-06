@@ -1600,7 +1600,6 @@ const useJssip = (isMobile = false) => {
     // background, so the resume handlers reconnect on return to the foreground.
     let reconnectInFlight = false;
     const scheduleUaReconnect = () => {
-      if (typeof document !== 'undefined' && document.hidden) return;
       if (reconnectInFlight) return;
       const currentUa = uaRef.current;
       if (!currentUa) return;
@@ -1623,8 +1622,8 @@ const useJssip = (isMobile = false) => {
         }
         window.setTimeout(() => {
           reconnectInFlight = false;
-        }, 5000);
-      }, 1000);
+        }, 3000);
+      }, 500);
     };
 
     const initializeJsSIP = () => {
@@ -1655,6 +1654,10 @@ const useJssip = (isMobile = false) => {
         var configuration = {
           sockets: [socket],
           session_timers: false,
+          register: true,
+          register_expires: 600,
+          connection_recovery_min_interval: 2,
+          connection_recovery_max_interval: 10,
           uri: `${username.replace('@', '-')}@${origin}:8089`,
           password: password,
         };
@@ -1877,9 +1880,7 @@ const useJssip = (isMobile = false) => {
 
         ua.on('unregistered', (data) => {
           console.warn('[JsSIP] Unregistered from SIP server:', data?.cause || 'unknown');
-          if (typeof document === 'undefined' || !document.hidden) {
-            scheduleUaReconnect();
-          }
+          scheduleUaReconnect();
         });
 
         ua.on('stopped', () => {
