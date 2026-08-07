@@ -24,8 +24,10 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
   }, []);
 
   const performLogin = async (username, password) => {
+    const apiOrigin =
+      typeof window !== 'undefined' && window.location.origin ? window.location.origin : '${window.location.origin}';
     const { data: response } = await axios.post(
-      `${window.location.origin}/userlogin/${username}`,
+      `${apiOrigin}/userlogin/${username}`,
       { username, password },
       {
         headers: { 'Content-Type': 'application/json' },
@@ -33,8 +35,8 @@ const SessionTimeoutModal = ({ isOpen, onClose, onLoginSuccess, userLogin, custo
       },
     );
 
-    if (!(response && (response.success || response.token || response.message === 'Login successful'))) {
-      throw new Error('Invalid response from server');
+    if (!response || response.success === false) {
+      throw new Error(response?.message || 'Login failed');
     }
     return response;
   };
