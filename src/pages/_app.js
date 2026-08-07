@@ -99,7 +99,7 @@ export default function App({ Component, pageProps }) {
               </JssipProvider>
             </HistoryProvider>
           )}
-          <MobileLogViewer />
+          {/* <MobileLogViewer /> */}
         </ThemeProvider>
       </main>
     </ErrorBoundary>
