@@ -469,6 +469,14 @@ const useJssip = (isMobile = false) => {
     pause();
     setStatus('start');
     setIsCallended(true);
+    setIsIncomingRinging(false);
+    isIncomingRingingRef.current = false;
+    setIncomingSession(null);
+    incomingSessionRef.current = null;
+    if (typeof window !== 'undefined') {
+      window.pendingIncomingCall = null;
+    }
+    stopRingtone();
     setAgentLifecycle('disposition');
     agentLifecycleRef.current = 'disposition';
     setConferenceNumber('');
@@ -629,9 +637,33 @@ const useJssip = (isMobile = false) => {
   );
 
   const clearRejectedCall = useCallback(
-    async (callerNumber) => {
+    async (callerNumber, explicitChannelId = null) => {
+      // 1. Try hanging up directly by channelId via /hangupChannel API
+      const targetChannelId =
+        explicitChannelId ||
+        userCall?.channelID ||
+        userCall?.channelIDstring ||
+        currentCallData?.channelID ||
+        currentCallData?.channelIDstring;
+
+      if (targetChannelId) {
+        try {
+          console.log(`[CallGuard] Requesting /hangupChannel for channelId: ${targetChannelId}...`);
+          const response = await axios.post(
+            `${window.location.origin}/hangupChannel`,
+            { channelId: targetChannelId },
+            {
+              headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+            },
+          );
+          console.log(`[CallGuard] /hangupChannel response:`, response.data);
+        } catch (hErr) {
+          console.error('[CallGuard] /hangupChannel failed:', hErr?.response?.data || hErr?.message || hErr);
+        }
+      }
+
+      // 2. Also execute clearRejectedCallFromAgent with caller number variants
       if (!callerNumber || callerNumber === 'unknown') {
-        console.warn('[CallGuard] Skipping clearRejectedCall — invalid caller number');
         return;
       }
       const rawNumber = String(callerNumber).replace(/^\+91/, '').replace(/^\+/, '');
@@ -656,7 +688,7 @@ const useJssip = (isMobile = false) => {
         }
       }
     },
-    [getAuthHeaders],
+    [currentCallData, getAuthHeaders, userCall],
   );
 
   useEffect(() => {
@@ -1592,7 +1624,7 @@ const useJssip = (isMobile = false) => {
 
     // 1. Clear call from Asterisk queue FIRST
     try {
-      await clearRejectedCall(remoteUser);
+      await clearRejectedCall(remoteUser, callId);
     } catch (_) {}
 
     // Update history as rejected
@@ -1999,8 +2031,38 @@ const useJssip = (isMobile = false) => {
               console.log(`[CallGuard] Ignored failed from auto-rejected session (${remoteUser})`);
               return;
             }
+
+            const isAppBackgrounded = typeof document !== 'undefined' && (document.hidden || !document.hasFocus());
+            const cause = failData?.cause || 'unknown';
+            const origin = failData?.origin || 'unknown';
+
+            // If caller actually hung up (remote cancel/hangup), clear pending call completely so UI closes
+            if (origin === 'remote') {
+              console.log(`[CallGuard] Caller hung up remotely (${remoteUser}) — clearing pending incoming call`);
+              if (typeof window !== 'undefined') {
+                window.pendingIncomingCall = null;
+              }
+            }
+            // Only preserve pendingIncomingCall if socket dropped in background AND origin is NOT remote caller hangup
+            else if (
+              session.direction === 'incoming' &&
+              isAppBackgrounded &&
+              (cause === 'Connection Error' || cause === 'Canceled' || cause === 'Rejected')
+            ) {
+              console.warn(
+                `[CallGuard] Incoming session failed due to background socket drop (${remoteUser}) | cause=${cause} | preserving pendingIncomingCall for resume`,
+              );
+              if (typeof window !== 'undefined') {
+                window.pendingIncomingCall = {
+                  number: remoteUser,
+                  name: remoteUser,
+                  timestamp: Date.now(),
+                };
+              }
+            }
+
             console.log(
-              `[CallGuard] Session FAILED — releasing lock (${remoteUser}) | callId=${callId} | direction=${session.direction} | cause=${failData?.cause || 'unknown'} | origin=${failData?.origin || 'unknown'}`,
+              `[CallGuard] Session FAILED — releasing lock (${remoteUser}) | callId=${callId} | direction=${session.direction} | cause=${cause} | origin=${failData?.origin || 'unknown'}`,
             );
             logSessionEvent('failed', {
               sessionId: callId,

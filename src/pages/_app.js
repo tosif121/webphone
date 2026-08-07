@@ -7,7 +7,12 @@ import { Jost } from 'next/font/google';
 import { useRouter } from 'next/router';
 import { Toaster, toast } from 'react-hot-toast';
 import Layout from '@/components/layout/Layout';
+import dynamic from 'next/dynamic';
 import ErrorBoundary from '@/components/ErrorBoundary';
+
+const MobileLogViewer = dynamic(() => import('@/components/MobileLogViewer'), {
+  ssr: false,
+});
 import { logError, checkHydrationIssues } from '@/utils/debugUtils';
 
 if (typeof toast !== 'undefined' && toast.success) {
@@ -94,6 +99,7 @@ export default function App({ Component, pageProps }) {
               </JssipProvider>
             </HistoryProvider>
           )}
+          <MobileLogViewer />
         </ThemeProvider>
       </main>
     </ErrorBoundary>
